@@ -68,6 +68,8 @@
       --color-dental:      #EC4899;
       --color-realestate:  #0EA5E9;
       --color-unlisted:    #94A3B8;
+      --color-insurance:   #14B8A6;
+      --color-wholesale:   #84CC16;
       --font-display: 'Instrument Sans', sans-serif;
       --font-body:    'Inter', sans-serif;
     }
@@ -94,6 +96,8 @@
       --dental:      #EC4899;
       --realestate:  #0EA5E9;
       --unlisted:    #94A3B8;
+      --insurance:   #14B8A6;
+      --wholesale:   #84CC16;
     }
 
     html { scroll-behavior: smooth; }
@@ -276,146 +280,116 @@
     }
 
     /* ── Portal Cards ────────────────────────────────────────────────────── */
-    .portal-grid {
+    /* ── Intelligence Grid ───────────────────────────────────────────────────── */
+    .intel-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
     }
-    @media (max-width: 1024px) {
-      .portal-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 1024px) { .intel-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .intel-grid { grid-template-columns: 1fr; } }
+
+    .icard {
+      --cr: 148,163,184;
+      position: relative; height: 310px; overflow: hidden;
+      border-radius: 14px; border: 1px solid rgba(var(--cr), 0.14);
+      background: rgba(255,255,255,0.035);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      cursor: pointer;
+      transition: border-color 0.38s ease, box-shadow 0.38s ease, transform 0.3s ease;
     }
-    @media (max-width: 640px) {
-      .portal-grid { grid-template-columns: 1fr; }
+    .icard:hover, .icard.open {
+      border-color: rgba(var(--cr), 0.42);
+      box-shadow: 0 0 0 1px rgba(var(--cr), 0.18), 0 20px 52px rgba(var(--cr), 0.12), 0 0 40px rgba(var(--cr), 0.06);
+      transform: translateY(-3px);
+    }
+    .icard::after {
+      content: ''; position: absolute; bottom: 0; left: 12px; right: 12px;
+      height: 1.5px; border-radius: 1px; background: rgba(var(--cr), 1);
+      opacity: 0; transition: opacity 0.38s ease;
+    }
+    .icard:hover::after, .icard.open::after { opacity: 1; }
+
+    .card-grid {
+      position: absolute; inset: 0; border-radius: 14px;
+      background-image: linear-gradient(rgba(148,163,184,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.018) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none; z-index: 0;
     }
 
-    .portal-card {
-      display: flex; flex-direction: column;
-      padding: 36px; position: relative; overflow: hidden;
-      min-height: 500px;
-      text-decoration: none; color: inherit;
+    .card-face {
+      position: absolute; inset: 0; padding: 18px 20px 16px;
+      display: flex; flex-direction: column; z-index: 1;
+      transition: transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.32s ease;
+      will-change: transform, opacity;
+    }
+    .icard:hover .card-face, .icard.open .card-face { transform: translateY(-18px); opacity: 0; pointer-events: none; }
+
+    .face-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .sys-tag { font-family: 'Courier New', monospace; font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.16em; text-transform: uppercase; }
+    .status-micro { display: flex; align-items: center; gap: 5px; font-family: 'Courier New', monospace; font-size: 0.58rem; color: rgba(var(--cr), 0.85); text-transform: uppercase; letter-spacing: 0.1em; }
+    .s-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(var(--cr), 1); animation: sdot 2.5s ease infinite; }
+    @keyframes sdot { 0%,100%{opacity:1;}50%{opacity:0.35;} }
+
+    .card-icon {
+      width: 46px; height: 46px; border-radius: 10px;
+      background: rgba(var(--cr), 0.1); border: 1px solid rgba(var(--cr), 0.2);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
       transition: transform 0.35s ease, box-shadow 0.35s ease;
     }
-    .portal-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    .icard:hover .card-icon { transform: scale(1.06); box-shadow: 0 0 18px rgba(var(--cr), 0.25); }
+
+    .card-category { text-align: center; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(var(--cr), 1); margin-bottom: 5px; }
+    .card-name { font-family: 'Instrument Sans', sans-serif; font-size: 1.15rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; text-align: center; color: var(--text-primary); margin-bottom: 10px; }
+    .card-metric { margin-top: auto; text-align: center; }
+    .metric-val { font-family: 'Instrument Sans', sans-serif; font-size: 1.85rem; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: rgba(var(--cr), 1); }
+    .metric-lbl { font-size: 0.63rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; line-height: 1.35; }
+    .hover-hint { font-family: 'Courier New', monospace; font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.12em; text-align: center; margin-top: 8px; opacity: 0.55; text-transform: uppercase; }
+
+    .card-reveal {
+      position: absolute; inset: 0; padding: 18px 20px 16px;
+      display: flex; flex-direction: column; z-index: 1;
+      background: rgba(8,8,8,0.93); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      transform: translateY(100%); opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.32s ease;
+      will-change: transform, opacity;
     }
+    .icard:hover .card-reveal, .icard.open .card-reveal { transform: translateY(0); opacity: 1; }
 
-    /* per-industry card border glow on hover */
-    .portal-card.legal   { border-color: rgba(96,165,250,0.12); }
-    .portal-card.legal:hover   { border-color: rgba(96,165,250,0.35); box-shadow: 0 24px 64px rgba(96,165,250,0.08), 0 0 0 1px rgba(96,165,250,0.2); }
+    .reveal-pain { font-size: 0.67rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-bottom: 8px; flex-shrink: 0; border-left: 2px solid rgba(var(--cr), 0.65); padding-left: 8px; }
+    .reveal-caps { list-style: none; margin: 0 0 9px; display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+    .reveal-caps li { font-size: 0.69rem; color: var(--text-secondary); padding-left: 14px; position: relative; line-height: 1.35; }
+    .reveal-caps li::before { content: '✓'; position: absolute; left: 0; top: 0.05em; color: rgba(var(--cr), 0.9); font-size: 0.63rem; }
 
-    .portal-card.roofing { border-color: rgba(245,158,11,0.12); }
-    .portal-card.roofing:hover { border-color: rgba(245,158,11,0.35); box-shadow: 0 24px 64px rgba(245,158,11,0.08), 0 0 0 1px rgba(245,158,11,0.2); }
+    .reveal-roster { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .roster-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; }
+    .roster-name { font-size: 0.73rem; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+    .badge-on { font-family: 'Courier New', monospace; font-size: 0.57rem; color: #27c93f; background: rgba(39,201,63,0.1); padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+    .badge-sb { font-family: 'Courier New', monospace; font-size: 0.57rem; color: rgba(var(--cr), 0.9); background: rgba(var(--cr), 0.1); padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
 
-    .portal-card.saas    { border-color: rgba(99,102,241,0.12); }
-    .portal-card.saas:hover    { border-color: rgba(99,102,241,0.35); box-shadow: 0 24px 64px rgba(99,102,241,0.08), 0 0 0 1px rgba(99,102,241,0.2); }
+    .reveal-deploy { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(148,163,184,0.09); text-decoration: none; font-family: 'Instrument Sans', sans-serif; font-size: 0.8rem; font-weight: 600; color: rgba(var(--cr), 1); transition: letter-spacing 0.3s ease; flex-shrink: 0; }
+    .reveal-deploy:hover { letter-spacing: 0.03em; }
+    .deploy-arr { width: 20px; height: 20px; border-radius: 50%; background: rgba(var(--cr), 0.15); display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; color: rgba(var(--cr), 1); transition: transform 0.25s ease; }
+    .reveal-deploy:hover .deploy-arr { transform: translateX(3px); }
 
-    /* card internal gradient orb */
-    .card-orb {
-      position: absolute; border-radius: 50%;
-      pointer-events: none; filter: blur(50px);
-      width: 260px; height: 260px;
-      top: -80px; right: -80px;
+    .ic-legal      { --cr: 60,165,250; }
+    .ic-roofing    { --cr: 245,158,11; }
+    .ic-saas       { --cr: 99,102,241; }
+    .ic-dental     { --cr: 236,72,153; }
+    .ic-realestate { --cr: 14,165,233; }
+    .ic-insurance  { --cr: 20,184,166; }
+    .ic-wholesale  { --cr: 132,204,22; }
+    .ic-custom     { --cr: 148,163,184; }
+
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 5px; }
+    .itag { font-size: 0.62rem; color: var(--text-muted); background: rgba(148,163,184,0.07); border: 1px solid rgba(148,163,184,0.13); padding: 3px 8px; border-radius: 12px; }
+
+    @media (hover: none) {
+      .icard { height: auto; min-height: 240px; }
+      .card-face { position: relative; inset: auto; opacity: 1 !important; transform: none !important; pointer-events: auto !important; padding-bottom: 0; }
+      .hover-hint { display: none; }
+      .card-reveal { position: relative; inset: auto; background: transparent; transform: none !important; opacity: 1 !important; border-top: 1px solid rgba(148,163,184,0.1); padding-top: 14px; padding-bottom: 16px; }
     }
-    .legal   .card-orb { background: radial-gradient(circle, rgba(96,165,250,0.1) 0%, transparent 70%); }
-    .roofing .card-orb { background: radial-gradient(circle, rgba(245,158,11,0.1) 0%, transparent 70%); }
-    .saas    .card-orb { background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%); }
-
-    .system-id {
-      font-family: 'Courier New', monospace;
-      font-size: 0.7rem; color: var(--text-muted);
-      letter-spacing: 0.12em; text-transform: uppercase;
-    }
-
-    .industry-icon {
-      width: 52px; height: 52px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 24px; flex-shrink: 0;
-    }
-    .legal   .industry-icon { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); }
-    .roofing .industry-icon { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
-    .saas    .industry-icon { background: rgba(99,102,241,0.1);  border: 1px solid rgba(99,102,241,0.2); }
-
-    .card-tag {
-      font-size: 0.68rem; font-weight: 600;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      margin-bottom: 10px; display: block;
-    }
-    .legal   .card-tag { color: var(--legal); }
-    .roofing .card-tag { color: var(--roofing); }
-    .saas    .card-tag { color: var(--saas); }
-
-    .card-title {
-      font-family: 'Instrument Sans', sans-serif;
-      font-size: 1.65rem; font-weight: 600;
-      line-height: 1.1; letter-spacing: -0.02em;
-      margin-bottom: 10px;
-    }
-
-    .card-focus {
-      font-size: 0.875rem; color: var(--text-muted);
-      margin-bottom: 28px; line-height: 1.5;
-    }
-
-    .feature-list {
-      list-style: none; flex: 1;
-      display: flex; flex-direction: column; gap: 10px;
-      margin-bottom: 32px;
-    }
-    .feature-list li {
-      font-size: 0.875rem; color: var(--text-secondary);
-      line-height: 1.5;
-      display: flex; align-items: flex-start; gap: 10px;
-    }
-    .feature-list li::before {
-      content: '→';
-      flex-shrink: 0; margin-top: 1px;
-    }
-    .legal   .feature-list li::before { color: var(--legal); }
-    .roofing .feature-list li::before { color: var(--roofing); }
-    .saas    .feature-list li::before { color: var(--saas); }
-
-    .deploy-link {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-family: 'Instrument Sans', sans-serif;
-      font-size: 0.9rem; font-weight: 600;
-      text-decoration: none; letter-spacing: -0.01em;
-      padding: 12px 0;
-      border-top: 1px solid var(--glass-border);
-      transition: gap 0.3s ease, letter-spacing 0.4s ease;
-    }
-    .legal   .deploy-link { color: var(--legal); }
-    .roofing .deploy-link { color: var(--roofing); }
-    .saas    .deploy-link { color: var(--saas); }
-
-    .portal-card:hover .deploy-link { gap: 14px; letter-spacing: 0.02em; }
-
-    .deploy-arrow {
-      width: 20px; height: 20px; border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: transform 0.3s ease;
-    }
-    .legal   .deploy-arrow { background: rgba(96,165,250,0.15); }
-    .roofing .deploy-arrow { background: rgba(245,158,11,0.15); }
-    .saas    .deploy-arrow { background: rgba(99,102,241,0.15); }
-    .portal-card:hover .deploy-arrow { transform: translateX(4px); }
-
-    /* status pill */
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
-      padding: 4px 10px; border-radius: 99px;
-    }
-    .status-dot { width: 5px; height: 5px; border-radius: 50%; animation: pulse 2.5s ease infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-
-    .legal   .status-pill { background: rgba(96,165,250,0.08); color: var(--legal); border: 1px solid rgba(96,165,250,0.18); }
-    .legal   .status-dot  { background: var(--legal); }
-    .roofing .status-pill { background: rgba(245,158,11,0.08); color: var(--roofing); border: 1px solid rgba(245,158,11,0.18); }
-    .roofing .status-dot  { background: var(--roofing); }
-    .saas    .status-pill { background: rgba(99,102,241,0.08); color: var(--saas); border: 1px solid rgba(99,102,241,0.18); }
-    .saas    .status-dot  { background: var(--saas); }
 
     /* ── Why 369 pillars ─────────────────────────────────────────────────── */
     .pillar-grid {
@@ -464,44 +438,8 @@
 
     section { position: relative; z-index: 1; }
 
-    /* ── New industry card accents ───────────────────────────────────────── */
-    .portal-card.dental      { border-color: rgba(236,72,153,0.12); }
-    .portal-card.dental:hover { border-color: rgba(236,72,153,0.35); box-shadow: 0 24px 64px rgba(236,72,153,0.08), 0 0 0 1px rgba(236,72,153,0.2); }
-    .portal-card.realestate  { border-color: rgba(14,165,233,0.12); }
-    .portal-card.realestate:hover { border-color: rgba(14,165,233,0.35); box-shadow: 0 24px 64px rgba(14,165,233,0.08), 0 0 0 1px rgba(14,165,233,0.2); }
-    .portal-card.unlisted    { border-color: rgba(148,163,184,0.12); }
-    .portal-card.unlisted:hover { border-color: rgba(148,163,184,0.35); box-shadow: 0 24px 64px rgba(148,163,184,0.08), 0 0 0 1px rgba(148,163,184,0.2); }
-
-    .dental     .card-orb { background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%); }
-    .realestate .card-orb { background: radial-gradient(circle, rgba(14,165,233,0.1) 0%, transparent 70%); }
-    .unlisted   .card-orb { background: radial-gradient(circle, rgba(148,163,184,0.07) 0%, transparent 70%); }
-
-    .dental     .industry-icon { background: rgba(236,72,153,0.1);  border: 1px solid rgba(236,72,153,0.2); }
-    .realestate .industry-icon { background: rgba(14,165,233,0.1);  border: 1px solid rgba(14,165,233,0.2); }
-    .unlisted   .industry-icon { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); }
-
-    .dental     .card-tag { color: var(--dental); }
-    .realestate .card-tag { color: var(--realestate); }
-    .unlisted   .card-tag { color: var(--unlisted); }
-
-    .dental     .feature-list li::before { color: var(--dental); }
-    .realestate .feature-list li::before { color: var(--realestate); }
-    .unlisted   .feature-list li::before { color: var(--unlisted); }
-
-    .dental     .deploy-link { color: var(--dental); }
-    .realestate .deploy-link { color: var(--realestate); }
-    .unlisted   .deploy-link { color: var(--unlisted); }
-
-    .dental     .deploy-arrow { background: rgba(236,72,153,0.15); }
-    .realestate .deploy-arrow { background: rgba(14,165,233,0.15); }
-    .unlisted   .deploy-arrow { background: rgba(148,163,184,0.15); }
-
-    .dental     .status-pill { background: rgba(236,72,153,0.08);  color: var(--dental);      border: 1px solid rgba(236,72,153,0.18); }
-    .dental     .status-dot  { background: var(--dental); }
-    .realestate .status-pill { background: rgba(14,165,233,0.08);  color: var(--realestate);  border: 1px solid rgba(14,165,233,0.18); }
-    .realestate .status-dot  { background: var(--realestate); }
-    .unlisted   .status-pill { background: rgba(148,163,184,0.08); color: var(--unlisted);    border: 1px solid rgba(148,163,184,0.18); }
-    .unlisted   .status-dot  { background: var(--unlisted); }
+    .audit-card.insurance:hover { border-color: rgba(20,184,166,0.45);  box-shadow: 0 8px 28px rgba(20,184,166,0.18); }
+    .audit-card.wholesale:hover { border-color: rgba(132,204,22,0.45);  box-shadow: 0 8px 28px rgba(132,204,22,0.18); }
 
     /* ── Industry tag pills (Not Listed card SEO content) ────────────────── */
     .industry-tag {
@@ -637,6 +575,8 @@
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">SaaS Companies</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Dental Practices</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Real Estate Agencies</a>
+            <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Insurance Agencies</a>
+            <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Wholesale / Distribution</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Your Industry →</a>
           </div>
         </div>
@@ -644,7 +584,7 @@
         <!-- Metric strip -->
         <div class="reveal d4" style="display:flex; gap:0; margin-top:72px; flex-wrap:wrap;">
           <div style="padding-right:36px; border-right:1px solid var(--glass-border);">
-            <div class="font-display" style="font-size:2rem; font-weight:600; color:var(--gold); line-height:1; letter-spacing:-0.02em;">6</div>
+            <div class="font-display" style="font-size:2rem; font-weight:600; color:var(--gold); line-height:1; letter-spacing:-0.02em;">8</div>
             <div style="color:var(--text-muted); font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:5px;">Agentic Systems</div>
           </div>
           <div style="padding:0 36px; border-right:1px solid var(--glass-border);">
@@ -676,253 +616,262 @@
           <h2 id="catalog-heading" class="font-display" style="font-size:clamp(1.8rem, 4vw, 2.8rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">
             Choose Your System
           </h2>
-          <p style="color:var(--text-secondary); font-size:1rem; max-width:500px; margin:0 auto; line-height:1.65;">Each AOS is purpose-built for its industry. Not adapted. Not templated. Architected from the ground up for your exact operational context.</p>
+          <p style="color:var(--text-secondary); font-size:1rem; max-width:500px; margin:0 auto; line-height:1.65;">Eight precision-built Agentic Operating Systems. Hover any module to reveal the specialist roster and the revenue leak it eliminates.</p>
         </div>
 
-        <div class="portal-grid">
+        <div class="intel-grid">
 
-          <!-- ── Card 1: Legal Excellence AOS ── -->
-          <article class="glass portal-card legal reveal d1" aria-labelledby="legal-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9 21v-6h6v6" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9 11h6" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+          <!-- 1 · LEGAL -->
+          <div class="icard ic-legal" role="button" tabindex="0" aria-label="Legal Excellence AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_01 · LEGAL</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                System Ready
-              </span>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="rgba(60,165,250,1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21v-6h6v6" stroke="rgba(60,165,250,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M9 11h6" stroke="rgba(60,165,250,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">Legal Sector</span>
+              <span class="card-name">Legal Excellence AOS</span>
+              <div class="card-metric"><div class="metric-val">40+</div><div class="metric-lbl">Billable Hours Recovered / Wk</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
             </div>
-
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">Legal Sector · System_01</span>
-              <h3 id="legal-title" class="card-title">Legal Excellence<br>AOS</h3>
-              <p class="card-focus">Billable Hour Recovery &amp; AI Case Drafting</p>
-
-              <ul class="feature-list" aria-label="Legal AOS features">
+            <div class="card-reveal">
+              <div class="reveal-pain">Admin hours eat billable time — consults missed, drafts delayed, leads going cold.</div>
+              <ul class="reveal-caps">
                 <li>Autonomous client intake &amp; conflict check</li>
                 <li>AI-drafted motions, letters &amp; correspondence</li>
-                <li>Instant lead response — never miss a consult</li>
-                <li>40+ billable hours reclaimed per week</li>
               </ul>
-            </div>
-
-            <a href="legal-automation/" class="deploy-link" aria-label="Deploy Legal Excellence AOS">
-              Deploy Legal System
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#60A5FA" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
-
-          <!-- ── Card 2: Speed-to-Lead AOS ── -->
-          <article class="glass portal-card roofing reveal d2" aria-labelledby="roofing-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 10.5L12 3l9 7.5" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M5 9v11h14V9" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 17l2-4-4-1 2-4" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Client Intake Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">AI Drafting Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Lead Response Specialist</span><span class="badge-sb">STANDBY</span></div>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                System Ready
-              </span>
+              <a href="legal-automation/" class="reveal-deploy">Deploy Legal System <span class="deploy-arr">→</span></a>
             </div>
+          </div>
 
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">Roofing Sector · System_02</span>
-              <h3 id="roofing-title" class="card-title">Speed-to-Lead<br>AOS</h3>
-              <p class="card-focus">Instant Storm-Response &amp; SMS Estimating</p>
-
-              <ul class="feature-list" aria-label="Roofing AOS features">
-                <li>Storm-alert triggers — outreach in &lt; 60 seconds</li>
+          <!-- 2 · ROOFING -->
+          <div class="icard ic-roofing" role="button" tabindex="0" aria-label="Speed-to-Lead AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_02 · ROOFING</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9v11h14V9" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M13 17l2-4-4-1 2-4" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">Roofing Sector</span>
+              <span class="card-name">Speed-to-Lead AOS</span>
+              <div class="card-metric"><div class="metric-val">&lt;60s</div><div class="metric-lbl">Storm Response Time</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">Storm leads go cold in 4 hours — competitors text back before you see the notification.</div>
+              <ul class="reveal-caps">
+                <li>Storm-alert triggers — outreach in &lt;60 seconds</li>
                 <li>Automated SMS estimate delivery &amp; follow-up</li>
-                <li>AI photo-to-scope damage assessment</li>
-                <li>Pipeline management — zero leads left behind</li>
               </ul>
-            </div>
-
-            <a href="roofing-leads/index.html" class="deploy-link" aria-label="Deploy Speed-to-Lead AOS">
-              Deploy Roofing System
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#F59E0B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
-
-          <!-- ── Card 3: Growth Engine AOS ── -->
-          <article class="glass portal-card saas reveal d3" aria-labelledby="saas-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 17l4-4 4 4 4-8 4 4" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="19" cy="13" r="2" stroke="#6366F1" stroke-width="1.5"/>
-                  <path d="M3 21h18" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Storm Alert Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">SMS Estimating Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Pipeline Manager</span><span class="badge-sb">STANDBY</span></div>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                System Ready
-              </span>
+              <a href="roofing-leads/" class="reveal-deploy">Deploy Roofing System <span class="deploy-arr">→</span></a>
             </div>
+          </div>
 
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">SaaS Sector · System_03</span>
-              <h3 id="saas-title" class="card-title">Growth Engine<br>AOS</h3>
-              <p class="card-focus">Autonomous SEO &amp; Content Sovereignty</p>
-
-              <ul class="feature-list" aria-label="SaaS AOS features">
-                <li>AI content engine — daily topical authority posts</li>
+          <!-- 3 · SAAS -->
+          <div class="icard ic-saas" role="button" tabindex="0" aria-label="Growth Engine AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_03 · SAAS</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 17l4-4 4 4 4-8 4 4" stroke="rgba(99,102,241,1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="13" r="2" stroke="rgba(99,102,241,1)" stroke-width="1.5"/><path d="M3 21h18" stroke="rgba(99,102,241,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">SaaS Sector</span>
+              <span class="card-name">Growth Engine AOS</span>
+              <div class="card-metric"><div class="metric-val">∞</div><div class="metric-lbl">Compounding SEO Authority</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">Competitors publish daily while your organic traffic flatlines and CAC climbs.</div>
+              <ul class="reveal-caps">
+                <li>Daily AI content — compounding authority</li>
                 <li>Autonomous keyword research &amp; on-page SEO</li>
-                <li>Competitor gap analysis on autopilot</li>
-                <li>Compounding organic traffic, zero manual effort</li>
               </ul>
-            </div>
-
-            <a href="saas-optimization/index.html" class="deploy-link" aria-label="Deploy Growth Engine AOS">
-              Deploy SaaS System
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#6366F1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
-
-          <!-- ── Card 4: Patient Revenue AOS (Dental) ── -->
-          <article class="glass portal-card dental reveal d4" aria-labelledby="dental-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 2c-2.5 0-5 1.8-5 4.5 0 1.8.4 3.2.9 5C8.5 14 9 16 9 18c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2 0-2 .5-4 1.1-6.5.5-1.8.9-3.2.9-5C17 3.8 14.5 2 12 2z" stroke="#EC4899" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9.5 6.5C9.5 5.1 10.6 4 12 4s2.5 1.1 2.5 2.5" stroke="#EC4899" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Content Engine Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">SEO Research Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Competitor Gap Specialist</span><span class="badge-sb">STANDBY</span></div>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                System Ready
-              </span>
+              <a href="saas-optimization/" class="reveal-deploy">Deploy SaaS System <span class="deploy-arr">→</span></a>
             </div>
+          </div>
 
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">Dental Sector · System_04</span>
-              <h3 id="dental-title" class="card-title">Patient Revenue<br>AOS</h3>
-              <p class="card-focus">No-Show Prevention &amp; Reactivation Automation</p>
-
-              <ul class="feature-list" aria-label="Dental AOS features">
+          <!-- 4 · DENTAL -->
+          <div class="icard ic-dental" role="button" tabindex="0" aria-label="Patient Revenue AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_04 · DENTAL</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 2c-2.5 0-5 1.8-5 4.5 0 1.8.4 3.2.9 5C8.5 14 9 16 9 18c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2 0-2 .5-4 1.1-6.5.5-1.8.9-3.2.9-5C17 3.8 14.5 2 12 2z" stroke="rgba(236,72,153,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 6.5C9.5 5.1 10.6 4 12 4s2.5 1.1 2.5 2.5" stroke="rgba(236,72,153,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">Dental Sector</span>
+              <span class="card-name">Patient Revenue AOS</span>
+              <div class="card-metric"><div class="metric-val">$18k</div><div class="metric-lbl">Monthly No-Show Recovery</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">15% of appointments no-show — every empty chair costs $200–$400 in lost production.</div>
+              <ul class="reveal-caps">
                 <li>Autonomous appointment reminders &amp; confirmations</li>
                 <li>Lapsed patient reactivation campaigns</li>
-                <li>AI-assisted insurance verification &amp; pre-auth</li>
-                <li>New patient intake &amp; treatment plan follow-up</li>
               </ul>
-            </div>
-
-            <a href="dental/" class="deploy-link" aria-label="Deploy Patient Revenue AOS">
-              Deploy Dental System
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#EC4899" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
-
-          <!-- ── Card 5: Pipeline Velocity AOS (Real Estate) ── -->
-          <article class="glass portal-card realestate reveal d5" aria-labelledby="realestate-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1v-9.5z" stroke="#0EA5E9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9 21v-8h6v8" stroke="#0EA5E9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="16" cy="8" r="2" stroke="#0EA5E9" stroke-width="1.5"/>
-                </svg>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Appointment Guardian</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Reactivation Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Intake Specialist</span><span class="badge-sb">STANDBY</span></div>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                System Ready
-              </span>
+              <a href="dental/" class="reveal-deploy">Deploy Dental System <span class="deploy-arr">→</span></a>
             </div>
+          </div>
 
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">Real Estate Sector · System_05</span>
-              <h3 id="realestate-title" class="card-title">Pipeline Velocity<br>AOS</h3>
-              <p class="card-focus">Speed-to-Lead Response &amp; Showing Automation</p>
-
-              <ul class="feature-list" aria-label="Real Estate AOS features">
-                <li>Portal lead response in &lt; 90 seconds — 24/7</li>
+          <!-- 5 · REAL ESTATE -->
+          <div class="icard ic-realestate" role="button" tabindex="0" aria-label="Pipeline Velocity AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_05 · RE</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1v-9.5z" stroke="rgba(14,165,233,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M9 21v-8h6v8" stroke="rgba(14,165,233,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="8" r="2" stroke="rgba(14,165,233,1)" stroke-width="1.5"/></svg>
+              </div>
+              <span class="card-category">Real Estate Sector</span>
+              <span class="card-name">Pipeline Velocity AOS</span>
+              <div class="card-metric"><div class="metric-val">&lt;90s</div><div class="metric-lbl">Lead Response Time, 24/7</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">78% of buyers choose the first agent to respond — most agents reply in hours, not seconds.</div>
+              <ul class="reveal-caps">
+                <li>Portal lead response in &lt;90 seconds — 24/7</li>
                 <li>Automated showing scheduling &amp; confirmations</li>
-                <li>AI-drafted listing descriptions &amp; market reports</li>
-                <li>Buyer &amp; seller follow-up sequences on autopilot</li>
               </ul>
-            </div>
-
-            <a href="real-estate/" class="deploy-link" aria-label="Deploy Pipeline Velocity AOS">
-              Deploy Real Estate System
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#0EA5E9" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
-
-          <!-- ── Card 6: Custom AOS (Not Listed) ── -->
-          <article class="glass portal-card unlisted reveal d5" aria-labelledby="unlisted-title">
-            <div class="card-orb" aria-hidden="true"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px;">
-              <div class="industry-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9" stroke="#94A3B8" stroke-width="1.5"/>
-                  <path d="M12 8v4l3 3" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M8.5 5.5l1 1M15.5 5.5l-1 1M18.5 8.5l-1 1M18.5 15.5l-1-1M15.5 18.5l-1-1M8.5 18.5l1-1M5.5 15.5l1-1M5.5 8.5l1 1" stroke="#94A3B8" stroke-width="1" stroke-linecap="round"/>
-                </svg>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Lead Response Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Showing Scheduler</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Follow-up Specialist</span><span class="badge-on">ACTIVE</span></div>
               </div>
-              <span class="status-pill">
-                <span class="status-dot"></span>
-                Custom Build
-              </span>
+              <a href="real-estate/" class="reveal-deploy">Deploy Real Estate System <span class="deploy-arr">→</span></a>
             </div>
+          </div>
 
-            <div style="margin-bottom:auto;">
-              <span class="card-tag">Your Industry · System_06</span>
-              <h3 id="unlisted-title" class="card-title">Your Industry.<br>Custom AOS.</h3>
-              <p class="card-focus">Bespoke Agentic Infrastructure for Any High-Ticket Business</p>
-
-              <!-- SEO-rich industry tag cloud -->
-              <div style="display:flex; flex-wrap:wrap; gap:5px; margin:14px 0 18px;" aria-label="Industries we serve">
-                <span class="industry-tag">HVAC</span>
-                <span class="industry-tag">Financial Advisors</span>
-                <span class="industry-tag">Insurance Agencies</span>
-                <span class="industry-tag">Med Spas</span>
-                <span class="industry-tag">Chiropractic</span>
-                <span class="industry-tag">Mortgage Brokers</span>
-                <span class="industry-tag">E-commerce</span>
-                <span class="industry-tag">Veterinary</span>
-                <span class="industry-tag">Physical Therapy</span>
-                <span class="industry-tag">Hospitality</span>
-                <span class="industry-tag">+ more</span>
+          <!-- 6 · INSURANCE -->
+          <div class="icard ic-insurance" role="button" tabindex="0" aria-label="Agency Revenue AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_06 · INS</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
               </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="rgba(20,184,166,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M9 12l2 2 4-4" stroke="rgba(20,184,166,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">Insurance Sector</span>
+              <span class="card-name">Agency Revenue AOS</span>
+              <div class="card-metric"><div class="metric-val">23%</div><div class="metric-lbl">Policy Lapse Rate — Eliminated</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
             </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">Renewals expiring with zero proactive contact — 23% of policies walk to a competitor.</div>
+              <ul class="reveal-caps">
+                <li>Automated policy renewal sequences — 68% retention</li>
+                <li>Claims intake &amp; triage without manual queues</li>
+              </ul>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Claims Triage Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Renewal Guardian</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Policy Lead Specialist</span><span class="badge-sb">STANDBY</span></div>
+              </div>
+              <a href="insurance-leads/" class="reveal-deploy">Deploy Insurance System <span class="deploy-arr">→</span></a>
+            </div>
+          </div>
 
-            <a href="#" data-audit-unlisted class="deploy-link" aria-label="Request a Custom AOS build">
-              Tell Us About Your Business
-              <span class="deploy-arrow" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </a>
-          </article>
+          <!-- 7 · WHOLESALE -->
+          <div class="icard ic-wholesale" role="button" tabindex="0" aria-label="Distribution Velocity AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_07 · WHL</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="1" y="3" width="15" height="13" rx="1" stroke="rgba(132,204,22,1)" stroke-width="1.5"/><path d="M16 8h4l3 5v4h-7V8z" stroke="rgba(132,204,22,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="5.5" cy="18.5" r="2.5" stroke="rgba(132,204,22,1)" stroke-width="1.5"/><circle cx="18.5" cy="18.5" r="2.5" stroke="rgba(132,204,22,1)" stroke-width="1.5"/></svg>
+              </div>
+              <span class="card-category">Wholesale Sector</span>
+              <span class="card-name">Distribution Velocity AOS</span>
+              <div class="card-metric"><div class="metric-val">$25k</div><div class="metric-lbl">Monthly Order Recovery</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">12% of orders lost monthly to stockouts and manual sales-to-warehouse handoff gaps.</div>
+              <ul class="reveal-caps">
+                <li>Real-time inventory alerts &amp; reorder triggers</li>
+                <li>Automated order routing — zero handoff gaps</li>
+              </ul>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">Inventory Logistics Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Order Workflow Specialist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Account Growth Specialist</span><span class="badge-sb">STANDBY</span></div>
+              </div>
+              <a href="wholesale-leads/" class="reveal-deploy">Deploy Wholesale System <span class="deploy-arr">→</span></a>
+            </div>
+          </div>
 
-        </div><!-- /portal-grid -->
+          <!-- 8 · CUSTOM -->
+          <div class="icard ic-custom" role="button" tabindex="0" aria-label="Custom AOS build">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_08 · CUSTOM</span>
+                <span class="status-micro"><span class="s-dot"></span>BUILD</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(148,163,184,1)" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke="rgba(148,163,184,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M8.5 5.5l1 1M15.5 5.5l-1 1M18.5 8.5l-1 1M18.5 15.5l-1-1M15.5 18.5l-1-1M8.5 18.5l1-1M5.5 15.5l1-1M5.5 8.5l1 1" stroke="rgba(148,163,184,1)" stroke-width="1" stroke-linecap="round"/></svg>
+              </div>
+              <span class="card-category">Your Industry</span>
+              <span class="card-name">Your Industry.<br>Custom AOS.</span>
+              <div class="card-metric"><div class="metric-val" style="font-size:1.4rem; letter-spacing:0;">ANY</div><div class="metric-lbl">High-Ticket Business</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">If admin overhead is killing your growth, we architect the solution — any industry.</div>
+              <ul class="reveal-caps">
+                <li>Fully custom-architected agentic workflows</li>
+                <li>Any repetitive process — eliminated in 48h deploy</li>
+              </ul>
+              <div class="reveal-roster">
+                <div class="roster-row" style="flex-wrap:wrap; gap:5px; padding:7px 9px;">
+                  <span class="itag">HVAC</span><span class="itag">Financial</span><span class="itag">Med Spa</span>
+                  <span class="itag">Chiropractic</span><span class="itag">Mortgage</span><span class="itag">E-Commerce</span>
+                  <span class="itag">Veterinary</span><span class="itag">+ more</span>
+                </div>
+              </div>
+              <a href="#" data-audit-unlisted class="reveal-deploy">Tell Us About Your Business <span class="deploy-arr">→</span></a>
+            </div>
+          </div>
+
+        </div><!-- /intel-grid -->
       </div>
     </section>
 
@@ -1006,6 +955,8 @@
           <a href="saas-optimization/index.html" class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Growth Engine AOS</a>
           <a href="dental/"                     class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Patient Revenue AOS</a>
           <a href="real-estate/"                class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Pipeline Velocity AOS</a>
+          <a href="insurance-leads/"            class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Agency Revenue AOS</a>
+          <a href="wholesale-leads/"            class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Distribution Velocity AOS</a>
         </div>
       </nav>
 
@@ -1090,6 +1041,22 @@
             <div>
               <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#0EA5E9; margin-bottom:2px;">Real Estate</div>
               <div style="color:var(--text-muted); font-size:0.7rem;">Agents &amp; brokerages</div>
+            </div>
+          </a>
+
+          <a href="insurance-leads/#handoff" class="audit-card insurance">
+            <span style="font-size:1.6rem;" aria-hidden="true">🛡️</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#14B8A6; margin-bottom:2px;">Insurance Agency</div>
+              <div style="color:var(--text-muted); font-size:0.7rem;">P&amp;C, life &amp; health agencies</div>
+            </div>
+          </a>
+
+          <a href="wholesale-leads/#handoff" class="audit-card wholesale">
+            <span style="font-size:1.6rem;" aria-hidden="true">📦</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#84CC16; margin-bottom:2px;">Wholesale / Distrib.</div>
+              <div style="color:var(--text-muted); font-size:0.7rem;">Distributors &amp; wholesalers</div>
             </div>
           </a>
 
@@ -1248,6 +1215,24 @@
       }, 300);
     }
 
+
+    /* Intelligence Grid — keyboard + touch interactions */
+    document.querySelectorAll('.icard').forEach(card => {
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.classList.toggle('open'); }
+        if (e.key === 'Escape') card.classList.remove('open');
+      });
+    });
+    (() => {
+      const isTouch = () => window.matchMedia('(hover: none)').matches;
+      document.querySelectorAll('.icard').forEach(card => {
+        card.addEventListener('click', () => {
+          if (!isTouch()) return;
+          document.querySelectorAll('.icard.open').forEach(c => { if (c !== card) c.classList.remove('open'); });
+          card.classList.toggle('open');
+        });
+      });
+    })();
 
     /* Generic audit trigger (opens step 1) */
     document.querySelectorAll('[data-audit]').forEach(btn => {
