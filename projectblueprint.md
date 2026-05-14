@@ -1,6 +1,6 @@
 # 369 Agentic Systems — Project Blueprint
 **Source of Truth for AI Agents and Collaborators**
-_Last updated: 2026-05-11 (rev 4 — Digital Employee rebrand, two-stage loading bar, url-info copy update)_
+_Last updated: 2026-05-13 (rev 6 — Phase 1 scaffold: Next.js 14 App Router, portal/auth route groups, Supabase schema, Zero-Touch Policy for static marketing HTML)_
 
 ---
 
@@ -11,34 +11,88 @@ _Last updated: 2026-05-11 (rev 4 — Digital Employee rebrand, two-stage loading
 4. [Style Guide](#4-style-guide)
 5. [Integration Specs](#5-integration-specs)
 6. [Tech Stack](#6-tech-stack)
+7. [The 369 Architect Blueprint — 4-Phase Roadmap](#7-the-369-architect-blueprint--4-phase-roadmap)
+8. [Hybrid Architecture — Zero-Touch Policy](#8-hybrid-architecture--zero-touch-policy)
 
 ---
 
 ## 1. Directory Map
 
+### Hybrid Project Structure (Phase 1+)
+
 ```
 369AgenticSystems/
-├── index.html                    ← Homepage (brand hub, industry portal)
-├── projectblueprint.md           ← This file
 │
-├── legal-automation/
-│   └── index.html                ← Legal Automation industry page
+│  ── Next.js App (portal, auth, API) ──────────────────────────────
+├── app/
+│   ├── layout.tsx                ← Root layout (Google Fonts, globals.css)
+│   ├── page.tsx                  ← Root route → redirects to /login
+│   ├── globals.css               ← Portal-only CSS (ISOLATED from /public HTML)
+│   │
+│   ├── (auth)/                   ← Route group: Supabase login flow
+│   │   ├── layout.tsx
+│   │   └── login/page.tsx        ← Magic Link login UI
+│   │
+│   ├── (portal)/                 ← Route group: gated client area
+│   │   ├── layout.tsx            ← Auth check + Sidebar wrapper
+│   │   └── dashboard/page.tsx    ← Command Center dashboard
+│   │
+│   └── api/
+│       └── update-dossier/route.ts ← Gumloop webhook receiver
 │
-├── roofing-leads/
-│   └── index.html                ← Roofing Leads industry page
+├── components/portal/            ← Portal UI components
+│   ├── Sidebar.tsx
+│   ├── ActiveSpecialists.tsx
+│   ├── LiveFeed.tsx
+│   ├── BusinessMemory.tsx
+│   └── ScanCard.tsx              ← Framer Motion scan-line wrapper
 │
-├── saas-optimization/
-│   └── index.html                ← SaaS Optimization industry page
+├── lib/
+│   ├── supabase.ts               ← Browser client
+│   └── supabase-server.ts        ← Server component client (with cookies)
 │
-├── dental/
-│   └── index.html                ← Dental Practice Automation industry page
+├── supabase/
+│   └── schema.sql                ← DB schema (run in Supabase SQL editor)
 │
-└── real-estate/
-    └── index.html                ← Real Estate Agency Automation industry page
+│  ── Static Marketing Assets (Zero-Touch) ──────────────────────────
+├── public/                       ← Served by CDN edge — NO Next.js processing
+│   ├── index.html                ← yoursite.com/          (copy from root)
+│   ├── legal-automation/
+│   │   └── index.html            ← yoursite.com/legal-automation/
+│   ├── roofing-leads/
+│   │   └── index.html
+│   ├── saas-optimization/
+│   │   └── index.html
+│   ├── dental/
+│   │   └── index.html
+│   ├── real-estate/
+│   │   └── index.html
+│   ├── insurance-leads/
+│   │   └── index.html
+│   └── wholesale-leads/
+│       └── index.html
+│
+│  ── Config ─────────────────────────────────────────────────────────
+├── package.json
+├── next.config.ts
+├── tailwind.config.ts
+├── tsconfig.json
+├── middleware.ts                 ← Auth guard for /portal/** routes
+├── .env.local.example
+└── projectblueprint.md
 ```
 
-### Hosting Constraint
-All pages are **single-file HTML** deployed to a cPanel shared host. There is no build pipeline, no npm, no node_modules, and no server-side rendering. Every page is entirely self-contained — all CSS, JavaScript, and markup live inside a single `index.html` file.
+### Hosting Model (Rev 6+)
+
+| Layer | Host | Source |
+|---|---|---|
+| Next.js App (portal, auth, API) | Vercel | `app/` directory |
+| Static Marketing HTML | Vercel CDN edge | `public/` directory |
+| Database + Auth | Supabase | Managed PostgreSQL + GoTrue |
+
+> **Zero-Touch Policy for marketing HTML:** The files in `public/` are never converted to `.tsx`. They are pure HTML served directly by the CDN, with their own self-contained CSS and JS. No Tailwind build step, no Next.js CSS, no framework bleed.
+
+> **Migration step required:** Move or copy the 8 existing `index.html` files into the `public/` directory mirroring the current URL structure (see `public/STATIC_ASSETS.md`).
 
 ---
 
@@ -500,3 +554,133 @@ Each `index.html` contains:
 ---
 
 _This blueprint is intended for use by AI agents, collaborators, and the project owner. Update this file whenever a new industry page is added, a color token changes, or an integration goes live._
+
+---
+
+## 7. The 369 Architect Blueprint — 4-Phase Roadmap
+
+> **Status: Planned — implementation begins after current go-live blockers are resolved (see pending items in Sections 3 & 5).**
+> This roadmap evolves the current static HTML + Gumloop stack into a fully autonomous, persistent, multi-agent infrastructure. Phases are sequential but each delivers standalone value.
+
+---
+
+### Phase 1: The Command Center (The "Face")
+**Goal:** Replace the one-off email experience with a persistent Client Portal.
+
+**Stack:**
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) — speed + SEO |
+| Styling | Tailwind CSS + Framer Motion (terminal animations) |
+| Deployment | Vercel |
+| Auth | Supabase Auth (Magic Link — frictionless, high-end feel) |
+
+**Core Tasks:**
+- [ ] **Auth Gate** — Secure Magic Link login via Supabase Auth
+- [ ] **Specialist Dashboard** — UI showing "Active Specialists" (Lead Response, Claims Triage, etc.) with real-time status indicators
+- [ ] **Asset Library** — Table view where every generated Onboarding Dossier is stored as a permanent digital asset
+- [ ] **Webhook Receiver** — API route `/api/update-dossier` that listens for Gumloop outputs and writes to the database
+
+---
+
+### Phase 2: The Persistence Layer (The "Brain")
+**Goal:** Create "uncancelable" business memory for clients.
+
+**Stack:**
+| Layer | Technology |
+|---|---|
+| Database | Supabase (PostgreSQL) |
+| Vector Store | pgvector (inside Supabase) |
+
+**Core Tasks:**
+- [ ] **Contextual Archiving** — Every lead, audit, and client interaction is vectorized and stored in pgvector
+- [ ] **Knowledge Retrieval** — Configure Gumloop AI node to query the vector DB at the start of every run: `"What did we learn about this client's pain points in the last audit?"`
+- [ ] **The Moat** — Client data export option exists, but active agent intelligence (context + retrieval) lives exclusively in the 369 system
+
+---
+
+### Phase 3: Agentic Orchestration (The "Manager")
+**Goal:** Move from linear Gumloop flows to autonomous multi-agent Squads.
+
+**Stack:**
+| Layer | Technology |
+|---|---|
+| Orchestrator | PydanticAI (strict logic) — or Paperclip AI |
+| Reasoning Model | Claude Sonnet 4.6 or Gemini 1.5 Pro |
+
+**Core Tasks:**
+- [ ] **Supervisor Node** — "Manager Agent" reviews Specialist Agent output before client delivery
+- [ ] **Multi-Agent Hand-off** — Scraper agent → ROI calculator agent → Email writer agent (quality multiplier vs. single-node AI)
+
+---
+
+### Phase 4: Deep Integration (The "Hands")
+**Goal:** Perform "manual" labor inside client systems without APIs.
+
+**Stack:**
+| Layer | Technology |
+|---|---|
+| Browser Control | OpenClaw or Composio |
+
+**Core Tasks:**
+- [ ] **Legacy Sync** — Log into client's legacy CRM or inventory portal; update records based on lead activity
+- [ ] **Browser Control** — Agents navigate browsers like a human to retrieve information locked behind logins
+
+---
+
+### Roadmap Dependency Chain
+
+```
+[Current] cPanel static HTML + Gumloop webhooks (Phase 0 — go-live)
+    │
+    ▼
+Phase 1 — Next.js Client Portal + Supabase Auth + Webhook Receiver
+    │
+    ▼
+Phase 2 — pgvector Business Memory + Contextual Retrieval
+    │
+    ▼
+Phase 3 — PydanticAI Supervisor + Multi-Agent Squad Orchestration
+    │
+    ▼
+Phase 4 — Browser Agent Deep Integration (OpenClaw / Composio)
+```
+
+> **Pre-requisite before Phase 1:** Resolve all critical pending items — Gumloop Pro upgrade + webhook URLs wired, booking link live, and at least one industry fully validated end-to-end.
+
+> **Phase 1 Scaffold Status (2026-05-13):** Next.js 14 project initialized. Route groups, portal layout, dashboard, auth login, Supabase clients, DB schema, and webhook receiver are all built. Awaiting Supabase project creation and HTML migration to `/public`.
+
+---
+
+## 8. Hybrid Architecture — Zero-Touch Policy
+
+### The Rule
+Existing static HTML marketing pages (`index.html` files) are **never modified or converted** as part of the Next.js migration. They are served as pure static assets from the `/public` directory.
+
+### Why This Matters
+- Marketing pages have custom Tailwind v4 (CDN), vanilla JS, and embedded CSS that are entirely self-contained.
+- Converting them to `.tsx` risks visual regressions, broken animations, and loss of performance characteristics.
+- Serving from `/public` preserves their CDN edge caching, instant load times, and zero build dependency.
+
+### CSS Isolation Guarantee
+`app/globals.css` contains `@tailwind base` (CSS reset) and portal-specific custom properties. This CSS is **only injected into pages rendered through the Next.js App Router** (`/login`, `/portal/**`). Static files in `/public` are served as raw files — they never pass through Next.js's CSS pipeline.
+
+### URL Preservation on Vercel
+Vercel's CDN automatically serves `index.html` at directory paths:
+| File | URL |
+|---|---|
+| `public/index.html` | `yoursite.com/` |
+| `public/legal-automation/index.html` | `yoursite.com/legal-automation/` |
+| `public/roofing-leads/index.html` | `yoursite.com/roofing-leads/` |
+| *(same pattern for all 8 industries)* | |
+
+### Local Development Note
+`next dev` serves public files at explicit paths only (e.g., `/legal-automation/index.html`). Directory URL resolution (`/legal-automation/`) is a Vercel production feature. Since the marketing pages are Zero-Touch, this is acceptable — portal development happens at `http://localhost:3000/login` and `http://localhost:3000/portal/dashboard`.
+
+### Boundary Rules for Future Development
+| Allowed | Not Allowed |
+|---|---|
+| Edit `app/(portal)/**` freely | Import portal CSS into public HTML |
+| Edit `public/*.html` for content/copy | Add Next.js `<Script>` or `<Image>` to public HTML |
+| Add new Next.js pages under `(portal)/` | Create `app/(marketing)/` pages that shadow public files |
+| Wire Supabase real data to portal components | Convert public HTML pages to `.tsx` without explicit decision |
