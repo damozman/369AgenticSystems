@@ -47,6 +47,8 @@ function now() {
   return new Date().toLocaleTimeString('en-US', { hour12: false })
 }
 
+const NEAR_BOTTOM_THRESHOLD = 100
+
 let globalId = 100
 
 export default function LiveFeed() {
@@ -54,7 +56,15 @@ export default function LiveFeed() {
     SEED_LOGS.map(l => ({ ...l, id: globalId++ }))
   )
   const [qIdx, setQIdx] = useState(0)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef    = useRef<HTMLDivElement>(null)
+  const nearBottomRef = useRef(true) // ref avoids re-renders on every scroll event
+
+  function handleScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    nearBottomRef.current = distanceFromBottom <= NEAR_BOTTOM_THRESHOLD
+  }
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -66,7 +76,9 @@ export default function LiveFeed() {
   }, [qIdx])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!nearBottomRef.current) return
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [logs])
 
   return (
@@ -106,7 +118,11 @@ export default function LiveFeed() {
         </div>
 
         {/* Log stream */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-xs">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-xs"
+        >
           <AnimatePresence initial={false}>
             {logs.map(log => (
               <motion.div
@@ -144,7 +160,6 @@ export default function LiveFeed() {
             />
           </div>
 
-          <div ref={bottomRef} />
         </div>
       </div>
     </div>
