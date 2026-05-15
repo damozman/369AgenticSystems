@@ -28,10 +28,8 @@ export async function middleware(request: NextRequest) {
   // Refresh the session token if it has expired
   await supabase.auth.getUser()
 
-// Guard all dashboard routes (removing the literal /portal check)
+  // Guard dashboard routes — (portal) is a route group, actual URL is /dashboard
   const { data: { user } } = await supabase.auth.getUser()
-  
-  // If no user, and they are trying to access /dashboard, send to login
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
@@ -40,5 +38,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'], // Update this to match the actual URL
+  matcher: ['/dashboard/:path*'],
 }

@@ -15,25 +15,25 @@ import { createClient } from '@/lib/supabase'
 
 const NAV = [
   {
-    href: '/portal/dashboard',
+    href: '/dashboard',
     label: 'Overview',
     Icon: LayoutDashboard,
     sub: null,
   },
   {
-    href: '/portal/workforce',
+    href: '/workforce',
     label: 'Workforce',
     Icon: Users,
     sub: 'Active Digital Employees',
   },
   {
-    href: '/portal/intelligence',
+    href: '/intelligence',
     label: 'Intelligence Vault',
     Icon: Brain,
     sub: 'Business Memory',
   },
   {
-    href: '/portal/history',
+    href: '/history',
     label: 'Deployment History',
     Icon: Clock,
     sub: 'Dossier Logs',
