@@ -1,6 +1,6 @@
-# 3six9 Agentic Systems: Master Operations Blueprint
+# 369 Agentic Systems: Master Operations Blueprint
 
-This document serves as the absolute, unchanging single source of truth for the 3six9 Agentic Systems architecture. All software development layers, database schemas, and autonomous workforce layers must align with the parameters defined herein.
+This document serves as the absolute, unchanging single source of truth for the 369 Agentic Systems architecture. All software development layers, database schemas, and autonomous workforce layers must align with the parameters defined herein.
 
 ---
 
@@ -28,13 +28,27 @@ When data streams from the cloud automation layers into the live dashboard, payl
 | `leak_detected` | BOOLEAN | Yes | True/False flag checking if the target system exposes errors. |
 | `roi_multiplier` | NUMERIC(4,2) | Yes | Leverage coefficient showing financial impact of deployment. |
 | `payload_status` | VARCHAR(50) | Internal | Verification token (`success`, `pending`, `failed`). |
-| `timestamp` | TIMESTAMPTZ | Yes | Global microsecond timestamp tracking the execution run. |
+| `created_at` | TIMESTAMPTZ | Yes | Global microsecond timestamp tracking the execution run. |
 
 ---
 
 ## 3. Workstation Directory Matrix
 
 To maintain clean local state handling and prevent package cross-contamination, the workspace directories are mapped as follows:
+
+| Directory Path | Managed By | Purpose |
+| :--- | :--- | :--- |
+| `C:\Users\chris\AiProjects\369AgenticSystems\` | Claudebot / CEO Agent | Root of the Next.js project. All portal code, config, and blueprints live here. |
+| `...\app\` | Claudebot | Next.js App Router — portal pages, auth flow, and API routes. |
+| `...\app\(auth)\` | Claudebot | Supabase Magic Link login route group. Isolated from portal layout. |
+| `...\app\(portal)\` | Claudebot | Gated client area. Auth-checked dashboard and future portal pages. |
+| `...\app\api\` | Claudebot | Webhook receiver endpoints (e.g., `/api/update-dossier`). |
+| `...\components\portal\` | Claudebot | Portal UI components: Sidebar, LiveFeed, ActiveSpecialists, etc. |
+| `...\lib\` | Claudebot | Supabase browser and server clients. |
+| `...\supabase\` | Claudebot | DB schema SQL. Run manually in the Supabase SQL editor — never auto-migrated. |
+| `...\public\` | Zero-Touch (no agent edits) | Static marketing HTML pages served directly by Vercel CDN. No Next.js processing. |
+| `...\public\[industry]\` | Zero-Touch | One `index.html` per industry vertical. Never converted to `.tsx`. |
+| Local Docker (Flowise) | CEO Agent | Visual multi-agent orchestration cockpit. Runs in isolated Docker container — no file overlap with Next.js project. |
 
 ---
 

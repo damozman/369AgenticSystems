@@ -1,10 +1,10 @@
-# 3six9 Agentic Systems — Master Tool Stack & Operations Playbook
+# 369 Agentic Systems — Master Tool Stack & Operations Playbook
 **Source of Truth for Business Infrastructure, AI Workforce Roles, and Financial Optimization**
 
 ---
 
 ## 1. Core Architectural Strategy
-To build an uncancelable digital agency, 3six9 Agentic Systems operates on a strict **Walled Garden Architecture**. We do not sell fragile, temporary "automation flows" to clients. Instead, we provide them with a custom web-based client environment. 
+To build an uncancelable digital agency, 369 Agentic Systems operates on a strict **Walled Garden Architecture**. We do not sell fragile, temporary "automation flows" to clients. Instead, we provide them with a custom web-based client environment. 
 - **The Core Rule:** High-volume, client-facing automated tasks execute securely and cost-effectively in the cloud.
 - **The Security Rule:** Heavy intellectual property design, coding, financial data, and high-level strategy remain entirely localized to the private workstation.
 
@@ -51,7 +51,7 @@ To keep business execution completely organized, AI entities are treated as spec
 ▼ (Local Engineering)                               ▼ (Database Sync)
 ┌───────────────────────────────────────┐           ┌───────────────────────────────────────┐
 │             CLAUDEBOT                 │           │           SUPABASE DATABASE           │
-│       (Claude 3.5 Sonnet Model)       │◄─────────►│         (Central Memory Vault)    │
+│       (Claude Sonnet 4.6 Model)       │◄─────────►│         (Central Memory Vault)    │
 │  Autonomous Development & Code Base   │           │      Cyber-Noir Intelligence Feed     │
 └───────────────────────────────────────┘           └───────────────────────────────────────┘
 
@@ -64,7 +64,7 @@ To keep business execution completely organized, AI entities are treated as spec
 
 ### Role 2: Claudebot (The Lead Software Engineer)
 - **Execution Environment:** Local Engineering Stack (OpenHands Sandbox Environment / VS Code Native Extensions)
-- **Underlying Model:** `Claude 3.5 Sonnet` (The gold standard for logical accuracy, code layout generation, and deep file refactoring).
+- **Underlying Model:** `Claude Sonnet 4.6` (The gold standard for logical accuracy, code layout generation, and deep file refactoring).
 - **Core Mandate:** Takes technical tickets and system requirements issued by you or the CEO Agent and executes them directly within your local code repositories.
 - **Operational Boundary:** Operates inside a secure, sandboxed environment on your laptop. It reads abstract syntax trees, writes features, tests dependencies, and packages clean Git commits to deploy changes live to your Vercel production repository.
 
@@ -80,7 +80,7 @@ To keep business execution completely organized, AI entities are treated as spec
 To keep operations hyper-lean, we intentionally avoid flat, expensive SaaS middleman tools. We run an API-driven consumption model optimized by task weight:
 
 1. **Strategic Tasks (Deep Input / Low Frequency):** Allocated to `Gemini 2.5 Pro`. We pass multi-page blueprints into its context window only when running systemic reviews, keeping premium costs down to precise execution spikes.
-2. **Coding Tasks (High Logic / Medium Frequency):** Allocated to `Claude 3.5 Sonnet`. Using API tokens locally ensures you only pay for the exact lines written and tested, bypassing heavy monthly developer platform seat subscriptions.
+2. **Coding Tasks (High Logic / Medium Frequency):** Allocated to `Claude Sonnet 4.6`. Using API tokens locally ensures you only pay for the exact lines written and tested, bypassing heavy monthly developer platform seat subscriptions.
 3. **Operational Tasks (Massive Volume / Continuous Frequency):** Allocated to `Gemini 2.5 Flash / Flash-Lite`. At a cost of pennies per million tokens, your live background processes, stream feeds, webhook logs, and automated databases can churn constantly without draining your financial resources.
 
 ---

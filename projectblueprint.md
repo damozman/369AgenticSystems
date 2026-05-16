@@ -260,6 +260,8 @@ These are added by the submit handler at runtime — no hidden `<input>` element
 
 ## 4. Style Guide
 
+> **Branding Rule (Permanent):** Corporate entity branding (3six9 Media Masters LLC) is strictly restricted to a subtle, low-contrast footer. The active public and portal-facing interface must exclusively use numeric **"369"** branding — in all headings, navigation, CTAs, agent labels, and UI copy. No AI agent, collaborator, or developer may introduce "3six9" into any interface-visible element.
+
 ### Typography
 | Role         | Font           | CDN Source         |
 |--------------|----------------|--------------------|
