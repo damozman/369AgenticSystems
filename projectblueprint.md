@@ -72,14 +72,15 @@ _Last updated: 2026-05-13 (rev 6 — Phase 1 scaffold: Next.js 14 App Router, po
 │   └── wholesale-leads/
 │       └── index.html
 │
-│  ── Config ─────────────────────────────────────────────────────────
+│  ── Config & Operational Blueprints ───────────────────────────────
 ├── package.json
 ├── next.config.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── middleware.ts                 ← Auth guard for /portal/** routes
 ├── .env.local.example
-└── projectblueprint.md
+├── projectblueprint.md           ← Structural UI Layout Map (THIS FILE)
+└── 3six9-operations-blueprint.md ← Operational Master Source of Truth
 ```
 
 ### Hosting Model (Rev 6+)
@@ -605,12 +606,13 @@ _This blueprint is intended for use by AI agents, collaborators, and the project
 **Stack:**
 | Layer | Technology |
 |---|---|
-| Orchestrator | PydanticAI (strict logic) — or Paperclip AI |
-| Reasoning Model | Claude Sonnet 4.6 or Gemini 1.5 Pro |
+| Orchestrator | Flowise (Visual Node Cockpit running locally via Docker) |
+| Reasoning Model | Gemini 2.5 Pro (1-Million Token Window via API Key) |
 
 **Core Tasks:**
-- [ ] **Supervisor Node** — "Manager Agent" reviews Specialist Agent output before client delivery
-- [ ] **Multi-Agent Hand-off** — Scraper agent → ROI calculator agent → Email writer agent (quality multiplier vs. single-node AI)
+- [x] **Visual Framework Deployment** — Stabilize Flowise on local Docker infrastructure to eliminate Windows filesystem package drops.
+- [ ] **Supervisor Node** — "Manager Agent" reviews Specialist Agent output before client delivery.
+- [ ] **Multi-Agent Hand-off** — Scraper agent → ROI calculator agent → Email writer agent (quality multiplier vs. single-node AI).
 
 ---
 
