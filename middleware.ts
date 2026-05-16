@@ -25,10 +25,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh the session token if it has expired
-  await supabase.auth.getUser()
-
-  // Guard dashboard routes — (portal) is a route group, actual URL is /dashboard
+  // Refresh the session token if expired, and guard dashboard routes.
   const { data: { user } } = await supabase.auth.getUser()
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url))
