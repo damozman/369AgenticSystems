@@ -1,4 +1,6 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import ActiveSpecialists from '@/components/portal/ActiveSpecialists'
 import LiveFeed from '@/components/portal/LiveFeed'
 import BusinessMemory from '@/components/portal/BusinessMemory'
@@ -12,8 +14,24 @@ const STAT_CARDS = [
 ]
 
 export default async function DashboardPage() {
+  // Opt every fetch in this render out of Next.js's Data Cache.
+  // Without this, the admin client's fixed service-role header produces an
+  // identical cache key on every request and serves the first (empty) response.
+  noStore()
+
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const [{ data: { user } }, { data: initialAudits }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabaseAdmin
+      .from('system_audits')
+      .select('*')
+      .order('created_at', { ascending: false }),
+  ])
 
   const dateLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -66,9 +84,9 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Specialists + Live Feed ──────────────────────────────── */}
+      {/* ── Audit Grid + Live Feed ───────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 mb-6">
-        <ActiveSpecialists />
+        <ActiveSpecialists initialAudits={initialAudits ?? []} />
         <LiveFeed />
       </div>
 

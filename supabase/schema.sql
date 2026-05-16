@@ -108,3 +108,31 @@ CREATE POLICY "business_memory: own client"
 
 -- Service-role key (used by /api/update-dossier) bypasses RLS automatically.
 -- No additional policies are needed for server-side writes.
+
+
+-- ── system_audits ─────────────────────────────────────────────────────────────
+-- Populated by /api/update-dossier (Gumloop webhook receiver).
+-- Rows have no user_id — this is an admin-wide view; all authenticated portal
+-- users can read all audits.  The server component uses the service-role client
+-- as a belt-and-suspenders guard, but the policy below is the canonical fix.
+CREATE TABLE IF NOT EXISTS system_audits (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  client_domain  TEXT        NOT NULL,
+  security_score NUMERIC,
+  seo_visibility NUMERIC,
+  lead_velocity  NUMERIC,
+  leak_detected  BOOLEAN,
+  roi_multiplier NUMERIC,
+  payload_status TEXT        DEFAULT 'pending'
+);
+
+ALTER TABLE system_audits ENABLE ROW LEVEL SECURITY;
+
+-- Authenticated portal users can read all audit rows.
+CREATE POLICY "system_audits: authenticated read"
+  ON system_audits FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Service-role INSERT from /api/update-dossier bypasses RLS — no policy needed.

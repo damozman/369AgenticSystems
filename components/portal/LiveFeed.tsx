@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createClient } from '@/lib/supabase'
+import type { SystemAudit } from './ActiveSpecialists'
 
 type Tag = 'INFO' | 'PROCESS' | 'SUCCESS' | 'WARN' | 'SYSTEM'
 
@@ -80,6 +82,46 @@ export default function LiveFeed() {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [logs])
+
+  // Real-time: append log entries whenever a new system_audit row lands
+  useEffect(() => {
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel('audit_live_feed')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'system_audits' },
+        (payload) => {
+          const audit = payload.new as SystemAudit
+          const timestamp = now()
+
+          const entries: Omit<LogEntry, 'id' | 'time'>[] = [
+            { tag: 'INFO',    agent: 'AUDIT_ENGINE',  msg: `New audit received — ${audit.client_domain}` },
+          ]
+          if (audit.security_score != null) {
+            entries.push({ tag: 'PROCESS', agent: 'SECURITY_SCAN', msg: `Security score: ${audit.security_score}/100` })
+          }
+          if (audit.leak_detected) {
+            entries.push({ tag: 'WARN', agent: 'SECURITY_SCAN', msg: `Leak detected on ${audit.client_domain} — flagged for review` })
+          }
+          if (audit.seo_visibility != null) {
+            entries.push({ tag: 'PROCESS', agent: 'SEO_ENGINE', msg: `SEO visibility index: ${audit.seo_visibility}` })
+          }
+          if (audit.roi_multiplier != null) {
+            entries.push({ tag: 'SUCCESS', agent: 'ROI_ENGINE', msg: `ROI multiplier locked in: ${audit.roi_multiplier}x — ${audit.client_domain}` })
+          }
+
+          setLogs(prev => [
+            ...prev.slice(-40),
+            ...entries.map(e => ({ ...e, id: globalId++, time: timestamp })),
+          ])
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   return (
     <div className="flex flex-col h-full min-h-[500px]">
