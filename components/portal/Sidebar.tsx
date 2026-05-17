@@ -111,7 +111,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium leading-none">{label}</p>
                 {sub && (
-                  <p className="text-[10px] font-mono text-slate-700 mt-0.5 truncate">{sub}</p>
+                  <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">{sub}</p>
                 )}
               </div>
               {isActive && (

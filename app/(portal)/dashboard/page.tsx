@@ -60,7 +60,7 @@ export default async function DashboardPage() {
               All Systems Go
             </span>
           </div>
-          <p className="text-[10px] font-mono text-slate-600">{dateLabel}</p>
+          <p className="text-[10px] font-mono text-slate-400">{dateLabel}</p>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
             style={{ borderColor: `${color}22` }}
           >
             <div className="flex items-start justify-between mb-3">
-              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-wider leading-tight">
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider leading-tight">
                 {label}
               </p>
               <Icon size={15} style={{ color }} className="flex-shrink-0 mt-0.5" />
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Audit Grid + Live Feed ───────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6 mb-6">
         <ActiveSpecialists initialAudits={initialAudits ?? []} />
         <LiveFeed />
       </div>

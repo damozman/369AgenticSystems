@@ -172,9 +172,9 @@ export default function LiveFeed() {
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.18 }}
-                className="flex items-start gap-2 leading-relaxed"
+                className="flex items-center gap-2 overflow-hidden"
               >
-                <span className="text-slate-700 flex-shrink-0 tabular-nums">{log.time}</span>
+                <span className="text-slate-500 flex-shrink-0 tabular-nums">{log.time}</span>
                 <span
                   className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider"
                   style={{
@@ -185,9 +185,9 @@ export default function LiveFeed() {
                   {log.tag}
                 </span>
                 {log.agent && (
-                  <span className="text-slate-600 flex-shrink-0">[{log.agent}]</span>
+                  <span className="text-slate-400 flex-shrink-0">[{log.agent}]</span>
                 )}
-                <span className="text-slate-300">{log.msg}</span>
+                <span className="text-slate-300 truncate min-w-0">{log.msg}</span>
               </motion.div>
             ))}
           </AnimatePresence>
