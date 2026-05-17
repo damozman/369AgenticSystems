@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import ScanCard from './ScanCard'
+import DiagnosticDrawer from './DiagnosticDrawer'
 import { createClient } from '@/lib/supabase'
 
 export interface SystemAudit {
@@ -53,9 +54,17 @@ const STATUS_LABEL: Record<DisplayStatus, string> = {
   idle:       'IDLE',
 }
 
-function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number; delay: number }) {
+interface AuditCardProps {
+  audit: SystemAudit
+  index: number
+  delay: number
+  isPatching: boolean
+  onLeakClick: (audit: SystemAudit) => void
+}
+
+function AuditCard({ audit, index, delay, isPatching, onLeakClick }: AuditCardProps) {
   const status      = deriveStatus(audit.payload_status)
-  const accentColor = getAccent(index)
+  const accentColor = isPatching ? '#D4AF37' : getAccent(index)
 
   return (
     <motion.div
@@ -82,11 +91,20 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
                 {audit.payload_status ?? 'unknown'}
               </p>
             </div>
+
+            {/* Corner badge */}
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ background: `${accentColor}14`, border: `1px solid ${accentColor}28` }}
             >
-              {audit.leak_detected ? (
+              {isPatching ? (
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block w-3 h-3 border-2 rounded-full border-t-transparent"
+                  style={{ borderColor: '#D4AF37', borderTopColor: 'transparent' }}
+                />
+              ) : audit.leak_detected ? (
                 <span className="text-[9px] font-bold text-red-400">!</span>
               ) : (
                 <div className="w-2 h-2 rounded-full" style={{ background: accentColor }} />
@@ -115,10 +133,25 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
             >
               {STATUS_LABEL[status]}
             </span>
+
+            {/* LEAK DETECTED — clickable button or PATCHING... state */}
             {audit.leak_detected && (
-              <span className="text-[9px] font-mono text-red-400 ml-auto tracking-wider">
-                LEAK DETECTED
-              </span>
+              isPatching ? (
+                <motion.span
+                  className="text-[9px] font-mono text-amber-500 ml-auto tracking-wider"
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  PATCHING...
+                </motion.span>
+              ) : (
+                <button
+                  onClick={() => onLeakClick(audit)}
+                  className="text-[9px] font-mono text-red-400 ml-auto tracking-wider hover:text-red-300 transition-colors underline-offset-2 hover:underline cursor-pointer"
+                >
+                  LEAK DETECTED ›
+                </button>
+              )
             )}
           </div>
 
@@ -189,13 +222,15 @@ interface Props {
 }
 
 export default function ActiveSpecialists({ initialAudits }: Props) {
-  const [audits, setAudits] = useState<SystemAudit[]>(initialAudits ?? [])
+  const [audits, setAudits]                   = useState<SystemAudit[]>(initialAudits ?? [])
+  const [activeAudit, setActiveAudit]         = useState<SystemAudit | null>(null)
+  const [patchingDomains, setPatchingDomains] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
 
     const channel = supabase
-      .channel('system_audits_inserts')
+      .channel('system_audits_changes')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'system_audits' },
@@ -203,12 +238,49 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
           setAudits(prev => [payload.new as SystemAudit, ...(prev ?? [])])
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'system_audits' },
+        (payload) => {
+          const updated = payload.new as SystemAudit
+          // Update the audit in the grid
+          setAudits(prev => prev.map(a =>
+            a.client_domain === updated.client_domain ? updated : a
+          ))
+          // Clear patching state
+          setPatchingDomains(prev => {
+            const next = new Set(prev)
+            next.delete(updated.client_domain)
+            return next
+          })
+          // Close drawer if it was open for this domain
+          setActiveAudit(prev =>
+            prev?.client_domain === updated.client_domain ? null : prev
+          )
+        }
+      )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  const safeAudits = audits ?? []
+  function handleLeakClick(audit: SystemAudit) {
+    setActiveAudit(audit)
+  }
+
+  function handleDrawerClose() {
+    setActiveAudit(null)
+  }
+
+  // Called the moment user clicks AUTHORIZE — close drawer, enter patching state
+  function handleAuthorize(domain: string) {
+    setActiveAudit(null)
+    setPatchingDomains(prev => new Set([...prev, domain]))
+    // Supabase realtime UPDATE event fires when the patch completes
+    // and automatically clears patchingDomains + updates the card
+  }
+
+  const safeAudits  = audits ?? []
   const activeCount = safeAudits.filter(a => deriveStatus(a.payload_status) === 'active').length
 
   return (
@@ -237,10 +309,24 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
           <EmptyState />
         ) : (
           safeAudits.map((audit, i) => (
-            <AuditCard key={audit.id ?? `${audit.created_at}_${audit.client_domain}`} audit={audit} index={i} delay={i * 0.08} />
+            <AuditCard
+              key={audit.id ?? `${audit.created_at}_${audit.client_domain}`}
+              audit={audit}
+              index={i}
+              delay={i * 0.08}
+              isPatching={patchingDomains.has(audit.client_domain)}
+              onLeakClick={handleLeakClick}
+            />
           ))
         )}
       </div>
+
+      {/* Diagnostic drawer — renders fixed over entire viewport */}
+      <DiagnosticDrawer
+        audit={activeAudit}
+        onClose={handleDrawerClose}
+        onAuthorize={handleAuthorize}
+      />
     </section>
   )
 }
