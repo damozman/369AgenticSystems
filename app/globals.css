@@ -67,16 +67,35 @@ body {
 
 /* ── Light mode: text colour overrides for classes baked into components ── */
 html.light .text-white              { color: var(--text-primary)   !important; }
-html.light .text-slate-200          { color: #1E293B               !important; }
-html.light .text-slate-300          { color: #374151               !important; }
-/* slate-400 and darker read fine on light surfaces — no override needed    */
+html.light .text-slate-200          { color: #0F172A               !important; }
+html.light .text-slate-300          { color: #1E293B               !important; }
+html.light .text-slate-400          { color: #334155               !important; }
+html.light .text-slate-500          { color: #475569               !important; }
+/* slate-600 and darker already read fine on light surfaces                 */
 
-/* Hover variant */
-html.light .hover\:text-slate-200:hover  { color: #1E293B !important; }
-html.light .hover\:text-slate-300:hover  { color: #374151 !important; }
+/* Hover variants */
+html.light .hover\:text-slate-200:hover  { color: #0F172A !important; }
+html.light .hover\:text-slate-300:hover  { color: #1E293B !important; }
 
 /* Emerald / status dots stay vivid */
 html.light .text-emerald-400        { color: #059669 !important; }
+html.light .text-emerald-500        { color: #047857 !important; }
+
+/* Red stays vivid (LIVE indicator) */
+html.light .text-red-400            { color: #DC2626 !important; }
+html.light .bg-red-500              { background-color: #DC2626 !important; }
+
+/* ── Light mode: font-weight boosts for key headings and labels ──────────── */
+html.light h1,
+html.light h2,
+html.light h3                       { font-weight: 700 !important; }
+
+html.light .font-semibold           { font-weight: 700 !important; }
+html.light .font-medium             { font-weight: 600 !important; }
+
+/* Mono section labels and metric values pop more */
+html.light .font-mono               { letter-spacing: 0.04em; }
+html.light .font-bold               { font-weight: 800 !important; }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar             { width: 4px; height: 4px; }
