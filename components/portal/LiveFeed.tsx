@@ -154,7 +154,7 @@ export default function LiveFeed() {
             <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
           </div>
-          <span className="text-[9px] font-mono text-slate-700 ml-2">
+          <span className="text-[9px] font-mono text-slate-500 ml-2">
             369-agentic-core — live-feed
           </span>
         </div>

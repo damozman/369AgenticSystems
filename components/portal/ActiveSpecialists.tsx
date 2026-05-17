@@ -44,7 +44,7 @@ function timeAgo(iso: string): string {
 const STATUS_DOT: Record<DisplayStatus, string> = {
   active:     '#4ADE80',
   processing: '#F59E0B',
-  idle:       '#475569',
+  idle:       '#94A3B8',
 }
 
 const STATUS_LABEL: Record<DisplayStatus, string> = {
@@ -226,7 +226,7 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
-          <span className="text-xs font-mono text-slate-500">
+          <span className="text-xs font-mono text-slate-400">
             {safeAudits.length > 0 ? `${activeCount} active` : 'no data'}
           </span>
         </div>

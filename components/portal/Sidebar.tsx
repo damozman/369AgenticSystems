@@ -61,11 +61,11 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
             <span className="text-2xl font-display font-bold text-[#D4AF37] group-hover:text-[#F0C94A] transition-colors">
               369
             </span>
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.25em]">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.25em]">
               Agentic
             </span>
           </div>
-          <p className="text-[9px] font-mono text-slate-700 mt-0.5 uppercase tracking-[0.25em]">
+          <p className="text-xs font-mono text-slate-400 mt-0.5 uppercase tracking-[0.25em]">
             Command Center
           </p>
         </Link>
