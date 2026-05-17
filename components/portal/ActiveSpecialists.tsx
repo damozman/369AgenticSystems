@@ -75,10 +75,10 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
               >
                 CLIENT AUDIT
               </p>
-              <h3 className="text-white font-semibold text-sm leading-tight truncate">
+              <h3 className="text-white font-semibold text-base leading-tight truncate">
                 {audit.client_domain}
               </h3>
-              <p className="text-[10px] font-mono text-slate-600 mt-0.5 capitalize">
+              <p className="text-xs font-mono text-slate-600 mt-0.5 capitalize">
                 {audit.payload_status ?? 'unknown'}
               </p>
             </div>
@@ -125,20 +125,20 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
           {/* Top 3 key metrics */}
           <div className="grid grid-cols-3 gap-1.5 mb-1.5">
             <div className="bg-[var(--metric-bg)] rounded-lg p-2">
-              <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Security</p>
-              <p className="text-base font-bold text-white mt-0.5">
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">Security</p>
+              <p className="text-lg font-bold text-white mt-0.5">
                 {audit.security_score ?? '—'}
               </p>
             </div>
             <div className="bg-[var(--metric-bg)] rounded-lg p-2">
-              <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">SEO Vis.</p>
-              <p className="text-base font-bold text-white mt-0.5">
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">SEO Vis.</p>
+              <p className="text-lg font-bold text-white mt-0.5">
                 {audit.seo_visibility ?? '—'}
               </p>
             </div>
             <div className="bg-[var(--metric-bg)] rounded-lg p-2">
-              <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Lead Vel.</p>
-              <p className="text-base font-bold text-white mt-0.5">
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">Lead Vel.</p>
+              <p className="text-lg font-bold text-white mt-0.5">
                 {audit.lead_velocity ?? '—'}
               </p>
             </div>
@@ -147,14 +147,14 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
           {/* ROI + timestamp */}
           <div className="grid grid-cols-2 gap-1.5">
             <div className="bg-[var(--metric-bg)] rounded-lg p-2">
-              <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">ROI</p>
-              <p className="text-sm font-bold mt-0.5" style={{ color: accentColor }}>
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">ROI</p>
+              <p className="text-base font-bold mt-0.5" style={{ color: accentColor }}>
                 {audit.roi_multiplier != null ? `${audit.roi_multiplier}x` : '—'}
               </p>
             </div>
             <div className="bg-[var(--metric-bg)] rounded-lg p-2">
-              <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Last Active</p>
-              <p className="text-[10px] font-mono text-slate-300 mt-0.5">
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-wider">Last Active</p>
+              <p className="text-xs font-mono text-slate-300 mt-0.5">
                 {timeAgo(audit.created_at)}
               </p>
             </div>

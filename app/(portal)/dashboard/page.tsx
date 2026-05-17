@@ -46,7 +46,7 @@ export default async function DashboardPage() {
           <p className="text-[10px] font-mono text-[#D4AF37] uppercase tracking-[0.2em] mb-1">
             // COMMAND CENTER
           </p>
-          <h1 className="text-2xl font-display font-bold text-white">Overview</h1>
+          <h1 className="text-3xl font-display font-bold text-white">Overview</h1>
           <p className="text-sm text-slate-400 mt-1">
             {user?.email}
             <span className="mx-2 text-slate-700">·</span>
@@ -73,13 +73,13 @@ export default async function DashboardPage() {
             style={{ borderColor: `${color}22` }}
           >
             <div className="flex items-start justify-between mb-3">
-              <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider leading-tight">
+              <p className="text-[11px] font-mono text-slate-500 uppercase tracking-wider leading-tight">
                 {label}
               </p>
-              <Icon size={14} style={{ color }} className="flex-shrink-0 mt-0.5" />
+              <Icon size={15} style={{ color }} className="flex-shrink-0 mt-0.5" />
             </div>
-            <p className="text-2xl font-display font-bold text-white">{value}</p>
-            <p className="text-[10px] font-mono mt-1" style={{ color }}>{delta}</p>
+            <p className="text-3xl font-display font-bold text-white">{value}</p>
+            <p className="text-xs font-mono mt-1" style={{ color }}>{delta}</p>
           </div>
         ))}
       </div>

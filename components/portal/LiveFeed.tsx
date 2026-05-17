@@ -163,7 +163,7 @@ export default function LiveFeed() {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-xs"
+          className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[13px]"
         >
           <AnimatePresence initial={false}>
             {logs.map(log => (
