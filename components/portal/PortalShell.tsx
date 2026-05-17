@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
 import Sidebar from './Sidebar'
+import ThemeToggle from './ThemeToggle'
 
 export default function PortalShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
-    <div className="flex min-h-screen bg-[#0D0D0D]">
+    <div className="flex min-h-screen bg-[var(--bg-base)]">
 
       {/* Mobile backdrop */}
       {drawerOpen && (
@@ -33,7 +34,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Mobile top bar — hidden on md+ */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-[#0A0A0A] border-b border-[rgba(212,175,55,0.1)] flex-shrink-0 md:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-[var(--bg-sidebar)] border-b border-[var(--border-gold)] flex-shrink-0 md:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
@@ -47,8 +48,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em]">Agentic</span>
           </div>
 
-          {/* Balance the hamburger so the logo stays centred */}
-          <div className="w-8" />
+          <ThemeToggle className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors" />
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>

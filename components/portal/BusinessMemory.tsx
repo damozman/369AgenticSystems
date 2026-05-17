@@ -53,7 +53,7 @@ function Group({ g }: { g: MemoryGroup }) {
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[var(--item-bg)] transition-colors"
       >
         <div className="flex items-center gap-2.5">
           <Icon size={13} style={{ color: g.color }} />
@@ -83,7 +83,7 @@ function Group({ g }: { g: MemoryGroup }) {
               {g.items.map(item => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-3 pl-3 py-2 rounded-lg bg-[rgba(255,255,255,0.02)] border-l-2"
+                  className="flex items-start gap-3 pl-3 py-2 rounded-lg bg-[var(--item-bg)] border-l-2"
                   style={{ borderLeftColor: `${g.color}44` }}
                 >
                   <div className="flex-1 min-w-0">
@@ -122,12 +122,12 @@ export default function BusinessMemory() {
         </div>
 
         {/* Memory groups */}
-        <div className="divide-y divide-[rgba(255,255,255,0.04)]">
+        <div className="divide-y divide-[var(--border-faint)]">
           {MEMORY.map(g => <Group key={g.id} g={g} />)}
         </div>
 
         {/* Footer note */}
-        <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.04)]">
+        <div className="mt-4 pt-4 border-t border-[var(--border-faint)]">
           <p className="text-[9px] font-mono text-slate-700 text-center">
             <span className="text-[#D4AF37]">›</span>{' '}
             Memory is loaded into every agent run automatically

@@ -69,7 +69,7 @@ export default async function DashboardPage() {
         {STAT_CARDS.map(({ label, value, delta, color, Icon }) => (
           <div
             key={label}
-            className="bg-[#111111] rounded-xl border p-4"
+            className="bg-[var(--bg-surface)] rounded-xl border p-4"
             style={{ borderColor: `${color}22` }}
           >
             <div className="flex items-start justify-between mb-3">

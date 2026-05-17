@@ -145,10 +145,10 @@ export default function LiveFeed() {
       </div>
 
       {/* Terminal window */}
-      <div className="flex-1 bg-[#080808] rounded-xl border border-[rgba(212,175,55,0.1)] overflow-hidden flex flex-col">
+      <div className="flex-1 bg-[var(--bg-terminal)] rounded-xl border border-[var(--border-gold)] overflow-hidden flex flex-col">
 
         {/* Terminal chrome */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[rgba(255,255,255,0.05)] bg-[#0D0D0D] flex-shrink-0">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-base)] flex-shrink-0">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />

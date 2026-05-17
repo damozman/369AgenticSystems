@@ -7,27 +7,79 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens — dark theme (default) ──────────────────────────────── */
 :root {
   --gold:         #D4AF37;
   --gold-dim:     #8B6914;
   --gold-bright:  #F0C94A;
+
   --bg-base:      #0D0D0D;
   --bg-surface:   #111111;
   --bg-elevated:  #1A1A1A;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-gold:   rgba(212, 175, 55, 0.3);
+  --bg-sidebar:   #0A0A0A;
+  --bg-terminal:  #080808;
+
+  --metric-bg:    rgba(255, 255, 255, 0.03);
+  --item-bg:      rgba(255, 255, 255, 0.02);
+
+  --border-subtle:    rgba(255, 255, 255, 0.05);
+  --border-faint:     rgba(255, 255, 255, 0.04);
+  --border-gold:      rgba(212, 175, 55, 0.10);
+  --border-gold-mid:  rgba(212, 175, 55, 0.18);
+  --border-gold-str:  rgba(212, 175, 55, 0.30);
+
+  --text-primary:   #FFFFFF;
+  --text-secondary: #CBD5E1;
+  --text-muted:     #94A3B8;
 }
 
+/* ── Light theme override ───────────────────────────────────────────────── */
+html.light {
+  --bg-base:      #F5F3EF;
+  --bg-surface:   #FFFFFF;
+  --bg-elevated:  #F0EDE8;
+  --bg-sidebar:   #FAFAF7;
+  --bg-terminal:  #F8F6F2;
+
+  --metric-bg:    rgba(0, 0, 0, 0.04);
+  --item-bg:      rgba(0, 0, 0, 0.03);
+
+  --border-subtle:    rgba(0, 0, 0, 0.08);
+  --border-faint:     rgba(0, 0, 0, 0.06);
+  --border-gold:      rgba(212, 175, 55, 0.30);
+  --border-gold-mid:  rgba(212, 175, 55, 0.40);
+  --border-gold-str:  rgba(212, 175, 55, 0.55);
+
+  --text-primary:   #111111;
+  --text-secondary: #374151;
+  --text-muted:     #6B7280;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 
 body {
-  background: #0D0D0D;
-  color: #e2e8f0;
+  background: var(--bg-base);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Light mode: text colour overrides for classes baked into components ── */
+html.light .text-white              { color: var(--text-primary)   !important; }
+html.light .text-slate-200          { color: #1E293B               !important; }
+html.light .text-slate-300          { color: #374151               !important; }
+/* slate-400 and darker read fine on light surfaces — no override needed    */
+
+/* Hover variant */
+html.light .hover\:text-slate-200:hover  { color: #1E293B !important; }
+html.light .hover\:text-slate-300:hover  { color: #374151 !important; }
+
+/* Emerald / status dots stay vivid */
+html.light .text-emerald-400        { color: #059669 !important; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar             { width: 4px; height: 4px; }
-::-webkit-scrollbar-track       { background: #111111; }
-::-webkit-scrollbar-thumb       { background: #8B6914; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+::-webkit-scrollbar-track       { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb       { background: var(--gold-dim); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }

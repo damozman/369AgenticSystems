@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import ThemeToggle from './ThemeToggle'
 
 const NAV = [
   {
@@ -51,10 +52,10 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <aside className="flex flex-col w-64 h-full min-h-screen bg-[#0A0A0A] border-r border-[rgba(212,175,55,0.1)] flex-shrink-0">
+    <aside className="flex flex-col w-64 h-full min-h-screen bg-[var(--bg-sidebar)] border-r border-[var(--border-gold)] flex-shrink-0">
 
       {/* ── Logo ───────────────────────────────────────────────── */}
-      <div className="px-6 py-6 border-b border-[rgba(212,175,55,0.08)]">
+      <div className="px-6 py-6 border-b border-[var(--border-gold)]">
         <Link href="/portal/dashboard" className="group block">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-display font-bold text-[#D4AF37] group-hover:text-[#F0C94A] transition-colors">
@@ -71,7 +72,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* ── System status ──────────────────────────────────────── */}
-      <div className="px-6 py-3 border-b border-[rgba(255,255,255,0.04)]">
+      <div className="px-6 py-3 border-b border-[var(--border-faint)]">
         <div className="flex items-center gap-2">
           <motion.div
             className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"
@@ -96,8 +97,8 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
               className={[
                 'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 border',
                 isActive
-                  ? 'bg-[rgba(212,175,55,0.07)] text-[#D4AF37] border-[rgba(212,175,55,0.18)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[rgba(255,255,255,0.03)] border-transparent',
+                  ? 'bg-[rgba(212,175,55,0.07)] text-[#D4AF37] border-[var(--border-gold-mid)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[var(--metric-bg)] border-transparent',
               ].join(' ')}
             >
               <Icon
@@ -122,14 +123,18 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
       {/* ── Footer / sign out ──────────────────────────────────── */}
-      <div className="px-3 py-4 border-t border-[rgba(255,255,255,0.04)]">
+      <div className="px-3 py-4 border-t border-[var(--border-faint)]">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-slate-600 hover:text-slate-300 hover:bg-[rgba(255,255,255,0.03)] transition-all duration-150 group"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-slate-600 hover:text-slate-300 hover:bg-[var(--metric-bg)] transition-all duration-150 group"
         >
           <LogOut size={15} className="group-hover:text-red-400 transition-colors" />
           <span className="text-sm">Sign Out</span>
         </button>
+        <ThemeToggle
+          showLabel
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-slate-600 hover:text-slate-300 hover:bg-[var(--metric-bg)] transition-all duration-150"
+        />
         <p className="text-[9px] font-mono text-slate-800 text-center mt-3">
           369 Agentic Systems v1.0
         </p>

@@ -18,7 +18,7 @@ export default function ScanCard({
 }: ScanCardProps) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border bg-[#111111] ${className}`}
+      className={`relative overflow-hidden rounded-xl border bg-[var(--bg-surface)] ${className}`}
       style={{ borderColor: `${accentColor}22` }}
     >
       {/* Top accent line */}

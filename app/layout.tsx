@@ -23,6 +23,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${instrumentSans.variable}`}>
+      {/* Apply saved theme before first paint to prevent flash-of-dark */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html:
+          `(function(){var t=localStorage.getItem('portal-theme');if(t==='light')document.documentElement.classList.add('light');})()`
+        }} />
+      </head>
       <body className="font-sans antialiased">{children}</body>
     </html>
   )

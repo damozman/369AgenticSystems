@@ -124,19 +124,19 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
 
           {/* Top 3 key metrics */}
           <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-            <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-2">
+            <div className="bg-[var(--metric-bg)] rounded-lg p-2">
               <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Security</p>
               <p className="text-base font-bold text-white mt-0.5">
                 {audit.security_score ?? '—'}
               </p>
             </div>
-            <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-2">
+            <div className="bg-[var(--metric-bg)] rounded-lg p-2">
               <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">SEO Vis.</p>
               <p className="text-base font-bold text-white mt-0.5">
                 {audit.seo_visibility ?? '—'}
               </p>
             </div>
-            <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-2">
+            <div className="bg-[var(--metric-bg)] rounded-lg p-2">
               <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Lead Vel.</p>
               <p className="text-base font-bold text-white mt-0.5">
                 {audit.lead_velocity ?? '—'}
@@ -146,13 +146,13 @@ function AuditCard({ audit, index, delay }: { audit: SystemAudit; index: number;
 
           {/* ROI + timestamp */}
           <div className="grid grid-cols-2 gap-1.5">
-            <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-2">
+            <div className="bg-[var(--metric-bg)] rounded-lg p-2">
               <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">ROI</p>
               <p className="text-sm font-bold mt-0.5" style={{ color: accentColor }}>
                 {audit.roi_multiplier != null ? `${audit.roi_multiplier}x` : '—'}
               </p>
             </div>
-            <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-2">
+            <div className="bg-[var(--metric-bg)] rounded-lg p-2">
               <p className="text-[8px] font-mono text-slate-700 uppercase tracking-wider">Last Active</p>
               <p className="text-[10px] font-mono text-slate-300 mt-0.5">
                 {timeAgo(audit.created_at)}
