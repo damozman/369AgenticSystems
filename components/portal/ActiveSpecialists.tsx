@@ -222,9 +222,9 @@ interface Props {
 }
 
 export default function ActiveSpecialists({ initialAudits }: Props) {
-  const [audits, setAudits]                   = useState<SystemAudit[]>(initialAudits ?? [])
-  const [activeAudit, setActiveAudit]         = useState<SystemAudit | null>(null)
-  const [patchingDomains, setPatchingDomains] = useState<Set<string>>(new Set())
+  const [audits, setAudits]               = useState<SystemAudit[]>(initialAudits ?? [])
+  const [activeAudit, setActiveAudit]     = useState<SystemAudit | null>(null)
+  const [patchingIds, setPatchingIds]     = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -243,19 +243,23 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
         { event: 'UPDATE', schema: 'public', table: 'system_audits' },
         (payload) => {
           const updated = payload.new as SystemAudit
-          // Update the audit in the grid
+          // Update the specific record by id (falls back to domain for legacy rows)
           setAudits(prev => prev.map(a =>
-            a.client_domain === updated.client_domain ? updated : a
+            (updated.id && a.id === updated.id) || a.client_domain === updated.client_domain
+              ? updated : a
           ))
-          // Clear patching state
-          setPatchingDomains(prev => {
-            const next = new Set(prev)
-            next.delete(updated.client_domain)
-            return next
-          })
-          // Close drawer if it was open for this domain
+          // Clear patching state for this specific id
+          if (updated.id) {
+            setPatchingIds(prev => {
+              const next = new Set(prev)
+              next.delete(updated.id!)
+              return next
+            })
+          }
+          // Close drawer if it was open for this record
           setActiveAudit(prev =>
-            prev?.client_domain === updated.client_domain ? null : prev
+            (prev?.id && prev.id === updated.id) || prev?.client_domain === updated.client_domain
+              ? null : prev
           )
         }
       )
@@ -273,11 +277,11 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
   }
 
   // Called the moment user clicks AUTHORIZE — close drawer, enter patching state
-  function handleAuthorize(domain: string) {
+  function handleAuthorize(id: string, _domain: string) {
     setActiveAudit(null)
-    setPatchingDomains(prev => new Set([...prev, domain]))
+    setPatchingIds(prev => new Set([...prev, id]))
     // Supabase realtime UPDATE event fires when the patch completes
-    // and automatically clears patchingDomains + updates the card
+    // and automatically clears patchingIds + updates the card
   }
 
   const safeAudits  = audits ?? []
@@ -314,7 +318,7 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
               audit={audit}
               index={i}
               delay={i * 0.08}
-              isPatching={patchingDomains.has(audit.client_domain)}
+              isPatching={audit.id ? patchingIds.has(audit.id) : false}
               onLeakClick={handleLeakClick}
             />
           ))

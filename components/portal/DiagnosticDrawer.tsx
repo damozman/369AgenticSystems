@@ -8,7 +8,7 @@ import type { SystemAudit } from './ActiveSpecialists'
 interface Props {
   audit: SystemAudit | null
   onClose: () => void
-  onAuthorize: (domain: string) => void
+  onAuthorize: (id: string, domain: string) => void
 }
 
 interface VulnVector {
@@ -60,12 +60,12 @@ export default function DiagnosticDrawer({ audit, onClose, onAuthorize }: Props)
   async function handleAuthorize() {
     if (!audit || authorizing) return
     setAuthorizing(true)
-    onAuthorize(audit.client_domain) // immediately: close drawer + card enters PATCHING state
+    onAuthorize(audit.id!, audit.client_domain) // immediately: close drawer + card enters PATCHING state
     try {
       await fetch('/api/patch-audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_domain: audit.client_domain }),
+        body: JSON.stringify({ id: audit.id }),
       })
       // Supabase realtime fires the card update — no manual state needed
     } catch {

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
-  const { client_domain } = await req.json()
+  const { id } = await req.json()
 
-  if (!client_domain) {
-    return NextResponse.json({ error: 'client_domain required' }, { status: 400 })
+  if (!id) {
+    return NextResponse.json({ error: 'id required' }, { status: 400 })
   }
 
   const supabaseAdmin = createClient(
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const { error } = await supabaseAdmin
     .from('system_audits')
     .update({ leak_detected: false, payload_status: 'active' })
-    .eq('client_domain', client_domain)
+    .eq('id', id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
