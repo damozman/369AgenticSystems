@@ -38,10 +38,10 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="p-8 max-w-[1600px]">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px]">
 
       {/* ── Page header ─────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-6 sm:mb-8">
         <div>
           <p className="text-[10px] font-mono text-[#D4AF37] uppercase tracking-[0.2em] mb-1">
             // COMMAND CENTER
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Stat bar ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {STAT_CARDS.map(({ label, value, delta, color, Icon }) => (
           <div
             key={label}

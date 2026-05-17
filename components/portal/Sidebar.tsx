@@ -40,7 +40,7 @@ const NAV = [
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -51,7 +51,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-[#0A0A0A] border-r border-[rgba(212,175,55,0.1)] flex-shrink-0">
+    <aside className="flex flex-col w-64 h-full min-h-screen bg-[#0A0A0A] border-r border-[rgba(212,175,55,0.1)] flex-shrink-0">
 
       {/* ── Logo ───────────────────────────────────────────────── */}
       <div className="px-6 py-6 border-b border-[rgba(212,175,55,0.08)]">
@@ -92,6 +92,7 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={[
                 'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 border',
                 isActive

@@ -124,7 +124,7 @@ export default function LiveFeed() {
   }, [])
 
   return (
-    <div className="flex flex-col h-full min-h-[500px]">
+    <div className="flex flex-col h-full min-h-[320px] sm:min-h-[500px]">
 
       {/* Section header */}
       <div className="flex items-center justify-between mb-4">
