@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Filter, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { SystemAudit } from './ActiveSpecialists'
 
@@ -31,7 +32,7 @@ const LIVE_QUEUE: Omit<LogEntry, 'id' | 'time'>[] = [
   { tag: 'PROCESS', agent: 'APPT_GUARDIAN',  msg: 'Checking appointment availability...' },
   { tag: 'INFO',    agent: 'SYSTEM',         msg: 'Memory query: 2 prior dental pain points found' },
   { tag: 'SUCCESS', agent: 'APPT_GUARDIAN',  msg: 'Slot offered — awaiting confirmation' },
-  { tag: 'WARN',    agent: 'FOLLOW_UP',      msg: '[ROOFING_0032] Day-3 sequence triggered' },
+  { tag: 'WARN',    agent: 'FOLLOW_UP',      msg: '[ROOFING_0032] Day-3 sequence triggered — no response' },
   { tag: 'PROCESS', agent: 'DOC_DRAFTER',    msg: 'Generating supplement analysis...' },
   { tag: 'SUCCESS', agent: 'CLAIMS_TRIAGE',  msg: 'Insurance claim pre-qualified — $12,800 recovery' },
   { tag: 'SYSTEM',  msg: 'Memory write: new ROI data point stored in vault' },
@@ -45,45 +46,70 @@ const TAG_COLOR: Record<Tag, string> = {
   SYSTEM:  '#94A3B8',
 }
 
+// Copper-amber palette — sophisticated, not neon
+const WARN_ROW_BG     = 'rgba(120, 53, 15, 0.18)'  // amber-900 family tint
+const WARN_ROW_BORDER = '#92400E'                    // amber-800, copper-like
+const WARN_TAG_COLOR  = '#F59E0B'                    // amber-500
+const WARN_TAG_BG     = 'rgba(245, 158, 11, 0.12)'
+const WARN_MSG_COLOR  = '#FDE68A'                    // amber-200, warm readable
+
 function now() {
   return new Date().toLocaleTimeString('en-US', { hour12: false })
 }
 
-const NEAR_BOTTOM_THRESHOLD = 100
+function fireNotification(msg: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (Notification.permission === 'granted') {
+    new Notification('⚠ 369 Agentic — Action Required', {
+      body: msg,
+      icon: '/favicon.ico',
+    })
+  }
+}
 
+const NEAR_BOTTOM_THRESHOLD = 100
 let globalId = 100
 
 export default function LiveFeed() {
-  const [logs, setLogs] = useState<LogEntry[]>(
-    SEED_LOGS.map(l => ({ ...l, id: globalId++ }))
-  )
-  const [qIdx, setQIdx] = useState(0)
-  const scrollRef    = useRef<HTMLDivElement>(null)
-  const nearBottomRef = useRef(true) // ref avoids re-renders on every scroll event
+  const [logs, setLogs]               = useState<LogEntry[]>(SEED_LOGS.map(l => ({ ...l, id: globalId++ })))
+  const [qIdx, setQIdx]               = useState(0)
+  const [warnFilter, setWarnFilter]   = useState(false)
+  const [unreadWarns, setUnreadWarns] = useState(0)
+  const scrollRef     = useRef<HTMLDivElement>(null)
+  const nearBottomRef = useRef(true)
+
+  // Request browser notification permission on first render
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   function handleScroll() {
     const el = scrollRef.current
     if (!el) return
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    nearBottomRef.current = distanceFromBottom <= NEAR_BOTTOM_THRESHOLD
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_THRESHOLD
   }
 
+  // Simulated live queue — increments warn counter so badge is demonstrable
   useEffect(() => {
     const id = setInterval(() => {
       const entry = LIVE_QUEUE[qIdx % LIVE_QUEUE.length]
       setLogs(prev => [...prev.slice(-40), { ...entry, id: globalId++, time: now() }])
+      if (entry.tag === 'WARN') setUnreadWarns(n => n + 1)
       setQIdx(i => i + 1)
     }, 3400)
     return () => clearInterval(id)
   }, [qIdx])
 
+  // Auto-scroll when near bottom
   useEffect(() => {
     if (!nearBottomRef.current) return
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [logs])
 
-  // Real-time: append log entries whenever a new system_audit row lands
+  // Real-time Supabase events — push notifications on real WARNs only
   useEffect(() => {
     const supabase = createClient()
 
@@ -93,17 +119,20 @@ export default function LiveFeed() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'system_audits' },
         (payload) => {
-          const audit = payload.new as SystemAudit
+          const audit   = payload.new as SystemAudit
           const timestamp = now()
 
           const entries: Omit<LogEntry, 'id' | 'time'>[] = [
-            { tag: 'INFO',    agent: 'AUDIT_ENGINE',  msg: `New audit received — ${audit.client_domain}` },
+            { tag: 'INFO', agent: 'AUDIT_ENGINE', msg: `New audit received — ${audit.client_domain}` },
           ]
           if (audit.security_score != null) {
             entries.push({ tag: 'PROCESS', agent: 'SECURITY_SCAN', msg: `Security score: ${audit.security_score}/100` })
           }
           if (audit.leak_detected) {
-            entries.push({ tag: 'WARN', agent: 'SECURITY_SCAN', msg: `Leak detected on ${audit.client_domain} — flagged for review` })
+            const warnMsg = `Leak detected on ${audit.client_domain} — flagged for review`
+            entries.push({ tag: 'WARN', agent: 'SECURITY_SCAN', msg: warnMsg })
+            setUnreadWarns(n => n + 1)
+            fireNotification(warnMsg)
           }
           if (audit.seo_visibility != null) {
             entries.push({ tag: 'PROCESS', agent: 'SEO_ENGINE', msg: `SEO visibility index: ${audit.seo_visibility}` })
@@ -123,6 +152,15 @@ export default function LiveFeed() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
+  function toggleWarnFilter() {
+    if (!warnFilter) setUnreadWarns(0) // entering filter mode — mark all seen
+    setWarnFilter(f => !f)
+  }
+
+  const warnTotal    = logs.filter(l => l.tag === 'WARN').length
+  const displayedLogs = warnFilter ? logs.filter(l => l.tag === 'WARN') : logs
+  const showBadge    = warnTotal > 0 || warnFilter
+
   return (
     <div className="flex flex-col h-[520px]">
 
@@ -134,7 +172,45 @@ export default function LiveFeed() {
           </p>
           <h2 className="text-lg font-display font-semibold text-white">Agent Activity</h2>
         </div>
+
         <div className="flex items-center gap-2">
+
+          {/* ── WARN triage badge / filter toggle ── */}
+          {showBadge && (
+            <button
+              onClick={toggleWarnFilter}
+              title={warnFilter ? 'Clear filter — show all activity' : 'Filter to WARN events only'}
+              className={[
+                'flex items-center gap-1.5 px-2.5 py-1 rounded border font-mono text-[10px] font-bold uppercase tracking-wider transition-all duration-200',
+                warnFilter
+                  ? 'bg-[rgba(120,53,15,0.35)] border-[#92400E] text-amber-400'
+                  : 'bg-[rgba(120,53,15,0.15)] border-[#78350F] text-amber-600 hover:bg-[rgba(120,53,15,0.28)] hover:border-[#92400E] hover:text-amber-400',
+              ].join(' ')}
+            >
+              {warnFilter ? (
+                <>
+                  <X size={9} />
+                  <span>WARN ONLY</span>
+                </>
+              ) : (
+                <>
+                  {unreadWarns > 0 ? (
+                    <motion.span
+                      animate={{ opacity: [1, 0.35, 1] }}
+                      transition={{ duration: 1.1, repeat: Infinity }}
+                    >
+                      ⚠
+                    </motion.span>
+                  ) : (
+                    <Filter size={9} />
+                  )}
+                  <span>{unreadWarns > 0 ? unreadWarns : warnTotal} WARN</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* LIVE indicator */}
           <motion.div
             className="w-1.5 h-1.5 rounded-full bg-red-500"
             animate={{ opacity: [1, 0.3, 1] }}
@@ -156,6 +232,9 @@ export default function LiveFeed() {
           </div>
           <span className="text-[9px] font-mono text-slate-500 ml-2">
             369-agentic-core — live-feed
+            {warnFilter && (
+              <span style={{ color: '#B45309' }} className="ml-2">[ WARN FILTER ACTIVE ]</span>
+            )}
           </span>
         </div>
 
@@ -163,45 +242,74 @@ export default function LiveFeed() {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[11px]"
+          className="flex-1 overflow-y-auto p-4 space-y-1 font-mono text-[11px]"
         >
           <AnimatePresence initial={false}>
-            {logs.map(log => (
-              <motion.div
-                key={log.id}
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.18 }}
-                className="flex items-center gap-2 overflow-hidden"
-              >
-                <span className="text-slate-500 flex-shrink-0 tabular-nums">{log.time}</span>
-                <span
-                  className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider"
-                  style={{
-                    color: TAG_COLOR[log.tag],
-                    background: `${TAG_COLOR[log.tag]}18`,
-                  }}
+            {displayedLogs.map(log => {
+              const isWarn = log.tag === 'WARN'
+              return (
+                <motion.div
+                  key={log.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center gap-2 overflow-hidden rounded-sm py-0.5"
+                  style={isWarn ? {
+                    background:   WARN_ROW_BG,
+                    borderLeft:   `2px solid ${WARN_ROW_BORDER}`,
+                    paddingLeft:  '6px',
+                    marginLeft:   '-4px',
+                    paddingRight: '4px',
+                  } : {}}
                 >
-                  {log.tag}
-                </span>
-                {log.agent && (
-                  <span className="text-slate-400 flex-shrink-0">[{log.agent}]</span>
-                )}
-                <span className="text-slate-300 truncate min-w-0">{log.msg}</span>
-              </motion.div>
-            ))}
+                  <span className="text-slate-500 flex-shrink-0 tabular-nums">{log.time}</span>
+                  <span
+                    className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider"
+                    style={{
+                      color:      isWarn ? WARN_TAG_COLOR  : TAG_COLOR[log.tag],
+                      background: isWarn ? WARN_TAG_BG     : `${TAG_COLOR[log.tag]}18`,
+                    }}
+                  >
+                    {log.tag}
+                  </span>
+                  {log.agent && (
+                    <span
+                      className="flex-shrink-0"
+                      style={{ color: isWarn ? '#D97706' : '#94A3B8' }}
+                    >
+                      [{log.agent}]
+                    </span>
+                  )}
+                  <span
+                    className="truncate min-w-0"
+                    style={{ color: isWarn ? WARN_MSG_COLOR : '#CBD5E1' }}
+                  >
+                    {log.msg}
+                  </span>
+                </motion.div>
+              )
+            })}
           </AnimatePresence>
 
-          {/* Blinking cursor */}
-          <div className="flex items-center gap-1 pt-0.5">
-            <span className="text-[#D4AF37]">›</span>
-            <motion.span
-              className="inline-block w-1.5 h-3.5 bg-[#D4AF37]"
-              animate={{ opacity: [1, 0] }}
-              transition={{ duration: 0.7, repeat: Infinity, repeatType: 'reverse' }}
-            />
-          </div>
+          {/* Empty state when filter active with no WARNs */}
+          {warnFilter && displayedLogs.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-32 gap-2">
+              <span className="text-[10px] font-mono text-slate-700 uppercase tracking-widest">All clear</span>
+              <span className="text-[9px] font-mono text-slate-800">No active warnings in current window</span>
+            </div>
+          )}
 
+          {/* Blinking cursor — hidden in filter mode */}
+          {!warnFilter && (
+            <div className="flex items-center gap-1 pt-0.5">
+              <span className="text-[#D4AF37]">›</span>
+              <motion.span
+                className="inline-block w-1.5 h-3.5 bg-[#D4AF37]"
+                animate={{ opacity: [1, 0] }}
+                transition={{ duration: 0.7, repeat: Infinity, repeatType: 'reverse' }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
