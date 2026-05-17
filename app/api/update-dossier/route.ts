@@ -21,23 +21,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const {
-    client_domain,
-    security_score,
-    seo_visibility,
-    lead_velocity,
-    leak_detected,
-    roi_multiplier,
-    payload_status = 'pending',
-  } = body as {
-    client_domain?:  string
-    security_score?: number
-    seo_visibility?: number
-    lead_velocity?:  number
-    leak_detected?:  boolean
-    roi_multiplier?: number
-    payload_status?: string
-  }
+  const raw = body as Record<string, unknown>
+
+  const client_domain  = raw.client_domain  as string | undefined
+  const payload_status = (raw.payload_status as string | undefined) ?? 'pending'
+
+  // Gumloop sends all values as strings — coerce to correct DB types
+  const security_score = raw.security_score != null ? parseInt(String(raw.security_score), 10)   : null
+  const seo_visibility = raw.seo_visibility != null ? parseInt(String(raw.seo_visibility), 10)   : null
+  const lead_velocity  = raw.lead_velocity  != null ? parseInt(String(raw.lead_velocity),  10)   : null
+  const roi_multiplier = raw.roi_multiplier != null ? parseFloat(String(raw.roi_multiplier))      : null
+  const leak_detected  = raw.leak_detected  != null
+    ? String(raw.leak_detected).toLowerCase() === 'true'
+    : null
 
   if (!client_domain) {
     console.warn('[369 WEBHOOK] ✗  Rejected — missing required field: client_domain')
@@ -55,11 +51,11 @@ export async function POST(request: Request) {
     .from('system_audits')
     .insert({
       client_domain,
-      security_score:  security_score  ?? null,
-      seo_visibility:  seo_visibility  ?? null,
-      lead_velocity:   lead_velocity   ?? null,
-      leak_detected:   leak_detected   ?? null,
-      roi_multiplier:  roi_multiplier  ?? null,
+      security_score:  Number.isNaN(security_score) ? null : security_score,
+      seo_visibility:  Number.isNaN(seo_visibility) ? null : seo_visibility,
+      lead_velocity:   Number.isNaN(lead_velocity)  ? null : lead_velocity,
+      leak_detected,
+      roi_multiplier:  Number.isNaN(roi_multiplier as number) ? null : roi_multiplier,
       payload_status,
       created_at:      receivedAt,
     })
