@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   // ── STEP 2 + 3: Email sequence (skipped silently if no client_email / API key)
   if (client_email && process.env.RESEND_API_KEY) {
     const resend   = new Resend(process.env.RESEND_API_KEY)
-    const from     = process.env.RESEND_FROM_EMAIL ?? 'alerts@369agentic.com'
+    const from     = process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'
     const scanDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
     // Email 1 — Diagnostic Alert chip summary, fires immediately
