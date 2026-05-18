@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { diagnosticAlertHtml, dossierHtml } from '@/lib/email-templates'
 
 // Service-role client — bypasses RLS for server-to-server webhook ingestion.
 // Do NOT replace with lib/supabase-server.ts: that client is cookie-scoped for
@@ -21,18 +23,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const raw = body as Record<string, unknown>
+  // ── Field extraction ───────────────────────────────────────────────────────
+  const client_domain           = body.client_domain           as string | undefined
+  const client_email            = body.client_email            as string | undefined
+  const client_name             = (body.client_name as string | undefined) ?? 'Business Owner'
+  const revenue_leakage         = body.revenue_leakage         as string | undefined
+  const booking_link            = body.booking_link            as string | undefined
+  const onboarding_dossier_text = body.onboarding_dossier_text as string | undefined
+  const payload_status          = (body.payload_status as string | undefined) ?? 'pending'
 
-  const client_domain  = raw.client_domain  as string | undefined
-  const payload_status = (raw.payload_status as string | undefined) ?? 'pending'
-
-  // Gumloop sends all values as strings — coerce to correct DB types
-  const security_score = raw.security_score != null ? parseInt(String(raw.security_score), 10)   : null
-  const seo_visibility = raw.seo_visibility != null ? parseInt(String(raw.seo_visibility), 10)   : null
-  const lead_velocity  = raw.lead_velocity  != null ? parseInt(String(raw.lead_velocity),  10)   : null
-  const roi_multiplier = raw.roi_multiplier != null ? parseFloat(String(raw.roi_multiplier))      : null
-  const leak_detected  = raw.leak_detected  != null
-    ? String(raw.leak_detected).toLowerCase() === 'true'
+  // Gumloop sends all numeric/boolean values as strings — coerce to DB types
+  const security_score = body.security_score != null ? parseInt(String(body.security_score), 10)  : null
+  const seo_visibility = body.seo_visibility != null ? parseInt(String(body.seo_visibility), 10)  : null
+  const lead_velocity  = body.lead_velocity  != null ? parseInt(String(body.lead_velocity),  10)  : null
+  const roi_multiplier = body.roi_multiplier != null ? parseFloat(String(body.roi_multiplier))     : null
+  const leak_detected  = body.leak_detected  != null
+    ? String(body.leak_detected).toLowerCase() === 'true'
     : null
 
   if (!client_domain) {
@@ -43,28 +49,68 @@ export async function POST(request: Request) {
     )
   }
 
-  console.log(
-    `[369 WEBHOOK] ▷  client_domain=${client_domain} | status=${payload_status}`
-  )
+  console.log(`[369 WEBHOOK] ▷  client_domain=${client_domain} | status=${payload_status}`)
 
-  const { error } = await supabaseAdmin
+  // ── STEP 1: Supabase insert → triggers Realtime card pop on dashboard ──────
+  const { error: dbError } = await supabaseAdmin
     .from('system_audits')
     .insert({
       client_domain,
-      security_score:  Number.isNaN(security_score) ? null : security_score,
-      seo_visibility:  Number.isNaN(seo_visibility) ? null : seo_visibility,
-      lead_velocity:   Number.isNaN(lead_velocity)  ? null : lead_velocity,
+      security_score:  Number.isNaN(security_score as number) ? null : security_score,
+      seo_visibility:  Number.isNaN(seo_visibility as number) ? null : seo_visibility,
+      lead_velocity:   Number.isNaN(lead_velocity  as number) ? null : lead_velocity,
       leak_detected,
       roi_multiplier:  Number.isNaN(roi_multiplier as number) ? null : roi_multiplier,
       payload_status,
-      created_at:      receivedAt,
+      created_at: receivedAt,
     })
 
-  if (error) {
-    console.error(`[369 WEBHOOK] ✗  Supabase insert failed — ${error.message}`)
+  if (dbError) {
+    console.error(`[369 WEBHOOK] ✗  Supabase insert failed — ${dbError.message}`)
     return NextResponse.json({ error: 'Database insert failed' }, { status: 500 })
   }
 
   console.log(`[369 WEBHOOK] ✓  Audit committed to system_audits — ${client_domain}`)
+
+  // ── STEP 2 + 3: Email sequence (skipped silently if no client_email / API key)
+  if (client_email && process.env.RESEND_API_KEY) {
+    const resend   = new Resend(process.env.RESEND_API_KEY)
+    const from     = process.env.RESEND_FROM_EMAIL ?? 'alerts@369agentic.com'
+    const scanDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+    // Email 1 — Diagnostic Alert chip summary, fires immediately
+    const sendAlert = resend.emails.send({
+      from,
+      to:      client_email,
+      subject: `⚡ Autonomous Scan Complete — ${client_domain}`,
+      html:    diagnosticAlertHtml({
+        client_name, client_domain,
+        security_score, seo_visibility,
+        revenue_leakage, booking_link,
+        scan_date: scanDate,
+      }),
+    })
+
+    // Email 2 — Full dossier, scheduled 5 minutes later via Resend's queue.
+    // scheduledAt requires Resend Pro plan ($20/mo). The function returns in
+    // milliseconds — Resend holds and delivers it; no function stays open.
+    const sendDossier = onboarding_dossier_text
+      ? resend.emails.send({
+          from,
+          to:          client_email,
+          subject:     `📋 Your Operational Dossier — ${client_domain}`,
+          html:        dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
+          scheduledAt: 'in 5 min',
+        })
+      : Promise.resolve(null)
+
+    // Both API calls are non-blocking — fire concurrently, log failures
+    const [r1, r2] = await Promise.allSettled([sendAlert, sendDossier])
+    if (r1.status === 'rejected') console.error('[369 EMAIL] ✗ Alert email failed:', r1.reason)
+    else console.log(`[369 EMAIL] ✓ Alert dispatched → ${client_email}`)
+    if (r2.status === 'rejected') console.error('[369 EMAIL] ✗ Dossier email failed:', r2.reason)
+    else if (onboarding_dossier_text) console.log(`[369 EMAIL] ✓ Dossier scheduled (5 min) → ${client_email}`)
+  }
+
   return NextResponse.json({ success: true }, { status: 200 })
 }
