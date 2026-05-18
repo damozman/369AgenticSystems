@@ -228,44 +228,71 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
 
   useEffect(() => {
     const supabase = createClient()
+    let mounted = true
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null
 
-    const channel = supabase
-      .channel('system_audits_changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'system_audits' },
-        (payload) => {
-          setAudits(prev => [payload.new as SystemAudit, ...(prev ?? [])])
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'system_audits' },
-        (payload) => {
-          const updated = payload.new as SystemAudit
-          // Update the specific record by id (falls back to domain for legacy rows)
-          setAudits(prev => prev.map(a =>
-            (updated.id && a.id === updated.id) || a.client_domain === updated.client_domain
-              ? updated : a
-          ))
-          // Clear patching state for this specific id
-          if (updated.id) {
-            setPatchingIds(prev => {
-              const next = new Set(prev)
-              next.delete(updated.id!)
-              return next
-            })
+    function subscribe() {
+      if (!mounted) return
+
+      // Always tear down the previous channel before creating a new one
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel)
+        activeChannel = null
+      }
+
+      activeChannel = supabase
+        .channel('system_audits_live')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'system_audits' },
+          (payload) => {
+            setAudits(prev => [payload.new as SystemAudit, ...(prev ?? [])])
           }
-          // Close drawer if it was open for this record
-          setActiveAudit(prev =>
-            (prev?.id && prev.id === updated.id) || prev?.client_domain === updated.client_domain
-              ? null : prev
-          )
-        }
-      )
-      .subscribe()
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'system_audits' },
+          (payload) => {
+            const updated = payload.new as SystemAudit
+            setAudits(prev => prev.map(a =>
+              (updated.id && a.id === updated.id) || a.client_domain === updated.client_domain
+                ? updated : a
+            ))
+            if (updated.id) {
+              setPatchingIds(prev => {
+                const next = new Set(prev)
+                next.delete(updated.id!)
+                return next
+              })
+            }
+            setActiveAudit(prev =>
+              (prev?.id && prev.id === updated.id) || prev?.client_domain === updated.client_domain
+                ? null : prev
+            )
+          }
+        )
+        .subscribe((status) => {
+          if (!mounted) return
+          // Retry automatically on any terminal failure state
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setTimeout(subscribe, 2000)
+          }
+        })
+    }
 
-    return () => { supabase.removeChannel(channel) }
+    subscribe()
+
+    // Resubscribe when the tab returns from background — websocket may have gone idle
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && mounted) subscribe()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      mounted = false
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (activeChannel) supabase.removeChannel(activeChannel)
+    }
   }, [])
 
   function handleLeakClick(audit: SystemAudit) {
