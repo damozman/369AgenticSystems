@@ -100,7 +100,6 @@ export async function POST(request: Request) {
           to:          client_email,
           subject:     `📋 Your Operational Dossier — ${client_domain}`,
           html:        dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
-          scheduledAt: 'in 5 min',
         })
       : Promise.resolve(null)
 
