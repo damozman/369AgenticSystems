@@ -106,10 +106,11 @@ export async function POST(request: Request) {
 
     // Both API calls are non-blocking — fire concurrently, log failures
     const [r1, r2] = await Promise.allSettled([sendAlert, sendDossier])
-    if (r1.status === 'rejected') console.error('[369 EMAIL] ✗ Alert email failed:', r1.reason)
-    else console.log(`[369 EMAIL] ✓ Alert dispatched → ${client_email}`)
-    if (r2.status === 'rejected') console.error('[369 EMAIL] ✗ Dossier email failed:', r2.reason)
-    else if (onboarding_dossier_text) console.log(`[369 EMAIL] ✓ Dossier scheduled (5 min) → ${client_email}`)
+    if (r1.status === 'rejected') console.error('[369 EMAIL] ✕ Alert 1 failed:', r1.reason);
+else console.log(`[369 EMAIL] ✓ Alert 1 dispatched → ${client_email}`);
+
+if (r2.status === 'rejected') console.error('[369 EMAIL] ✕ Dossier 2 failed:', r2.reason);
+else console.log(`[369 EMAIL] ✓ Dossier 2 scheduled/sent → ${client_email}`);
   }
 
   return NextResponse.json({ success: true }, { status: 200 })
