@@ -91,7 +91,7 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 
 <tr><td style="padding:20px 36px;border-top:1px solid #1A1A1A;text-align:center;">
   <p style="margin:0;font-size:11px;font-family:monospace;color:#334155;line-height:1.6;">369 Agentic Systems · Autonomous Operations Division<br>
-  <a href="mailto:texasmediamasters@gmail.com" style="color:#475569;text-decoration:none;">texasmediamasters@gmail.com</a></p>
+  <a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">texasmediamasters@gmail.com</a></p>
 </td></tr>
 
 </table>
@@ -169,7 +169,7 @@ ${bodyHtml}
 
 <tr><td style="padding:20px 36px;border-top:1px solid #1A1A1A;text-align:center;">
   <p style="margin:0;font-size:11px;font-family:monospace;color:#334155;line-height:1.6;">369 Agentic Systems · Autonomous Operations Division<br>
-  <a href="mailto:texasmediamasters@gmail.com" style="color:#475569;text-decoration:none;">texasmediamasters@gmail.com</a></p>
+  <a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">texasmediamasters@gmail.com</a></p>
 </td></tr>
 
 </table>
