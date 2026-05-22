@@ -109,188 +109,173 @@ export function dossierHtml(v: DossierVars): string {
       ? JSON.stringify(v.onboarding_dossier_text, null, 2)
       : String(v.onboarding_dossier_text || '');
 
-  // Programmatically separate lines into structural layout blocks
-  let coreAnalysis = ''
-  let intelligenceList = ''
-  let deploymentHtml = ''
-
-  const lines = rawText.split(/\n+/).map(l => l.trim()).filter(Boolean)
-
-  lines.forEach(line => {
-    const isBullet = line.startsWith('*') || line.startsWith('•') || line.startsWith('-')
-    const cleanLine = line.replace(/^[*•-]\s?/, '').trim()
-
-    if (isBullet) {
-      // Route deployment roles to their specialized visual sub-section
-      if (cleanLine.toLowerCase().includes('specialist') || cleanLine.toLowerCase().includes('assistant') || cleanLine.toLowerCase().includes('coordinator') || cleanLine.toLowerCase().includes('agent')) {
-        if (cleanLine.includes('—') || cleanLine.includes('-')) {
-          const splitter = cleanLine.includes('—') ? '—' : '-'
-          const [role, details] = cleanLine.split(new RegExp(`${splitter}(.*)`))
-          deploymentHtml += `<li style="margin-bottom:12px; font-size:14px; line-height:1.6; color:#CBD5E1;"><strong style="color:#FFFFFF;">${role.trim()}</strong> — ${details.trim()}</li>\n`
-        } else {
-          deploymentHtml += `<li style="margin-bottom:12px; font-size:14px; line-height:1.6; color:#CBD5E1;">${cleanLine}</li>\n`
-        }
-      } else {
-        // Format findings with strong prefixes if a colon exists
-        if (cleanLine.includes(':')) {
-          const [header, body] = cleanLine.split(/:(.*)/s)
-          intelligenceList += `<li style="margin-bottom:12px; font-size:14px; line-height:1.6; color:#CBD5E1;"><strong style="color:#FFFFFF;">${header.trim()}:</strong>${body}</li>\n`
-        } else {
-          intelligenceList += `<li style="margin-bottom:12px; font-size:14px; line-height:1.6; color:#CBD5E1;">${cleanLine}</li>\n`
-        }
-      }
-    } else if (!line.startsWith('#')) {
-      if (!line.toLowerCase().includes('ready to activate') && !line.toLowerCase().includes('book a 30-minute')) {
-        coreAnalysis += `<p style="margin:0 0 16px; font-size:14px; color:#CBD5E1; line-height:1.75;">${line}</p>\n`
-      }
-    }
-  })
-
-  // Concrete Fallbacks if the text split filters miss edge cases
-  if (!intelligenceList) {
-    intelligenceList = `<li style="margin-bottom:12px; color:#CBD5E1;">Autonomous architecture audit processing completed successfully.</li>`
-  }
-  if (!deploymentHtml) {
-    deploymentHtml = `
-      <li style="margin-bottom:12px; color:#CBD5E1;"><strong style="color:#FFFFFF;">Lead Response Specialist</strong> — Intercepts inbound interactions within 90 seconds.</li>
-      <li style="margin-bottom:12px; color:#CBD5E1;"><strong style="color:#FFFFFF;">Operational Workflow Automator</strong> — Syncs system parameters to your core dashboard.</li>
-    `
-  }
+  // Programmatically process incoming text into clean paragraph stacks
+  const formattedParagraphs = rawText
+    .split(/\n{2,}/)
+    .map(para => para.trim())
+    .filter(Boolean)
+    .map(para => {
+      // Decode bold markers and handle plain text segments beautifully
+      return `<p style="margin:0 0 16px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6; color:#FFFFFF;">${para}</p>`
+    })
+    .join('\n')
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Operations Dossier — ${v.client_domain}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Your 3six9 Agentic Systems Onboarding Dossier</title>
+  <style>
+    @media only screen and (max-width:600px) {
+      .email-container { width:100% !important; border-radius:0 !important; }
+      .pad-mobile { padding-left:24px !important; padding-right:24px !important; }
+      .hero-title { font-size:22px !important; }
+      .section-h2 { font-size:17px !important; }
+      .cta-btn { padding:13px 24px !important; font-size:13px !important; }
+      .footer-split td { display:block !important; width:100% !important; text-align:left !important; }
+      .footer-split td:last-child { padding-top:8px !important; text-align:left !important; }
+    }
+  </style>
 </head>
-<body style="margin:0; padding:0; background-color:#0A0A0A; font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0A0A; min-height:100vh;">
-<tr>
-  <td align="center" style="padding:40px 16px;">
-    <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px; width:100%; background-color:#0F0F0F; border:1px solid #1E1E1E; border-radius:8px; overflow:hidden;">
-      
-      <tr><td height="3" style="background-color:#D4AF37; font-size:0; line-height:0;">&nbsp;</td></tr>
+<body style="margin:0;padding:0;background-color:#0D0D0D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#0D0D0D;line-height:1px;">
+    Your Digital Employee has completed its analysis. Here is your full Onboarding Dossier from 3six9 Agentic Systems.
+  </div>
 
-      <tr>
-        <td style="padding:40px 40px 24px;">
-          <table cellpadding="0" cellspacing="0" border="0" style="border:1px solid #D4AF37; border-radius:4px; margin-bottom:24px;">
-            <tr><td style="padding:6px 14px; font-family:monospace; font-size:11px; font-weight:700; color:#D4AF37; letter-spacing:0.15em; text-transform:uppercase;">3six9 AGENTIC SYSTEMS</td></tr>
-          </table>
-          <p style="margin:0 0 4px; font-family:monospace; font-size:10px; color:#475569; text-transform:uppercase; letter-spacing:0.2em;">// OPERATIONAL INTELLIGENCE BRIEFING</p>
-          <h1 style="margin:0 0 8px; font-size:26px; font-weight:700; color:#FFFFFF; letter-spacing:-0.02em;">Hello, ${name}.</h1>
-          <p style="margin:0; font-size:14px; color:#94A3B8; line-height:1.6;">Your Digital Employee has finalized its deep system extraction framework parameters. Review your personalized business infrastructure blueprint below.</p>
-        </td>
-      </tr>
-
-      <tr>
-        <td style="padding:0 40px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" style="background-color:#1E1E1E; font-size:0; line-height:0;">&nbsp;</td></tr></table>
-        </td>
-      </tr>
-
-      <tr>
-        <td style="padding:32px 40px 16px;">
-          <table cellpadding="0" cellspacing="0" border="0" style="background-color:#141414; border:1px solid #222222; border-radius:4px; margin-bottom:16px;">
-            <tr><td style="padding:4px 10px; font-family:monospace; font-size:9px; font-weight:700; color:#D4AF37; letter-spacing:0.1em; text-transform:uppercase;">SECTION 01 — OPERATIONAL AUDIT</td></tr>
-          </table>
-          <h2 style="margin:0 0 16px; font-size:18px; font-weight:700; color:#FFFFFF; font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Your Business Intelligence Report</h2>
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#0D0D0D;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        
+        <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#111111;border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,0.25);">
           
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#141414; border:1px solid #1E1E1E; border-radius:6px; margin-bottom:24px;">
-            <tr>
-              <td style="padding:24px;">
-                ${coreAnalysis}
-                <h4 style="margin:24px 0 12px; font-family:monospace; font-size:12px; font-weight:700; color:#FFFFFF; letter-spacing:0.05em; text-transform:uppercase;">INTELLIGENCE FINDINGS</h4>
-                <ul style="margin:0; padding-left:18px; color:#CBD5E1; list-style-type:square;">
-                  ${intelligenceList}
-                </ul>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+          <tr>
+            <td style="background:linear-gradient(160deg,#110E00 0%,#0D0D0D 55%,#0A0A14 100%);padding:36px 48px 28px;border-bottom:1px solid rgba(212,175,55,0.18);">
+              <table role="presentation" class="pad-mobile" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#D4AF37,#E8C84A);border-radius:9px;padding:2px;">
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="background:#0D0D0D;border-radius:8px;padding:7px 16px;">
+                                <span style="font-size:20px;font-weight:800;letter-spacing:0.08em;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">3six9</span> 
+                                <span style="font-size:10px;font-weight:500;letter-spacing:0.22em;color:#888;text-transform:uppercase;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">AGENTIC SYSTEMS</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:14px 0 0;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">▪ ONBOARDING DOSSIER ▪ CONFIDENTIAL</p>
+                  </td>
+                  <td align="right" style="vertical-align:bottom;">
+                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">SECURE TRANSMISSION</p>
+                    <p style="margin:5px 0 0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">3six9 CORE v2.0</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-      <tr>
-        <td style="padding:0 40px 24px;">
-          <h3 style="margin:0 0 12px; font-family:monospace; font-size:13px; font-weight:700; color:#FFFFFF; text-transform:uppercase; letter-spacing:0.05em;">YOUR DIGITAL EMPLOYEE DEPLOYMENT PLAN</h3>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#141414; border:1px solid #1E1E1E; border-radius:6px; margin-bottom:12px;">
-            <tr>
-              <td style="padding:24px 24px 8px;">
-                <ul style="margin:0 0 16px; padding-left:16px; color:#CBD5E1; list-style-type:square;">
-                  ${deploymentHtml}
-                </ul>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+          <tr>
+            <td class="pad-mobile" style="padding:44px 48px 0;">
+              <h1 class="hero-title" style="margin:0 0 14px;font-size:30px;font-weight:800;line-height:1.25;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">Hello, ${name}.</h1>
+              <p style="margin:0;font-size:15px;line-height:1.75;color:#9CA3AF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">Your Digital Employee has completed its initial intelligence pass. Below is your personalized Onboarding Dossier — a full operational brief prepared exclusively for your business by the 3six9 Agentic Core.</p>
+            </td>
+          </tr>
 
-      <tr>
-        <td style="padding:16px 40px 32px; text-align:center;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px dashed #222222; border-radius:6px; padding:20px;">
-            <tr>
-              <td>
-                <p style="margin:0; font-family:monospace; font-size:12px; color:#94A3B8; line-height:1.5;">Every lead that waits for a response is actively searching for a competitor who will answer them faster.</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+          <tr>
+            <td class="pad-mobile" style="padding:32px 48px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="height:1px;background:linear-gradient(90deg,#D4AF37 0%,rgba(212,175,55,0.08) 100%);"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-      <tr>
-        <td style="padding:0 40px 36px;">
-          <table cellpadding="0" cellspacing="0" border="0" style="background-color:#141414; border:1px solid #222222; border-radius:4px; margin-bottom:16px;">
-            <tr><td style="padding:4px 10px; font-family:monospace; font-size:9px; font-weight:700; color:#D4AF37; letter-spacing:0.1em; text-transform:uppercase;">SECTION 02 — ROI PROJECTION</td></tr>
-          </table>
-          <h2 style="margin:0 0 16px; font-size:18px; font-weight:700; color:#FFFFFF; font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Your Return on Investment</h2>
-          
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#141414; border:1px solid #1E1E1E; border-radius:6px;">
-            <tr>
-              <td style="padding:24px 24px 20px;">
-                <h4 style="margin:0 0 12px; font-family:monospace; font-weight:700; color:#FFFFFF; text-transform:uppercase; letter-spacing:0.05em;">PROJECTED 90-DAY IMPACT</h4>
-                <ul style="margin:0 0 24px; padding-left:16px; color:#CBD5E1; list-style-type:square;">
-                  <li style="margin-bottom:10px; line-height:1.6;"><strong style="color:#FFFFFF;">Recaptured Revenue:</strong> Estimated acceleration based on patch execution window parameters.</li>
-                  <li style="margin-bottom:10px; line-height:1.6;"><strong style="color:#FFFFFF;">New Lead Consultations Booked:</strong> 15+ metrics projected.</li>
-                  <li style="margin-bottom:10px; line-height:1.6;"><strong style="color:#FFFFFF;">Administrative Hours Reclaimed:</strong> 20+ Hours per month.</li>
-                </ul>
-                
-                <h4 style="margin:0 0 8px; font-family:monospace; font-weight:700; color:#FFFFFF; text-transform:uppercase; letter-spacing:0.05em;">ANNUAL RUN-RATE ESTIMATE</h4>
-                <p style="margin:0 0 14px; font-size:14px; color:#CBD5E1; line-height:1.75;">Systems scale up valuation trends recursively by ensuring no high-value intent opportunities are lost due to structural delay constraints.</p>
-                <p style="margin:0; font-size:13px; color:#475569; line-height:1.6;">These projections are based on industry benchmarks for autonomous operations infrastructure. Your Digital Employee will be calibrated to your exact layout during verification.</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+          <tr>
+            <td class="pad-mobile" style="padding:0 48px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="background:rgba(212,175,55,0.12);border-left:3px solid #D4AF37;border-radius:0 5px 5px 0;padding:7px 16px;">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">SECTION 01 — OPERATIONAL AUDIT</span>
+                  </td>
+                </tr>
+              </table>
+              <h2 class="section-h2" style="margin:16px 0 14px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Your Business Intelligence Report</h2>
+              
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="background:#181818;border:1px solid rgba(212,175,55,0.14);border-radius:12px;padding:28px;">
+                    <div style="margin:0;font-size:14px;line-height:1.85;color:#D1D5DB;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+                      ${formattedParagraphs}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-      <tr>
-        <td style="padding:0 40px 40px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#111111; border:1px dashed #D4AF37; border-radius:6px; padding:36px 24px; text-align:center;">
-            <tr>
-              <td>
-                <p style="margin:0 0 6px; font-family:monospace; font-size:10px; color:#D4AF37; text-transform:uppercase; letter-spacing:0.15em;">// NEXT STEP AUTHORIZATION</p>
-                <h2 style="margin:0 0 10px; font-size:20px; font-weight:700; color:#FFFFFF;">Ready to Deploy Your Digital Employee?</h2>
-                <p style="margin:0 0 24px; font-size:13px; color:#94A3B8; line-height:1.6; max-width:400px; margin-left:auto; margin-right:auto;">Schedule your 30-minute strategy call. We will review this custom operational blueprint together and configure your automated workforce for launch.</p>
-                
-                <a href="${book}" style="display:inline-block; background-color:#D4AF37; color:#080808; font-family:monospace; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; text-decoration:none; padding:14px 28px; border-radius:4px;">BOOK YOUR STRATEGY CALL →</a>
-                </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+          <tr><td style="height:40px;line-height:40px;">&nbsp;</td></tr>
 
-      <tr>
-        <td style="padding:24px 40px; border-top:1px solid #1A1A1A; background-color:#0C0C0C; text-align:center;">
-          <p style="margin:0; font-size:11px; font-family:monospace; color:#334155; line-height:1.6;">3six9 Agentic Systems · AI Workforce Infrastructure<br>
-          <span style="color:#22252A; font-size:10px; letter-spacing:0.05em;">CONFIDENTIAL BRIEFING DATA // SYSTEM REGISTRY TRANSLATION</span><br>
-          <a href="mailto:intelligence@369agenticsystems.com" style="color:#475569; text-decoration:none;">intelligence@369agenticsystems.com</a></p>
-        </td>
-      </tr>
+          <tr>
+            <td class="pad-mobile" style="padding:0 48px;text-align:center;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="background:linear-gradient(160deg,#110E00 0%,#0D0D14 100%);border:1px solid rgba(212,175,55,0.25);border-radius:14px;padding:36px 32px;text-align:center;">
+                    <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">NEXT STEP</p>
+                    <h3 style="margin:0 0 14px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Ready to Deploy Your Digital Employee?</h3>
+                    <p style="margin:0 0 26px;font-size:14px;line-height:1.7;color:#9CA3AF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">Schedule your 30-minute strategy call. We will review this dossier together and configure your workforce for launch.</p>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+                      <tr>
+                        <td style="border-radius:8px;background:linear-gradient(135deg,#D4AF37 0%,#E8C84A 100%);">
+                          <a class="cta-btn" href="${book}" target="_blank" style="display:inline-block;padding:15px 38px;color:#FFFFFF;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border-radius:8px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">BOOK YOUR STRATEGY CALL &nbsp;→</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    </table>
-  </td>
-</tr>
-</table>
+          <tr><td style="height:44px;line-height:44px;">&nbsp;</td></tr>
+
+          <tr>
+            <td style="background:#0A0A0A;border-top:1px solid rgba(255,255,255,0.05);padding:30px 48px;">
+              <table role="presentation" class="footer-split" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="vertical-align:top;">
+                    <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">3six9 Agentic Systems</p>
+                    <p style="margin:0;font-size:11px;color:#555;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">AI Workforce Infrastructure</p>
+                  </td>
+                  <td align="right" style="vertical-align:top;">
+                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">DOSSIER-${name}</p>
+                    <p style="margin:5px 0 0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">3six9 CORE ENCRYPTED</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding-top:20px;">
+                    <p style="margin:0;font-size:11px;line-height:1.65;color:#444;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">This dossier was compiled by your dedicated Digital Employee and contains proprietary analysis prepared exclusively for ${name}. If you received this in error, please disregard.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`
 }
