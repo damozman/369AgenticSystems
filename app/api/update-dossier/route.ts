@@ -104,17 +104,26 @@ export async function POST(request: Request) {
 
     // Both API calls are non-blocking — fire concurrently, log failures
     const [r1, r2] = await Promise.allSettled([sendAlert, sendDossier])
-    
+
+    // Resend SDK resolves (not rejects) on API errors — must inspect .value.error
+    type ResendResult = { data: { id: string } | null; error: { message: string; name: string } | null } | null
+    const v1 = r1.status === 'fulfilled' ? (r1.value as ResendResult) : null
+    const v2 = r2.status === 'fulfilled' ? (r2.value as ResendResult) : null
+
     if (r1.status === 'rejected') {
-      console.error('[369 EMAIL] ✕ Alert 1 failed:', r1.reason)
+      console.error('[369 EMAIL] ✕ Alert 1 network error:', r1.reason)
+    } else if (v1?.error) {
+      console.error('[369 EMAIL] ✕ Alert 1 Resend rejected:', JSON.stringify(v1.error))
     } else {
-      console.log(`[369 EMAIL] ✓ Alert 1 dispatched → ${client_email}`)
+      console.log(`[369 EMAIL] ✓ Alert 1 dispatched → ${client_email} | id: ${v1?.data?.id}`)
     }
 
     if (r2.status === 'rejected') {
-      console.error('[369 EMAIL] ✕ Dossier 2 failed:', r2.reason)
-    } else {
-      console.log(`[369 EMAIL] ✓ Dossier 2 scheduled/sent → ${client_email}`)
+      console.error('[369 EMAIL] ✕ Dossier 2 network error:', r2.reason)
+    } else if (v2?.error) {
+      console.error('[369 EMAIL] ✕ Dossier 2 Resend rejected:', JSON.stringify(v2.error))
+    } else if (v2?.data?.id) {
+      console.log(`[369 EMAIL] ✓ Dossier 2 dispatched → ${client_email} | id: ${v2.data.id}`)
     }
   }
 
