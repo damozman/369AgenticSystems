@@ -78,52 +78,55 @@ export async function POST(request: Request) {
     const from     = process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'
     const scanDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-    // Email 1 — Diagnostic Alert chip summary, fires immediately
-    const sendAlert = resend.emails.send({
-      from,
-      to:      client_email,
-      subject: `⚡ Autonomous Scan Complete — ${client_domain}`,
-      html:    diagnosticAlertHtml({
-        client_name, client_domain,
-        security_score, seo_visibility,
-        revenue_leakage, booking_link,
-        scan_date: scanDate,
-      }),
-    })
+    let alertSuccess = false
 
-    // Email 2 — Full dossier, running concurrently for testing phase.
-    // (Note: To restore 5m delay later on Pro tier, inject: scheduledAt: 'in 5 min')
-    const sendDossier = onboarding_dossier_text
-      ? resend.emails.send({
+    // ── STEP 2: Dispatch Immediate Diagnostic Alert Summary ─────────────────
+    try {
+      const response = await resend.emails.send({
+        from,
+        to:      client_email,
+        subject: `⚡ Autonomous Scan Complete — ${client_domain}`,
+        html:    diagnosticAlertHtml({
+          client_name, client_domain,
+          security_score, seo_visibility,
+          revenue_leakage, booking_link,
+          scan_date: scanDate,
+        }),
+      })
+
+      if (response.error) {
+        console.error('[369 EMAIL] ✕ Alert 1 Resend rejected:', JSON.stringify(response.error))
+      } else {
+        alertSuccess = true
+        console.log(`[369 EMAIL] ✓ Alert 1 dispatched → ${client_email} | id: ${response.data?.id}`)
+      }
+    } catch (err) {
+      console.error('[369 EMAIL] ✕ Alert 1 network error:', err)
+    }
+
+    // ── STEP 3: Dispatch Heavy Operational Briefing Dossier with 5m Timer ─────
+    if (onboarding_dossier_text && alertSuccess) {
+      try {
+        console.log(`[369 EMAIL] ▷ Initiating transfer for heavy Dossier 2...`)
+
+        const response = await resend.emails.send({
           from,
           to:          client_email,
           subject:     `📋 Your Operational Dossier — ${client_domain}`,
           html:        dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
+          scheduledAt: 'in 5 min', // Enforces the 5-minute queue delay (Requires Resend Pro tier)
         })
-      : Promise.resolve(null)
 
-    // Both API calls are non-blocking — fire concurrently, log failures
-    const [r1, r2] = await Promise.allSettled([sendAlert, sendDossier])
-
-    // Resend SDK resolves (not rejects) on API errors — must inspect .value.error
-    type ResendResult = { data: { id: string } | null; error: { message: string; name: string } | null } | null
-    const v1 = r1.status === 'fulfilled' ? (r1.value as ResendResult) : null
-    const v2 = r2.status === 'fulfilled' ? (r2.value as ResendResult) : null
-
-    if (r1.status === 'rejected') {
-      console.error('[369 EMAIL] ✕ Alert 1 network error:', r1.reason)
-    } else if (v1?.error) {
-      console.error('[369 EMAIL] ✕ Alert 1 Resend rejected:', JSON.stringify(v1.error))
+        if (response.error) {
+          console.error('[369 EMAIL] ✕ Dossier 2 Resend rejected:', JSON.stringify(response.error))
+        } else {
+          console.log(`[369 EMAIL] ✓ Dossier 2 fully transferred and scheduled → ${client_email} | id: ${response.data?.id}`)
+        }
+      } catch (err) {
+        console.error('[369 EMAIL] ✕ Dossier 2 network error:', err)
+      }
     } else {
-      console.log(`[369 EMAIL] ✓ Alert 1 dispatched → ${client_email} | id: ${v1?.data?.id}`)
-    }
-
-    if (r2.status === 'rejected') {
-      console.error('[369 EMAIL] ✕ Dossier 2 network error:', r2.reason)
-    } else if (v2?.error) {
-      console.error('[369 EMAIL] ✕ Dossier 2 Resend rejected:', JSON.stringify(v2.error))
-    } else if (v2?.data?.id) {
-      console.log(`[369 EMAIL] ✓ Dossier 2 dispatched → ${client_email} | id: ${v2.data.id}`)
+      console.warn('[369 EMAIL] ⚠ Skipped Dossier 2 — Payload text missing or Alert 1 failed.')
     }
   }
 

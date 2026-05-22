@@ -118,19 +118,19 @@ export function dossierHtml(v: DossierVars): string {
       : String(v.onboarding_dossier_text || '')
 
   // Convert plain text → styled HTML paragraphs and headers
-  // escapeHtml prevents Gumloop text with <, >, & from malforming the email
   const bodyHtml = rawText
     .split(/\n{2,}/)
     .map(para => para.trim())
     .filter(Boolean)
     .map(para => {
       if (para.startsWith('# ')) {
-        return `<h2 style="margin:0 0 10px;font-size:15px;font-weight:700;color:#D4AF37;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(para.slice(2))}</h2>`
+        return `<h2 style="margin:20px 0 10px;font-size:15px;font-weight:700;color:#D4AF37;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">${para.slice(2)}</h2>`
       }
       if (para.startsWith('## ')) {
-        return `<h3 style="margin:0 0 8px;font-size:12px;font-weight:700;color:#94A3B8;font-family:monospace;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(para.slice(3))}</h3>`
+        return `<h3 style="margin:16px 0 8px;font-size:12px;font-weight:700;color:#94A3B8;font-family:monospace;text-transform:uppercase;letter-spacing:0.06em;">${para.slice(3)}</h3>`
       }
-      return `<p style="margin:0 0 16px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${escapeHtml(para).replace(/\n/g, '<br>')}</p>`
+      // Clean up raw newlines but preserve the native embedded HTML tags cleanly
+      return `<p style="margin:0 0 16px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${para}</p>`
     })
     .join('\n')
 
