@@ -102,24 +102,46 @@ export function dossierHtml(v: DossierVars): string {
   const name  = v.client_name || 'Business Owner'
   const book  = v.booking_link ?? '#'
 
-  // Ensure text context handles parsing strings safely without crashing
+  // Ensure content context string coercion holds safely
   const rawText = typeof v.onboarding_dossier_text === 'string'
     ? v.onboarding_dossier_text
     : typeof v.onboarding_dossier_text === 'object' && v.onboarding_dossier_text !== null
       ? JSON.stringify(v.onboarding_dossier_text, null, 2)
       : String(v.onboarding_dossier_text || '');
 
-  // Programmatically process incoming text into clean paragraph stacks
-  const formattedParagraphs = rawText
+  // ── High-Fidelity Paragraph, Header, and Native List Parser ────────────────
+  // Parses markdown and splits everything down cleanly into structured elements
+  const bodyHtml = rawText
     .split(/\n{2,}/)
     .map(para => para.trim())
     .filter(Boolean)
     .map(para => {
-      // Decode bold markers and handle plain text segments beautifully
-      return `<p style="margin:0 0 16px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6; color:#FFFFFF;">${para}</p>`
+      // Handle Primary Document Headings
+      if (para.startsWith('# ')) {
+        return `<h2 style="color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:24px; margin-bottom:12px;">${para.slice(2)}</h2>`
+      }
+      // Handle Component Layout Subheadings (e.g., INTELLIGENCE FINDINGS)
+      if (para.startsWith('## ') || para.startsWith('### ')) {
+        const cleanSub = para.replace(/^#{2,3}\s?/, '').trim()
+        return `<h3 style="color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; letter-spacing:1px; text-transform:uppercase; margin-top:28px; margin-bottom:12px;">${cleanSub}</h3>`
+      }
+      // Handle Bulleted Text Stacks programmatically
+      if (para.startsWith('* ') || para.startsWith('• ') || para.startsWith('- ')) {
+        const listItems = para
+          .split(/\n[*•-]\s?/)
+          .map(item => item.replace(/^[*•-]\s?/, '').trim())
+          .filter(Boolean)
+          .map(item => `<li style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6; margin:8px 0;">${item}</li>`)
+          .join('\n')
+        return `<ul style="color:#FFFFFF; margin:6px 0; padding-left:20px; list-style-type:disc;">${listItems}</ul>`
+      }
+      
+      // Standalone sentences get wrapped as pristine paragraph layout sections
+      return `<p style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.65; margin:0 0 16px;">${para}</p>`
     })
     .join('\n')
 
+  // Exact replication from the shared production .eml source asset mapping file blueprint
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -202,20 +224,20 @@ export function dossierHtml(v: DossierVars): string {
 
           <tr>
             <td class="pad-mobile" style="padding:0 48px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:16px;">
                 <tr>
                   <td style="background:rgba(212,175,55,0.12);border-left:3px solid #D4AF37;border-radius:0 5px 5px 0;padding:7px 16px;">
-                    <span style="font-size:9px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">SECTION 01 — OPERATIONAL AUDIT</span>
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">SECTION 01 — AUTOMATED INTEL SUMMARY</span>
                   </td>
                 </tr>
               </table>
-              <h2 class="section-h2" style="margin:16px 0 14px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Your Business Intelligence Report</h2>
+              <h2 class="section-h2" style="margin:16px 0 14px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Operational Dossier Analysis</h2>
               
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="background:#181818;border:1px solid rgba(212,175,55,0.14);border-radius:12px;padding:28px;">
                     <div style="margin:0;font-size:14px;line-height:1.85;color:#D1D5DB;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-                      ${formattedParagraphs}
+                      ${bodyHtml}
                     </div>
                   </td>
                 </tr>
@@ -230,7 +252,7 @@ export function dossierHtml(v: DossierVars): string {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="background:linear-gradient(160deg,#110E00 0%,#0D0D14 100%);border:1px solid rgba(212,175,55,0.25);border-radius:14px;padding:36px 32px;text-align:center;">
-                    <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">NEXT STEP</p>
+                    <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">NEXT STEP SYSTEM ACTIVATION</p>
                     <h3 style="margin:0 0 14px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Ready to Deploy Your Digital Employee?</h3>
                     <p style="margin:0 0 26px;font-size:14px;line-height:1.7;color:#9CA3AF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">Schedule your 30-minute strategy call. We will review this dossier together and configure your workforce for launch.</p>
                     
@@ -258,7 +280,7 @@ export function dossierHtml(v: DossierVars): string {
                     <p style="margin:0;font-size:11px;color:#555;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">AI Workforce Infrastructure</p>
                   </td>
                   <td align="right" style="vertical-align:top;">
-                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">DOSSIER-${name}</p>
+                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">DOSSIER-${name.replace(/\s+/g, '')}</p>
                     <p style="margin:5px 0 0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">3six9 CORE ENCRYPTED</p>
                   </td>
                 </tr>
