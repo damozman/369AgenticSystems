@@ -81,12 +81,12 @@ export default function HomePage() {
         }
         .lp-noise {
           position: fixed; inset: 0;
-          pointer-events: none; z-index: 0; opacity: 0.025;
+          pointer-events: none; z-index: 1; opacity: 0.025;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
         }
 .lp-grid {
           position: fixed; inset: 0;
-          pointer-events: none; z-index: 0;
+          pointer-events: none; z-index: 1;
           background-image:
             linear-gradient(rgba(148,163,184,0.022) 1px, transparent 1px),
             linear-gradient(90deg, rgba(148,163,184,0.022) 1px, transparent 1px);
@@ -133,7 +133,7 @@ export default function HomePage() {
       <AmbientOrb />
       <div className="lp-grid" aria-hidden="true" />
 
-      <div style={{ background: '#0A0A0A', minHeight: '100vh', fontFamily: 'Inter, Helvetica Neue, Arial, sans-serif', position: 'relative', zIndex: 1 }}>
+      <div style={{ minHeight: '100vh', fontFamily: 'Inter, Helvetica Neue, Arial, sans-serif', position: 'relative', zIndex: 2 }}>
 
         {/* Gold top bar */}
         <div className="lp-gold-bar" />

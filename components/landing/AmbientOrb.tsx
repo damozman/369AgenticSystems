@@ -46,7 +46,7 @@ export default function AmbientOrb() {
       aria-hidden="true"
       style={{
         position: 'fixed', inset: 0,
-        pointerEvents: 'none', zIndex: 0,
+        pointerEvents: 'none', zIndex: 1,
       }}
     />
   )
