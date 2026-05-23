@@ -104,29 +104,31 @@ export async function POST(request: Request) {
       console.error('[369 EMAIL] ✕ Alert 1 network error:', err)
     }
 
-    // ── STEP 3: Dispatch Heavy Operational Briefing Dossier with 5m Timer ─────
-    if (onboarding_dossier_text && alertSuccess) {
+   // ── STEP 3: Dispatch Heavy Operational Briefing Dossier ─────
+    // REMOVED: && alertSuccess (This now sends independently)
+    if (onboarding_dossier_text) { 
       try {
-        console.log(`[369 EMAIL] ▷ Initiating transfer for heavy Dossier 2...`)
+        console.log(`[369 EMAIL] ▷ Initiating transfer for heavy Dossier 2...`);
 
+        // NOTE: If 'scheduledAt' causes a 400 error, remove that line 
+        // and send immediately to verify the data arrives.
         const response = await resend.emails.send({
           from,
-          to:          client_email,
-          subject:     `📋 Your Operational Dossier — ${client_domain}`,
-          html:        dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
-          scheduledAt: 'in 5 min', // Enforces the 5-minute queue delay (Requires Resend Pro tier)
-        })
+          to: client_email,
+          subject: `📋 Your Operational Dossier — ${client_domain}`,
+          html: dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
+        });
 
         if (response.error) {
-          console.error('[369 EMAIL] ✕ Dossier 2 Resend rejected:', JSON.stringify(response.error))
+          console.error('[369 EMAIL] ✕ Dossier 2 Resend rejected:', JSON.stringify(response.error));
         } else {
-          console.log(`[369 EMAIL] ✓ Dossier 2 fully transferred and scheduled → ${client_email} | id: ${response.data?.id}`)
+          console.log(`[369 EMAIL] ✓ Dossier 2 transferred → ${client_email} | id: ${response.data?.id}`);
         }
       } catch (err) {
-        console.error('[369 EMAIL] ✕ Dossier 2 network error:', err)
+        console.error('[369 EMAIL] ✕ Dossier 2 network error:', err);
       }
     } else {
-      console.warn('[369 EMAIL] ⚠ Skipped Dossier 2 — Payload text missing or Alert 1 failed.')
+      console.warn('[369 EMAIL] ⚠ Skipped Dossier 2 — Payload text missing.');
     }
   }
 
