@@ -3,8 +3,10 @@
 import { useState } from 'react'
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '11px 14px', background: '#141414',
-  border: '1px solid #222', borderRadius: 6, color: '#FFFFFF',
+  width: '100%', padding: '11px 14px',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(148,163,184,0.15)',
+  borderRadius: 8, color: '#FFFFFF',
   fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
 }
 
@@ -47,48 +49,61 @@ export default function EarlyAccessForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={labelStyle}>Your Name</label>
-            <input type="text" required placeholder="Your Name" value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} />
+    <>
+      <style>{`
+        @media (max-width: 480px) {
+          .eaf-row { grid-template-columns: 1fr !important; }
+        }
+        .eaf-input:focus {
+          border-color: rgba(212,175,55,0.4) !important;
+          background: rgba(255,255,255,0.06) !important;
+        }
+      `}</style>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+          <div className="eaf-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Your Name</label>
+              <input className="eaf-input" type="text" required placeholder="Your Name" value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Business Name</label>
+              <input className="eaf-input" type="text" placeholder="Your Business" value={form.business}
+                onChange={e => setForm(f => ({ ...f, business: e.target.value }))} style={inputStyle} />
+            </div>
           </div>
           <div>
-            <label style={labelStyle}>Business Name</label>
-            <input type="text" placeholder="Your Business" value={form.business}
-              onChange={e => setForm(f => ({ ...f, business: e.target.value }))} style={inputStyle} />
+            <label style={labelStyle}>Business Email</label>
+            <input className="eaf-input" type="email" required placeholder="you@yourbusiness.com" value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} />
           </div>
         </div>
-        <div>
-          <label style={labelStyle}>Business Email</label>
-          <input type="email" required placeholder="you@yourbusiness.com" value={form.email}
-            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} />
-        </div>
-      </div>
 
-      {status === 'error' && (
-        <p style={{ margin: '0 0 12px', fontSize: 12, color: '#EF4444', fontFamily: 'monospace' }}>
-          Something went wrong — try again or email intelligence@369agenticsystems.com
+        {status === 'error' && (
+          <p style={{ margin: '0 0 12px', fontSize: 12, color: '#EF4444', fontFamily: 'monospace' }}>
+            Something went wrong — try again or email intelligence@369agenticsystems.com
+          </p>
+        )}
+
+        <button type="submit" disabled={status === 'loading'} style={{
+          width: '100%', padding: '14px 24px',
+          background: status === 'loading'
+            ? 'rgba(212,175,55,0.5)'
+            : 'linear-gradient(135deg, #D4AF37 0%, #E8C84A 100%)',
+          color: '#080808', fontFamily: 'monospace', fontSize: 12,
+          fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+          border: 'none', borderRadius: 8,
+          cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+          transition: 'opacity 0.2s',
+        }}>
+          {status === 'loading' ? 'SUBMITTING...' : 'APPLY FOR EARLY ACCESS →'}
+        </button>
+
+        <p style={{ margin: '12px 0 0', fontSize: 11, color: '#334155', textAlign: 'center', fontFamily: 'monospace' }}>
+          No commitment. No spam. We&apos;ll reach out personally when your slot opens.
         </p>
-      )}
-
-      <button type="submit" disabled={status === 'loading'} style={{
-        width: '100%', padding: '14px 24px',
-        background: status === 'loading' ? '#A08930' : '#D4AF37',
-        color: '#080808', fontFamily: 'monospace', fontSize: 12,
-        fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-        border: 'none', borderRadius: 4,
-        cursor: status === 'loading' ? 'not-allowed' : 'pointer',
-        transition: 'background 0.2s',
-      }}>
-        {status === 'loading' ? 'SUBMITTING...' : 'APPLY FOR EARLY ACCESS →'}
-      </button>
-
-      <p style={{ margin: '12px 0 0', fontSize: 11, color: '#334155', textAlign: 'center', fontFamily: 'monospace' }}>
-        No commitment. No spam. We&apos;ll reach out personally when your slot opens.
-      </p>
-    </form>
+      </form>
+    </>
   )
 }
