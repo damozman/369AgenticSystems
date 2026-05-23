@@ -99,75 +99,44 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 }
 
 export function dossierHtml(v: DossierVars): string {
-  const name = v.client_name || 'Business Owner'
-  const book = v.booking_link ?? '#'
+  const name = v.client_name || 'Business Owner';
+  const book = v.booking_link ?? '#';
 
-  const rawText = typeof v.onboarding_dossier_text === 'string'
-    ? v.onboarding_dossier_text
-    : String(v.onboarding_dossier_text || '');
-
-  // Define the exact triggers that should trigger a visual section box
-  const sectionHeaders = [
-    'INTELLIGENCE FINDINGS', 
-    'YOUR DIGITAL EMPLOYEE DEPLOYMENT PLAN', 
-    'PROJECTED 90-DAY IMPACT', 
-    'ANNUAL RUN-RATE ESTIMATE'
-  ];
-
-  let currentListItems: string[] = [];
-  const processedBlocks: string[] = [];
-
-  const flushList = () => {
-    if (currentListItems.length > 0) {
-      const formattedItems = currentListItems
-        .map(item => `<li style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.65; margin:10px 0;">${item}</li>`)
-        .join('\n');
-      processedBlocks.push(`<ul style="color:#FFFFFF; margin:12px 0 20px; padding-left:20px; list-style-type:disc;">${formattedItems}</ul>`);
-      currentListItems = [];
-    }
-  };
-
-  rawText.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
-    // Detect if this line is one of our "Section" headers
-    if (sectionHeaders.some(h => trimmed.toUpperCase().includes(h))) {
-      flushList();
-      processedBlocks.push(`<h3 style="color:#D4AF37; font-family:monospace; font-size:12px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; margin-top:28px; margin-bottom:12px;">// ${trimmed}</h3>`);
-    } else if (trimmed.startsWith('*') || trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      let cleanItem = trimmed.replace(/^[*•-]\s?/, '').trim();
-      // Handle bold prefixes
-      if (cleanItem.includes(':')) {
-        const [title, body] = cleanItem.split(/:(.*)/s);
-        cleanItem = `<strong style="color:#FFFFFF;">${title.trim()}:</strong>${body}`;
+  // We convert the raw text into HTML blocks, 
+  // but we keep the structure inside your pre-defined visual cards.
+  const content = v.onboarding_dossier_text
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => {
+      // If it's a bullet point, style it as a clean list item
+      if (line.startsWith('*') || line.startsWith('•') || line.startsWith('-')) {
+        const cleanItem = line.replace(/^[*•-]\s?/, '').trim();
+        return `<li style="color:#CBD5E1; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.75; margin-bottom:12px;">${cleanItem}</li>`;
       }
-      currentListItems.push(cleanItem);
-    } else {
-      flushList();
-      processedBlocks.push(`<p style="color:#D1D5DB; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.75; margin:0 0 16px;">${trimmed}</p>`);
-    }
-  });
+      // If it's a header line (detected by specific keywords), make it a gold subheader
+      if (line.toUpperCase().includes('SECTION') || line.toUpperCase().includes('FINDINGS') || line.toUpperCase().includes('PLAN') || line.toUpperCase().includes('IMPACT') || line.toUpperCase().includes('ESTIMATE')) {
+        return `<h3 style="color:#D4AF37; font-family:monospace; font-size:11px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; margin-top:24px; margin-bottom:10px;">${line.replace('//', '')}</h3>`;
+      }
+      // Otherwise, it's a body paragraph
+      return `<p style="color:#D1D5DB; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.75; margin:0 0 16px;">${line}</p>`;
+    })
+    .join('\n');
 
-  flushList();
-  const content = processedBlocks.join('\n');
-
-  // Return the full original layout frame
   return `<!DOCTYPE html>
 <html lang="en">
 <body style="margin:0;padding:0;background-color:#0D0D0D;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0D0D0D;">
     <tr><td align="center" style="padding:40px 16px;">
       <table width="600" style="max-width:600px;width:100%;background-color:#111111;border-radius:16px;border:1px solid rgba(212,175,55,0.25);overflow:hidden;">
-        <tr><td style="background:linear-gradient(160deg,#110E00,#0A0A14);padding:40px;">
-          <h1 style="color:#FFFFFF; margin:0 0 10px;">Hello, ${name}.</h1>
-          <p style="color:#9CA3AF;">Your operational briefing is ready.</p>
+        <tr><td style="background:linear-gradient(160deg,#110E00 0%,#0D0D0D 55%,#0A0A14 100%);padding:40px;border-bottom:1px solid rgba(212,175,55,0.18);">
+          <h1 style="margin:0 0 10px;font-size:26px;color:#FFFFFF;">Hello, ${name}.</h1>
+          <p style="margin:0;font-size:14px;color:#9CA3AF;">Your Digital Employee has finalized its operational briefing.</p>
         </td></tr>
-        <tr><td style="padding:0 40px 40px;">
+        <tr><td style="padding:40px;">
           ${content}
         </td></tr>
-        <tr><td style="padding:40px; text-align:center; background:#111;">
-          <a href="${book}" style="background:#D4AF37; color:#000; padding:15px 30px; text-decoration:none; font-weight:bold; border-radius:8px;">BOOK YOUR STRATEGY CALL →</a>
+        <tr><td style="padding:0 40px 40px; text-align:center;">
+          <a href="${book}" style="display:inline-block;background:linear-gradient(135deg,#D4AF37,#E8C84A);padding:15px 30px;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;font-family:sans-serif;">BOOK YOUR STRATEGY CALL →</a>
         </td></tr>
       </table>
     </td></tr>
