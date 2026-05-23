@@ -74,7 +74,7 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 </td></tr>
 
 <tr><td style="padding:0 36px 24px;">
-  <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1; " style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 </td></tr>
 
 <tr><td style="padding:0 36px 28px;">
@@ -99,49 +99,80 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 }
 
 export function dossierHtml(v: DossierVars): string {
-  const name  = v.client_name || 'Business Owner'
-  const book  = v.booking_link ?? '#'
+  const name = v.client_name || 'Business Owner'
+  const book = v.booking_link ?? '#'
 
-  // Ensure content context string coercion holds safely
+  // Ensure context string coercion handles data streams cleanly
   const rawText = typeof v.onboarding_dossier_text === 'string'
     ? v.onboarding_dossier_text
     : typeof v.onboarding_dossier_text === 'object' && v.onboarding_dossier_text !== null
       ? JSON.stringify(v.onboarding_dossier_text, null, 2)
       : String(v.onboarding_dossier_text || '');
 
-  // ── High-Fidelity Paragraph, Header, and Native List Parser ────────────────
-  // Parses markdown and splits everything down cleanly into structured elements
-  const bodyHtml = rawText
-    .split(/\n{2,}/)
-    .map(para => para.trim())
-    .filter(Boolean)
-    .map(para => {
-      // Handle Primary Document Headings
-      if (para.startsWith('# ')) {
-        return `<h2 style="color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:24px; margin-bottom:12px;">${para.slice(2)}</h2>`
-      }
-      // Handle Component Layout Subheadings (e.g., INTELLIGENCE FINDINGS)
-      if (para.startsWith('## ') || para.startsWith('### ')) {
-        const cleanSub = para.replace(/^#{2,3}\s?/, '').trim()
-        return `<h3 style="color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; letter-spacing:1px; text-transform:uppercase; margin-top:28px; margin-bottom:12px;">${cleanSub}</h3>`
-      }
-      // Handle Bulleted Text Stacks programmatically
-      if (para.startsWith('* ') || para.startsWith('• ') || para.startsWith('- ')) {
-        const listItems = para
-          .split(/\n[*•-]\s?/)
-          .map(item => item.replace(/^[*•-]\s?/, '').trim())
-          .filter(Boolean)
-          .map(item => `<li style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6; margin:8px 0;">${item}</li>`)
-          .join('\n')
-        return `<ul style="color:#FFFFFF; margin:6px 0; padding-left:20px; list-style-type:disc;">${listItems}</ul>`
-      }
-      
-      // Standalone sentences get wrapped as pristine paragraph layout sections
-      return `<p style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.65; margin:0 0 16px;">${para}</p>`
-    })
-    .join('\n')
+  let currentListItems: string[] = [];
+  let inList = false;
 
-  // Exact replication from the shared production .eml source asset mapping file blueprint
+  const rawBlocks = rawText.split('\n');
+  const processedBlocks: string[] = [];
+
+  const flushList = () => {
+    if (currentListItems.length > 0) {
+      const formattedItems = currentListItems
+        .map(item => `<li style="color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.65; margin:10px 0;">${item}</li>`)
+        .join('\n');
+      processedBlocks.push(`<ul style="color:#FFFFFF; margin:12px 0 20px; padding-left:20px; list-style-type:disc;">${formattedItems}</ul>`);
+      currentListItems = [];
+    }
+    inList = false;
+  };
+
+  rawBlocks.forEach(blockLine => {
+    const line = blockLine.trim();
+    if (!line) return;
+
+    const isBullet = line.startsWith('*') || line.startsWith('•') || line.startsWith('-');
+
+    if (isBullet) {
+      inList = true;
+      let cleanItem = line.replace(/^[*•-]\s?/, '').trim();
+      
+      if (cleanItem.includes(':')) {
+        const [title, body] = cleanItem.split(/:(.*)/s);
+        cleanItem = `<strong style="color:#FFFFFF;">${title.trim()}:</strong>${body}`;
+      } else if (cleanItem.includes('—')) {
+        const [title, body] = cleanItem.split(/—(.*)/s); // <-- Fixed name variable leak target
+        cleanItem = `<strong style="color:#FFFFFF;">${title.trim()}</strong> — ${body}`;
+      }
+      currentListItems.push(cleanItem);
+    } else {
+      flushList();
+
+      if (line.startsWith('SECTION')) {
+        processedBlocks.push(`
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:32px; margin-bottom:12px;">
+            <tr>
+              <td style="background:rgba(212,175,55,0.12); border-left:3px solid #D4AF37; border-radius:0 5px 5px 0; padding:7px 16px;">
+                <span style="font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">${line}</span>
+              </td>
+            </tr>
+          </table>
+        `);
+      } else if (line.startsWith('#') || line.toLowerCase().includes('report') || line.toLowerCase().includes('investment')) {
+        const cleanHeader = line.replace(/^#{1,4}\s?/, '').trim();
+        processedBlocks.push(`<h2 style="margin:24px 0 14px; font-size:20px; font-weight:700; color:#FFFFFF; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; letter-spacing:-0.01em;">${cleanHeader}</h2>`);
+      } else if (line.toUpperCase() === 'INTELLIGENCE FINDINGS' || line.toUpperCase() === 'YOUR DIGITAL EMPLOYEE DEPLOYMENT PLAN' || line.toUpperCase() === 'PROJECTED 90-DAY IMPACT' || line.toUpperCase() === 'ANNUAL RUN-RATE ESTIMATE') {
+        processedBlocks.push(`<h3 style="color:#D4AF37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:24px; margin-bottom:12px;">${line}</h3>`);
+      } else {
+        if (!line.toLowerCase().includes('hello,') && !line.toLowerCase().includes('digital employee has completed') && !line.toLowerCase().includes('ready to deploy') && !line.toLowerCase().includes('schedule your 30-minute')) {
+          processedBlocks.push(`<p style="color:#D1D5DB; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:1.75; margin:0 0 16px;">${line}</p>`);
+        }
+      }
+    }
+  });
+
+  flushList();
+  const compiledContentHtml = processedBlocks.join('\n');
+
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -224,20 +255,11 @@ export function dossierHtml(v: DossierVars): string {
 
           <tr>
             <td class="pad-mobile" style="padding:0 48px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:16px;">
-                <tr>
-                  <td style="background:rgba(212,175,55,0.12);border-left:3px solid #D4AF37;border-radius:0 5px 5px 0;padding:7px 16px;">
-                    <span style="font-size:9px;font-weight:800;letter-spacing:0.28em;text-transform:uppercase;color:#D4AF37;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">SECTION 01 — AUTOMATED INTEL SUMMARY</span>
-                  </td>
-                </tr>
-              </table>
-              <h2 class="section-h2" style="margin:16px 0 14px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-0.01em;">Operational Dossier Analysis</h2>
-              
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="background:#181818;border:1px solid rgba(212,175,55,0.14);border-radius:12px;padding:28px;">
                     <div style="margin:0;font-size:14px;line-height:1.85;color:#D1D5DB;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-                      ${bodyHtml}
+                      ${compiledContentHtml}
                     </div>
                   </td>
                 </tr>
@@ -280,7 +302,7 @@ export function dossierHtml(v: DossierVars): string {
                     <p style="margin:0;font-size:11px;color:#555;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">AI Workforce Infrastructure</p>
                   </td>
                   <td align="right" style="vertical-align:top;">
-                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">DOSSIER-${name.replace(/\s+/g, '')}</p>
+                    <p style="margin:0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">DOSSIER-${v.client_domain.replace(/\.[^/.]+$/, "").toUpperCase()}</p>
                     <p style="margin:5px 0 0;font-size:10px;color:#3A3A3A;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">3six9 CORE ENCRYPTED</p>
                   </td>
                 </tr>
