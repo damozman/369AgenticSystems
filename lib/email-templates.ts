@@ -15,6 +15,17 @@ export interface DossierVars {
   booking_link?: string
 }
 
+export interface CallBriefVars {
+  client_name: string
+  client_domain: string
+  client_industry?: string
+  security_score: number | null
+  seo_visibility: number | null
+  revenue_leakage?: string
+  call_brief: string
+  booking_link?: string
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -38,12 +49,29 @@ function applyDarkStyles(html: string): string {
     .replace(/&mdash;/gi,  '—')
 }
 
+// Branded header badge — shared by both email templates
+function headerBadge(leftLabel: string): string {
+  return `
+<tr><td style="padding:24px 36px 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #222;border-radius:6px;background:#0D0D0D;">
+    <tr><td style="padding:14px 18px;">
+      <p style="margin:0 0 10px;font-size:17px;font-family:monospace;font-weight:700;color:#FFFFFF;letter-spacing:0.2em;"><span style="color:#D4AF37;">369</span>&nbsp;AGENTIC SYSTEMS</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td><p style="margin:0;font-size:9px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.12em;">&#9642;&nbsp;${leftLabel}</p></td>
+        <td align="right"><p style="margin:0;font-size:9px;font-family:monospace;color:#475569;text-align:right;line-height:1.5;">SECURE TRANSMISSION<br>369-CORE v2.0</p></td>
+      </tr></table>
+    </td></tr>
+  </table>
+</td></tr>`
+}
+
 export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
   const sec  = v.security_score ?? '—'
   const seo  = v.seo_visibility ?? '—'
   const rev  = v.revenue_leakage ?? 'Calculating…'
   const book = v.booking_link ?? '#'
   const name = v.client_name || 'Business Owner'
+  const dossierCode = `ALERT-${name.replace(/\s+/g, '_').toUpperCase()}`
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -58,8 +86,9 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 
 <tr><td height="3" style="background:#D4AF37;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-<tr><td style="padding:32px 36px 20px;">
-  <p style="margin:0 0 4px;font-size:10px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">// AUTONOMOUS DIAGNOSTIC ALERT</p>
+${headerBadge('AUTONOMOUS DIAGNOSTIC ALERT')}
+
+<tr><td style="padding:24px 36px 20px;">
   <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">System Scan Complete</h1>
   <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain} &nbsp;·&nbsp; ${v.scan_date}</p>
 </td></tr>
@@ -112,9 +141,152 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
   <!--<![endif]-->
 </td></tr>
 
-<tr><td style="padding:20px 36px;border-top:1px solid #1A1A1A;text-align:center;">
-  <p style="margin:0;font-size:11px;font-family:monospace;color:#334155;line-height:1.6;">369 Agentic Systems · Autonomous Operations Division<br>
-  <a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">intelligence@369agenticsystems.com</a></p>
+<tr><td style="padding:16px 36px;border-top:1px solid #1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td>
+      <p style="margin:0;font-size:10px;font-family:monospace;color:#334155;">369 Agentic Systems &middot; AI Workforce Infrastructure</p>
+      <p style="margin:4px 0 0;font-size:10px;font-family:monospace;"><a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">intelligence@369agenticsystems.com</a></p>
+    </td>
+    <td align="right" style="vertical-align:top;">
+      <p style="margin:0;font-size:9px;font-family:monospace;color:#1E293B;text-align:right;line-height:1.6;">${escapeHtml(dossierCode)}<br>369-CORE ENCRYPTED</p>
+    </td>
+  </tr></table>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
+export function callBriefHtml(v: CallBriefVars): string {
+  const name      = v.client_name || 'Business Owner'
+  const firstName = name.split(' ')[0]
+  const book      = v.booking_link ?? 'https://cal.com/369agentic/30min'
+  const sec       = v.security_score ?? '—'
+  const seo       = v.seo_visibility ?? '—'
+  const rev       = v.revenue_leakage ?? 'Calculating…'
+  const industry  = v.client_industry ?? 'Business'
+
+  const rawBrief = typeof v.call_brief === 'string' ? v.call_brief : String(v.call_brief || '')
+
+  const briefHtml = isHtml(rawBrief)
+    ? applyDarkStyles(rawBrief)
+    : rawBrief
+        .split(/\n{2,}/)
+        .map(para => para.trim())
+        .filter(Boolean)
+        .map(para => {
+          if (para.startsWith('# ')) {
+            return `<h2 style="margin:0 0 10px;font-size:13px;font-weight:700;color:#D4AF37;font-family:monospace;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid #1E1E1E;padding-bottom:6px;">${escapeHtml(para.slice(2))}</h2>`
+          }
+          if (para.startsWith('## ')) {
+            return `<h3 style="margin:0 0 6px;font-size:11px;font-weight:700;color:#94A3B8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(para.slice(3))}</h3>`
+          }
+          return `<p style="margin:0 0 14px;font-size:13px;color:#CBD5E1;line-height:1.7;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${escapeHtml(para).replace(/\n/g, '<br>')}</p>`
+        })
+        .join('\n')
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Call Brief — ${v.client_domain}</title>
+</head>
+<body style="margin:0;padding:0;background:#0A0A0A;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0A;">
+<tr><td align="center" style="padding:40px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#0F0F0F;border:1px solid #1E1E1E;border-radius:8px;overflow:hidden;">
+
+<tr><td height="3" style="background:#F59E0B;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+${headerBadge('CALL BRIEF — INTERNAL USE ONLY')}
+
+<!-- Header -->
+<tr><td style="padding:24px 36px 8px;">
+  <h1 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Pre-Call Intelligence File</h1>
+  <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain} &nbsp;·&nbsp; ${escapeHtml(industry)}</p>
+</td></tr>
+
+<!-- Prospect snapshot -->
+<tr><td style="padding:16px 36px 24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border:1px solid #1E1E1E;border-radius:8px;">
+    <tr><td style="padding:16px 18px;">
+      <p style="margin:0 0 10px;font-size:9px;font-family:monospace;color:#F59E0B;text-transform:uppercase;letter-spacing:0.15em;">&#9642;&nbsp;PROSPECT</p>
+      <p style="margin:0 0 2px;font-size:16px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${escapeHtml(name)}</p>
+      <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain} &nbsp;·&nbsp; ${escapeHtml(industry)}</p>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- Metric chips -->
+<tr><td style="padding:0 36px 24px;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+
+  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #EF4444;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
+    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Security</p>
+    <p style="margin:0;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${sec}</p>
+    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#EF4444;">/100</p>
+  </td>
+
+  <td width="3%">&nbsp;</td>
+
+  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
+    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">SEO Vis.</p>
+    <p style="margin:0;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${seo}</p>
+    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/100</p>
+  </td>
+
+  <td width="3%">&nbsp;</td>
+
+  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #4ADE80;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
+    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Rev. Leak</p>
+    <p style="margin:0;font-size:20px;font-weight:700;color:#4ADE80;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${rev}</p>
+    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#4ADE80;">/mo est.</p>
+  </td>
+
+</tr></table>
+</td></tr>
+
+<!-- Divider -->
+<tr><td style="padding:0 36px 24px;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+</td></tr>
+
+<!-- Call brief section label -->
+<tr><td style="padding:0 36px 12px;">
+  <span style="display:inline-block;padding:5px 12px;border:1px solid rgba(245,158,11,0.25);border-left:3px solid #F59E0B;background:rgba(245,158,11,0.06);font-size:9px;font-family:monospace;color:#F59E0B;text-transform:uppercase;letter-spacing:0.15em;">CALL SCRIPT &amp; TALKING POINTS</span>
+</td></tr>
+<tr><td style="padding:0 36px 16px;">
+  <h2 style="margin:0;font-size:18px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Your 30-Minute Brief for ${escapeHtml(firstName)}</h2>
+</td></tr>
+
+<!-- Brief content box -->
+<tr><td style="padding:0 36px 28px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border:1px solid #1E1E1E;border-radius:8px;">
+    <tr><td style="padding:24px 22px;">
+${briefHtml}
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- Cal link reminder -->
+<tr><td style="padding:0 36px 36px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.18);border-radius:8px;">
+    <tr><td style="padding:18px 24px;text-align:center;">
+      <p style="margin:0 0 4px;font-size:9px;font-family:monospace;color:#F59E0B;text-transform:uppercase;letter-spacing:0.2em;">PROSPECT BOOKING LINK</p>
+      <a href="${book}" style="font-size:11px;font-family:monospace;color:#D4AF37;text-decoration:underline;">${book}</a>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:16px 36px;border-top:1px solid #1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td><p style="margin:0;font-size:10px;font-family:monospace;color:#334155;">369 Agentic Systems &middot; Internal Command Center</p></td>
+    <td align="right"><p style="margin:0;font-size:9px;font-family:monospace;color:#1E293B;text-align:right;line-height:1.6;">BRIEF-${escapeHtml(name.replace(/\s+/g, '_').toUpperCase())}<br>EYES ONLY</p></td>
+  </tr></table>
 </td></tr>
 
 </table>
@@ -125,8 +297,10 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 }
 
 export function dossierHtml(v: DossierVars): string {
-  const name = v.client_name || 'Business Owner'
-  const book = v.booking_link ?? '#'
+  const name      = v.client_name || 'Business Owner'
+  const firstName = name.split(' ')[0]
+  const book      = v.booking_link ?? '#'
+  const dossierCode = `DOSSIER-${name.replace(/\s+/g, '_').toUpperCase()}`
 
   // Normalize input to string regardless of what Gumloop sends
   const rawText = typeof v.onboarding_dossier_text === 'string'
@@ -167,42 +341,76 @@ export function dossierHtml(v: DossierVars): string {
 
 <tr><td height="3" style="background:#D4AF37;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-<tr><td style="padding:32px 36px 20px;">
-  <p style="margin:0 0 4px;font-size:10px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">// OPERATIONAL INTELLIGENCE DOSSIER</p>
-  <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Full Operational Briefing</h1>
-  <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain}</p>
+${headerBadge('ONBOARDING DOSSIER — CONFIDENTIAL')}
+
+<!-- Hero intro -->
+<tr><td style="padding:28px 36px 20px;">
+  <h1 style="margin:0 0 12px;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hello, ${escapeHtml(firstName)}.</h1>
+  <p style="margin:0;font-size:14px;color:#94A3B8;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Your Digital Employee has completed its initial intelligence pass. Below is your personalized Onboarding Dossier — a full operational brief prepared exclusively for <strong style="color:#FFFFFF;">${v.client_domain}</strong> by the 369 Agentic Core.</p>
 </td></tr>
 
-<tr><td style="padding:0 36px 24px;">
-  <p style="margin:0;font-size:14px;color:#94A3B8;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${name}, as promised — here is your complete intelligence dossier. Our autonomous agents have compiled a full operational profile for <strong style="color:#FFFFFF;">${v.client_domain}</strong> outlining vulnerabilities, recovery pathways, and projected ROI timelines.</p>
-</td></tr>
-
+<!-- Divider -->
 <tr><td style="padding:0 36px 24px;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 </td></tr>
 
+<!-- Section 01 label -->
+<tr><td style="padding:0 36px 12px;">
+  <span style="display:inline-block;padding:5px 12px;border:1px solid rgba(212,175,55,0.25);border-left:3px solid #D4AF37;background:rgba(212,175,55,0.06);font-size:9px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.15em;">SECTION 01 &mdash; OPERATIONAL AUDIT</span>
+</td></tr>
+<tr><td style="padding:0 36px 16px;">
+  <h2 style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Your Business Intelligence Report</h2>
+</td></tr>
+
+<!-- Content box -->
 <tr><td style="padding:0 36px 28px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border:1px solid #1E1E1E;border-radius:8px;">
+    <tr><td style="padding:24px 22px;">
 ${bodyHtml}
+    </td></tr>
+  </table>
 </td></tr>
 
+<!-- Mid CTA banner -->
 <tr><td style="padding:0 36px 28px;">
-  <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(212,175,55,0.04);border:1px solid rgba(212,175,55,0.18);border-radius:8px;">
+    <tr><td style="padding:22px 24px;text-align:center;">
+      <p style="margin:0 0 14px;font-size:9px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">YOUR DIGITAL EMPLOYEES ARE STANDING BY</p>
+      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${book}" style="height:44px;v-text-anchor:middle;width:280px;" arcsize="4%" stroke="f" fillcolor="#D4AF37"><w:anchorlock/><center style="color:#080808;font-family:sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">DEPLOY YOUR SPECIALIST NOW →</center></v:roundrect><![endif]-->
+      <!--[if !mso]><!-->
+      <a href="${book}" style="display:inline-block;background:#D4AF37;color:#080808;font-family:monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:13px 28px;border-radius:4px;">DEPLOY YOUR SPECIALIST NOW &rarr;</a>
+      <!--<![endif]-->
+    </td></tr>
+  </table>
 </td></tr>
 
-<tr><td style="padding:0 36px 28px;">
-  <p style="margin:0;font-size:14px;color:#94A3B8;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Ready to activate your digital workforce? Book a 30-minute deep-dive to walk through your dossier and authorize the first agent deployment.</p>
+<!-- Next step box -->
+<tr><td style="padding:0 36px 36px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border:1px solid #1E1E1E;border-radius:8px;">
+    <tr><td style="padding:28px 24px;text-align:center;">
+      <p style="margin:0 0 10px;font-size:9px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">NEXT STEP</p>
+      <h3 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Ready to Deploy Your Digital Employee?</h3>
+      <p style="margin:0 0 20px;font-size:13px;color:#94A3B8;line-height:1.6;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Schedule your 30-minute strategy call. We will review this dossier together and configure your workforce for launch.</p>
+      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${book}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="4%" stroke="f" fillcolor="#D4AF37"><w:anchorlock/><center style="color:#080808;font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">BOOK YOUR STRATEGY CALL →</center></v:roundrect><![endif]-->
+      <!--[if !mso]><!-->
+      <a href="${book}" style="display:inline-block;background:#D4AF37;color:#080808;font-family:monospace;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:15px 32px;border-radius:4px;">BOOK YOUR STRATEGY CALL &rarr;</a>
+      <!--<![endif]-->
+    </td></tr>
+  </table>
 </td></tr>
 
-<tr><td style="padding:0 36px 36px;text-align:center;">
-  <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${book}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="4%" stroke="f" fillcolor="#D4AF37"><w:anchorlock/><center style="color:#080808;font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">BOOK YOUR DOSSIER REVIEW →</center></v:roundrect><![endif]-->
-  <!--[if !mso]><!-->
-  <a href="${book}" style="display:inline-block;background:#D4AF37;color:#080808;font-family:monospace;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:15px 32px;border-radius:4px;">BOOK YOUR DOSSIER REVIEW →</a>
-  <!--<![endif]-->
-</td></tr>
-
-<tr><td style="padding:20px 36px;border-top:1px solid #1A1A1A;text-align:center;">
-  <p style="margin:0;font-size:11px;font-family:monospace;color:#334155;line-height:1.6;">369 Agentic Systems · Autonomous Operations Division<br>
-  <a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">intelligence@369agenticsystems.com</a></p>
+<!-- Footer -->
+<tr><td style="padding:16px 36px;border-top:1px solid #1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td>
+      <p style="margin:0;font-size:10px;font-family:monospace;color:#334155;">369 Agentic Systems &middot; AI Workforce Infrastructure</p>
+      <p style="margin:4px 0 0;font-size:10px;font-family:monospace;"><a href="mailto:intelligence@369agenticsystems.com" style="color:#475569;text-decoration:none;">intelligence@369agenticsystems.com</a></p>
+    </td>
+    <td align="right" style="vertical-align:top;">
+      <p style="margin:0;font-size:9px;font-family:monospace;color:#1E293B;text-align:right;line-height:1.6;">${escapeHtml(dossierCode)}<br>369-CORE ENCRYPTED</p>
+    </td>
+  </tr></table>
+  <p style="margin:10px 0 0;font-size:10px;font-family:monospace;color:#1E293B;line-height:1.5;">This dossier was compiled by your dedicated Digital Employee and contains proprietary analysis prepared exclusively for ${escapeHtml(name)}. If you received this in error, please disregard. To unsubscribe, <a href="#" style="color:#334155;">click here</a>.</p>
 </td></tr>
 
 </table>
