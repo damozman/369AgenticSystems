@@ -1,7 +1,3 @@
-I've read every relevant file. Here is the unfiltered truth.
-
-
-
 Q1: GROUND TRUTH ON CURRENT STATE
 
 What's genuinely production-ready:
