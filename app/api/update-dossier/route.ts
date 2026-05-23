@@ -69,12 +69,12 @@ export async function POST(request: Request) {
     const from     = process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'
     const scanDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-    // Diagnostic Alert Promise
-    const diagnosticPromise = resend.emails.send({
+    // Email 1 — Diagnostic Alert, fires immediately
+    const sendAlert = resend.emails.send({
       from,
-      to: client_email,
+      to:      client_email,
       subject: `⚡ Autonomous Scan Complete — ${client_domain}`,
-      html: diagnosticAlertHtml({
+      html:    diagnosticAlertHtml({
         client_name, client_domain,
         security_score, seo_visibility,
         revenue_leakage, booking_link,
@@ -82,27 +82,33 @@ export async function POST(request: Request) {
       }),
     })
 
-    // Dossier Promise (Only fires if dossier text exists)
-    const dossierPromise = onboarding_dossier_text && onboarding_dossier_text.trim().length > 0
+    // Email 2 — Full dossier, scheduled 5 minutes later via Resend queue.
+    // scheduledAt requires Resend Pro ($20/mo). Remove it to send both immediately.
+    const sendDossier = onboarding_dossier_text && onboarding_dossier_text.trim().length > 0
       ? resend.emails.send({
           from,
-          to: client_email,
-          subject: `📋 Your Operational Dossier — ${client_domain}`,
-          html: dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
+          to:          client_email,
+          subject:     `📋 Your Operational Dossier — ${client_domain}`,
+          html:        dossierHtml({ client_name, client_domain, onboarding_dossier_text, booking_link }),
+          scheduledAt: 'in 5 min',
         })
-      : Promise.resolve({ data: null, error: 'No dossier text provided' })
+      : Promise.resolve(null)
 
-    // Execute both in parallel
-    const [diagRes, dossRes] = await Promise.all([diagnosticPromise, dossierPromise])
+    // Fire both concurrently — Resend holds Email 2 for 5 min on their end
+    type ResendResult = { data: { id: string } | null; error: { message: string } | null } | null
+    const [r1, r2] = await Promise.allSettled([sendAlert, sendDossier])
 
-    if (diagRes.error) console.error('[369 EMAIL] ✕ Alert 1 failed:', diagRes.error)
-    else console.log(`[369 EMAIL] ✓ Alert 1 dispatched | id: ${diagRes.data?.id}`)
+    const v1 = r1.status === 'fulfilled' ? (r1.value as ResendResult) : null
+    const v2 = r2.status === 'fulfilled' ? (r2.value as ResendResult) : null
 
-    if (typeof dossRes !== 'string' && dossRes.error) {
-      console.error('[369 EMAIL] ✕ Dossier 2 failed:', dossRes.error)
-    } else {
-      console.log(`[369 EMAIL] ✓ Dossier 2 dispatched | id: ${dossRes.data?.id}`)
-    }
+    if (r1.status === 'rejected') console.error('[369 EMAIL] ✕ Alert network error:', r1.reason)
+    else if (v1?.error)          console.error('[369 EMAIL] ✕ Alert Resend rejected:', JSON.stringify(v1.error))
+    else                         console.log(`[369 EMAIL] ✓ Alert dispatched → ${client_email} | id: ${v1?.data?.id}`)
+
+    if (r2.status === 'rejected')      console.error('[369 EMAIL] ✕ Dossier network error:', r2.reason)
+    else if (v2?.error)                console.error('[369 EMAIL] ✕ Dossier Resend rejected:', JSON.stringify(v2.error))
+    else if (v2?.data?.id)             console.log(`[369 EMAIL] ✓ Dossier scheduled (5 min) → ${client_email} | id: ${v2.data.id}`)
+    else if (!onboarding_dossier_text) console.warn('[369 EMAIL] ⚠ Dossier skipped — onboarding_dossier_text missing from payload')
   }
 
   return NextResponse.json({ success: true }, { status: 200 })
