@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import EarlyAccessForm from '@/components/landing/EarlyAccessForm'
+import AmbientOrb from '@/components/landing/AmbientOrb'
 
 export const metadata: Metadata = {
   title: '369 Agentic Systems | AI Workforce Infrastructure',
@@ -83,14 +84,7 @@ export default function HomePage() {
           pointer-events: none; z-index: 0; opacity: 0.025;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
         }
-        .lp-ambient {
-          position: fixed; inset: 0;
-          pointer-events: none; z-index: 0;
-          background:
-            radial-gradient(ellipse 80% 50% at 20% -10%, rgba(212,175,55,0.12) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 40% at 80% 110%, rgba(212,175,55,0.07) 0%, transparent 55%);
-        }
-        .lp-grid {
+.lp-grid {
           position: fixed; inset: 0;
           pointer-events: none; z-index: 0;
           background-image:
@@ -136,7 +130,7 @@ export default function HomePage() {
 
       {/* Fixed background layers */}
       <div className="lp-noise" aria-hidden="true" />
-      <div className="lp-ambient" aria-hidden="true" />
+      <AmbientOrb />
       <div className="lp-grid" aria-hidden="true" />
 
       <div style={{ background: '#0A0A0A', minHeight: '100vh', fontFamily: 'Inter, Helvetica Neue, Arial, sans-serif', position: 'relative', zIndex: 1 }}>
