@@ -21,7 +21,7 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 }
 
 export function dossierHtml(v: DossierVars): string {
-  // We are NOT parsing or splitting here.
-  // We are simply injecting the PRE-FORMATTED HTML string coming from Gumloop.
+  // We simply return the raw HTML string provided by the Gumloop AI.
+  // The styling, gold gradients, and structure are already baked into this string.
   return v.onboarding_dossier_text;
 }
