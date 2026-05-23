@@ -1,6 +1,6 @@
 # 369 Agentic Systems — Project Blueprint
-**Source of Truth for AI Agents and Collaborators**
-_Last updated: 2026-05-13 (rev 6 — Phase 1 scaffold: Next.js 14 App Router, portal/auth route groups, Supabase schema, Zero-Touch Policy for static marketing HTML)_
+**Structural reference for directory layout, intake form schemas, style guide, and static page logic**
+_Last updated: 2026-05-23 (rev 7 — Phases 1 & 2 live; landing page, 3-email sequence, call brief, early access form added)_
 
 ---
 
@@ -18,82 +18,91 @@ _Last updated: 2026-05-13 (rev 6 — Phase 1 scaffold: Next.js 14 App Router, po
 
 ## 1. Directory Map
 
-### Hybrid Project Structure (Phase 1+)
+### Current Project Structure (Phase 1 + 2 Live)
 
 ```
 369AgenticSystems/
 │
-│  ── Next.js App (portal, auth, API) ──────────────────────────────
+│  ── Next.js App (landing, portal, auth, API) ──────────────────────
 ├── app/
-│   ├── layout.tsx                ← Root layout (Google Fonts, globals.css)
-│   ├── page.tsx                  ← Root route → redirects to /login
+│   ├── layout.tsx                ← Root layout (Instrument Sans + Inter, globals.css)
+│   ├── page.tsx                  ← Landing page — Server Component, SEO metadata,
+│   │                                glassmorphism, 8-industry grid, early access form
 │   ├── globals.css               ← Portal-only CSS (ISOLATED from /public HTML)
+│   ├── robots.ts                 ← Blocks /dashboard, /login, /api/ from crawlers
+│   ├── sitemap.ts                ← Root URL sitemap for Google
 │   │
 │   ├── (auth)/                   ← Route group: Supabase login flow
 │   │   ├── layout.tsx
-│   │   └── login/page.tsx        ← Magic Link login UI
+│   │   └── login/page.tsx        ← 8-digit OTP login UI
 │   │
 │   ├── (portal)/                 ← Route group: gated client area
-│   │   ├── layout.tsx            ← Auth check + Sidebar wrapper
+│   │   ├── layout.tsx            ← Auth check + PortalShell sidebar wrapper
 │   │   └── dashboard/page.tsx    ← Command Center dashboard
 │   │
 │   └── api/
-│       └── update-dossier/route.ts ← Gumloop webhook receiver
+│       ├── update-dossier/route.ts  ← Gumloop webhook receiver + 3-email dispatcher
+│       ├── early-access/route.ts    ← Landing page signup → Supabase + owner notify
+│       └── patch-audit/route.ts     ← AUTHORIZE AGENT PATCH endpoint
 │
-├── components/portal/            ← Portal UI components
-│   ├── Sidebar.tsx
-│   ├── ActiveSpecialists.tsx
-│   ├── LiveFeed.tsx
-│   ├── BusinessMemory.tsx
-│   └── ScanCard.tsx              ← Framer Motion scan-line wrapper
+├── components/
+│   ├── landing/
+│   │   ├── EarlyAccessForm.tsx   ← Client island: name/email/business → /api/early-access
+│   │   └── AmbientOrb.tsx        ← Client island: cursor-tracking radial gradient orb
+│   └── portal/
+│       ├── Sidebar.tsx
+│       ├── ActiveSpecialists.tsx ← Real-time audit cards, WARN badges, clickable drawer
+│       ├── LiveFeed.tsx          ← Auto-scroll terminal feed with smart scroll detection
+│       ├── BusinessMemory.tsx
+│       ├── ScanCard.tsx          ← Animated scan-line wrapper
+│       └── DiagnosticDrawer.tsx  ← Right-side panel: vulnerability vectors + patch button
 │
 ├── lib/
 │   ├── supabase.ts               ← Browser client
-│   └── supabase-server.ts        ← Server component client (with cookies)
+│   ├── supabase-server.ts        ← Server component client (with cookies)
+│   └── email-templates.ts        ← diagnosticAlertHtml, dossierHtml, callBriefHtml
 │
 ├── supabase/
 │   └── schema.sql                ← DB schema (run in Supabase SQL editor)
 │
+├── docs/                         ← Reference documents (not served by Next.js)
+│   ├── 369-SYSTEM-BLUEPRINT.md  ← Master architecture + roadmap (start here)
+│   ├── projectblueprint.md       ← THIS FILE — directory map, schemas, style guide
+│   ├── 369-toolstack-blueprint.md← Tool stack detail and AI org chart
+│   ├── email-diagnostic-alert.html  ← Email 1 reference template
+│   ├── email-template-dossier-v2.html ← Email 2 reference template
+│   └── intelligence-grid-preview.html ← UI preview reference
+│
 │  ── Static Marketing Assets (Zero-Touch) ──────────────────────────
 ├── public/                       ← Served by CDN edge — NO Next.js processing
-│   ├── index.html                ← yoursite.com/          (copy from root)
-│   ├── legal-automation/
-│   │   └── index.html            ← yoursite.com/legal-automation/
-│   ├── roofing-leads/
-│   │   └── index.html
-│   ├── saas-optimization/
-│   │   └── index.html
-│   ├── dental/
-│   │   └── index.html
-│   ├── real-estate/
-│   │   └── index.html
-│   ├── insurance-leads/
-│   │   └── index.html
-│   └── wholesale-leads/
-│       └── index.html
+│   ├── index.html                ← 369agenticsystems.com/ (homepage)
+│   ├── legal-automation/index.html
+│   ├── roofing-leads/index.html
+│   ├── saas-optimization/index.html
+│   ├── dental/index.html
+│   ├── real-estate/index.html
+│   ├── insurance-leads/index.html
+│   └── wholesale-leads/index.html
 │
-│  ── Config & Operational Blueprints ───────────────────────────────
+│  ── Config ─────────────────────────────────────────────────────────
 ├── package.json
-├── next.config.ts
+├── next.config.mjs
 ├── tailwind.config.ts
 ├── tsconfig.json
-├── middleware.ts                 ← Auth guard for /portal/** routes
-├── .env.local.example
-├── projectblueprint.md           ← Structural UI Layout Map (THIS FILE)
-└── 3six9-operations-blueprint.md ← Operational Master Source of Truth
+└── middleware.ts                 ← Auth guard for /dashboard route
 ```
 
-### Hosting Model (Rev 6+)
+### Hosting Model (Live)
 
 | Layer | Host | Source |
 |---|---|---|
-| Next.js App (portal, auth, API) | Vercel | `app/` directory |
+| Next.js App (landing, portal, auth, API) | Vercel — `369agenticsystems.com` | `app/` directory |
 | Static Marketing HTML | Vercel CDN edge | `public/` directory |
 | Database + Auth | Supabase | Managed PostgreSQL + GoTrue |
+| Email | Resend Pro | `alerts@alerts.369agenticsystems.com` |
+| Automation | Gumloop Pro | 10-node pipeline, Gemini 2.5 Flash |
 
 > **Zero-Touch Policy for marketing HTML:** The files in `public/` are never converted to `.tsx`. They are pure HTML served directly by the CDN, with their own self-contained CSS and JS. No Tailwind build step, no Next.js CSS, no framework bleed.
-
-> **Migration step required:** Move or copy the 8 existing `index.html` files into the `public/` directory mirroring the current URL structure (see `public/STATIC_ASSETS.md`).
 
 ---
 
@@ -411,10 +420,10 @@ document.addEventListener('mousemove', (e) => {
 
 ## 5. Integration Specs
 
-### Current State — Smart Factory Architecture (LIVE, pending URL)
-All forms submit via `async fetch()` POST. The fetch, payload construction, and terminal UX sequence are fully wired. The only thing needed to go live is replacing `'GUMLOOP_WEBHOOK_URL_HERE'` with the real webhook URL in each page's `const WEBHOOK` line.
+### Current State — LIVE
+All forms submit via `async fetch()` POST to their respective Gumloop webhook URLs. The Gumloop pipeline posts to `https://369agenticsystems.com/api/update-dossier`, which triggers the 3-email sequence and writes to Supabase.
 
-**To activate any page:** find `const WEBHOOK = 'GUMLOOP_WEBHOOK_URL_HERE';` near the form handler and replace the string.
+**Remaining:** Replace `GUMLOOP_WEBHOOK_URL_HERE` and `YOUR_BOOKING_LINK_HERE` in the 8 `/public` HTML marketing pages with live values.
 
 ### Gumloop Webhook Endpoint
 ```
@@ -518,17 +527,20 @@ Each `index.html` contains:
 
 ## 6. Tech Stack
 
-| Layer         | Technology                          | Version / Source                                         |
+| Layer         | Technology                          | Status / Notes                                           |
 |---------------|-------------------------------------|----------------------------------------------------------|
-| Markup        | HTML5                               | Semantic elements throughout                             |
-| Styling       | Tailwind CSS                        | v4 via `https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4` |
-| Styling       | Custom CSS (in `<style>` blocks)    | CSS custom properties, glassmorphism, animations         |
-| Typography    | Google Fonts                        | Instrument Sans + Inter — loaded via `<link>` in `<head>` |
-| Scripting     | Vanilla JavaScript (ES6+)           | IIFE pattern, no frameworks, no build step               |
-| Hosting       | cPanel shared hosting               | Static file serving; one `index.html` per directory      |
-| Automation    | Gumloop *(planned)*                 | Webhook-based workflow automation                        |
-| Domain        | TBD (369agenticsystems.com assumed) | + `practiceclear.com` (separate dental-adjacent property)|
-| Version Control | Git (local)                       | No remote configured yet                                 |
+| Portal        | Next.js 14 App Router, TypeScript   | Live at `369agenticsystems.com`                          |
+| Styling       | Tailwind CSS + inline styles        | Portal: Tailwind. Public HTML: Tailwind v4 CDN           |
+| Styling       | Custom CSS (in `<style>` blocks)    | CSS custom properties, glassmorphism, ambient orb        |
+| Typography    | Google Fonts                        | Instrument Sans + Inter (loaded in layout.tsx + HTML heads)|
+| Static pages  | Vanilla HTML5 + JavaScript (ES6+)   | IIFE pattern, no build step, zero-touch                  |
+| Hosting       | Vercel                              | apex = Production, www = 307 redirect to apex            |
+| Automation    | Gumloop Pro                         | 10-node pipeline live, Gemini 2.5 Flash                  |
+| Email         | Resend Pro                          | `scheduledAt` active, FROM `alerts@alerts.369agenticsystems.com` |
+| Database      | Supabase                            | `system_audits` + `early_access_list` tables live        |
+| Domain        | `369agenticsystems.com`             | Namecheap DNS → Vercel                                   |
+| Booking       | Cal.com                             | `cal.com/369agentic/30min`                               |
+| Version Control | Git                               | Local repo, deployed via Vercel GitHub integration       |
 
 ### Browser Compatibility Notes
 - `backdrop-filter: blur()` requires `-webkit-backdrop-filter` prefix for Safari

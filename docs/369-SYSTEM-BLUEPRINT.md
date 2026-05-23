@@ -1,23 +1,23 @@
 # 369 Agentic Systems — Complete System Blueprint
 
-> Single source of truth for architecture, business model, and 4-phase roadmap.
-> Last updated: 2026-05-16
+> Single source of truth for architecture, business model, technology stack, and 4-phase roadmap.
+> Last updated: 2026-05-23
 
 ---
 
 ## The Business Model
 
-**369 Agentic Systems** is a productized AI Agency (AAA) that installs autonomous "Digital Workforces" for high-ticket businesses across 8 industries. The positioning is elite — not templates, not chatbots, not chat assistants. We deploy configured, branded agents that operate like real employees: handling lead intake, CRM logging, follow-up sequences, document generation, and appointment management — without human admin overhead.
+**369 Agentic Systems** is a productized AI Agency (AAA) that installs autonomous "Digital Workforces" for high-ticket businesses across 8 industries. The positioning is elite — not templates, not chatbots. We deploy configured, branded agents that operate like real employees: handling lead intake, CRM logging, follow-up sequences, document generation, and appointment management — without human admin overhead.
 
 **Revenue Model:**
 - Setup fee (one-time): $2,500–$5,000 per installation
 - Monthly retainer: $500–$1,500/mo for active workforce maintenance
 - Target: 10 active clients = $5,000–$15,000 MRR with near-zero variable cost
 
-**Delivery Model — Email-First, Dual-Channel:**
-- **Client Portal** (this repo) — Command Center showing agent activity, audit metrics, business memory, live feed
-- **Email outreach** — Automated HTML email reports delivered directly to client inboxes (key for client trust without requiring portal login)
-- Agents operate silently in background; clients see results via both channels
+**Delivery Model — Three-Channel:**
+- **Landing page** (`369agenticsystems.com`) — SEO-optimized founding operator capture with 8-industry showcase and early access form
+- **Client Portal** — Command Center showing agent activity, audit metrics, business memory, live feed (auth-gated)
+- **Email outreach** — Automated 2-email sequence delivered to prospects + internal call brief to owner on every scan
 
 ---
 
@@ -38,79 +38,98 @@
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend / Portal | Next.js 14 (App Router), TypeScript, Tailwind CSS |
-| Database | Supabase (Postgres + RLS + Realtime) |
-| Auth | Supabase Auth — 8-digit OTP `verifyOtp` flow (no PKCE) |
-| Hosting | Vercel (portal) + cPanel (static HTML marketing pages) |
-| Automation Engine | Gumloop (workflow orchestration, web scraping, email) |
-| Agent AI Layer | Google Gemini / Flowise (planned Phase 3) |
-| Email Parsing | SendGrid / SES Inbound (planned Phase 3) |
-| Marketing HTML | 8 static single-file HTML pages in `/public` (Zero-Touch Policy) |
+| Layer | Technology | Status |
+|-------|-----------|--------|
+| Framework | Next.js 14 (App Router), TypeScript, Tailwind CSS | Live |
+| Database | Supabase (Postgres + RLS + Realtime) | Live |
+| Auth | Supabase Auth — 8-digit OTP `verifyOtp` flow (no PKCE) | Live |
+| Hosting | Vercel — `369agenticsystems.com` (apex = Production, www = 307 redirect) | Live |
+| Email Delivery | Resend Pro — `alerts@alerts.369agenticsystems.com` FROM address | Live |
+| Automation Engine | Gumloop Pro — 10-node pipeline, Gemini 2.5 Flash | Live |
+| Landing Page | Next.js Server Component with glassmorphism, AmbientOrb, early access form | Live |
+| Static Marketing | 8 static HTML pages in `/public` (Zero-Touch Policy — never modify) | Live |
+| Agent AI Layer | Flowise (planned Phase 3) | Planned |
+| Email Ingestion | SendGrid Inbound Parse / AWS SES (planned Phase 3) | Planned |
+
+---
+
+## The Digital Workforce (AI Org Chart)
+
+| Role | Tool | Purpose |
+|------|------|---------|
+| **Claude Code** (primary engineer) | Claude Sonnet 4.6 via VS Code extension | All portal development, code, architecture |
+| **Hermes** (cloud courier) | Gumloop Pro + Gemini 2.5 Flash | Scraping, audit pipelines, webhook dispatch |
+| **Human Operator** | You | Strategy, client calls, deployment decisions |
+
+**Role boundaries:**
+- Claude Code writes and deploys all portal code. Does not touch `/public` static files (Zero-Touch Policy).
+- Hermes runs 24/7 in the cloud, processes lead data, and POSTs structured payloads to `/api/update-dossier`.
+- All AI agents have zero access to `.env.local`, private keys, or local source files.
 
 ---
 
 ## 4-Phase Roadmap
 
-### Phase 1 — Command Center (75–80% Complete as of 2026-05-16)
+### Phase 1 — Command Center Portal ✅ COMPLETE
 
 **Goal:** Live client portal with real-time agent activity display and auth-gated dashboard.
 
 **Completed:**
 - Next.js 14 App Router scaffold with route groups `(portal)` and `(auth)`
-- Supabase `system_audits` table with webhook receiver (`/api/update-dossier`)
+- Supabase `system_audits` table + webhook receiver `/api/update-dossier`
 - Auth: 8-digit OTP email code (`verifyOtp`) — no PKCE, no magic links
-- Dashboard: ActiveSpecialists grid (real-time), LiveFeed (simulated + real-time), BusinessMemory accordion
+- Dashboard: ActiveSpecialists grid, LiveFeed terminal, BusinessMemory accordion
 - ScanCard component with animated scan line effect
-- CSS custom properties for dark/light theme (`html.light` toggle)
-- ThemeToggle persisted to localStorage with blocking inline script (no flash)
-- Mobile-responsive: slide-in sidebar drawer via PortalShell, `md:` breakpoint for desktop
-- Vercel deployment live at `https://369-agentic-systems.vercel.app`
+- WARN triage system: amber row highlight, filter badge, browser push notifications
+- DiagnosticDrawer: right-side panel with vulnerability vectors + AUTHORIZE AGENT PATCH
+- `/api/patch-audit`: sets `leak_detected: false, payload_status: 'active'`
+- CSS custom properties for dark/light theme (`html.light` toggle, localStorage persisted)
+- ThemeToggle with blocking inline script (no flash on load)
+- Mobile-responsive: slide-in sidebar drawer, `md:` breakpoint for desktop
+- Vercel deployment live at `https://369agenticsystems.com`
 - Service-role admin client + `noStore()` for cache-safe Supabase reads
-- Real-time Supabase channel subscriptions on `system_audits` INSERT
+- Supabase Realtime: auto-subscribes on INSERT + UPDATE, auto-retries on error
 
-**Remaining (Phase 1 completion):**
-- Add `id UUID DEFAULT gen_random_uuid()` column to `system_audits` table in Supabase SQL editor
-- Re-enable "Confirm Email" in Supabase Authentication → Email settings
-- Verify `https://369-agentic-systems.vercel.app/auth/callback` in Supabase Redirect URLs
-- Increase dashboard font sizes for better legibility
-- Wire `GUMLOOP_WEBHOOK_URL_HERE` placeholder in all 8 HTML marketing pages
-- Replace `YOUR_BOOKING_LINK_HERE` in CTAs with live calendar URL
+**Housekeeping (non-blocking):**
+- [ ] Verify `https://369agenticsystems.com/auth/callback` is in Supabase Redirect URLs allowlist
+- [ ] Wire live Gumloop webhook URL into all 8 `/public` HTML marketing pages
+- [ ] Replace `YOUR_BOOKING_LINK_HERE` CTAs in marketing pages with `https://cal.com/369agentic/30min`
 
 ---
 
-### Phase 2 — Automated Outreach + Scraper Loop (Next Up)
+### Phase 2 — Automated Outreach + Scraper Loop ✅ FULLY LIVE (2026-05-22)
 
-**Goal:** Gumloop scraper auto-fires webhook payloads → dashboard populates automatically → HTML email reports sent to prospects.
+**Goal:** Gumloop scraper auto-fires webhook → dashboard card populates → email sequence fires automatically.
 
-**Key deliverables:**
-- Gumloop workflow: scrape prospect domain → run audit metrics → POST to `/api/update-dossier`
-- Dashboard cards auto-populate on scraper run (zero manual data entry)
-- Branded HTML email template with embedded metrics (security score, SEO visibility, ROI multiplier)
-- Email sent automatically after scraper completes — client sees results in inbox without portal login
-- CRM bridge: lead logging to Google Sheets or CRM alongside Supabase
+**Completed:**
+- Gumloop 10-node pipeline: intake → AI audit → JSON sanitize → parse → merge → call brief → payload build → POST → notify
+- `/api/update-dossier` coerces all string payloads to correct DB types (parseInt / parseFloat / boolean)
+- Supabase Realtime: dashboard cards pop instantly on webhook receipt, zero refresh
+- Custom domain wired: `369agenticsystems.com` apex on Vercel (Namecheap DNS: A `216.198.79.1`, CNAME `d79156d2f6e42fca.vercel-dns-017.com`)
+- **3-email sequence fully live and tested:**
+  - **Email 1** — Diagnostic Alert → prospect inbox, immediate. Metric chips (security, SEO, revenue leak), dark theme, CTA button. FROM: `369 System Scan`
+  - **Email 2** — Full Dossier → prospect inbox, scheduled 5 min later via Resend `scheduledAt`. "Hello, [First]." hero, operational audit content, dual CTA. FROM: `369 Intelligence Division`
+  - **Email 3** — Call Brief → owner inbox (`chris@369agenticsystems.com`), immediate. 5-section pre-call sales brief with prospect metrics, talking points, objections, recommended AOS, close script. FROM: `369 Command Center`
+- Booking link: `https://cal.com/369agentic/30min` wired into all 3 email CTAs
+- `early_access_list` Supabase table: landing page signups stored + owner notified via Resend
+- Landing page live at root URL: glassmorphism, ambient cursor orb, 8-industry grid, SEO metadata, JSON-LD, robots.ts, sitemap.ts
 
-**The "Wow Moment" Pattern:**
-Prospect receives cold email → opens it → sees their own domain's metrics → clicks through to portal → sees live agent activity → books a call. The email IS the trust-builder; the portal IS the close.
+**Remaining (non-blocking):**
+- [ ] CRM bridge: log leads to Google Sheets alongside Supabase
+- [ ] Validate all 8 industry intake forms end-to-end through Gumloop pipeline
 
 ---
 
 ### Phase 3 — Email Ingestion + Flowise Agent Layer (Planned)
 
-**Goal:** Inbound emails from clients/prospects trigger agent workflows automatically.
+**Goal:** Inbound emails trigger full autonomous agent workflows; agents log results to dashboard in real-time.
 
-**Key deliverables:**
-- Inbound email router via SendGrid Inbound Parse / AWS SES / Mailgun
-- Webhook endpoint receives raw email → extracts intent → routes to correct Flowise flow
-- Flowise agent flows for each specialist archetype:
-  - `RESPONSE_SPEC`: Lead qualification + immediate reply
-  - `DOC_DRAFTER`: Onboarding dossier / proposal generation
-  - `FOLLOW_UP`: Day-2 / Day-7 sequence management
-  - `APPT_GUARDIAN`: Calendar slot offering and confirmation
-  - `CLAIMS_TRIAGE`: Insurance/legal pre-qualification
-- Agent outputs logged to `system_audits` → appear in portal Live Feed in real-time
-- Business Memory vault (`business_memory` table) loaded into every agent context automatically
+- [ ] Inbound email router (SendGrid Inbound Parse / AWS SES / Mailgun)
+- [ ] `/api/email-ingest` webhook: parses raw email → routes to Flowise flow by intent
+- [ ] Flowise agent flows: RESPONSE_SPEC, DOC_DRAFTER, FOLLOW_UP, APPT_GUARDIAN, CLAIMS_TRIAGE
+- [ ] Agent outputs logged to `system_audits` → appear in portal LiveFeed in real-time
+- [ ] `business_memory` table: per-client vault loaded into every agent context
+- [ ] Wire AUTHORIZE AGENT PATCH button → Flowise webhook (replaces current direct DB patch)
 
 **Architecture:**
 ```
@@ -125,14 +144,12 @@ Inbound Email → SendGrid/SES Parse → /api/email-ingest → Flowise → Agent
 
 ### Phase 4 — Client-Facing Legitimacy Portal (Planned)
 
-**Goal:** Each paying client gets their own scoped view of their agents' activity — proving ROI without manual reporting.
+**Goal:** Each paying client sees only their own agents' activity — automated ROI proof without manual reporting.
 
-**Key deliverables:**
-- RLS policy: `.eq('client_domain', user_domain)` — each client only sees their own data
-- Client onboarding flow: invite email → OTP login → personal dashboard with their metrics
-- White-label-ready: client sees "Your Digital Workforce" not "369 Agentic Systems internals"
-- Automated monthly ROI report email from agent data
-- Upgrade path from Phase 2 (we see all data) to Phase 4 (client sees their slice)
+- [ ] RLS policy: `client_domain = user's domain metadata`
+- [ ] Client onboarding: invite email → OTP login → personal dashboard scoped to their data
+- [ ] White-label presentation: "Your Digital Workforce" not internal tooling
+- [ ] Automated monthly ROI report email generated from agent activity data
 
 **RLS implementation:**
 ```sql
@@ -149,24 +166,59 @@ CREATE POLICY "clients_own_data" ON system_audits
 
 ## Data Model
 
-### `system_audits` (live, Supabase)
+### `system_audits` (live)
 | Column | Type | Notes |
 |--------|------|-------|
-| `id` | `uuid DEFAULT gen_random_uuid()` | Add via SQL if missing |
+| `id` | `uuid DEFAULT gen_random_uuid()` | Primary key |
 | `created_at` | `timestamptz DEFAULT now()` | |
-| `client_domain` | `text NOT NULL` | Scraped/entered domain |
+| `client_domain` | `text NOT NULL` | |
 | `security_score` | `int4` | 0–100 |
 | `seo_visibility` | `int4` | 0–100 |
 | `lead_velocity` | `int4` | Leads/day estimate |
-| `leak_detected` | `bool` | Data breach flag |
-| `roi_multiplier` | `numeric` | e.g. 4.2x |
-| `payload_status` | `text` | `active` / `processing` / `idle` |
+| `leak_detected` | `bool` | Vulnerability flag |
+| `roi_multiplier` | `numeric` | e.g. 4.2 |
+| `payload_status` | `text` | `active` / `processing` / `idle` / `pending` |
+
+### `early_access_list` (live)
+| Column | Type | Notes |
+|--------|------|-------|
+| `name` | `text` | |
+| `email` | `text` | |
+| `business` | `text` | |
+| `created_at` | `timestamptz` | |
 
 ### Planned tables
 - `clients` — client accounts, domain, tier, onboarding status
 - `specialists` — agent definitions per client
-- `dossier_logs` — generated documents log
 - `business_memory` — per-client memory vault (pain points, ROI data, insights)
+
+---
+
+## Email Infrastructure
+
+| Email | Sender Name | FROM Address | To | Timing |
+|-------|------------|-------------|-----|--------|
+| Diagnostic Alert | 369 System Scan | `alerts@alerts.369agenticsystems.com` | Prospect | Immediate |
+| Dossier | 369 Intelligence Division | `alerts@alerts.369agenticsystems.com` | Prospect | +5 min (Resend `scheduledAt`) |
+| Call Brief | 369 Command Center | `alerts@alerts.369agenticsystems.com` | `chris@369agenticsystems.com` | Immediate |
+| Early Access Notify | 369 Command Center | `alerts@alerts.369agenticsystems.com` | `chris@369agenticsystems.com` | Immediate |
+
+**Note:** All emails currently use display names over `alerts@alerts.369agenticsystems.com`. Upgrade path: add `369agenticsystems.com` as a verified Resend domain to send from `intelligence@`, `scans@`, etc. directly.
+
+---
+
+## Key URLs
+
+| Resource | URL |
+|----------|-----|
+| Landing page | `https://369agenticsystems.com` |
+| Portal login | `https://369agenticsystems.com/login` |
+| Dashboard | `https://369agenticsystems.com/dashboard` |
+| Webhook receiver | `https://369agenticsystems.com/api/update-dossier` |
+| Early access API | `https://369agenticsystems.com/api/early-access` |
+| Booking link | `https://cal.com/369agentic/30min` |
+| Owner email | `chris@369agenticsystems.com` |
+| Alerts email | `alerts@alerts.369agenticsystems.com` |
 
 ---
 
@@ -176,21 +228,12 @@ The static HTML marketing files in `/public` are **never** converted to `.tsx` o
 
 ---
 
-## Key URLs
-
-- **Portal (live):** `https://369-agentic-systems.vercel.app`
-- **Login:** `/login` (`app/(auth)/login/page.tsx`)
-- **Dashboard:** `/dashboard` (`app/(portal)/dashboard/page.tsx`)
-- **Webhook receiver:** `/api/update-dossier` (`app/api/update-dossier/route.ts`)
-- **Auth callback:** `/auth/callback` (`app/auth/callback/route.ts`) — PKCE handler, not used for OTP auth but must exist for future OAuth
-
----
-
 ## Brand
 
 - Background: Obsidian `#0A0A0A`
-- Accent: Gold `#D4AF37`
-- Tagline: "The End of Admin. The Start of Agentic Scale."
-- Fonts: Instrument Sans (display), Inter (body), Courier New / monospace (terminal)
-- Positioning: Premium digital workforce — not templates, not chatbots
-- Tesla 369 reference: part of brand backstory in "Why 369" section
+- Accent: Gold `#D4AF37` / Gold Light `#E8C84A`
+- Tagline: *"The End of Admin. The Start of Agentic Scale."*
+- Fonts: Instrument Sans (display), Inter (body), monospace (terminal / labels)
+- Glass style: `backdrop-filter: blur(24px)`, `rgba(255,255,255,0.04)` bg, `rgba(148,163,184,0.11)` border
+- Ambient effect: cursor-tracking radial gradient orb via `requestAnimationFrame` (lerp 0.04)
+- Positioning: Premium autonomous digital workforce — not templates, not chatbots
