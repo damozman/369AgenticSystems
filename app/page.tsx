@@ -162,7 +162,7 @@ export default function HomePage() {
                       <input
                         type="text"
                         required
-                        placeholder="Jack Moore"
+                        placeholder="Your Name"
                         value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                         style={{ width: '100%', padding: '10px 12px', background: '#141414', border: '1px solid #222', borderRadius: 6, color: '#FFFFFF', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
@@ -174,7 +174,7 @@ export default function HomePage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Aspen Dental"
+                        placeholder="Your Business"
                         value={form.business}
                         onChange={e => setForm(f => ({ ...f, business: e.target.value }))}
                         style={{ width: '100%', padding: '10px 12px', background: '#141414', border: '1px solid #222', borderRadius: 6, color: '#FFFFFF', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
@@ -189,7 +189,7 @@ export default function HomePage() {
                     <input
                       type="email"
                       required
-                      placeholder="jack@aspendental.com"
+                      placeholder="you@yourbusiness.com"
                       value={form.email}
                       onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       style={{ width: '100%', padding: '10px 12px', background: '#141414', border: '1px solid #222', borderRadius: 6, color: '#FFFFFF', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
