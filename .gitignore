@@ -1,6 +1,9 @@
 # Claude Code internals
 .claude/
 
+# Session memory (contains URLs, emails — keep local only)
+.claude-memory.md
+
 # Next.js
 .next/
 out/
