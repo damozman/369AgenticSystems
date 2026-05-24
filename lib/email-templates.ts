@@ -15,6 +15,16 @@ export interface DossierVars {
   booking_link?: string
 }
 
+export interface FollowUpVars {
+  client_name: string
+  client_domain: string
+  security_score: number | null
+  seo_visibility: number | null
+  revenue_leakage?: string
+  booking_link?: string
+  day: 2 | 7
+}
+
 export interface CallBriefVars {
   client_name: string
   client_domain: string
@@ -286,6 +296,68 @@ ${briefHtml}
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td><p style="margin:0;font-size:10px;font-family:monospace;color:#334155;">369 Agentic Systems &middot; Internal Command Center</p></td>
     <td align="right"><p style="margin:0;font-size:9px;font-family:monospace;color:#1E293B;text-align:right;line-height:1.6;">BRIEF-${escapeHtml(name.replace(/\s+/g, '_').toUpperCase())}<br>EYES ONLY</p></td>
+  </tr></table>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
+export function followUpHtml(v: FollowUpVars): string {
+  const name      = v.client_name || 'Business Owner'
+  const firstName = name.split(' ')[0]
+  const book      = v.booking_link ?? 'https://cal.com/369agentic/30min'
+  const sec       = v.security_score ?? '—'
+  const seo       = v.seo_visibility ?? '—'
+  const rev       = v.revenue_leakage ?? 'an estimated amount'
+
+  const isDay7 = v.day === 7
+  const subjectLabel = isDay7 ? 'FINAL FOLLOW-UP' : 'DAY-2 CHECK-IN'
+  const accentColor  = isDay7 ? '#EF4444' : '#D4AF37'
+
+  const bodyContent = isDay7
+    ? `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We're closing out your audit file for <strong style="color:#FFFFFF;">${v.client_domain}</strong>. Our scan flagged a security score of <strong style="color:#EF4444;">${sec}/100</strong> and an estimated revenue leak of <strong style="color:#EF4444;">${rev}/mo</strong> — that gap stays open until someone closes it.</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">If the timing isn't right, no problem. When it is, we're ready to deploy. If you have questions, reply to this email directly — I read every one.</p>`
+    : `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We sent your diagnostic results for <strong style="color:#FFFFFF;">${v.client_domain}</strong> 48 hours ago and wanted to make sure everything landed. Your scan came back with a security score of <strong style="color:#D4AF37;">${sec}/100</strong>, an SEO visibility of <strong style="color:#D4AF37;">${seo}/100</strong>, and an estimated revenue leak of <strong style="color:#D4AF37;">${rev}/mo</strong>.</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">If you have questions about the numbers or want to walk through the dossier together, book a 30-minute call — we can review everything live and show you exactly how the Digital Employee would close those gaps.</p>`
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${isDay7 ? 'Final Follow-Up' : 'Day-2 Check-In'} — ${v.client_domain}</title>
+</head>
+<body style="margin:0;padding:0;background:#0A0A0A;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0A;">
+<tr><td align="center" style="padding:40px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#0F0F0F;border:1px solid #1E1E1E;border-radius:8px;overflow:hidden;">
+
+<tr><td height="3" style="background:${accentColor};font-size:0;line-height:0;">&nbsp;</td></tr>
+
+${headerBadge(subjectLabel)}
+
+<tr><td style="padding:28px 36px 12px;">
+  <h1 style="margin:0 0 4px;font-size:18px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${isDay7 ? 'One Last Note' : 'Checking In'}</h1>
+  <p style="margin:0;font-size:11px;font-family:monospace;color:#475569;">${v.client_domain}</p>
+</td></tr>
+
+<tr><td style="padding:12px 36px 28px;">
+${bodyContent}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="text-align:center;">
+    <tr><td>
+      <a href="${book}" style="display:inline-block;background:${accentColor};color:#080808;font-family:monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:14px 28px;border-radius:4px;">${isDay7 ? 'BOOK A CALL BEFORE WE CLOSE YOUR FILE →' : 'BOOK YOUR 30-MINUTE CALL →'}</a>
+    </td></tr>
+  </table>
+</td></tr>
+
+<tr><td style="padding:16px 36px;border-top:1px solid #1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td><p style="margin:0;font-size:10px;font-family:monospace;color:#334155;">369 Agentic Systems &middot; AI Workforce Infrastructure</p></td>
   </tr></table>
 </td></tr>
 

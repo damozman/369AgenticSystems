@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { diagnosticAlertHtml, dossierHtml, callBriefHtml } from '@/lib/email-templates'
+import { diagnosticAlertHtml, dossierHtml, callBriefHtml, followUpHtml } from '@/lib/email-templates'
 
 // Service-role client — bypasses RLS for server-to-server webhook ingestion.
 const supabaseAdmin = createClient(
@@ -118,12 +118,40 @@ export async function POST(request: Request) {
         })
       : Promise.resolve(null)
 
+    // Email 4 — Day-2 follow-up → prospect, 48 hours later
+    const day2At = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+    const sendDay2 = client_email
+      ? resend.emails.send({
+          from:        `369 Agentic Systems <${baseFrom}>`,
+          to:          client_email,
+          replyTo:     OWNER_EMAIL,
+          subject:     `Quick check-in — ${client_domain}`,
+          html:        followUpHtml({ client_name, client_domain, security_score, seo_visibility, revenue_leakage, booking_link, day: 2 }),
+          scheduledAt: day2At,
+        })
+      : Promise.resolve(null)
+
+    // Email 5 — Day-7 follow-up → prospect, 7 days later
+    const day7At = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const sendDay7 = client_email
+      ? resend.emails.send({
+          from:        `369 Agentic Systems <${baseFrom}>`,
+          to:          client_email,
+          replyTo:     OWNER_EMAIL,
+          subject:     `Last note on ${client_domain}`,
+          html:        followUpHtml({ client_name, client_domain, security_score, seo_visibility, revenue_leakage, booking_link, day: 7 }),
+          scheduledAt: day7At,
+        })
+      : Promise.resolve(null)
+
     type ResendResult = { data: { id: string } | null; error: { message: string } | null } | null
-    const [r1, r2, r3] = await Promise.allSettled([sendAlert, sendDossier, sendCallBrief])
+    const [r1, r2, r3, r4, r5] = await Promise.allSettled([sendAlert, sendDossier, sendCallBrief, sendDay2, sendDay7])
 
     const v1 = r1.status === 'fulfilled' ? (r1.value as ResendResult) : null
     const v2 = r2.status === 'fulfilled' ? (r2.value as ResendResult) : null
     const v3 = r3.status === 'fulfilled' ? (r3.value as ResendResult) : null
+    const v4 = r4.status === 'fulfilled' ? (r4.value as ResendResult) : null
+    const v5 = r5.status === 'fulfilled' ? (r5.value as ResendResult) : null
 
     if (r1.status === 'rejected')      console.error('[369 EMAIL] ✕ Alert network error:', r1.reason)
     else if (v1?.error)                console.error('[369 EMAIL] ✕ Alert Resend rejected:', JSON.stringify(v1.error))
@@ -139,6 +167,14 @@ export async function POST(request: Request) {
     else if (v3?.error)                console.error('[369 EMAIL] ✕ Call brief Resend rejected:', JSON.stringify(v3.error))
     else if (v3?.data?.id)             console.log(`[369 EMAIL] ✓ Call brief dispatched → ${OWNER_EMAIL} | id: ${v3.data.id}`)
     else if (!call_brief)              console.warn('[369 EMAIL] ⚠ Call brief skipped — call_brief missing from payload')
+
+    if (r4.status === 'rejected')      console.error('[369 EMAIL] ✕ Day-2 network error:', r4.reason)
+    else if (v4?.error)                console.error('[369 EMAIL] ✕ Day-2 Resend rejected:', JSON.stringify(v4.error))
+    else if (v4?.data?.id)             console.log(`[369 EMAIL] ✓ Day-2 follow-up scheduled → ${client_email} | id: ${v4.data.id}`)
+
+    if (r5.status === 'rejected')      console.error('[369 EMAIL] ✕ Day-7 network error:', r5.reason)
+    else if (v5?.error)                console.error('[369 EMAIL] ✕ Day-7 Resend rejected:', JSON.stringify(v5.error))
+    else if (v5?.data?.id)             console.log(`[369 EMAIL] ✓ Day-7 follow-up scheduled → ${client_email} | id: ${v5.data.id}`)
   }
 
   return NextResponse.json({ success: true }, { status: 200 })

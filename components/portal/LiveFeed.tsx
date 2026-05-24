@@ -16,27 +16,9 @@ interface LogEntry {
   msg: string
 }
 
-const SEED_LOGS: Omit<LogEntry, 'id'>[] = [
-  { time: '09:41:02', tag: 'SYSTEM',  msg: '369 Agentic Core initialized — 4 specialists online' },
-  { time: '09:41:06', tag: 'INFO',    agent: 'RESPONSE_SPEC',  msg: 'Lead intake received — qualifying [ROOFING_0047]' },
-  { time: '09:41:09', tag: 'PROCESS', agent: 'RESPONSE_SPEC',  msg: 'Fetching business memory context...' },
-  { time: '09:41:11', tag: 'INFO',    agent: 'RESPONSE_SPEC',  msg: '3 prior pain points loaded from vault' },
-  { time: '09:41:14', tag: 'PROCESS', agent: 'DOC_DRAFTER',    msg: 'Onboarding dossier initiated for [ROOFING_0047]' },
-  { time: '09:41:18', tag: 'INFO',    agent: 'SYSTEM',         msg: 'ROI estimate: $18,400/mo recovery' },
-  { time: '09:41:22', tag: 'PROCESS', agent: 'FOLLOW_UP',      msg: 'Day-2 sequence armed — trigger: T+24h' },
-  { time: '09:41:25', tag: 'SUCCESS', agent: 'DOC_DRAFTER',    msg: 'Dossier dispatched to client_email ✓' },
-]
-
-const LIVE_QUEUE: Omit<LogEntry, 'id' | 'time'>[] = [
-  { tag: 'INFO',    agent: 'RESPONSE_SPEC',  msg: 'New intake received — [DENTAL_0023]' },
-  { tag: 'PROCESS', agent: 'APPT_GUARDIAN',  msg: 'Checking appointment availability...' },
-  { tag: 'INFO',    agent: 'SYSTEM',         msg: 'Memory query: 2 prior dental pain points found' },
-  { tag: 'SUCCESS', agent: 'APPT_GUARDIAN',  msg: 'Slot offered — awaiting confirmation' },
-  { tag: 'WARN',    agent: 'FOLLOW_UP',      msg: '[ROOFING_0032] Day-3 sequence triggered — no response' },
-  { tag: 'PROCESS', agent: 'DOC_DRAFTER',    msg: 'Generating supplement analysis...' },
-  { tag: 'SUCCESS', agent: 'CLAIMS_TRIAGE',  msg: 'Insurance claim pre-qualified — $12,800 recovery' },
-  { tag: 'SYSTEM',  msg: 'Memory write: new ROI data point stored in vault' },
-]
+function seedLog(): LogEntry {
+  return { id: globalId++, time: now(), tag: 'SYSTEM', msg: '369 Agentic Core online — awaiting live audit events' }
+}
 
 const TAG_COLOR: Record<Tag, string> = {
   INFO:    '#60A5FA',
@@ -71,8 +53,8 @@ const NEAR_BOTTOM_THRESHOLD = 100
 let globalId = 100
 
 export default function LiveFeed() {
-  const [logs, setLogs]               = useState<LogEntry[]>(SEED_LOGS.map(l => ({ ...l, id: globalId++ })))
-  const [qIdx, setQIdx]               = useState(0)
+  const [logs, setLogs]               = useState<LogEntry[]>(() => [seedLog()])
+  const [hasRealEvents, setHasRealEvents] = useState(false)
   const [warnFilter, setWarnFilter]   = useState(false)
   const [unreadWarns, setUnreadWarns] = useState(0)
   const scrollRef     = useRef<HTMLDivElement>(null)
@@ -90,17 +72,6 @@ export default function LiveFeed() {
     if (!el) return
     nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_THRESHOLD
   }
-
-  // Simulated live queue — increments warn counter so badge is demonstrable
-  useEffect(() => {
-    const id = setInterval(() => {
-      const entry = LIVE_QUEUE[qIdx % LIVE_QUEUE.length]
-      setLogs(prev => [...prev.slice(-40), { ...entry, id: globalId++, time: now() }])
-      if (entry.tag === 'WARN') setUnreadWarns(n => n + 1)
-      setQIdx(i => i + 1)
-    }, 3400)
-    return () => clearInterval(id)
-  }, [qIdx])
 
   // Auto-scroll when near bottom
   useEffect(() => {
@@ -141,6 +112,7 @@ export default function LiveFeed() {
             entries.push({ tag: 'SUCCESS', agent: 'ROI_ENGINE', msg: `ROI multiplier locked in: ${audit.roi_multiplier}x — ${audit.client_domain}` })
           }
 
+          setHasRealEvents(true)
           setLogs(prev => [
             ...prev.slice(-40),
             ...entries.map(e => ({ ...e, id: globalId++, time: timestamp })),
@@ -296,6 +268,18 @@ export default function LiveFeed() {
             <div className="flex flex-col items-center justify-center h-32 gap-2">
               <span className="text-[10px] font-mono text-slate-700 uppercase tracking-widest">All clear</span>
               <span className="text-[9px] font-mono text-slate-800">No active warnings in current window</span>
+            </div>
+          )}
+
+          {/* Awaiting real events indicator */}
+          {!warnFilter && !hasRealEvents && (
+            <div className="flex items-center gap-2 pt-2">
+              <motion.span
+                className="inline-block w-1.5 h-1.5 rounded-full bg-slate-600"
+                animate={{ opacity: [1, 0.25, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+              />
+              <span className="text-[10px] font-mono text-slate-700">awaiting live audit events...</span>
             </div>
           )}
 

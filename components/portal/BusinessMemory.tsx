@@ -115,9 +115,12 @@ export default function BusinessMemory() {
             </p>
             <h2 className="text-lg font-display font-semibold text-white">Business Memory</h2>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] font-mono text-slate-500">{total} entries</p>
-            <p className="text-[10px] font-mono text-emerald-500">Active context</p>
+          <div className="text-right flex flex-col items-end gap-1">
+            <span className="text-[8px] font-mono font-bold px-2 py-0.5 rounded border tracking-widest uppercase"
+              style={{ color: '#F59E0B', borderColor: '#78350F', background: 'rgba(120,53,15,0.18)' }}>
+              DEMO DATA
+            </span>
+            <p className="text-[10px] font-mono text-slate-500">{total} sample entries</p>
           </div>
         </div>
 
@@ -129,8 +132,8 @@ export default function BusinessMemory() {
         {/* Footer note */}
         <div className="mt-4 pt-4 border-t border-[var(--border-faint)]">
           <p className="text-[9px] font-mono text-slate-700 text-center">
-            <span className="text-[#D4AF37]">›</span>{' '}
-            Memory is loaded into every agent run automatically
+            <span className="text-[#F59E0B]">›</span>{' '}
+            Sample data — real memory vault activates in Phase 3
           </p>
         </div>
 
