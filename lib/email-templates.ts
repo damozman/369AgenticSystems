@@ -59,6 +59,67 @@ function applyDarkStyles(html: string): string {
     .replace(/&mdash;/gi,  '—')
 }
 
+// Converts call-brief markdown to styled HTML for email display
+function renderBriefMarkdown(raw: string): string {
+  const bold = (s: string) =>
+    escapeHtml(s).replace(/\*\*(.+?)\*\*/g, '<strong style="color:#D4AF37;font-weight:700;">$1</strong>')
+
+  const P  = 'margin:0 0 16px;font-size:14px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;'
+  const LI = 'margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.7;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;'
+  const SI = 'margin:4px 0 10px;font-size:13px;color:#94A3B8;line-height:1.65;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;padding-left:10px;border-left:2px solid #334155;'
+  const H2 = 'margin:22px 0 10px;font-size:11px;font-weight:700;color:#D4AF37;font-family:monospace;text-transform:uppercase;letter-spacing:0.14em;border-bottom:1px solid #1E293B;padding-bottom:6px;'
+
+  const lines = raw.split('\n')
+  const out: string[] = []
+  let state: 'none' | 'ul' | 'ol' | 'sub' | 'para' = 'none'
+  let paraAcc: string[] = []
+
+  const closeAll = () => {
+    if (state === 'ul' || state === 'sub') out.push('</ul>')
+    if (state === 'ol')  out.push('</ol>')
+    if (state === 'para' && paraAcc.length) {
+      out.push(`<p style="${P}">${paraAcc.join('<br>')}</p>`)
+      paraAcc = []
+    }
+    state = 'none'
+  }
+
+  for (const line of lines) {
+    if (!line.trim()) { closeAll(); continue }
+
+    if (line.startsWith('# ')) {
+      closeAll()
+      out.push(`<h2 style="${H2}">${bold(line.slice(2))}</h2>`)
+      continue
+    }
+    if (line.startsWith('## ')) {
+      closeAll()
+      out.push(`<h3 style="margin:14px 0 8px;font-size:10px;font-weight:700;color:#64748B;font-family:monospace;text-transform:uppercase;letter-spacing:0.1em;">${bold(line.slice(3))}</h3>`)
+      continue
+    }
+    if (/^ {2,}- /.test(line)) {
+      const content = line.replace(/^ +-/, '').trim()
+      if (state !== 'sub') { closeAll(); out.push('<ul style="margin:2px 0 14px;padding-left:0;list-style:none;">'); state = 'sub' }
+      out.push(`<li style="${SI}">${bold(content)}</li>`)
+      continue
+    }
+    if (line.startsWith('- ')) {
+      if (state !== 'ul') { closeAll(); out.push('<ul style="margin:0 0 16px;padding-left:20px;">'); state = 'ul' }
+      out.push(`<li style="${LI}">${bold(line.slice(2))}</li>`)
+      continue
+    }
+    if (/^\d+\. /.test(line)) {
+      if (state !== 'ol') { closeAll(); out.push('<ol style="margin:0 0 16px;padding-left:22px;">'); state = 'ol' }
+      out.push(`<li style="${LI}">${bold(line.replace(/^\d+\. /, ''))}</li>`)
+      continue
+    }
+    if (state !== 'para') { closeAll(); state = 'para' }
+    paraAcc.push(bold(line))
+  }
+  closeAll()
+  return out.join('\n')
+}
+
 // Branded header badge — shared by both email templates
 function headerBadge(leftLabel: string): string {
   return `
@@ -181,22 +242,7 @@ export function callBriefHtml(v: CallBriefVars): string {
 
   const rawBrief = typeof v.call_brief === 'string' ? v.call_brief : String(v.call_brief || '')
 
-  const briefHtml = isHtml(rawBrief)
-    ? applyDarkStyles(rawBrief)
-    : rawBrief
-        .split(/\n{2,}/)
-        .map(para => para.trim())
-        .filter(Boolean)
-        .map(para => {
-          if (para.startsWith('# ')) {
-            return `<h2 style="margin:0 0 10px;font-size:13px;font-weight:700;color:#D4AF37;font-family:monospace;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid #1E1E1E;padding-bottom:6px;">${escapeHtml(para.slice(2))}</h2>`
-          }
-          if (para.startsWith('## ')) {
-            return `<h3 style="margin:0 0 6px;font-size:11px;font-weight:700;color:#94A3B8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(para.slice(3))}</h3>`
-          }
-          return `<p style="margin:0 0 14px;font-size:13px;color:#CBD5E1;line-height:1.7;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">${escapeHtml(para).replace(/\n/g, '<br>')}</p>`
-        })
-        .join('\n')
+  const briefHtml = isHtml(rawBrief) ? applyDarkStyles(rawBrief) : renderBriefMarkdown(rawBrief)
 
   return `<!DOCTYPE html>
 <html lang="en">
