@@ -5,7 +5,8 @@ import ActiveSpecialists from '@/components/portal/ActiveSpecialists'
 import LiveFeed from '@/components/portal/LiveFeed'
 import BusinessMemory from '@/components/portal/BusinessMemory'
 import LeadsTable from '@/components/portal/LeadsTable'
-import { Activity, Users, FileText, Zap } from 'lucide-react'
+import PendingResponses from '@/components/portal/PendingResponses'
+import { Activity, Users, Zap, MessageSquare } from 'lucide-react'
 
 export default async function DashboardPage() {
   noStore()
@@ -21,22 +22,22 @@ export default async function DashboardPage() {
     { data: initialAudits },
     { count: totalAudits },
     { count: activeAudits },
-    { count: earlyAccessLeads },
     { count: leaksDetected },
+    { count: pendingResponses },
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabaseAdmin.from('system_audits').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('system_audits').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('system_audits').select('*', { count: 'exact', head: true }).eq('payload_status', 'active'),
-    supabaseAdmin.from('early_access_list').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('system_audits').select('*', { count: 'exact', head: true }).eq('leak_detected', true),
+    supabaseAdmin.from('pending_responses').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 
   const STAT_CARDS = [
-    { label: 'Audits Run',        value: String(totalAudits ?? 0),        delta: 'all time',             color: '#D4AF37', Icon: Users     },
-    { label: 'Active Deployments',value: String(activeAudits ?? 0),       delta: 'currently live',       color: '#4ADE80', Icon: Activity  },
-    { label: 'Early Access Leads',value: String(earlyAccessLeads ?? 0),   delta: 'landing page signups', color: '#60A5FA', Icon: FileText  },
-    { label: 'Leaks Detected',    value: String(leaksDetected ?? 0),      delta: 'flagged for review',   color: '#F87171', Icon: Zap       },
+    { label: 'Audits Run',         value: String(totalAudits ?? 0),       delta: 'all time',             color: '#D4AF37', Icon: Users          },
+    { label: 'Active Deployments', value: String(activeAudits ?? 0),      delta: 'currently live',       color: '#4ADE80', Icon: Activity       },
+    { label: 'Pending Responses',  value: String(pendingResponses ?? 0),  delta: 'awaiting approval',    color: '#A78BFA', Icon: MessageSquare  },
+    { label: 'Leaks Detected',     value: String(leaksDetected ?? 0),     delta: 'flagged for review',   color: '#F87171', Icon: Zap            },
   ]
 
   const dateLabel = new Date().toLocaleDateString('en-US', {
@@ -103,6 +104,9 @@ export default async function DashboardPage() {
       <div className="mt-6">
         <LeadsTable initialAudits={initialAudits ?? []} />
       </div>
+
+      {/* ── Pending Responses ────────────────────────────────────── */}
+      <PendingResponses />
 
     </div>
   )
