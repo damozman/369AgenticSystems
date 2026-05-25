@@ -117,6 +117,28 @@ integrations/ (new integration per vertical)
 
 ---
 
+### WEEK 1-2 BRIDGE (May 25-27) — Immediate Actions
+
+**Thursday, May 25:**
+- [ ] DNS propagation confirms — send test email to `test@respond.369agenticsystems.com`, watch it appear in dashboard
+- [ ] Dentrix sandbox credentials arrive (Henry Schein One inbox)
+- [ ] Run end-to-end funnel test (email in → Claude draft → AUTHORIZE → reply sent)
+
+**Friday, May 26:**
+- [ ] Add `DENTRIX_API_URL` + `DENTRIX_API_KEY` to Vercel env vars
+- [ ] Complete `lib/integrations/dentrix.ts` (4-6 hours focused work)
+- [ ] Test: patient lookup → history retrieval → Claude context injection → deploy
+- [ ] Start building 50-prospect dental lead list
+
+**Monday, May 27:**
+- [ ] **First cold email goes out — revenue clock starts**
+- [ ] 10-15 emails/day cadence begins
+- [ ] Revenue target: First $3-5K in setup fees by June 7
+
+**Key note:** DNS propagation and Dentrix credentials do NOT block sales. The core system (email → Claude → approval → send) is fully demosable today. You can close customers before Dentrix is live — add patient history context during onboarding.
+
+---
+
 ### MONTH 2: Launch Dental Sales + Start Roofing Background
 
 **Weeks 1-2: Sales Launch**
@@ -378,6 +400,12 @@ database/
 
 **If any of these happen, stop and reassess:**
 
+**Immediate (Week 1-2):**
+- ❌ DNS doesn't propagate by May 27 → contact SendGrid support directly
+- ❌ Dentrix credentials don't arrive by May 27 → follow up with Henry Schein One support
+- ❌ First 20 cold emails get 0 responses → stop, change messaging (call with me immediately)
+
+**Ongoing:**
 - ❌ MRR is not growing as projected (month 6 should be $5-9K minimum)
 - ❌ Cold outreach is converting <5% (you're messaging wrong)
 - ❌ Dental customers are churning or unhappy (product issue, pivot needed)
@@ -395,6 +423,6 @@ database/
 
 ---
 
-**Document Version:** 1.0 (Locked)
-**Last Updated:** 2026-05-24
-**Next Review:** 2026-05-27 (end of week 1)
+**Document Version:** 1.1
+**Last Updated:** 2026-05-25
+**Next Review:** 2026-05-27 (Monday — sales launch + week 1 debrief)
