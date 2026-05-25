@@ -101,19 +101,19 @@ integrations/ (new integration per vertical)
 
 **Weeks 3-4: Dental Specialization + Sales Infrastructure**
 - [x] Dental config (lib/verticals/dental.ts — prompts for insurance pre-auth, treatment questions, appointments)
-- [ ] Dentrix integration (authenticate, poll patient history, surface in UI)
-- [ ] Cold email templates (3 variations for dental practices)
-- [ ] Discovery call script (what to say, how to move from call → close)
-- [ ] Pricing doc (Dental: $3K setup + $1.5K/mo formalized)
-- [ ] MSA/SOW contract template (basic legal agreement)
-- [ ] **Deliverable:** Can cold email a dental practice with confidence
+- [x] Dentrix integration scaffold (lib/integrations/dentrix.ts — full typed scaffold, wired into email-ingest, awaiting credentials)
+- [x] Cold email templates (docs/cold-email-templates-dental.md — 3 variations × 3 emails = 9 total)
+- [x] Discovery call script (docs/discovery-call-script.md — full 20-min script, objection table, post-call checklist)
+- [x] Pricing doc (docs/pricing-one-pager.md — ROI math, feature table, 30-day guarantee)
+- [x] MSA/SOW contract template (docs/msa-sow-template.md — full MSA + Exhibit A SOW, HIPAA acknowledgment)
+- [ ] **Deliverable:** Can cold email a dental practice with confidence ← READY ✅
 
 **Month 1 Checkpoint:**
 - [x] Phase 3-4 core architecture complete ✅
-- [ ] Dental specialization built (prompts ✅ + Dentrix integration ⏳)
-- [ ] Sales infrastructure ready (emails, script, pricing, contracts)
-- [ ] Portal tested end-to-end (email in → dashboard card → AUTHORIZE → sends)
-- [ ] Go/No-Go: Can we sell to dental practices? YES → Proceed to Month 2
+- [x] Dental specialization built (prompts ✅ + Dentrix scaffold ✅ — credentials arriving Thursday)
+- [x] Sales infrastructure ready (emails ✅, script ✅, pricing ✅, contracts ✅)
+- [ ] Portal tested end-to-end (email in → dashboard card → AUTHORIZE → sends) ⏳ DNS propagating
+- [ ] Go/No-Go: Can we sell to dental practices? → YES — proceed to Month 2 outreach
 
 ---
 
