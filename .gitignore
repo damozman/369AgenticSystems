@@ -38,3 +38,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Lead scraper output (CSV files contain prospect data — keep local)
+scripts/output/

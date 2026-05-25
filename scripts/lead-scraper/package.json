@@ -1,0 +1,16 @@
+{
+  "name": "369-lead-scraper",
+  "version": "1.0.0",
+  "description": "Dental practice lead scraper using Google Places API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.3.0",
+    "minimist": "^1.2.8"
+  }
+}
