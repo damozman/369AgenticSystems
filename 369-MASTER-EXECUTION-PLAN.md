@@ -91,15 +91,16 @@ integrations/ (new integration per vertical)
 ### MONTH 1: Foundation (Core + Dental Specialization)
 
 **Weeks 1-2: Phase 3-4 Core Architecture**
-- [ ] Email ingestion (SendGrid MX record + webhook)
-- [ ] Claude API routing (intent classification → vertical config → agent selection)
-- [ ] Response drafting (Claude API, multi-agent prompt structure)
-- [ ] Approval queue (pending_responses table + Realtime + dashboard UI)
-- [ ] Send via Resend (with tracking)
-- [ ] **Deliverable:** Email in → draft → approve → send (full loop working)
+- [x] Email ingestion (SendGrid account + MX record for respond.369agenticsystems.com + /api/email-ingest)
+- [x] Claude API routing (intent classification → dental vertical config → response draft)
+- [x] Response drafting (Claude API, dental system prompt in lib/verticals/dental.ts)
+- [x] Approval queue (pending_responses table + Realtime + PendingResponses dashboard UI)
+- [x] Send via Resend (/api/send-response AUTHORIZE action with tracking)
+- [x] Alert banner (PendingAlert — real-time gold banner + REVIEW NOW scroll button)
+- [ ] **Deliverable:** End-to-end test confirmed (waiting on DNS propagation for respond.369agenticsystems.com)
 
 **Weeks 3-4: Dental Specialization + Sales Infrastructure**
-- [ ] Dental config (prompts for insurance pre-auth, treatment questions, appointment confirmations)
+- [x] Dental config (lib/verticals/dental.ts — prompts for insurance pre-auth, treatment questions, appointments)
 - [ ] Dentrix integration (authenticate, poll patient history, surface in UI)
 - [ ] Cold email templates (3 variations for dental practices)
 - [ ] Discovery call script (what to say, how to move from call → close)
@@ -108,8 +109,8 @@ integrations/ (new integration per vertical)
 - [ ] **Deliverable:** Can cold email a dental practice with confidence
 
 **Month 1 Checkpoint:**
-- [ ] Phase 3-4 core architecture complete
-- [ ] Dental specialization built (prompts + Dentrix integration)
+- [x] Phase 3-4 core architecture complete ✅
+- [ ] Dental specialization built (prompts ✅ + Dentrix integration ⏳)
 - [ ] Sales infrastructure ready (emails, script, pricing, contracts)
 - [ ] Portal tested end-to-end (email in → dashboard card → AUTHORIZE → sends)
 - [ ] Go/No-Go: Can we sell to dental practices? YES → Proceed to Month 2
