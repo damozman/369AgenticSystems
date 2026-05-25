@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { dentalConfig } from '@/lib/verticals/dental'
+import { getDentrixContext, formatDentrixContext } from '@/lib/integrations/dentrix'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,17 +45,23 @@ export async function POST(request: Request) {
 
   console.log(`[EMAIL INGEST] ✉  From: ${fromEmail} | Subject: ${subject}`)
 
-  // ── Look up prospect context ──────────────────────────────────────────────
-  const { data: prospect } = await supabaseAdmin
-    .from('system_audits')
-    .select('client_domain, client_name, client_industry, security_score, seo_visibility, revenue_leakage')
-    .eq('client_email', fromEmail)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // ── Look up prospect context + Dentrix patient data in parallel ──────────
+  const [{ data: prospect }, dentrixCtx] = await Promise.all([
+    supabaseAdmin
+      .from('system_audits')
+      .select('client_domain, client_name, client_industry, security_score, seo_visibility, revenue_leakage')
+      .eq('client_email', fromEmail)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    getDentrixContext(fromEmail),
+  ])
 
-  const prospectContext = prospect
-    ? `PROSPECT CONTEXT (from prior audit):
+  const dentrixSection = formatDentrixContext(dentrixCtx)
+
+  const prospectContext = [
+    prospect
+      ? `PROSPECT CONTEXT (from prior audit):
 - Name: ${prospect.client_name || fromName}
 - Domain: ${prospect.client_domain}
 - Industry: ${prospect.client_industry || 'dental'}
@@ -62,10 +69,12 @@ export async function POST(request: Request) {
 - SEO Visibility: ${prospect.seo_visibility ?? 'N/A'}/100
 - Revenue Leakage: ${prospect.revenue_leakage || 'Unknown'}
 - Status: Previously audited — they've seen our report`
-    : `PROSPECT CONTEXT:
+      : `PROSPECT CONTEXT:
 - Name: ${fromName}
 - Email: ${fromEmail}
-- Status: First contact — no prior audit on file`
+- Status: First contact — no prior audit on file`,
+    dentrixSection ? `\n${dentrixSection}` : '',
+  ].join('')
 
   // ── Draft response with Claude ────────────────────────────────────────────
   const config = dentalConfig
