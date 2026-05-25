@@ -6,6 +6,7 @@ import LiveFeed from '@/components/portal/LiveFeed'
 import BusinessMemory from '@/components/portal/BusinessMemory'
 import LeadsTable from '@/components/portal/LeadsTable'
 import PendingResponses from '@/components/portal/PendingResponses'
+import PendingAlert from '@/components/portal/PendingAlert'
 import { Activity, Users, Zap, MessageSquare } from 'lucide-react'
 
 export default async function DashboardPage() {
@@ -71,6 +72,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* ── Pending alert banner ────────────────────────────────── */}
+      <PendingAlert initialCount={pendingResponses ?? 0} />
+
       {/* ── Stat bar ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {STAT_CARDS.map(({ label, value, delta, color, Icon }) => (
@@ -106,7 +110,9 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Pending Responses ────────────────────────────────────── */}
-      <PendingResponses />
+      <div id="pending-responses">
+        <PendingResponses />
+      </div>
 
     </div>
   )

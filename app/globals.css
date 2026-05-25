@@ -66,17 +66,19 @@ body {
 }
 
 /* ── Light mode: text colour overrides for classes baked into components ── */
-html.light .text-white              { color: var(--text-primary)   !important; }
+html.light .text-white              { color: #0A0A0A               !important; }
 html.light .text-slate-200          { color: #0F172A               !important; }
 html.light .text-slate-300          { color: #1E293B               !important; }
-html.light .text-slate-400          { color: #334155               !important; }
-html.light .text-slate-500          { color: #475569               !important; }
-html.light .text-slate-600          { color: #374151               !important; }
-html.light .text-slate-700          { color: #1E293B               !important; }
+html.light .text-slate-400          { color: #1E293B               !important; }
+html.light .text-slate-500          { color: #374151               !important; }
+html.light .text-slate-600          { color: #1F2937               !important; }
+html.light .text-slate-700          { color: #111827               !important; }
+html.light .text-slate-800          { color: #0F172A               !important; }
 
 /* Hover variants */
 html.light .hover\:text-slate-200:hover  { color: #0F172A !important; }
 html.light .hover\:text-slate-300:hover  { color: #1E293B !important; }
+html.light .hover\:text-white:hover      { color: #000000 !important; }
 
 /* Emerald / status dots stay vivid */
 html.light .text-emerald-400        { color: #059669 !important; }
@@ -86,17 +88,26 @@ html.light .text-emerald-500        { color: #047857 !important; }
 html.light .text-red-400            { color: #DC2626 !important; }
 html.light .bg-red-500              { background-color: #DC2626 !important; }
 
-/* ── Light mode: font-weight boosts for key headings and labels ──────────── */
+/* Borders more visible in light mode */
+html.light .border-slate-800        { border-color: #CBD5E1        !important; }
+html.light .border-slate-700        { border-color: #94A3B8        !important; }
+
+/* ── Light mode: font-weight + size boosts ───────────────────────────────── */
 html.light h1,
 html.light h2,
-html.light h3                       { font-weight: 700 !important; }
+html.light h3                       { font-weight: 800 !important; }
 
 html.light .font-semibold           { font-weight: 700 !important; }
 html.light .font-medium             { font-weight: 600 !important; }
+html.light .font-bold               { font-weight: 900 !important; }
 
-/* Mono section labels and metric values pop more */
-html.light .font-mono               { letter-spacing: 0.04em; }
-html.light .font-bold               { font-weight: 800 !important; }
+/* Mono labels: larger, heavier, more spaced */
+html.light .font-mono               { letter-spacing: 0.05em; font-weight: 600; }
+
+/* Smallest labels get a size floor */
+html.light .text-\[10px\]           { font-size: 11px !important; font-weight: 700 !important; }
+html.light .text-\[11px\]           { font-size: 12px !important; font-weight: 700 !important; }
+html.light .text-xs                 { font-size: 12.5px !important; }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar             { width: 4px; height: 4px; }
