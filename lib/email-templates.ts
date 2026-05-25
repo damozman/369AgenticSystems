@@ -296,10 +296,10 @@ ${headerBadge('CALL BRIEF — INTERNAL USE ONLY')}
 
   <td width="3%">&nbsp;</td>
 
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #4ADE80;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
+  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
     <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Rev. Leak</p>
-    <p style="margin:0;font-size:20px;font-weight:700;color:#4ADE80;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${rev}</p>
-    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#4ADE80;">/mo est.</p>
+    <p style="margin:0;font-size:20px;font-weight:700;color:#D4AF37;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${rev}</p>
+    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/mo est.</p>
   </td>
 
 </tr></table>
