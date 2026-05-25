@@ -1,19 +1,26 @@
 /**
  * Dentrix Public API integration (Henry Schein One)
- * Docs: https://papidocs.hs1api.com/publicapi/home
+ * Docs:    https://papidocs.hs1api.com/publicapi/home
+ * Base:    https://hs1api.com/v1  (confirm from credentials email)
  *
- * ENV VARS (add to Vercel when credentials arrive):
- *   DENTRIX_API_URL  — base URL from sandbox credentials email
- *   DENTRIX_API_KEY  — API key from sandbox credentials email
+ * ENV VARS — add to Vercel when sandbox credentials arrive:
+ *   DENTRIX_API_URL  — e.g. https://hs1api.com/v1
+ *   DENTRIX_API_KEY  — Bearer token from credentials email
  *
- * Until credentials arrive, every function returns null/empty gracefully.
- * The email-ingest route falls back to prospect context from system_audits.
+ * Without credentials every function returns null/empty — email-ingest
+ * falls back to system_audits context automatically.
+ *
+ * Endpoint map (from API docs):
+ *   GET /patients?email={email}              → find patient by email
+ *   GET /patients/{id}/appointments          → appointment schedule
+ *   GET /patients/{id}/treatmentplan         → treatment plan (singular)
+ *   GET /patients/{id}/communications        → past messages (optional)
  */
 
 const BASE_URL = process.env.DENTRIX_API_URL ?? ''
 const API_KEY  = process.env.DENTRIX_API_KEY  ?? ''
 
-function headers() {
+function authHeaders() {
   return {
     'Authorization': `Bearer ${API_KEY}`,
     'Content-Type':  'application/json',
@@ -24,44 +31,44 @@ function headers() {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface DentrixPatient {
-  patientId:          string
-  firstName:          string
-  lastName:           string
+  id:                 string        // API returns 'id', not 'patientId'
+  name:               string        // API returns full name as single field
   email:              string
   phone:              string | null
   dateOfBirth:        string | null
   lastVisitDate:      string | null
-  insuranceProvider:  string | null
+  insurance:          string | null
+  allergies:          string | null
   outstandingBalance: number | null
 }
 
 export interface DentrixAppointment {
-  appointmentId: string
-  date:          string
-  type:          string
-  provider:      string | null
-  status:        string | null
+  id:       string
+  dateTime: string
+  type:     string
+  provider: string | null
+  status:   string | null
 }
 
-export interface DentrixTreatmentPlan {
-  planId:       string
-  description:  string
-  status:       string | null
-  totalFee:     number | null
+export interface DentrixTreatment {
+  id:          string
+  name:        string
+  isCompleted: boolean
+  fee:         number | null
 }
 
 export interface DentrixContext {
-  patient:             DentrixPatient | null
+  patient:              DentrixPatient | null
   upcomingAppointments: DentrixAppointment[]
-  recentTreatments:    DentrixTreatmentPlan[]
+  treatmentPlan:        DentrixTreatment[]
 }
 
-// ── API calls (stubbed — fill in endpoint paths when docs arrive) ──────────────
+// ── API helpers ───────────────────────────────────────────────────────────────
 
-async function get<T>(path: string): Promise<T | null> {
+async function apiGet<T>(path: string): Promise<T | null> {
   if (!BASE_URL || !API_KEY) return null
   try {
-    const res = await fetch(`${BASE_URL}${path}`, { headers: headers() })
+    const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() })
     if (!res.ok) {
       console.warn(`[DENTRIX] ${res.status} on GET ${path}`)
       return null
@@ -73,29 +80,23 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
+// ── Individual lookups ────────────────────────────────────────────────────────
+
 export async function lookupPatientByEmail(email: string): Promise<DentrixPatient | null> {
-  // TODO: confirm exact endpoint + query param from API docs
-  // Expected: GET /patients?email={email}  OR  /patients/search?email={email}
-  const data = await get<{ patients: DentrixPatient[] }>(
-    `/patients?email=${encodeURIComponent(email)}`
-  )
-  return data?.patients?.[0] ?? null
+  // Response is a root array: [patient, ...]
+  const data = await apiGet<DentrixPatient[]>(`/patients?email=${encodeURIComponent(email)}`)
+  return data?.[0] ?? null
 }
 
-export async function getUpcomingAppointments(patientId: string): Promise<DentrixAppointment[]> {
-  // TODO: confirm endpoint — likely GET /patients/{id}/appointments?status=scheduled
-  const data = await get<{ appointments: DentrixAppointment[] }>(
-    `/patients/${patientId}/appointments?status=scheduled`
-  )
-  return data?.appointments ?? []
+export async function getAppointments(patientId: string): Promise<DentrixAppointment[]> {
+  const data = await apiGet<DentrixAppointment[]>(`/patients/${patientId}/appointments`)
+  return data ?? []
 }
 
-export async function getActiveTreatmentPlans(patientId: string): Promise<DentrixTreatmentPlan[]> {
-  // TODO: confirm endpoint — likely GET /patients/{id}/treatmentplans?status=active
-  const data = await get<{ treatmentPlans: DentrixTreatmentPlan[] }>(
-    `/patients/${patientId}/treatmentplans?status=active`
-  )
-  return data?.treatmentPlans ?? []
+export async function getTreatmentPlan(patientId: string): Promise<DentrixTreatment[]> {
+  // Endpoint is /treatmentplan (singular) per API docs
+  const data = await apiGet<DentrixTreatment[]>(`/patients/${patientId}/treatmentplan`)
+  return data ?? []
 }
 
 // ── Main context builder ───────────────────────────────────────────────────────
@@ -104,15 +105,19 @@ export async function getDentrixContext(email: string): Promise<DentrixContext> 
   const patient = await lookupPatientByEmail(email)
 
   if (!patient) {
-    return { patient: null, upcomingAppointments: [], recentTreatments: [] }
+    return { patient: null, upcomingAppointments: [], treatmentPlan: [] }
   }
 
-  const [upcomingAppointments, recentTreatments] = await Promise.all([
-    getUpcomingAppointments(patient.patientId),
-    getActiveTreatmentPlans(patient.patientId),
+  const [appointments, treatmentPlan] = await Promise.all([
+    getAppointments(patient.id),
+    getTreatmentPlan(patient.id),
   ])
 
-  return { patient, upcomingAppointments, recentTreatments }
+  const upcoming = appointments
+    .filter(a => a.status !== 'completed' && new Date(a.dateTime) > new Date())
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+
+  return { patient, upcomingAppointments: upcoming, treatmentPlan }
 }
 
 // ── Format for Claude prompt ───────────────────────────────────────────────────
@@ -123,21 +128,23 @@ export function formatDentrixContext(ctx: DentrixContext): string {
   const p = ctx.patient
   const lines: string[] = [
     `PATIENT RECORD (Dentrix):`,
-    `- Name: ${p.firstName} ${p.lastName}`,
-    `- Last Visit: ${p.lastVisitDate ?? 'No record found'}`,
-    `- Insurance: ${p.insuranceProvider ?? 'Unknown'}`,
+    `- Name: ${p.name}`,
+    `- Last Visit: ${p.lastVisitDate ?? 'No record'}`,
+    `- Insurance: ${p.insurance ?? 'Unknown'}`,
+    `- Allergies: ${p.allergies ?? 'None on file'}`,
     `- Outstanding Balance: ${p.outstandingBalance != null ? `$${p.outstandingBalance.toFixed(2)}` : 'Unknown'}`,
   ]
 
   if (ctx.upcomingAppointments.length > 0) {
     const next = ctx.upcomingAppointments[0]
-    lines.push(`- Next Appointment: ${next.date} (${next.type})`)
+    lines.push(`- Next Appointment: ${next.dateTime} — ${next.type}`)
   } else {
     lines.push(`- Next Appointment: None scheduled`)
   }
 
-  if (ctx.recentTreatments.length > 0) {
-    lines.push(`- Active Treatment Plans: ${ctx.recentTreatments.map(t => t.description).join(', ')}`)
+  const pending = ctx.treatmentPlan.filter(t => !t.isCompleted)
+  if (pending.length > 0) {
+    lines.push(`- Pending Treatments: ${pending.map(t => t.name).join(', ')}`)
   }
 
   return lines.join('\n')
