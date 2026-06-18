@@ -70,7 +70,7 @@ export default function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <style>{`
+      <style suppressHydrationWarning>{`
         :root {
           --gold: #D4AF37;
           --gold-light: #E8C84A;

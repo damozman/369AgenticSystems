@@ -234,7 +234,7 @@ export default function LiveFeed() {
                     paddingRight: '4px',
                   } : {}}
                 >
-                  <span className="text-slate-500 flex-shrink-0 tabular-nums">{log.time}</span>
+                  <span className="text-slate-500 flex-shrink-0 tabular-nums" suppressHydrationWarning>{log.time}</span>
                   <span
                     className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider"
                     style={{

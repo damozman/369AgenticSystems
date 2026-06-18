@@ -8,6 +8,7 @@ import {
   Users,
   Brain,
   Clock,
+  Phone,
   LogOut,
   ChevronRight,
 } from 'lucide-react'
@@ -38,6 +39,12 @@ const NAV = [
     label: 'Deployment History',
     Icon: Clock,
     sub: 'Dossier Logs',
+  },
+  {
+    href: '/receptionist',
+    label: 'Receptionist',
+    Icon: Phone,
+    sub: 'Call Activity',
   },
 ]
 

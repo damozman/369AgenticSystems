@@ -110,6 +110,82 @@ CREATE POLICY "business_memory: own client"
 -- No additional policies are needed for server-side writes.
 
 
+-- ── Receptionist Wedge Tables ─────────────────────────────────────────────────
+-- Added for the Speed-to-Lead AOS: Retell → Vercel → Supabase → dashboard
+
+-- CALLS: every inbound call from Retell
+CREATE TABLE IF NOT EXISTS calls (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at       TIMESTAMPTZ DEFAULT now(),
+  client_domain    TEXT        NOT NULL,
+  call_id          TEXT        UNIQUE NOT NULL,  -- Retell's call ID string
+  caller_phone     TEXT        NOT NULL,
+  caller_name      TEXT,
+  duration_seconds INT,
+  transcript       TEXT,
+  call_outcome     TEXT,  -- 'in_progress' | 'booked' | 'captured_lead' | 'no_answer' | 'spam'
+  captured_at      TIMESTAMPTZ
+);
+
+CREATE INDEX idx_calls_client  ON calls(client_domain);
+CREATE INDEX idx_calls_outcome ON calls(call_outcome);
+CREATE INDEX idx_calls_created ON calls(created_at DESC);
+
+
+-- LEADS: caller info captured during a call
+CREATE TABLE IF NOT EXISTS leads (
+  id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at         TIMESTAMPTZ DEFAULT now(),
+  client_domain      TEXT        NOT NULL,
+  call_id            UUID        REFERENCES calls(id) ON DELETE CASCADE,
+  caller_phone       TEXT        NOT NULL,
+  caller_name        TEXT,
+  caller_address     TEXT,
+  caller_email       TEXT,
+  issue_description  TEXT,
+  urgency            TEXT        DEFAULT 'normal',  -- 'low' | 'normal' | 'high' | 'emergency'
+  follow_up_sent     BOOLEAN     DEFAULT FALSE,
+  follow_up_sent_at  TIMESTAMPTZ,
+  status             TEXT        DEFAULT 'open'    -- 'open' | 'contacted' | 'converted' | 'spam'
+);
+
+CREATE INDEX idx_leads_client  ON leads(client_domain);
+CREATE INDEX idx_leads_status  ON leads(status);
+CREATE INDEX idx_leads_phone   ON leads(caller_phone);
+
+
+-- BOOKINGS: appointments booked during a call
+CREATE TABLE IF NOT EXISTS bookings (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at            TIMESTAMPTZ DEFAULT now(),
+  client_domain         TEXT        NOT NULL,
+  call_id               UUID        REFERENCES calls(id) ON DELETE CASCADE,
+  lead_id               UUID        REFERENCES leads(id) ON DELETE CASCADE,
+  appointment_date      TIMESTAMP   NOT NULL,
+  appointment_time      TEXT        NOT NULL,
+  service_type          TEXT,
+  location              TEXT,
+  confirmation_sent     BOOLEAN     DEFAULT FALSE,
+  confirmation_sent_at  TIMESTAMPTZ,
+  status                TEXT        DEFAULT 'scheduled'  -- 'scheduled' | 'completed' | 'cancelled'
+);
+
+CREATE INDEX idx_bookings_client ON bookings(client_domain);
+CREATE INDEX idx_bookings_date   ON bookings(appointment_date);
+CREATE INDEX idx_bookings_status ON bookings(status);
+
+
+-- RLS: enable + authenticated read for admin portal
+ALTER TABLE calls    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "calls: authenticated read"    ON calls    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "leads: authenticated read"    ON leads    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "bookings: authenticated read" ON bookings FOR SELECT TO authenticated USING (true);
+-- Service-role key (used by API routes) bypasses RLS for writes automatically.
+
+
 -- ── system_audits ─────────────────────────────────────────────────────────────
 -- Populated by /api/update-dossier (Gumloop webhook receiver).
 -- Rows have no user_id — this is an admin-wide view; all authenticated portal
