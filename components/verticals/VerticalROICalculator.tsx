@@ -1,0 +1,274 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+// ── Tiers ─────────────────────────────────────────────────────────────────────
+
+const TIERS = [
+  {
+    name:        'Starter',
+    price:       400,
+    description: 'Best for: Small crews just getting started',
+    services:    ['24/7 AI Receptionist', 'Lead capture + dashboard', 'SMS confirmations'],
+  },
+  {
+    name:        'Pro',
+    price:       600,
+    badge:       'Most Popular',
+    description: 'Best for: Growing companies scaling fast',
+    services:    ['Everything in Starter', 'Lead follow-up automation', 'Nurture sequences', 'Conversion tracking'],
+  },
+  {
+    name:        'Elite',
+    price:       750,
+    description: 'Best for: High-volume operations',
+    services:    ['Everything in Pro', 'Review request automation', 'Reputation monitoring', 'Priority support'],
+  },
+]
+
+const SETUP_FEE = 1500
+const RECOVERY_RATE = 0.30 // conservative 30% of missed calls convert
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface ParsedData {
+  businessName: string
+  callsPerWeek: number
+  answerRate:   number
+  jobValue:     number
+}
+
+interface Props {
+  vertical: 'roofing' | 'hvac' | 'plumbing'
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function VerticalROICalculator({ vertical }: Props) {
+  const searchParams = useSearchParams()
+  const router       = useRouter()
+  const [data, setData] = useState<ParsedData | null>(null)
+
+  useEffect(() => {
+    const raw = searchParams.get('data')
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(decodeURIComponent(raw))
+      setData({
+        businessName: parsed.businessName || 'Your Business',
+        callsPerWeek: Number(parsed.callsPerWeek) || 0,
+        answerRate:   Number(parsed.answerRate)   || 0,
+        jobValue:     Number(parsed.jobValue)     || 0,
+      })
+    } catch {
+      // silently ignore malformed params
+    }
+  }, [searchParams])
+
+  if (!data) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#475569', fontFamily: 'monospace', fontSize: 12 }}>Loading your analysis...</p>
+          <p style={{ color: '#334155', fontFamily: 'monospace', fontSize: 10, marginTop: 8 }}>
+            No data? <Link href={`/${vertical}`} style={{ color: '#D4AF37' }}>Start from the intake form</Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Calculations ────────────────────────────────────────────────────────────
+
+  const missedCallsPerWeek  = data.callsPerWeek * ((100 - data.answerRate) / 100)
+  const missedCallsPerMonth = missedCallsPerWeek * 4.33
+  const recoveredPerMonth   = missedCallsPerMonth * RECOVERY_RATE
+  const monthlyRevenueLost  = missedCallsPerMonth * data.jobValue
+  const monthlySavings      = recoveredPerMonth   * data.jobValue
+
+  function handleSelect(tierName: string, tierPrice: number) {
+    sessionStorage.setItem('selectedTier',  tierName)
+    sessionStorage.setItem('tierPrice',     String(tierPrice))
+    sessionStorage.setItem('formData',      searchParams.get('data') ?? '')
+    router.push(`/${vertical}/pricing?tier=${tierName}`)
+  }
+
+  return (
+    <>
+      <style suppressHydrationWarning>{`
+        .roi-tier { transition: border-color 0.18s, transform 0.18s; cursor: pointer; }
+        .roi-tier:hover { border-color: rgba(212,175,55,0.5) !important; }
+        .roi-btn-primary:hover  { background: #E8C94A !important; }
+        .roi-btn-secondary:hover { background: rgba(255,255,255,0.08) !important; }
+      `}</style>
+
+      <div style={{ minHeight: '100vh', background: '#0A0A0A', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+
+        {/* Nav */}
+        <nav style={{ padding: '20px 24px', borderBottom: '1px solid rgba(212,175,55,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1100, margin: '0 auto' }}>
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>
+              <span style={{ color: '#D4AF37' }}>369</span> AGENTIC SYSTEMS
+            </span>
+          </Link>
+          <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            {vertical.charAt(0).toUpperCase() + vertical.slice(1)} · Step 2 of 3
+          </span>
+        </nav>
+
+        <div style={{ maxWidth: 1060, margin: '0 auto', padding: '48px 24px 80px' }}>
+
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{ display: 'inline-block', padding: '4px 14px', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 6, marginBottom: 16, background: 'rgba(212,175,55,0.05)' }}>
+              <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                // ROI ANALYSIS — {data.businessName.toUpperCase()}
+              </span>
+            </div>
+            <h1 style={{ margin: '0 0 8px', fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, color: '#FFFFFF', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+              Here's What You're Leaving Behind
+            </h1>
+            <p style={{ margin: 0, fontSize: 14, color: '#64748B' }}>
+              Based on {data.callsPerWeek} calls/week · {data.answerRate}% answer rate · ${data.jobValue.toLocaleString()} avg job value
+            </p>
+          </div>
+
+          {/* Revenue impact */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 56 }}>
+
+            <div style={{ padding: '28px 24px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 14 }}>
+              <p style={{ margin: '0 0 6px', fontFamily: 'monospace', fontSize: 10, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                Monthly Revenue Lost
+              </p>
+              <p style={{ margin: '0 0 6px', fontSize: 44, fontWeight: 800, color: '#FCA5A5', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                ${monthlyRevenueLost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+                {missedCallsPerMonth.toFixed(0)} missed calls × ${data.jobValue.toLocaleString()} avg
+              </p>
+            </div>
+
+            <div style={{ padding: '28px 24px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 14 }}>
+              <p style={{ margin: '0 0 6px', fontFamily: 'monospace', fontSize: 10, color: '#4ADE80', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                Recoverable Per Month
+              </p>
+              <p style={{ margin: '0 0 6px', fontSize: 44, fontWeight: 800, color: '#86EFAC', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                ${monthlySavings.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+                At 30% recovery rate (conservative estimate)
+              </p>
+            </div>
+
+          </div>
+
+          {/* Tier selection */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 24px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+              // CHOOSE YOUR TIER — One-time setup: $1,500
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              {TIERS.map(tier => {
+                const yearOneProfit = (monthlySavings * 12) - (SETUP_FEE + tier.price * 12)
+                const breakEvenDays = monthlySavings > 0
+                  ? Math.ceil((SETUP_FEE + tier.price) / (monthlySavings / 30))
+                  : 0
+
+                return (
+                  <div
+                    key={tier.name}
+                    className="roi-tier"
+                    onClick={() => handleSelect(tier.name, tier.price)}
+                    style={{
+                      padding: '28px 24px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(148,163,184,0.12)',
+                      borderRadius: 14,
+                    }}
+                  >
+                    {tier.badge && (
+                      <div style={{ marginBottom: 10 }}>
+                        <span style={{ padding: '3px 10px', background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 4, fontSize: 9, fontFamily: 'monospace', color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                          {tier.badge}
+                        </span>
+                      </div>
+                    )}
+
+                    <h3 style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 700, color: '#FFFFFF', fontFamily: 'var(--font-display)' }}>
+                      {tier.name}
+                    </h3>
+                    <div style={{ margin: '0 0 16px' }}>
+                      <span style={{ fontSize: 34, fontWeight: 800, color: '#D4AF37', fontFamily: 'var(--font-display)' }}>
+                        ${tier.price}
+                      </span>
+                      <span style={{ fontSize: 13, color: '#475569' }}>/mo</span>
+                    </div>
+
+                    <div style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, marginBottom: 18 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: '#64748B' }}>Break-even</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', fontFamily: 'monospace' }}>
+                          {breakEvenDays > 0 ? `${breakEvenDays} days` : '—'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 11, color: '#64748B' }}>Year-1 profit</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#4ADE80', fontFamily: 'monospace' }}>
+                          {yearOneProfit > 0 ? `$${yearOneProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Calculate above'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 20 }}>
+                      {tier.services.map((s, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
+                          <span style={{ color: '#D4AF37', flexShrink: 0, fontSize: 12, marginTop: 1 }}>✓</span>
+                          <span style={{ fontSize: 12, color: i === 0 && tier.name !== 'Starter' ? '#64748B' : '#94A3B8', fontStyle: i === 0 && tier.name !== 'Starter' ? 'italic' : 'normal' }}>
+                            {s}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      className={tier.badge ? 'roi-btn-primary' : 'roi-btn-secondary'}
+                      style={{
+                        width: '100%',
+                        padding: '11px',
+                        background: tier.badge ? '#D4AF37' : 'rgba(255,255,255,0.05)',
+                        color:      tier.badge ? '#0A0A0A'  : '#FFFFFF',
+                        border:     '1px solid ' + (tier.badge ? 'transparent' : 'rgba(148,163,184,0.15)'),
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-display)',
+                      }}
+                    >
+                      Select {tier.name} →
+                    </button>
+
+                    <p style={{ margin: '8px 0 0', textAlign: 'center', fontSize: 10, color: '#334155', fontFamily: 'monospace' }}>
+                      {tier.description}
+                    </p>
+
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Back link */}
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <Link href={`/${vertical}`} style={{ fontSize: 12, color: '#334155', textDecoration: 'none', fontFamily: 'monospace' }}>
+              ← Edit your numbers
+            </Link>
+          </div>
+
+        </div>
+      </div>
+    </>
+  )
+}

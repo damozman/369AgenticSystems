@@ -186,6 +186,67 @@ CREATE POLICY "bookings: authenticated read" ON bookings FOR SELECT TO authentic
 -- Service-role key (used by API routes) bypasses RLS for writes automatically.
 
 
+-- ── Phase 2: Client Subscription & Auto-Activation Tables ────────────────────
+-- Run in Supabase SQL Editor after the receptionist wedge tables above.
+
+-- AGENT_SUBSCRIPTIONS: one row per paying client — tier, vertical, active agents
+CREATE TABLE IF NOT EXISTS agent_subscriptions (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at     TIMESTAMPTZ DEFAULT now(),
+  client_domain  TEXT        NOT NULL UNIQUE,
+  user_email     TEXT        NOT NULL,
+  vertical       TEXT        NOT NULL,  -- 'roofing' | 'hvac' | 'plumbing' | 'dental'
+  tier           TEXT        NOT NULL CHECK (tier IN ('Starter', 'Pro', 'Elite')),
+  active_agents  TEXT[]      NOT NULL DEFAULT '{}',
+  monthly_cost   INT         NOT NULL,
+  setup_paid     BOOLEAN     DEFAULT FALSE,
+  activated_at   TIMESTAMPTZ
+);
+
+CREATE INDEX idx_subscriptions_email  ON agent_subscriptions(user_email);
+CREATE INDEX idx_subscriptions_domain ON agent_subscriptions(client_domain);
+
+-- AGENT_CONFIGURATIONS: system prompts + settings per agent per client
+CREATE TABLE IF NOT EXISTS agent_configurations (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  client_domain     TEXT        NOT NULL REFERENCES agent_subscriptions(client_domain) ON DELETE CASCADE,
+  agent_type        TEXT        NOT NULL,  -- 'receptionist' | 'followup' | 'reviews'
+  vertical          TEXT        NOT NULL,
+  system_prompt     TEXT,
+  email_sequences   JSONB,
+  triggered_metrics JSONB,
+  activated_at      TIMESTAMPTZ
+);
+
+CREATE INDEX idx_agent_configs_domain ON agent_configurations(client_domain);
+
+-- NOTIFICATIONS: auto-activation upgrade suggestions surfaced on client dashboard
+CREATE TABLE IF NOT EXISTS notifications (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  client_domain TEXT        NOT NULL,
+  type          TEXT        NOT NULL,  -- 'upgrade_suggestion' | 'milestone' | 'alert'
+  title         TEXT        NOT NULL,
+  message       TEXT        NOT NULL,
+  action        TEXT,
+  dismissed     BOOLEAN     DEFAULT FALSE
+);
+
+CREATE INDEX idx_notifications_domain    ON notifications(client_domain);
+CREATE INDEX idx_notifications_dismissed ON notifications(dismissed);
+
+-- RLS: enable + authenticated read for admin portal
+ALTER TABLE agent_subscriptions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_configurations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications        ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "agent_subscriptions: authenticated read"  ON agent_subscriptions  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "agent_configurations: authenticated read" ON agent_configurations FOR SELECT TO authenticated USING (true);
+CREATE POLICY "notifications: authenticated read"        ON notifications        FOR SELECT TO authenticated USING (true);
+-- Service-role key (used by API routes) bypasses RLS for writes automatically.
+
+
 -- ── system_audits ─────────────────────────────────────────────────────────────
 -- Populated by /api/update-dossier (Gumloop webhook receiver).
 -- Rows have no user_id — this is an admin-wide view; all authenticated portal
@@ -212,3 +273,4 @@ CREATE POLICY "system_audits: authenticated read"
   USING (true);
 
 -- Service-role INSERT from /api/update-dossier bypasses RLS — no policy needed.
+
