@@ -11,7 +11,8 @@ const TIERS = [
     name:        'Starter',
     price:       400,
     description: 'Best for: Small crews just getting started',
-    services:    ['24/7 AI Receptionist', 'Lead capture + dashboard', 'SMS confirmations'],
+    services:    ['24/7 AI Receptionist', 'Crystal Clear Call Quality', 'Lead capture + dashboard', 'SMS confirmations'],
+    includedFree: null as null | { label: string; value: string },
   },
   {
     name:        'Pro',
@@ -19,12 +20,20 @@ const TIERS = [
     badge:       'Most Popular',
     description: 'Best for: Growing companies scaling fast',
     services:    ['Everything in Starter', 'Lead follow-up automation', 'Nurture sequences', 'Conversion tracking'],
+    includedFree: {
+      label: 'Crystal Clear Call Quality — included free',
+      value: '$25/mo value',
+    },
   },
   {
     name:        'Elite',
     price:       750,
     description: 'Best for: High-volume operations',
-    services:    ['Everything in Pro', 'Review request automation', 'Reputation monitoring', 'Priority support'],
+    services:    ['Everything in Pro', 'Review request automation', 'Custom Business Intelligence', 'Priority support'],
+    includedFree: {
+      label: 'Crystal Clear + Custom BI — included free',
+      value: '$74/mo total value',
+    },
   },
 ]
 
@@ -220,6 +229,17 @@ export function VerticalROICalculator({ vertical }: Props) {
                         </span>
                       </div>
                     </div>
+
+                    {/* Included-free Retell callout */}
+                    {tier.includedFree && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 7, marginBottom: 14 }}>
+                        <span style={{ fontSize: 9, color: '#D4AF37', flexShrink: 0 }}>★</span>
+                        <div>
+                          <span style={{ fontSize: 11, color: '#D4AF37', fontWeight: 600 }}>{tier.includedFree.label}</span>
+                          <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'monospace', color: '#475569' }}>{tier.includedFree.value}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div style={{ marginBottom: 20 }}>
                       {tier.services.map((s, i) => (

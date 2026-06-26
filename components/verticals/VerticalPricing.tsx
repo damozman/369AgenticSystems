@@ -3,65 +3,28 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { CheckCircle } from 'lucide-react'
+import { TIERS, SETUP_FEE, type TierFeature } from '@/lib/tier-config'
 
 // ── Vertical copy ─────────────────────────────────────────────────────────────
 
-const COPY: Record<string, { headline: string; subhead: string }> = {
+const COPY: Record<string, { headline: string; subhead: string; urgency: string }> = {
   roofing: {
     headline: 'Pricing for Roofing Companies',
     subhead:  'Never lose another job to a missed call — starting at $400/mo.',
+    urgency:  'Roofing season is here — new client slots are filling fast.',
   },
   hvac: {
     headline: 'Pricing for HVAC Companies',
     subhead:  'Emergency calls answered 24/7, every night and weekend — starting at $400/mo.',
+    urgency:  'Summer heat rush is on — lock in your setup before slots fill.',
   },
   plumbing: {
     headline: 'Pricing for Plumbing Companies',
     subhead:  'Burst pipes at 2 AM? We answer. Starting at $400/mo.',
+    urgency:  'Emergency plumbers are in high demand — don\'t miss another call.',
   },
 }
-
-// ── Tiers ─────────────────────────────────────────────────────────────────────
-
-const TIERS = [
-  {
-    name:  'Starter',
-    price: 400,
-    features: [
-      '24/7 AI Receptionist',
-      'Call & lead capture',
-      'Real-time dashboard',
-      'SMS booking confirmations',
-      'Daily email summaries',
-      '24/7 chat support',
-    ],
-  },
-  {
-    name:     'Pro',
-    price:    600,
-    featured: true,
-    features: [
-      'Everything in Starter, plus:',
-      'Automated lead follow-up',
-      'Nurture email sequences',
-      'Lead scoring & prioritization',
-      'Conversion tracking',
-      'Advanced reporting',
-    ],
-  },
-  {
-    name:  'Elite',
-    price: 750,
-    features: [
-      'Everything in Pro, plus:',
-      'Review request automation',
-      'AI review response drafting',
-      'Reputation score monitoring',
-      'Referral tracking',
-      'Priority onboarding & support',
-    ],
-  },
-]
 
 const FAQ = [
   {
@@ -78,7 +41,11 @@ const FAQ = [
   },
   {
     q: 'When can I get started?',
-    a: 'We onboard new clients weekly. After your discovery call we typically go live within 5-7 business days.',
+    a: 'We onboard new clients weekly. After your discovery call we typically go live within 5–7 business days.',
+  },
+  {
+    q: 'What are Crystal Clear and Custom Business Intelligence?',
+    a: 'Crystal Clear is Retell AI\'s HD call processing technology — normally $25/mo, included free in all plans. Custom Business Intelligence is Retell\'s advanced caller analytics platform — normally $49/mo, included free in Elite.',
   },
 ]
 
@@ -88,12 +55,56 @@ interface Props {
   vertical: 'roofing' | 'hvac' | 'plumbing'
 }
 
+// ── Feature row ────────────────────────────────────────────────────────────────
+
+function FeatureRow({ feature }: { feature: TierFeature }) {
+  if (feature.isSection) {
+    return (
+      <div style={{ marginBottom: 12, marginTop: 4 }}>
+        <span style={{ fontSize: 11, color: '#475569', fontStyle: 'italic', fontFamily: 'monospace' }}>
+          {feature.label}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
+      <CheckCircle
+        size={13}
+        style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.5 }}>
+          {feature.label}
+        </span>
+        {feature.retellFeature && feature.retailValue && (
+          <span style={{
+            marginLeft: 6,
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: '#D4AF37',
+            background: 'rgba(212,175,55,0.08)',
+            border: '1px solid rgba(212,175,55,0.2)',
+            borderRadius: 3,
+            padding: '1px 5px',
+            whiteSpace: 'nowrap',
+          }}>
+            <span style={{ textDecoration: 'line-through', color: '#475569' }}>${feature.retailValue}/mo</span>
+            {' '}FREE
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function VerticalPricing({ vertical }: Props) {
   const searchParams = useSearchParams()
   const router       = useRouter()
-  const copy         = COPY[vertical]
+  const copy         = COPY[vertical] ?? COPY.roofing
 
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
 
@@ -103,7 +114,7 @@ export function VerticalPricing({ vertical }: Props) {
   }, [searchParams])
 
   function handleCTA(tierName: string) {
-    sessionStorage.setItem('finalTier',    tierName)
+    sessionStorage.setItem('finalTier',     tierName)
     sessionStorage.setItem('finalVertical', vertical)
     router.push('/book-demo')
   }
@@ -149,12 +160,12 @@ export function VerticalPricing({ vertical }: Props) {
               {copy.subhead}
             </p>
             <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 11, color: '#334155' }}>
-              One-time setup fee: $1,500
+              One-time setup fee: ${SETUP_FEE.toLocaleString()}
             </p>
           </div>
 
           {/* Tier cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 72 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 56 }}>
             {TIERS.map(tier => {
               const isSelected = selectedTier === tier.name
 
@@ -163,7 +174,7 @@ export function VerticalPricing({ vertical }: Props) {
                   key={tier.name}
                   className="vp-tier"
                   style={{
-                    padding: '36px 28px',
+                    padding:     '36px 28px',
                     background:  tier.featured ? 'rgba(212,175,55,0.04)' : 'rgba(255,255,255,0.02)',
                     border:      '1px solid ' + (isSelected ? 'rgba(212,175,55,0.6)' : tier.featured ? 'rgba(212,175,55,0.2)' : 'rgba(148,163,184,0.1)'),
                     borderRadius: 16,
@@ -189,6 +200,9 @@ export function VerticalPricing({ vertical }: Props) {
                   <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: '#FFFFFF', fontFamily: 'var(--font-display)' }}>
                     {tier.name}
                   </h2>
+                  <p style={{ margin: '0 0 16px', fontSize: 12, color: '#475569', fontFamily: 'monospace' }}>
+                    {tier.description}
+                  </p>
                   <div style={{ margin: '0 0 28px' }}>
                     <span style={{ fontSize: 48, fontWeight: 800, color: '#D4AF37', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
                       ${tier.price}
@@ -209,27 +223,65 @@ export function VerticalPricing({ vertical }: Props) {
                       fontSize:     14,
                       fontWeight:   700,
                       cursor:       'pointer',
-                      marginBottom: 28,
+                      marginBottom: 10,
                       fontFamily:   'var(--font-display)',
                     }}
                   >
                     Get Started with {tier.name}
                   </button>
 
+                  {/* Vertical urgency note */}
+                  <p style={{ margin: '0 0 24px', textAlign: 'center', fontSize: 10, color: '#334155', fontFamily: 'monospace', lineHeight: 1.5 }}>
+                    {tier.featured ? copy.urgency : ' '}
+                  </p>
+
+                  {/* Feature list */}
                   <div>
                     {tier.features.map((feature, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-                        <span style={{ color: '#D4AF37', flexShrink: 0, fontSize: 12, marginTop: 2 }}>✓</span>
-                        <span style={{ fontSize: 13, color: i === 0 && feature.startsWith('Everything') ? '#4B5563' : '#94A3B8', fontStyle: feature.startsWith('Everything') ? 'italic' : 'normal', lineHeight: 1.5 }}>
-                          {feature}
-                        </span>
-                      </div>
+                      <FeatureRow key={i} feature={feature} />
                     ))}
                   </div>
 
                 </div>
               )
             })}
+          </div>
+
+          {/* Value callout section */}
+          <div style={{ maxWidth: 760, margin: '0 auto 72px', padding: '32px 28px', background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 16 }}>
+            <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+              // BUNDLED RETELL AI FEATURES — INCLUDED FREE
+            </p>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748B', lineHeight: 1.7 }}>
+              We partner with Retell AI to deliver enterprise-grade voice technology.
+              Two premium Retell features ship bundled into your plan at no extra charge.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ flexShrink: 0, padding: '3px 8px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 4, fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap', marginTop: 1 }}>
+                  Crystal Clear
+                </div>
+                <div>
+                  <span style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600 }}>HD Call Quality</span>
+                  <span style={{ margin: '0 6px', color: '#334155' }}>·</span>
+                  <span style={{ fontSize: 12, color: '#475569' }}>Normally </span>
+                  <span style={{ fontSize: 12, color: '#475569', textDecoration: 'line-through' }}>$25/mo</span>
+                  <span style={{ fontSize: 12, color: '#D4AF37', fontWeight: 600 }}> · Included in every plan</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ flexShrink: 0, padding: '3px 8px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 4, fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap', marginTop: 1 }}>
+                  Custom BI
+                </div>
+                <div>
+                  <span style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600 }}>Caller Analytics & Intelligence</span>
+                  <span style={{ margin: '0 6px', color: '#334155' }}>·</span>
+                  <span style={{ fontSize: 12, color: '#475569' }}>Normally </span>
+                  <span style={{ fontSize: 12, color: '#475569', textDecoration: 'line-through' }}>$49/mo</span>
+                  <span style={{ fontSize: 12, color: '#D4AF37', fontWeight: 600 }}> · Included in Elite</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* FAQ */}

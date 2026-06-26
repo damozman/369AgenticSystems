@@ -1,8 +1,9 @@
 import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { Phone, CalendarCheck, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react'
+import { Phone, CalendarCheck, Users, Zap, ArrowRight, CheckCircle, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { PREMIUM_ADDONS, type TierName } from '@/lib/tier-config'
 
 // ── Tier definitions ──────────────────────────────────────────────────────────
 
@@ -188,6 +189,43 @@ export default async function ClientDashboardPage() {
           })}
         </div>
       </div>
+
+      {/* Enhancements (premium add-ons available for this tier) */}
+      {(() => {
+        const currentTier = subscription.tier as TierName
+        const available = PREMIUM_ADDONS.filter(a => a.availableFor.includes(currentTier))
+        if (available.length === 0) return null
+        return (
+          <div className="mb-8">
+            <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <Sparkles size={10} className="text-[#D4AF37]" />
+              // AVAILABLE ENHANCEMENTS
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {available.map(addon => (
+                <div
+                  key={addon.id}
+                  className="flex items-start gap-3 px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-medium text-slate-200 leading-none">{addon.label}</p>
+                      <span className="text-[10px] font-mono text-[#D4AF37] flex-shrink-0">+${addon.price}/mo</span>
+                    </div>
+                    <p className="text-[10px] font-mono text-slate-600 leading-relaxed">{addon.description}</p>
+                  </div>
+                  <a
+                    href={`mailto:chris@369agenticsystems.com?subject=Add-on Request: ${addon.label} — ${subscription.client_domain}`}
+                    className="flex-shrink-0 text-[10px] font-mono text-[#D4AF37] hover:text-[#E8C94A] transition-colors mt-0.5 whitespace-nowrap"
+                  >
+                    Request →
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Upgrade card */}
       {upgrade && (

@@ -5,19 +5,31 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const OWNER_EMAIL = 'chris@369agenticsystems.com'
 const FROM        = '369 Agentic Systems <chris@369agenticsystems.com>'
 
-// ── Agent lists per tier ──────────────────────────────────────────────────────
+// ── Tier feature lists for emails (rebranded Retell feature names) ────────────
 
-const AGENTS_BY_TIER: Record<string, string[]> = {
-  Starter: ['receptionist', 'dashboard'],
-  Pro:     ['receptionist', 'followup', 'dashboard'],
-  Elite:   ['receptionist', 'followup', 'reviews', 'dashboard'],
-}
-
-const AGENT_LABELS: Record<string, string> = {
-  receptionist: '24/7 AI Receptionist',
-  followup:     'Lead Follow-up Agent',
-  reviews:      'Review Request Agent',
-  dashboard:    'Real-time Dashboard',
+const TIER_EMAIL_FEATURES: Record<string, string[]> = {
+  Starter: [
+    '24/7 AI Receptionist',
+    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
+    'Real-time lead capture dashboard',
+    'SMS booking confirmations',
+    'Daily performance summaries',
+  ],
+  Pro: [
+    '24/7 AI Receptionist',
+    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
+    'Lead Follow-up Agent — automated nurture until they convert',
+    'Real-time lead capture dashboard',
+    'Conversion tracking & advanced reporting',
+  ],
+  Elite: [
+    '24/7 AI Receptionist',
+    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
+    'Lead Follow-up Agent',
+    'Review Request Agent — turns completed jobs into 5-star reviews',
+    'Custom Business Intelligence (Retell caller analytics — $49/mo value, included free)',
+    'Real-time dashboard + priority support',
+  ],
 }
 
 // ── Vertical copy ─────────────────────────────────────────────────────────────
@@ -44,10 +56,10 @@ export async function sendWelcomeEmail({
   vertical:     string
   clientDomain: string
 }) {
-  const agents  = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
-  const vc      = VERTICAL_COPY[vertical] ?? VERTICAL_COPY.roofing
-  const agentList = agents
-    .map(a => `<li style="margin-bottom:6px;">✓ ${AGENT_LABELS[a] ?? a}</li>`)
+  const features = TIER_EMAIL_FEATURES[tier] ?? TIER_EMAIL_FEATURES.Starter
+  const vc       = VERTICAL_COPY[vertical] ?? VERTICAL_COPY.roofing
+  const agentList = features
+    .map(f => `<li style="margin-bottom:6px;">✓ ${f}</li>`)
     .join('')
 
   const subject = `Your ${vc.label} AI Workforce is being configured — 369 Agentic Systems`
