@@ -40,6 +40,18 @@ const TIERS = [
 const SETUP_FEE = 1500
 const RECOVERY_RATE = 0.30 // conservative 30% of missed calls convert
 
+const ROI_COPY: Record<string, string> = {
+  roofing:       'Here\'s What You\'re Leaving Behind',
+  hvac:          'Here\'s What After-Hours Calls Are Costing You',
+  plumbing:      'Here\'s What Missed Emergency Calls Cost Per Month',
+  dental:        'Here\'s What Empty Appointment Slots Are Costing You',
+  legal:         'Here\'s What Slow Intake Is Costing Your Firm',
+  'real-estate': 'Here\'s What Missed Buyer Calls Are Costing You',
+  insurance:     'Here\'s What Delayed Quotes Are Costing You',
+  saas:          'Here\'s What Slow Demo Response Is Costing You',
+  wholesale:     'Here\'s What Voicemail Delays Are Costing Your Business',
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ParsedData {
@@ -49,8 +61,10 @@ interface ParsedData {
   jobValue:     number
 }
 
+type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
+
 interface Props {
-  vertical: 'roofing' | 'hvac' | 'plumbing'
+  vertical: Vertical
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -137,7 +151,7 @@ export function VerticalROICalculator({ vertical }: Props) {
               </span>
             </div>
             <h1 style={{ margin: '0 0 8px', fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, color: '#FFFFFF', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-              Here's What You're Leaving Behind
+              {ROI_COPY[vertical] ?? 'Here\'s What You\'re Leaving Behind'}
             </h1>
             <p style={{ margin: 0, fontSize: 14, color: '#64748B' }}>
               Based on {data.callsPerWeek} calls/week · {data.answerRate}% answer rate · ${data.jobValue.toLocaleString()} avg job value

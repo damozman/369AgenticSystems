@@ -24,6 +24,36 @@ const COPY: Record<string, { headline: string; subhead: string; urgency: string 
     subhead:  'Burst pipes at 2 AM? We answer. Starting at $400/mo.',
     urgency:  'Emergency plumbers are in high demand — don\'t miss another call.',
   },
+  dental: {
+    headline: 'Pricing for Dental Practices',
+    subhead:  'Never miss a patient inquiry again — starting at $400/mo.',
+    urgency:  'Patient slots are limited — practices booking now for next month.',
+  },
+  legal: {
+    headline: 'Pricing for Law Firms',
+    subhead:  'High-value cases need instant response — starting at $400/mo.',
+    urgency:  'Every hour of delay hands qualified leads to faster-responding firms.',
+  },
+  'real-estate': {
+    headline: 'Pricing for Real Estate Agents',
+    subhead:  'Hot buyers won\'t wait — starting at $400/mo.',
+    urgency:  'Market is moving fast — agents onboarding now are closing faster.',
+  },
+  insurance: {
+    headline: 'Pricing for Insurance Agencies',
+    subhead:  'Quote requests don\'t wait — starting at $400/mo.',
+    urgency:  'Agencies responding within 5 minutes close 90% more policies.',
+  },
+  saas: {
+    headline: 'Pricing for SaaS Companies',
+    subhead:  'Trial users decide in minutes — starting at $400/mo.',
+    urgency:  'Every hour before first contact drops your conversion rate.',
+  },
+  wholesale: {
+    headline: 'Pricing for Wholesale Distributors',
+    subhead:  'Inbound orders need instant acknowledgment — starting at $400/mo.',
+    urgency:  'Distributors with instant response retain 40% more accounts.',
+  },
 }
 
 const FAQ = [
@@ -52,7 +82,7 @@ const FAQ = [
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  vertical: 'roofing' | 'hvac' | 'plumbing'
+  vertical: 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
 }
 
 // ── Feature row ────────────────────────────────────────────────────────────────

@@ -67,6 +67,102 @@ const CONFIGS: Record<string, VerticalConfig> = {
       jobValue:     { label: 'Average emergency call value ($)', placeholder: 'e.g. 400' },
     },
   },
+  dental: {
+    name:     'Dental',
+    headline: 'Never Miss a Patient After Hours',
+    subtitle: '2-minute form — see how many appointments you\'re losing to voicemail.',
+    painPoints: [
+      'After-hours calls going to voicemail',
+      'New patient inquiries not followed up same day',
+      'Emergency dental calls lost to a faster practice',
+      'Appointment reminders done manually',
+    ],
+    fields: {
+      callsPerWeek: { label: 'New patient/appointment calls per week', placeholder: 'e.g. 30' },
+      answerRate:   { label: '% of calls answered during office hours', placeholder: 'e.g. 60', hint: 'After-hours and lunch calls are often the ones lost.' },
+      jobValue:     { label: 'Average new patient appointment value ($)', placeholder: 'e.g. 200' },
+    },
+  },
+  legal: {
+    name:     'Legal',
+    headline: 'High-Value Cases Go Cold Fast',
+    subtitle: '2-minute form — see how many client inquiries you\'re losing while in court.',
+    painPoints: [
+      'Leads going cold while attorneys are in depositions',
+      'After-hours inquiries going to competing firms',
+      'Intake process slow and inconsistent',
+      'Competing firms responding faster and winning the case',
+    ],
+    fields: {
+      callsPerWeek: { label: 'New client inquiry calls per week', placeholder: 'e.g. 15' },
+      answerRate:   { label: '% of calls answered within 1 hour', placeholder: 'e.g. 40', hint: 'Most prospects call 3 firms and hire the first to respond.' },
+      jobValue:     { label: 'Average case value ($)', placeholder: 'e.g. 5000' },
+    },
+  },
+  'real-estate': {
+    name:     'Real Estate',
+    headline: 'Hot Buyers Won\'t Wait 4 Hours',
+    subtitle: '2-minute form — see how many commissions you\'re leaving on the table.',
+    painPoints: [
+      'Hot leads going cold between showings',
+      'After-hours inquiry calls unanswered',
+      'Missing the 5-minute response window',
+      'Too many leads, not enough time to call them all',
+    ],
+    fields: {
+      callsPerWeek: { label: 'New buyer/seller inquiry calls per week', placeholder: 'e.g. 25' },
+      answerRate:   { label: '% of calls answered within 5 minutes', placeholder: 'e.g. 30', hint: 'Response speed is the #1 factor in real estate lead conversion.' },
+      jobValue:     { label: 'Average commission value ($)', placeholder: 'e.g. 9000' },
+    },
+  },
+  insurance: {
+    name:     'Insurance',
+    headline: 'Quote Requests Sitting Unworked',
+    subtitle: '2-minute form — see how many policies you\'re losing to delayed response.',
+    painPoints: [
+      'Quote requests going unworked for hours',
+      'After-hours inquiries going to online competitors',
+      'Renewal follow-up done manually and inconsistently',
+      'Cross-sell opportunities missed entirely',
+    ],
+    fields: {
+      callsPerWeek: { label: 'New quote/policy inquiry calls per week', placeholder: 'e.g. 20' },
+      answerRate:   { label: '% of inquiries responded to same day', placeholder: 'e.g. 50', hint: 'Agencies responding within 5 minutes close 90% more policies.' },
+      jobValue:     { label: 'Average annual premium value ($)', placeholder: 'e.g. 1200' },
+    },
+  },
+  saas: {
+    name:     'SaaS',
+    headline: 'Trial Users Churn Before You Call',
+    subtitle: '2-minute form — see how much MRR you\'re losing to slow onboarding response.',
+    painPoints: [
+      'Trial signups not contacted within 5 minutes',
+      'Demo requests going cold overnight',
+      'Onboarding calls missed or delayed',
+      'Churn happening before first meaningful check-in',
+    ],
+    fields: {
+      callsPerWeek: { label: 'Inbound demo/trial inquiry calls per week', placeholder: 'e.g. 10' },
+      answerRate:   { label: '% of demo requests responded to within 1 hour', placeholder: 'e.g. 35', hint: 'Every hour before first contact drops conversion by ~10%.' },
+      jobValue:     { label: 'Average annual contract value ($)', placeholder: 'e.g. 2400' },
+    },
+  },
+  wholesale: {
+    name:     'Wholesale',
+    headline: 'Inbound Orders Sitting in Voicemail',
+    subtitle: '2-minute form — see how many orders you\'re losing to manual delays.',
+    painPoints: [
+      'Inbound POs going unacknowledged for hours',
+      'Reorder calls missing after business hours',
+      'Manual order entry causing delays and errors',
+      'Customer inquiries backing up in voicemail',
+    ],
+    fields: {
+      callsPerWeek: { label: 'Inbound order/inquiry calls per week', placeholder: 'e.g. 30' },
+      answerRate:   { label: '% of calls answered during business hours', placeholder: 'e.g. 70', hint: 'After-hours and lunch calls are where orders slip to competitors.' },
+      jobValue:     { label: 'Average order value ($)', placeholder: 'e.g. 2500' },
+    },
+  },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -83,8 +179,10 @@ interface FormData {
   painPoint:    string
 }
 
+type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
+
 interface Props {
-  vertical: 'roofing' | 'hvac' | 'plumbing'
+  vertical: Vertical
 }
 
 // ── Shared input style ─────────────────────────────────────────────────────────
@@ -144,26 +242,42 @@ export function VerticalIntakePage({ vertical }: Props) {
               <span style={{ color: '#D4AF37' }}>369</span> AGENTIC SYSTEMS
             </span>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-              {config.name} · Step 1 of 3
-            </span>
-          </div>
+          <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            {config.name} · Step 1 of 3
+          </span>
         </nav>
 
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px' }}>
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ display: 'inline-block', padding: '4px 14px', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 6, marginBottom: 20, background: 'rgba(212,175,55,0.05)' }}>
-              <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                // {config.name.toUpperCase()} INTAKE
+            {/* Product label — makes it explicit what they're getting */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{
+                padding: '4px 14px',
+                border: '1px solid rgba(212,175,55,0.25)',
+                borderRadius: 6,
+                background: 'rgba(212,175,55,0.05)',
+                fontFamily: 'monospace', fontSize: 9, color: '#D4AF37',
+                textTransform: 'uppercase', letterSpacing: '0.2em',
+              }}>
+                // 24/7 AI RECEPTIONIST
+              </span>
+              <span style={{
+                padding: '4px 10px',
+                border: '1px solid rgba(74,222,128,0.2)',
+                borderRadius: 6,
+                background: 'rgba(74,222,128,0.05)',
+                fontFamily: 'monospace', fontSize: 9, color: '#4ADE80',
+                textTransform: 'uppercase', letterSpacing: '0.15em',
+              }}>
+                {config.name}
               </span>
             </div>
             <h1 style={{ margin: '0 0 12px', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.15, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
               {config.headline}
             </h1>
-            <p style={{ margin: 0, fontSize: 15, color: '#64748B', lineHeight: 1.7 }}>
+            <p style={{ margin: '0 auto', maxWidth: 480, fontSize: 15, color: '#64748B', lineHeight: 1.7 }}>
               {config.subtitle}
             </p>
           </div>
@@ -178,10 +292,10 @@ export function VerticalIntakePage({ vertical }: Props) {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {[
-                  { name: 'businessName', placeholder: 'Business name', type: 'text', required: true },
-                  { name: 'ownerName',    placeholder: 'Your name',      type: 'text', required: true },
-                  { name: 'phone',        placeholder: 'Phone number',   type: 'tel',  required: true },
-                  { name: 'email',        placeholder: 'Email address',  type: 'email',required: true },
+                  { name: 'businessName', placeholder: 'Business name', type: 'text',  required: true },
+                  { name: 'ownerName',    placeholder: 'Your name',      type: 'text',  required: true },
+                  { name: 'phone',        placeholder: 'Phone number',   type: 'tel',   required: true },
+                  { name: 'email',        placeholder: 'Email address',  type: 'email', required: true },
                 ].map(field => (
                   <input
                     key={field.name}
