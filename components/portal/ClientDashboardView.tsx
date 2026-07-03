@@ -113,6 +113,17 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
   }
 
   const [showHelp, setShowHelp] = useState(false)
+  const [sendState, setSendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  async function handleSendInstructions() {
+    setSendState('sending')
+    try {
+      const res = await fetch('/api/send-setup-instructions', { method: 'POST' })
+      setSendState(res.ok ? 'sent' : 'error')
+    } catch {
+      setSendState('error')
+    }
+  }
 
   return (
     <div
@@ -158,6 +169,29 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
           <p className="text-xs text-[var(--text-muted)] mt-2">
             Need help? Reply to your weekly report email — we'll walk you through it.
           </p>
+        </div>
+      )}
+
+      {/* On-demand setup email button — shown when not active */}
+      {status !== 'active' && (
+        <div className="mt-3 pt-3 border-t" style={{ borderColor: border }}>
+          <button
+            onClick={handleSendInstructions}
+            disabled={sendState === 'sending' || sendState === 'sent'}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-opacity"
+            style={{
+              background: sendState === 'sent' ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${sendState === 'sent' ? 'rgba(74,222,128,0.25)' : border}`,
+              color: sendState === 'sent' ? '#4ADE80' : color,
+              opacity: sendState === 'sending' ? 0.7 : 1,
+              cursor: sendState === 'sending' || sendState === 'sent' ? 'default' : 'pointer',
+            }}
+          >
+            {sendState === 'idle'    && '📧 Send Setup Instructions to My Email'}
+            {sendState === 'sending' && 'Sending…'}
+            {sendState === 'sent'    && '✓ Instructions Sent — Check Your Inbox'}
+            {sendState === 'error'   && '⚠ Failed to send — try again'}
+          </button>
         </div>
       )}
     </div>
