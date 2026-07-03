@@ -643,7 +643,7 @@
 
               <div style="margin-bottom:30px;">
                 <div class="term-label"><span style="color:#27c93f;">$</span> --website-url <span style="color:var(--text-muted); font-size:0.74rem; font-weight:400;">(optional)</span></div>
-                <input type="url" class="term-input" id="f-url" placeholder="https://yourbrokerage.com  (or leave blank)" autocomplete="url" aria-label="Website URL (optional)" />
+                <input type="text" class="term-input" id="f-url" placeholder="https://yourbrokerage.com  (or leave blank)" autocomplete="url" aria-label="Website URL (optional)" />
                 <div id="url-info" style="font-family:'Courier New',monospace; font-size:0.76rem; color:#94A3B8; margin-top:8px; padding-left:2px;">[INFO] No website found. Initializing Digital Employee Foundation Blueprint...</div>
               </div>
 
@@ -656,7 +656,8 @@
                 <div class="term-label"><span style="color:#27c93f;">$</span> --biggest-bottleneck</div>
                 <select class="term-input" id="f-pain" required aria-label="Primary pain point" style="cursor:pointer; font-size:0.95rem;">
                   <option value="" disabled selected style="background:#111; color:rgba(14,165,233,0.35);">Select your primary bottleneck</option>
-                  <option value="speed"     style="background:#111; color:var(--sky);">Slow response to portal leads</option>
+                  <option value="speed"      style="background:#111; color:var(--sky);">Slow response to portal leads</option>
+                  <option value="afterhours" style="background:#111; color:var(--sky);">Missed calls after hours &amp; weekends</option>
                   <option value="showings"  style="background:#111; color:var(--sky);">Showing scheduling chaos</option>
                   <option value="followup"  style="background:#111; color:var(--sky);">Follow-up sequences that die</option>
                   <option value="listings"  style="background:#111; color:var(--sky);">Time spent writing listing content</option>
@@ -801,7 +802,8 @@
     form.addEventListener('submit', async e => {
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
-      const urlVal = urlInput.value.trim();
+      let urlVal = urlInput.value.trim();
+      if (urlVal && !urlVal.match(/^https?:\/\//)) urlVal = 'https://' + urlVal;
       const payload = {
         source_tag:              '369AS_REALESTATE_INTAKE',
         client_name:             document.getElementById('f-name').value.trim(),

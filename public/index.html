@@ -1093,7 +1093,7 @@
           <input type="text"  name="name"     class="audit-input" placeholder="Your name"          required />
           <input type="text"  name="business" class="audit-input" placeholder="Business type (e.g. HVAC, Med Spa...)" required />
           <input type="email" name="email"    class="audit-input" placeholder="Your email address" required />
-          <input type="url"   id="modal-url" name="website_url" class="audit-input" placeholder="https://yoursite.com  (or leave blank)" autocomplete="url" />
+          <input type="text"  id="modal-url" name="website_url" class="audit-input" placeholder="https://yoursite.com  (or leave blank)" autocomplete="url" />
           <div id="modal-url-info" style="font-family:'Courier New',monospace; font-size:0.75rem; color:#94A3B8; margin-top:-8px; margin-bottom:14px; padding-left:2px;">[INFO] No website found. Initializing Digital Employee Foundation Blueprint...</div>
           <button type="submit" class="btn-gold" style="width:100%; font-size:0.9rem; padding:14px; margin-top:4px;">
             <span id="modal-btn-label">Request My Free Audit →</span>
@@ -1272,7 +1272,8 @@
     auditForm.addEventListener('submit', async e => {
       e.preventDefault();
       const data   = new FormData(auditForm);
-      const urlVal = modalUrlInput.value.trim();
+      let urlVal = modalUrlInput.value.trim();
+      if (urlVal && !urlVal.match(/^https?:\/\//)) urlVal = 'https://' + urlVal;
       const payload = {
         source_tag:              '369AS_UNLISTED_INTAKE',
         client_name:             (data.get('name')     || '').trim(),
