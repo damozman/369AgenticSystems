@@ -46,7 +46,7 @@ type WeeklyStats = {
 }
 
 type Props = {
-  stats: { totalCalls: number; bookedCalls: number; totalLeads: number }
+  stats: { totalCalls: number; bookedCalls: number; totalLeads: number; answerRate: number | null }
   recentCalls: Call[]
   activeAgents: ActiveAgent[]
   upgrade: UpgradePath
@@ -303,42 +303,40 @@ export default function ClientDashboardView({
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        {[
-          {
-            label: 'Calls Handled',
-            value: stats.totalCalls,
-            color: '#D4AF37',
-            Icon: Phone,
-            curr: weeklyStats.thisWeekCalls,
-            prev: weeklyStats.lastWeekCalls,
-          },
-          {
-            label: 'Appointments',
-            value: stats.bookedCalls,
-            color: '#059669',
-            Icon: CalendarCheck,
-            curr: weeklyStats.thisWeekBooked,
-            prev: weeklyStats.lastWeekBooked,
-          },
-          {
-            label: 'Leads Captured',
-            value: stats.totalLeads,
-            color: '#2563EB',
-            Icon: Users,
-            curr: weeklyStats.thisWeekLeads,
-            prev: weeklyStats.lastWeekLeads,
-          },
-        ].map(({ label, value, color, Icon, curr, prev }) => (
-          <div
-            key={label}
-            className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-3 sm:p-4 text-center"
-          >
-            <Icon size={16} style={{ color }} className="mx-auto mb-2" />
-            <p className="text-3xl font-bold text-[var(--text-primary)] leading-none">{value}</p>
-            <p className="text-[11px] font-medium text-[var(--text-muted)] mt-1.5 leading-tight">{label}</p>
-            <Delta curr={curr} prev={prev} />
-          </div>
-        ))}
+        {/* Calls Handled */}
+        <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-3 sm:p-4 text-center">
+          <Phone size={16} style={{ color: '#D4AF37' }} className="mx-auto mb-2" />
+          <p className="text-3xl font-bold text-[var(--text-primary)] leading-none">{stats.totalCalls}</p>
+          <p className="text-[11px] font-medium text-[var(--text-muted)] mt-1.5 leading-tight">Calls Handled</p>
+          <Delta curr={weeklyStats.thisWeekCalls} prev={weeklyStats.lastWeekCalls} />
+          {stats.answerRate !== null && (
+            <span
+              className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: stats.answerRate >= 90 ? 'rgba(5,150,105,0.12)' : stats.answerRate >= 75 ? 'rgba(217,119,6,0.12)' : 'rgba(220,38,38,0.12)',
+                color:      stats.answerRate >= 90 ? '#059669'               : stats.answerRate >= 75 ? '#D97706'               : '#DC2626',
+              }}
+            >
+              {stats.answerRate}% answered
+            </span>
+          )}
+        </div>
+
+        {/* Appointments Booked */}
+        <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-3 sm:p-4 text-center">
+          <CalendarCheck size={16} style={{ color: '#059669' }} className="mx-auto mb-2" />
+          <p className="text-3xl font-bold text-[var(--text-primary)] leading-none">{stats.bookedCalls}</p>
+          <p className="text-[11px] font-medium text-[var(--text-muted)] mt-1.5 leading-tight">Appointments</p>
+          <Delta curr={weeklyStats.thisWeekBooked} prev={weeklyStats.lastWeekBooked} />
+        </div>
+
+        {/* Leads Captured */}
+        <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-3 sm:p-4 text-center">
+          <Users size={16} style={{ color: '#2563EB' }} className="mx-auto mb-2" />
+          <p className="text-3xl font-bold text-[var(--text-primary)] leading-none">{stats.totalLeads}</p>
+          <p className="text-[11px] font-medium text-[var(--text-muted)] mt-1.5 leading-tight">Leads Captured</p>
+          <Delta curr={weeklyStats.thisWeekLeads} prev={weeklyStats.lastWeekLeads} />
+        </div>
       </div>
 
       {/* Performance highlights */}
@@ -380,7 +378,16 @@ export default function ClientDashboardView({
 
       {/* Recent calls */}
       <div className="mb-7">
-        <h2 className="text-base font-bold text-[var(--text-primary)] mb-3">Recent Calls</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[var(--text-primary)]">Recent Calls</h2>
+          <a
+            href="/api/export-calls"
+            download
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            ↓ Export CSV
+          </a>
+        </div>
         {recentCalls.length === 0 ? (
           <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-8 text-center">
             <Phone size={22} className="mx-auto mb-3 text-[var(--text-muted)]" />

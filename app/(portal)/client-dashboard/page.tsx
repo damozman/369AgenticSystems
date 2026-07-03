@@ -78,6 +78,7 @@ export default async function ClientDashboardPage() {
     { count: totalCalls },
     { count: bookedCalls },
     { count: totalLeads },
+    { count: noAnswerCalls },
     { data: recentCallsData },
     { data: notifications },
     { data: lastCallRow },
@@ -86,6 +87,7 @@ export default async function ClientDashboardPage() {
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain),
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'booked'),
     supabaseAdmin.from('leads').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain),
+    supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'no_answer'),
     supabaseAdmin
       .from('calls')
       .select('id,created_at,caller_name,caller_phone,duration_seconds,transcript,call_outcome')
@@ -150,12 +152,18 @@ export default async function ClientDashboardPage() {
 
   const upgrade = UPGRADE_PATHS[subscription.tier as string] ?? null
 
+  const tc = totalCalls ?? 0
+  const answerRate = tc > 0
+    ? Math.round(((tc - (noAnswerCalls ?? 0)) / tc) * 100)
+    : null
+
   return (
     <ClientDashboardView
       stats={{
-        totalCalls:  totalCalls  ?? 0,
+        totalCalls:  tc,
         bookedCalls: bookedCalls ?? 0,
         totalLeads:  totalLeads  ?? 0,
+        answerRate,
       }}
       recentCalls={recentCallsData ?? []}
       activeAgents={activeAgents}
