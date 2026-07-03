@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { LiveDemoWidget } from '@/components/portal/LiveDemoWidget'
 
 // ── Vertical config ───────────────────────────────────────────────────────────
 
@@ -182,7 +183,8 @@ interface FormData {
 type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
 
 interface Props {
-  vertical: Vertical
+  vertical:      Vertical
+  demoPhone?:    string
 }
 
 // ── Shared input style ─────────────────────────────────────────────────────────
@@ -201,7 +203,7 @@ const inputStyle: React.CSSProperties = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function VerticalIntakePage({ vertical }: Props) {
+export function VerticalIntakePage({ vertical, demoPhone }: Props) {
   const router = useRouter()
   const config = CONFIGS[vertical]
 
@@ -281,6 +283,9 @@ export function VerticalIntakePage({ vertical }: Props) {
               {config.subtitle}
             </p>
           </div>
+
+          {/* Live demo widget — roofing only for now */}
+          {demoPhone && <LiveDemoWidget demoPhone={demoPhone} />}
 
           {/* Form card */}
           <form onSubmit={handleSubmit} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '36px 32px' }}>

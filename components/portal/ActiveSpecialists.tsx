@@ -306,7 +306,7 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
   // Called the moment user clicks AUTHORIZE — close drawer, enter patching state
   function handleAuthorize(id: string, _domain: string) {
     setActiveAudit(null)
-    setPatchingIds(prev => new Set([...prev, id]))
+    setPatchingIds(prev => { const next = new Set(prev); next.add(id); return next })
     // Supabase realtime UPDATE event fires when the patch completes
     // and automatically clears patchingIds + updates the card
   }
