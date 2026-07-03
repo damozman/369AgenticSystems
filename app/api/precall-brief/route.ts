@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       ? new Date(bookingTime).toLocaleString('en-US', {
           weekday: 'long', month: 'long', day: 'numeric',
           hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+          timeZone: 'America/Chicago',
         })
       : 'Time unknown'
 
