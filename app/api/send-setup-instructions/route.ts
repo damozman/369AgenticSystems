@@ -71,7 +71,7 @@ export async function POST(_request: NextRequest) {
       ['Verizon', `Dial <strong>*72</strong> then <strong>${formatted}</strong>. Press Send/Call. Listen for confirmation tone.`],
       ['T-Mobile', 'Go to <strong>Settings → Phone → Call Forwarding</strong>. Enter the number above.'],
       ['Google Voice', 'Go to <strong>voice.google.com → Settings → Calls → Forwarding</strong>.'],
-      ['VoIP / Landline', 'Log into your provider's admin panel and enable <strong>Call Forwarding</strong> to the number above. Contact us if you need help.'],
+      ['VoIP / Landline', 'Log into your provider&#39;s admin panel and enable <strong>Call Forwarding</strong> to the number above. Contact us if you need help.'],
     ].map(([carrier, inst]) => `
     <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;">
       <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#F0F0F0;">${carrier}</p>
