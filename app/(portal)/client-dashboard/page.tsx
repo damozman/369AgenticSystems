@@ -109,7 +109,7 @@ export default async function ClientDashboardPage() {
       .limit(1),
     supabaseAdmin
       .from('calls')
-      .select('created_at,call_outcome,caller_phone')
+      .select('created_at,call_outcome,caller_phone,sentiment')
       .eq('client_domain', clientDomain)
       .gte('created_at', since30d),
   ])
@@ -170,6 +170,13 @@ export default async function ClientDashboardPage() {
     returningCallers: [...phoneCount.values()].filter(v => v > 1).length,
   }
 
+  // Sentiment distribution (last 30 days, from call_analyzed webhook)
+  const sentimentStats = {
+    positive: calls30d.filter(c => (c as { sentiment?: string }).sentiment?.toLowerCase() === 'positive').length,
+    neutral:  calls30d.filter(c => (c as { sentiment?: string }).sentiment?.toLowerCase() === 'neutral').length,
+    negative: calls30d.filter(c => (c as { sentiment?: string }).sentiment?.toLowerCase() === 'negative').length,
+  }
+
   const activeAgents = ((subscription.active_agents ?? []) as string[])
     .map(key => ({ key, ...AGENT_LABELS[key] }))
     .filter(a => a.label)
@@ -203,6 +210,7 @@ export default async function ClientDashboardPage() {
       dailyCounts={dailyCounts}
       hourlyBreakdown={hourlyBreakdown}
       callerStats={callerStats}
+      sentimentStats={sentimentStats}
     />
   )
 }

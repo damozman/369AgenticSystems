@@ -101,19 +101,22 @@ export async function POST(request: NextRequest) {
     const analysis = call.call_analysis as Record<string, unknown> | undefined
     const custom   = analysis?.custom_analysis_data as Record<string, unknown> | undefined
 
-    const callerName = (custom?.caller_name as string) ?? null
-
-    // Update caller_name in calls (only column that exists for this data)
-    if (callerName) {
-      const { error } = await supabase
-        .from('calls')
-        .update({ caller_name: callerName })
-        .eq('call_id', callId)
-
-      if (error) console.error('[RETELL] ✗  caller_name update failed:', error.message)
+    const updatePayload: Record<string, unknown> = {
+      caller_name:       (custom?.caller_name       as string  | undefined) ?? null,
+      issue_description: (custom?.issue_description as string  | undefined) ?? null,
+      urgency:           (custom?.urgency           as string  | undefined) ?? null,
+      call_successful:   (analysis?.call_successful as boolean | undefined) ?? null,
+      sentiment:         (analysis?.user_sentiment  as string  | undefined) ?? null,
     }
 
-    console.log(`[RETELL] ✓  call_analyzed — ${callId} name=${callerName} analysis:`, JSON.stringify(analysis))
+    const { error } = await supabase
+      .from('calls')
+      .update(updatePayload)
+      .eq('call_id', callId)
+
+    if (error) console.error('[RETELL] ✗  call_analyzed update failed:', error.message)
+
+    console.log(`[RETELL] ✓  call_analyzed — ${callId}`, JSON.stringify(updatePayload))
     return NextResponse.json({ success: true, event })
   }
 

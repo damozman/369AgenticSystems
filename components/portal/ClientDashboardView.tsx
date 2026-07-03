@@ -38,6 +38,12 @@ type CallerStats = {
   returningCallers: number
 }
 
+type SentimentStats = {
+  positive: number
+  neutral:  number
+  negative: number
+}
+
 type Props = {
   stats: { totalCalls: number; bookedCalls: number; totalLeads: number; answerRate: number | null }
   recentCalls:      Call[]
@@ -50,6 +56,7 @@ type Props = {
   dailyCounts:      number[]
   hourlyBreakdown:  number[]
   callerStats:      CallerStats
+  sentimentStats:   SentimentStats
 }
 
 // ─── Outcome helpers ──────────────────────────────────────────────────────────
@@ -296,7 +303,7 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
 
 export default function ClientDashboardView({
   stats, recentCalls, activeAgents, upgrade, subscription,
-  notifications, lastCallAt, weeklyStats, dailyCounts, hourlyBreakdown, callerStats,
+  notifications, lastCallAt, weeklyStats, dailyCounts, hourlyBreakdown, callerStats, sentimentStats,
 }: Props) {
   const [isDark, setIsDark]             = useState(false)
   const [selectedCall, setSelectedCall] = useState<Call | null>(null)
@@ -469,6 +476,48 @@ export default function ClientDashboardView({
           )}
         </div>
       </div>
+
+      {/* ── Caller sentiment ───────────────────────────────────────── */}
+      {(sentimentStats.positive + sentimentStats.neutral + sentimentStats.negative) > 0 && (() => {
+        const total = sentimentStats.positive + sentimentStats.neutral + sentimentStats.negative
+        const pctPos = Math.round((sentimentStats.positive / total) * 100)
+        const pctNeg = Math.round((sentimentStats.negative / total) * 100)
+        const pctNeu = 100 - pctPos - pctNeg
+        return (
+          <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-[var(--text-primary)]">Caller Sentiment</h3>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">last 30 days · {total} calls</span>
+            </div>
+
+            {/* Segmented bar */}
+            <div className="flex h-2 rounded-full overflow-hidden mb-3 gap-px">
+              {pctPos > 0 && <div style={{ width: `${pctPos}%`, background: '#4ADE80' }} />}
+              {pctNeu > 0 && <div style={{ width: `${pctNeu}%`, background: 'rgba(255,255,255,0.15)' }} />}
+              {pctNeg > 0 && <div style={{ width: `${pctNeg}%`, background: '#F87171' }} />}
+            </div>
+
+            {/* Counts */}
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#4ADE80' }} />
+                <span className="text-xs font-bold text-[var(--text-primary)]">{sentimentStats.positive}</span>
+                <span className="text-[10px] text-[var(--text-muted)]">Positive</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.2)' }} />
+                <span className="text-xs font-bold text-[var(--text-primary)]">{sentimentStats.neutral}</span>
+                <span className="text-[10px] text-[var(--text-muted)]">Neutral</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#F87171' }} />
+                <span className="text-xs font-bold text-[var(--text-primary)]">{sentimentStats.negative}</span>
+                <span className="text-[10px] text-[var(--text-muted)]">Negative</span>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Peak hours bar ─────────────────────────────────────────── */}
       <PeakHoursBar hourlyBreakdown={hourlyBreakdown} />
