@@ -60,6 +60,20 @@ export default async function ClientDashboardPage() {
 
   const clientDomain = subscription.client_domain
 
+  const JOB_VALUE: Record<string, number> = {
+    roofing:       2500,
+    hvac:           350,
+    plumbing:       400,
+    legal:         5000,
+    'real-estate': 9000,
+    insurance:     1200,
+    saas:          2400,
+    wholesale:     2500,
+    dental:         200,
+  }
+
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
   const [
     { count: totalCalls },
     { count: bookedCalls },
@@ -67,6 +81,7 @@ export default async function ClientDashboardPage() {
     { data: recentCallsData },
     { data: notifications },
     { data: lastCallRow },
+    { data: calls30dData },
   ] = await Promise.all([
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain),
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'booked'),
@@ -90,7 +105,44 @@ export default async function ClientDashboardPage() {
       .eq('client_domain', clientDomain)
       .order('created_at', { ascending: false })
       .limit(1),
+    supabaseAdmin
+      .from('calls')
+      .select('created_at,call_outcome')
+      .eq('client_domain', clientDomain)
+      .gte('created_at', since30d),
   ])
+
+  // Compute weekly deltas and highlights from the 30-day window
+  const calls30d     = calls30dData ?? []
+  const sevenDaysAgo = Date.now() - 7  * 24 * 60 * 60 * 1000
+  const fourteenAgo  = Date.now() - 14 * 24 * 60 * 60 * 1000
+
+  const thisWeek = calls30d.filter(c => new Date(c.created_at).getTime() >= sevenDaysAgo)
+  const lastWeek = calls30d.filter(c => {
+    const t = new Date(c.created_at).getTime()
+    return t >= fourteenAgo && t < sevenDaysAgo
+  })
+
+  const afterHoursRescued = thisWeek.filter(c => {
+    const h = new Date(c.created_at).getHours()
+    return h < 8 || h >= 18
+  }).length
+
+  const jobValue          = JOB_VALUE[subscription.vertical as string ?? 'roofing'] ?? 1000
+  const monthBooked       = calls30d.filter(c => c.call_outcome === 'booked').length
+  const monthLeads        = calls30d.filter(c => c.call_outcome === 'captured_lead').length
+  const revenueProtected  = Math.round((monthBooked + monthLeads) * jobValue * 0.30)
+
+  const weeklyStats = {
+    thisWeekCalls:    thisWeek.length,
+    lastWeekCalls:    lastWeek.length,
+    thisWeekBooked:   thisWeek.filter(c => c.call_outcome === 'booked').length,
+    lastWeekBooked:   lastWeek.filter(c => c.call_outcome === 'booked').length,
+    thisWeekLeads:    thisWeek.filter(c => c.call_outcome === 'captured_lead').length,
+    lastWeekLeads:    lastWeek.filter(c => c.call_outcome === 'captured_lead').length,
+    afterHoursRescued,
+    revenueProtected,
+  }
 
   const activeAgents = ((subscription.active_agents ?? []) as string[])
     .map(key => ({ key, ...AGENT_LABELS[key] }))
@@ -115,6 +167,7 @@ export default async function ClientDashboardPage() {
       }}
       notifications={notifications ?? []}
       lastCallAt={(lastCallRow ?? [])[0]?.created_at ?? null}
+      weeklyStats={weeklyStats}
     />
   )
 }

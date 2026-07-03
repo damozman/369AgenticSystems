@@ -34,6 +34,17 @@ type Notification = {
   message: string
 }
 
+type WeeklyStats = {
+  thisWeekCalls:    number
+  lastWeekCalls:    number
+  thisWeekBooked:   number
+  lastWeekBooked:   number
+  thisWeekLeads:    number
+  lastWeekLeads:    number
+  afterHoursRescued: number
+  revenueProtected:  number
+}
+
 type Props = {
   stats: { totalCalls: number; bookedCalls: number; totalLeads: number }
   recentCalls: Call[]
@@ -41,7 +52,24 @@ type Props = {
   upgrade: UpgradePath
   subscription: Subscription
   notifications: Notification[]
-  lastCallAt: string | null   // ISO string of most recent call, or null
+  lastCallAt: string | null
+  weeklyStats: WeeklyStats
+}
+
+function Delta({ curr, prev }: { curr: number; prev: number }) {
+  const diff = curr - prev
+  if (diff === 0) {
+    return <span className="text-[10px] text-[var(--text-muted)] mt-1 block">— same as last wk</span>
+  }
+  const up = diff > 0
+  return (
+    <span
+      className="text-[10px] font-semibold mt-1 block"
+      style={{ color: up ? '#059669' : '#DC2626' }}
+    >
+      {up ? '▲' : '▼'} {Math.abs(diff)} vs last wk
+    </span>
+  )
 }
 
 const OUTCOME_MAP: Record<string, { label: string; color: string; bg: string }> = {
@@ -206,6 +234,7 @@ export default function ClientDashboardView({
   subscription,
   notifications,
   lastCallAt,
+  weeklyStats,
 }: Props) {
   const [isDark, setIsDark] = useState(false)
   const [selectedCall, setSelectedCall] = useState<Call | null>(null)
@@ -273,12 +302,33 @@ export default function ClientDashboardView({
       <ReceptionistStatus lastCallAt={lastCallAt} />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3 mb-7">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         {[
-          { label: 'Calls Handled',       value: stats.totalCalls,  color: '#D4AF37', Icon: Phone         },
-          { label: 'Appointments Booked', value: stats.bookedCalls, color: '#059669', Icon: CalendarCheck  },
-          { label: 'Leads Captured',      value: stats.totalLeads,  color: '#2563EB', Icon: Users          },
-        ].map(({ label, value, color, Icon }) => (
+          {
+            label: 'Calls Handled',
+            value: stats.totalCalls,
+            color: '#D4AF37',
+            Icon: Phone,
+            curr: weeklyStats.thisWeekCalls,
+            prev: weeklyStats.lastWeekCalls,
+          },
+          {
+            label: 'Appointments',
+            value: stats.bookedCalls,
+            color: '#059669',
+            Icon: CalendarCheck,
+            curr: weeklyStats.thisWeekBooked,
+            prev: weeklyStats.lastWeekBooked,
+          },
+          {
+            label: 'Leads Captured',
+            value: stats.totalLeads,
+            color: '#2563EB',
+            Icon: Users,
+            curr: weeklyStats.thisWeekLeads,
+            prev: weeklyStats.lastWeekLeads,
+          },
+        ].map(({ label, value, color, Icon, curr, prev }) => (
           <div
             key={label}
             className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-3 sm:p-4 text-center"
@@ -286,8 +336,46 @@ export default function ClientDashboardView({
             <Icon size={16} style={{ color }} className="mx-auto mb-2" />
             <p className="text-3xl font-bold text-[var(--text-primary)] leading-none">{value}</p>
             <p className="text-[11px] font-medium text-[var(--text-muted)] mt-1.5 leading-tight">{label}</p>
+            <Delta curr={curr} prev={prev} />
           </div>
         ))}
+      </div>
+
+      {/* Performance highlights */}
+      <div className="grid grid-cols-2 gap-3 mb-7">
+        {/* Revenue protected */}
+        <div
+          className="rounded-xl border p-4 flex flex-col justify-between"
+          style={{ background: 'rgba(212,175,55,0.05)', borderColor: 'rgba(212,175,55,0.25)' }}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#D4AF37' }}>
+            Revenue Protected
+          </p>
+          <p className="text-2xl font-bold leading-none" style={{ color: '#D4AF37' }}>
+            {weeklyStats.revenueProtected > 0
+              ? `$${weeklyStats.revenueProtected.toLocaleString()}`
+              : '—'}
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1.5 leading-snug">
+            estimated last 30 days
+          </p>
+        </div>
+
+        {/* After-hours rescued */}
+        <div
+          className="rounded-xl border p-4 flex flex-col justify-between"
+          style={{ background: 'rgba(167,139,250,0.05)', borderColor: 'rgba(167,139,250,0.2)' }}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#A78BFA' }}>
+            After-Hours Rescued
+          </p>
+          <p className="text-2xl font-bold leading-none" style={{ color: '#A78BFA' }}>
+            {weeklyStats.afterHoursRescued}
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1.5 leading-snug">
+            calls caught outside biz hours this week
+          </p>
+        </div>
       </div>
 
       {/* Recent calls */}
