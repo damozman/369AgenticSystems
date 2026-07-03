@@ -109,7 +109,7 @@ export default async function ClientDashboardPage() {
       .limit(1),
     supabaseAdmin
       .from('calls')
-      .select('created_at,call_outcome')
+      .select('created_at,call_outcome,caller_phone')
       .eq('client_domain', clientDomain)
       .gte('created_at', since30d),
   ])
@@ -146,6 +146,30 @@ export default async function ClientDashboardPage() {
     revenueProtected,
   }
 
+  // 7-day daily call counts (index 0 = 6 days ago, index 6 = today)
+  const dailyCounts = Array(7).fill(0) as number[]
+  thisWeek.forEach(c => {
+    const daysAgo = Math.floor((Date.now() - new Date(c.created_at).getTime()) / 86400000)
+    if (daysAgo < 7) dailyCounts[6 - daysAgo]++
+  })
+
+  // 24-hour breakdown for peak hours chart (last 30 days)
+  const hourlyBreakdown = Array(24).fill(0) as number[]
+  calls30d.forEach(c => {
+    hourlyBreakdown[new Date(c.created_at).getHours()]++
+  })
+
+  // New vs returning callers (last 30 days, by phone number)
+  const phoneCount = new Map<string, number>()
+  calls30d.forEach(c => {
+    const p = (c as { caller_phone?: string }).caller_phone
+    if (p) phoneCount.set(p, (phoneCount.get(p) ?? 0) + 1)
+  })
+  const callerStats = {
+    newCallers:       [...phoneCount.values()].filter(v => v === 1).length,
+    returningCallers: [...phoneCount.values()].filter(v => v > 1).length,
+  }
+
   const activeAgents = ((subscription.active_agents ?? []) as string[])
     .map(key => ({ key, ...AGENT_LABELS[key] }))
     .filter(a => a.label)
@@ -176,6 +200,9 @@ export default async function ClientDashboardPage() {
       notifications={notifications ?? []}
       lastCallAt={(lastCallRow ?? [])[0]?.created_at ?? null}
       weeklyStats={weeklyStats}
+      dailyCounts={dailyCounts}
+      hourlyBreakdown={hourlyBreakdown}
+      callerStats={callerStats}
     />
   )
 }
