@@ -59,6 +59,10 @@ interface ParsedData {
   callsPerWeek: number
   answerRate:   number
   jobValue:     number
+  ownerName:    string
+  email:        string
+  currentSetup: string
+  primaryGoal:  string
 }
 
 type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
@@ -72,7 +76,9 @@ interface Props {
 export function VerticalROICalculator({ vertical }: Props) {
   const searchParams = useSearchParams()
   const router       = useRouter()
-  const [data, setData] = useState<ParsedData | null>(null)
+  const [data, setData]             = useState<ParsedData | null>(null)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportSending, setReportSending] = useState(false)
 
   useEffect(() => {
     const raw = searchParams.get('data')
@@ -80,10 +86,15 @@ export function VerticalROICalculator({ vertical }: Props) {
     try {
       const parsed = JSON.parse(decodeURIComponent(raw))
       setData({
-        businessName: parsed.businessName || 'Your Business',
+        businessName: parsed.businessName  || 'Your Business',
         callsPerWeek: Number(parsed.callsPerWeek) || 0,
         answerRate:   Number(parsed.answerRate)   || 0,
         jobValue:     Number(parsed.jobValue)     || 0,
+        // carry through new fields for the report
+        ownerName:    parsed.ownerName     || '',
+        email:        parsed.email         || '',
+        currentSetup: parsed.currentSetup  || '',
+        primaryGoal:  parsed.primaryGoal   || '',
       })
     } catch {
       // silently ignore malformed params
@@ -116,6 +127,51 @@ export function VerticalROICalculator({ vertical }: Props) {
     sessionStorage.setItem('tierPrice',     String(tierPrice))
     sessionStorage.setItem('formData',      searchParams.get('data') ?? '')
     router.push(`/${vertical}/pricing?tier=${tierName}`)
+  }
+
+  async function handleSendReport() {
+    if (!data?.email || reportSent || reportSending) return
+    setReportSending(true)
+
+    const missedPerMonth   = data.callsPerWeek * 4.33 * ((100 - data.answerRate) / 100)
+    const monthlyLost      = Math.round(missedPerMonth * data.jobValue)
+    const monthlyRecoverable = Math.round(missedPerMonth * 0.30 * data.jobValue)
+    const annualLost       = monthlyLost * 12
+    const recommended      = TIERS[1] // Pro is default recommendation
+    const breakEvenDays    = monthlyRecoverable > 0
+      ? Math.ceil((SETUP_FEE + recommended.price) / (monthlyRecoverable / 30))
+      : 0
+    const yearOneProfit    = (monthlyRecoverable * 12) - (SETUP_FEE + recommended.price * 12)
+
+    try {
+      await fetch('/api/send-roi-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName:       data.businessName,
+          ownerName:          data.ownerName,
+          email:              data.email,
+          vertical,
+          callsPerWeek:       data.callsPerWeek,
+          answerRate:         data.answerRate,
+          jobValue:           data.jobValue,
+          monthlyLost,
+          monthlyRecoverable,
+          annualLost,
+          currentSetup:       data.currentSetup,
+          primaryGoal:        data.primaryGoal,
+          recommendedTier:    recommended.name,
+          recommendedPrice:   recommended.price,
+          breakEvenDays,
+          yearOneProfit:      Math.max(0, yearOneProfit),
+        }),
+      })
+      setReportSent(true)
+    } catch {
+      // fail silently — user can still proceed without report
+    } finally {
+      setReportSending(false)
+    }
   }
 
   return (
@@ -158,8 +214,8 @@ export function VerticalROICalculator({ vertical }: Props) {
             </p>
           </div>
 
-          {/* Revenue impact */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 56 }}>
+          {/* Revenue impact — 3 cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 40 }}>
 
             <div style={{ padding: '28px 24px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 14 }}>
               <p style={{ margin: '0 0 6px', fontFamily: 'monospace', fontSize: 10, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
@@ -185,7 +241,73 @@ export function VerticalROICalculator({ vertical }: Props) {
               </p>
             </div>
 
+            <div style={{ padding: '28px 24px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 10, right: 12, fontFamily: 'monospace', fontSize: 8, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.6 }}>
+                cost of inaction
+              </div>
+              <p style={{ margin: '0 0 6px', fontFamily: 'monospace', fontSize: 10, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                12-Month Loss If Nothing Changes
+              </p>
+              <p style={{ margin: '0 0 6px', fontSize: 44, fontWeight: 800, color: '#FCA5A5', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                ${(monthlyRevenueLost * 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+                Every month you wait costs another ${monthlyRevenueLost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+
           </div>
+
+          {/* Scarcity + guarantee strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 48 }}>
+            <div style={{ padding: '14px 18px', background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>⚡</span>
+              <div>
+                <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 600, color: '#D4AF37' }}>Limited DFW Availability</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>We onboard 3 new roofing clients per month per market. 2 spots remaining this month.</p>
+              </div>
+            </div>
+            <div style={{ padding: '14px 18px', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>
+              <div>
+                <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 600, color: '#4ADE80' }}>30-Day Results Guarantee</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>If you don't capture a lead you would have missed, we refund your setup fee. No questions.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Email report CTA */}
+          {data.email && (
+            <div style={{ marginBottom: 32, padding: '20px 24px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#F0F0F0' }}>
+                  Want a copy of this report?
+                </p>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+                  We'll send a branded breakdown to <span style={{ color: '#94A3B8' }}>{data.email}</span>
+                </p>
+              </div>
+              <button
+                onClick={handleSendReport}
+                disabled={reportSent || reportSending}
+                style={{
+                  padding: '10px 22px',
+                  background: reportSent ? 'rgba(74,222,128,0.12)' : 'rgba(212,175,55,0.12)',
+                  border: `1px solid ${reportSent ? 'rgba(74,222,128,0.3)' : 'rgba(212,175,55,0.3)'}`,
+                  borderRadius: 8,
+                  color: reportSent ? '#4ADE80' : '#D4AF37',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: reportSent || reportSending ? 'default' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: 'var(--font-display)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {reportSent ? '✓ Report Sent' : reportSending ? 'Sending...' : 'Email Me This Report →'}
+              </button>
+            </div>
+          )}
 
           {/* Tier selection */}
           <div style={{ marginBottom: 16 }}>

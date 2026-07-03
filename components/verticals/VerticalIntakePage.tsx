@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LiveDemoWidget } from '@/components/portal/LiveDemoWidget'
@@ -17,6 +17,8 @@ interface VerticalConfig {
     answerRate:   { label: string; placeholder: string; hint?: string }
     jobValue:     { label: string; placeholder: string }
   }
+  tickerLabel: string   // "jobs" | "cases" | "patients" etc
+  comparisonRole: string // "Receptionist" | "Intake Coordinator" etc
 }
 
 const CONFIGS: Record<string, VerticalConfig> = {
@@ -24,6 +26,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Roofing',
     headline: 'Stop Losing Jobs to Missed Calls',
     subtitle: '2-minute form — then we show you exactly what you\'re leaving on the table.',
+    tickerLabel: 'jobs',
+    comparisonRole: 'Office Receptionist',
     painPoints: [
       'Missing calls while on the roof',
       'Losing leads to faster-responding competitors',
@@ -40,6 +44,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'HVAC',
     headline: 'Emergency Calls Answered 24/7',
     subtitle: '2-minute form — then we show you what after-hours calls are costing you.',
+    tickerLabel: 'service calls',
+    comparisonRole: 'Office Receptionist',
     painPoints: [
       'Emergency calls going unanswered after hours',
       'Seasonal volume swings overwhelming the office',
@@ -56,6 +62,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Plumbing',
     headline: 'Burst Pipes at 2 AM — We Answer',
     subtitle: '2-minute form — then we show you what missed after-hours calls cost per month.',
+    tickerLabel: 'service calls',
+    comparisonRole: 'Office Receptionist',
     painPoints: [
       'Burst pipes and emergencies after hours',
       'Losing jobs to the first company that picks up',
@@ -72,6 +80,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Dental',
     headline: 'Never Miss a Patient After Hours',
     subtitle: '2-minute form — see how many appointments you\'re losing to voicemail.',
+    tickerLabel: 'appointments',
+    comparisonRole: 'Front Desk Coordinator',
     painPoints: [
       'After-hours calls going to voicemail',
       'New patient inquiries not followed up same day',
@@ -88,6 +98,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Legal',
     headline: 'High-Value Cases Go Cold Fast',
     subtitle: '2-minute form — see how many client inquiries you\'re losing while in court.',
+    tickerLabel: 'cases',
+    comparisonRole: 'Intake Coordinator',
     painPoints: [
       'Leads going cold while attorneys are in depositions',
       'After-hours inquiries going to competing firms',
@@ -104,6 +116,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Real Estate',
     headline: 'Hot Buyers Won\'t Wait 4 Hours',
     subtitle: '2-minute form — see how many commissions you\'re leaving on the table.',
+    tickerLabel: 'commissions',
+    comparisonRole: 'Admin Assistant',
     painPoints: [
       'Hot leads going cold between showings',
       'After-hours inquiry calls unanswered',
@@ -120,6 +134,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Insurance',
     headline: 'Quote Requests Sitting Unworked',
     subtitle: '2-minute form — see how many policies you\'re losing to delayed response.',
+    tickerLabel: 'policies',
+    comparisonRole: 'Office Receptionist',
     painPoints: [
       'Quote requests going unworked for hours',
       'After-hours inquiries going to online competitors',
@@ -136,6 +152,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'SaaS',
     headline: 'Trial Users Churn Before You Call',
     subtitle: '2-minute form — see how much MRR you\'re losing to slow onboarding response.',
+    tickerLabel: 'contracts',
+    comparisonRole: 'SDR / Sales Rep',
     painPoints: [
       'Trial signups not contacted within 5 minutes',
       'Demo requests going cold overnight',
@@ -152,6 +170,8 @@ const CONFIGS: Record<string, VerticalConfig> = {
     name:     'Wholesale',
     headline: 'Inbound Orders Sitting in Voicemail',
     subtitle: '2-minute form — see how many orders you\'re losing to manual delays.',
+    tickerLabel: 'orders',
+    comparisonRole: 'Order Desk Rep',
     painPoints: [
       'Inbound POs going unacknowledged for hours',
       'Reorder calls missing after business hours',
@@ -169,25 +189,28 @@ const CONFIGS: Record<string, VerticalConfig> = {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FormData {
-  businessName: string
-  ownerName:    string
-  phone:        string
-  email:        string
-  businessHours:string
-  callsPerWeek: string
-  answerRate:   string
-  jobValue:     string
-  painPoint:    string
+  businessName:     string
+  ownerName:        string
+  phone:            string
+  email:            string
+  businessHours:    string
+  callsPerWeek:     string
+  answerRate:       string
+  jobValue:         string
+  currentSetup:     string
+  primaryGoal:      string
+  heardFrom:        string
+  painPoint:        string
 }
 
 type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
 
 interface Props {
-  vertical:      Vertical
-  demoPhone?:    string
+  vertical:   Vertical
+  demoPhone?: string
 }
 
-// ── Shared input style ─────────────────────────────────────────────────────────
+// ── Shared input style ────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -201,6 +224,47 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 
+// ── Comparison table data ─────────────────────────────────────────────────────
+
+const COMPARISON = [
+  {
+    label:     'AI Receptionist',
+    price:     '$400/mo',
+    hours:     '24/7',
+    books:     true,
+    followsUp: true,
+    captures:  true,
+    highlight: true,
+  },
+  {
+    label:     'Human Receptionist',
+    price:     '$3,500+/mo',
+    hours:     'M–F 9–5',
+    books:     true,
+    followsUp: false,
+    captures:  false,
+    highlight: false,
+  },
+  {
+    label:     'Answering Service',
+    price:     '$250/mo',
+    hours:     '24/7',
+    books:     false,
+    followsUp: false,
+    captures:  false,
+    highlight: false,
+  },
+  {
+    label:     'Voicemail',
+    price:     '$0',
+    hours:     '24/7',
+    books:     false,
+    followsUp: false,
+    captures:  false,
+    highlight: false,
+  },
+]
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function VerticalIntakePage({ vertical, demoPhone }: Props) {
@@ -209,7 +273,8 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
 
   const [form, setForm] = useState<FormData>({
     businessName: '', ownerName: '', phone: '', email: '',
-    businessHours: '', callsPerWeek: '', answerRate: '', jobValue: '', painPoint: '',
+    businessHours: '', callsPerWeek: '', answerRate: '', jobValue: '',
+    currentSetup: '', primaryGoal: '', heardFrom: '', painPoint: '',
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -225,6 +290,18 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
     router.push(`/${vertical}/roi-calculator?data=${encoded}`)
   }
 
+  // ── Live loss ticker ───────────────────────────────────────────────────────
+  const liveLoss = useMemo(() => {
+    const calls  = Number(form.callsPerWeek) || 0
+    const answer = Number(form.answerRate)   || 0
+    const jobVal = Number(form.jobValue)     || 0
+    if (!calls || !jobVal || answer >= 100) return null
+    const missedPerMonth = calls * 4.33 * ((100 - answer) / 100)
+    return Math.round(missedPerMonth * jobVal)
+  }, [form.callsPerWeek, form.answerRate, form.jobValue])
+
+  const tickerVisible = liveLoss !== null && liveLoss > 0
+
   return (
     <>
       <style suppressHydrationWarning>{`
@@ -232,7 +309,17 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
         .vi-select { appearance: none; cursor: pointer; }
         .vi-select option { background: #0A0A0A; }
         .vi-btn:hover { background: #E8C94A !important; }
-        .vi-card { transition: border-color 0.2s; }
+        @keyframes ticker-in {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .ticker-enter { animation: ticker-in 0.35s ease forwards; }
+        @keyframes pulse-red {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+          50%       { box-shadow: 0 0 16px 2px rgba(248,113,113,0.15); }
+        }
+        .ticker-pulse { animation: pulse-red 2.5s ease infinite; }
+        .comp-row:hover td { background: rgba(212,175,55,0.04); }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#0A0A0A', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
@@ -251,28 +338,16 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
 
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px' }}>
 
+          {/* Live demo widget */}
+          {demoPhone && <LiveDemoWidget demoPhone={demoPhone} />}
+
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            {/* Product label — makes it explicit what they're getting */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <span style={{
-                padding: '4px 14px',
-                border: '1px solid rgba(212,175,55,0.25)',
-                borderRadius: 6,
-                background: 'rgba(212,175,55,0.05)',
-                fontFamily: 'monospace', fontSize: 9, color: '#D4AF37',
-                textTransform: 'uppercase', letterSpacing: '0.2em',
-              }}>
+              <span style={{ padding: '4px 14px', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 6, background: 'rgba(212,175,55,0.05)', fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
                 // 24/7 AI RECEPTIONIST
               </span>
-              <span style={{
-                padding: '4px 10px',
-                border: '1px solid rgba(74,222,128,0.2)',
-                borderRadius: 6,
-                background: 'rgba(74,222,128,0.05)',
-                fontFamily: 'monospace', fontSize: 9, color: '#4ADE80',
-                textTransform: 'uppercase', letterSpacing: '0.15em',
-              }}>
+              <span style={{ padding: '4px 10px', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, background: 'rgba(74,222,128,0.05)', fontFamily: 'monospace', fontSize: 9, color: '#4ADE80', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
                 {config.name}
               </span>
             </div>
@@ -284,10 +359,57 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
             </p>
           </div>
 
-          {/* Live demo widget — roofing only for now */}
-          {demoPhone && <LiveDemoWidget demoPhone={demoPhone} />}
+          {/* ── Comparison table ───────────────────────────────────────────── */}
+          <div style={{ marginBottom: 40 }}>
+            <p style={{ fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em', margin: '0 0 14px', textAlign: 'center' }}>
+              // WHY NOT JUST HIRE SOMEONE?
+            </p>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    {['', 'Monthly Cost', 'Available', 'Books Appts', 'Follows Up', 'Captures Data'].map((h, i) => (
+                      <th key={i} style={{ padding: '8px 12px', textAlign: i === 0 ? 'left' : 'center', fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON.map((row, i) => (
+                    <tr key={i} className="comp-row" style={{ background: row.highlight ? 'rgba(212,175,55,0.04)' : 'transparent' }}>
+                      <td style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', borderLeft: row.highlight ? '2px solid rgba(212,175,55,0.4)' : '2px solid transparent' }}>
+                        <span style={{ fontWeight: row.highlight ? 700 : 400, color: row.highlight ? '#D4AF37' : '#94A3B8', fontSize: 12 }}>
+                          {row.label}
+                        </span>
+                        {row.highlight && (
+                          <span style={{ marginLeft: 8, padding: '1px 6px', background: 'rgba(212,175,55,0.15)', borderRadius: 3, fontSize: 8, fontFamily: 'monospace', color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                            YOU ARE HERE
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: row.highlight ? '#4ADE80' : '#64748B', fontFamily: 'monospace', fontSize: 11, fontWeight: row.highlight ? 700 : 400, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        {row.price}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748B', fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        {row.hours}
+                      </td>
+                      {[row.books, row.followsUp, row.captures].map((val, j) => (
+                        <td key={j} style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          {val
+                            ? <span style={{ color: '#4ADE80', fontSize: 14 }}>✓</span>
+                            : <span style={{ color: '#334155', fontSize: 14 }}>✗</span>
+                          }
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-          {/* Form card */}
+          {/* ── Form card ──────────────────────────────────────────────────── */}
           <form onSubmit={handleSubmit} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '36px 32px' }}>
 
             {/* Section: Business Info */}
@@ -326,7 +448,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
               </div>
             </div>
 
-            {/* Section: Metrics */}
+            {/* Section: Your Numbers */}
             <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
                 // YOUR NUMBERS
@@ -360,6 +482,98 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
                     )}
                   </div>
                 ))}
+
+                {/* Live loss ticker */}
+                {tickerVisible && (
+                  <div
+                    className="ticker-enter ticker-pulse"
+                    style={{
+                      padding: '18px 20px',
+                      background: 'rgba(248,113,113,0.07)',
+                      border: '1px solid rgba(248,113,113,0.25)',
+                      borderRadius: 10,
+                      marginTop: 4,
+                    }}
+                  >
+                    <p style={{ margin: '0 0 4px', fontFamily: 'monospace', fontSize: 9, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                      // ESTIMATED MONTHLY REVENUE WALKING OUT THE DOOR
+                    </p>
+                    <p style={{ margin: '0 0 4px', fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 800, color: '#FCA5A5', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                      ${liveLoss!.toLocaleString()}
+                      <span style={{ fontSize: 14, fontWeight: 400, color: '#F87171', marginLeft: 6, fontFamily: 'monospace' }}>/mo</span>
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+                      That's <span style={{ color: '#FCA5A5', fontWeight: 600 }}>${(liveLoss! * 12).toLocaleString()}/year</span> in {config.tickerLabel} going to competitors who pick up the phone.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Section: Current Setup */}
+            <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <p style={{ margin: '0 0 16px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                // CURRENT SETUP
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 6 }}>
+                    How do you handle missed calls today?
+                  </label>
+                  <select
+                    className="vi-input vi-select"
+                    name="currentSetup"
+                    value={form.currentSetup}
+                    onChange={handleChange}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">Select one...</option>
+                    <option value="voicemail">Voicemail only</option>
+                    <option value="answering_service">Third-party answering service</option>
+                    <option value="employee">Another employee picks up</option>
+                    <option value="nothing">Calls just go unanswered</option>
+                    <option value="other">Something else</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 6 }}>
+                    What's your primary goal?
+                  </label>
+                  <select
+                    className="vi-input vi-select"
+                    name="primaryGoal"
+                    value={form.primaryGoal}
+                    onChange={handleChange}
+                    required
+                    style={inputStyle}
+                  >
+                    <option value="">Select one...</option>
+                    <option value="stop_missing_calls">Stop missing calls entirely</option>
+                    <option value="book_more_jobs">Book more jobs without more staff</option>
+                    <option value="better_followup">Automate follow-up and nurture</option>
+                    <option value="all">All of the above</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 6 }}>
+                    How did you hear about us? <span style={{ color: '#334155' }}>(optional)</span>
+                  </label>
+                  <select
+                    className="vi-input vi-select"
+                    name="heardFrom"
+                    value={form.heardFrom}
+                    onChange={handleChange}
+                    style={inputStyle}
+                  >
+                    <option value="">Select one...</option>
+                    <option value="cold_email">Email outreach</option>
+                    <option value="google">Google search</option>
+                    <option value="referral">Referral from someone I know</option>
+                    <option value="social">Social media</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -403,13 +617,28 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
                 letterSpacing: '-0.01em',
               }}
             >
-              {submitting ? 'Calculating...' : 'Calculate My Potential Savings →'}
+              {submitting ? 'Calculating...' : 'Show Me My Full ROI Analysis →'}
             </button>
             <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 11, color: '#334155', fontFamily: 'monospace' }}>
-              Next: ROI analysis + pricing tiers
+              Next: personalized ROI breakdown + pricing tiers
             </p>
 
           </form>
+
+          {/* Trust strip */}
+          <div style={{ marginTop: 32, padding: '20px 24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
+            {[
+              '✓  30-day results guarantee',
+              '✓  Live in 72 hours',
+              '✓  No long-term contracts',
+              '✓  Cancel anytime',
+            ].map(item => (
+              <span key={item} style={{ fontFamily: 'monospace', fontSize: 10, color: '#475569', letterSpacing: '0.05em' }}>
+                {item}
+              </span>
+            ))}
+          </div>
+
         </div>
       </div>
     </>
