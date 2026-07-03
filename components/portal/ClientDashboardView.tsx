@@ -41,6 +41,7 @@ type Props = {
   upgrade: UpgradePath
   subscription: Subscription
   notifications: Notification[]
+  lastCallAt: string | null   // ISO string of most recent call, or null
 }
 
 const OUTCOME_MAP: Record<string, { label: string; color: string; bg: string }> = {
@@ -70,6 +71,99 @@ function fmtDuration(seconds: number | null) {
   return m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
+function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
+  const hoursSince = lastCallAt
+    ? (Date.now() - new Date(lastCallAt).getTime()) / (1000 * 60 * 60)
+    : Infinity
+
+  let status: 'active' | 'quiet' | 'offline'
+  let color: string
+  let bg: string
+  let border: string
+  let dot: string
+  let headline: string
+  let detail: string
+
+  if (hoursSince < 24) {
+    status   = 'active'
+    color    = '#059669'
+    bg       = 'rgba(5,150,105,0.06)'
+    border   = 'rgba(5,150,105,0.2)'
+    dot      = '#4ADE80'
+    headline = 'Receptionist Active'
+    detail   = `Last call ${hoursSince < 1 ? 'less than an hour' : `${Math.floor(hoursSince)}h`} ago`
+  } else if (hoursSince < 48) {
+    status   = 'quiet'
+    color    = '#D97706'
+    bg       = 'rgba(217,119,6,0.06)'
+    border   = 'rgba(217,119,6,0.2)'
+    dot      = '#F59E0B'
+    headline = 'No Calls in 24+ Hours'
+    detail   = 'If forwarding is on and it\'s been slow, that\'s okay. If not, check forwarding below.'
+  } else {
+    status   = 'offline'
+    color    = '#DC2626'
+    bg       = 'rgba(220,38,38,0.06)'
+    border   = 'rgba(220,38,38,0.2)'
+    dot      = '#F87171'
+    headline = lastCallAt ? 'Receptionist May Be Inactive' : 'No Calls Received Yet'
+    detail   = lastCallAt
+      ? 'No calls in 48+ hours — verify call forwarding is active.'
+      : 'Set up call forwarding to start receiving calls through your AI receptionist.'
+  }
+
+  const [showHelp, setShowHelp] = useState(false)
+
+  return (
+    <div
+      className="mb-5 rounded-xl border p-4"
+      style={{ background: bg, borderColor: border }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            style={{ background: dot, boxShadow: status === 'active' ? `0 0 6px ${dot}` : 'none' }}
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold" style={{ color }}>{headline}</p>
+            <p className="text-xs mt-0.5 text-[var(--text-muted)] leading-snug">{detail}</p>
+          </div>
+        </div>
+        {status !== 'active' && (
+          <button
+            onClick={() => setShowHelp(h => !h)}
+            className="text-xs font-medium flex-shrink-0 underline underline-offset-2"
+            style={{ color }}
+          >
+            {showHelp ? 'Hide' : 'How to fix →'}
+          </button>
+        )}
+      </div>
+
+      {showHelp && status !== 'active' && (
+        <div className="mt-3 pt-3 border-t" style={{ borderColor: border }}>
+          <p className="text-xs font-semibold text-[var(--text-primary)] mb-2">Enable call forwarding (60 seconds):</p>
+          <ul className="space-y-1">
+            {[
+              ['AT&T / Verizon', 'Dial *72 then your Retell number'],
+              ['T-Mobile', 'Settings → Phone → Call Forwarding'],
+              ['Landline / VoIP', 'Check your provider\'s call forwarding settings'],
+            ].map(([carrier, inst]) => (
+              <li key={carrier} className="text-xs text-[var(--text-muted)]">
+                <span className="font-semibold text-[var(--text-primary)]">{carrier}:</span> {inst}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-[var(--text-muted)] mt-2">
+            Need help? Reply to your weekly report email — we'll walk you through it.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClientDashboardView({
   stats,
   recentCalls,
@@ -77,6 +171,7 @@ export default function ClientDashboardView({
   upgrade,
   subscription,
   notifications,
+  lastCallAt,
 }: Props) {
   const [isDark, setIsDark] = useState(false)
   const [selectedCall, setSelectedCall] = useState<Call | null>(null)
@@ -139,6 +234,9 @@ export default function ClientDashboardView({
           ))}
         </div>
       )}
+
+      {/* Receptionist status indicator */}
+      <ReceptionistStatus lastCallAt={lastCallAt} />
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3 mb-7">

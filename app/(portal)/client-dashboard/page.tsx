@@ -66,6 +66,7 @@ export default async function ClientDashboardPage() {
     { count: totalLeads },
     { data: recentCallsData },
     { data: notifications },
+    { data: lastCallRow },
   ] = await Promise.all([
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain),
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'booked'),
@@ -83,6 +84,12 @@ export default async function ClientDashboardPage() {
       .eq('dismissed', false)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabaseAdmin
+      .from('calls')
+      .select('created_at')
+      .eq('client_domain', clientDomain)
+      .order('created_at', { ascending: false })
+      .limit(1),
   ])
 
   const activeAgents = ((subscription.active_agents ?? []) as string[])
@@ -107,6 +114,7 @@ export default async function ClientDashboardPage() {
         vertical:      subscription.vertical,
       }}
       notifications={notifications ?? []}
+      lastCallAt={(lastCallRow ?? [])[0]?.created_at ?? null}
     />
   )
 }
