@@ -12,6 +12,7 @@ type Call = {
   created_at: string
   caller_name: string | null
   caller_phone: string
+  caller_address: string | null
   duration_seconds: number | null
   transcript: string | null
   call_outcome: string | null
@@ -653,6 +654,13 @@ export default function ClientDashboardView({
                   </span>
                 )}
               </div>
+
+              {selectedCall.caller_address && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg" style={{ background: 'var(--bg-elevated)' }}>
+                  <span className="text-[var(--text-muted)] flex-shrink-0 text-xs mt-0.5">📍</span>
+                  <p className="text-xs text-[var(--text-secondary)]">{selectedCall.caller_address}</p>
+                </div>
+              )}
 
               {selectedCall.transcript ? (
                 <div>

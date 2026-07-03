@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
 
     const updatePayload: Record<string, unknown> = {
       caller_name:       (custom?.caller_name       as string  | undefined) ?? null,
+      caller_address:    (custom?.caller_address     as string  | undefined) ?? null,
       issue_description: (custom?.issue_description as string  | undefined) ?? null,
       urgency:           (custom?.urgency           as string  | undefined) ?? null,
       call_successful:   (analysis?.call_successful as boolean | undefined) ?? null,

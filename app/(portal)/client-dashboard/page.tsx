@@ -90,7 +90,7 @@ export default async function ClientDashboardPage() {
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'no_answer'),
     supabaseAdmin
       .from('calls')
-      .select('id,created_at,caller_name,caller_phone,duration_seconds,transcript,call_outcome')
+      .select('id,created_at,caller_name,caller_phone,caller_address,duration_seconds,transcript,call_outcome')
       .eq('client_domain', clientDomain)
       .order('created_at', { ascending: false })
       .limit(10),
