@@ -1054,7 +1054,7 @@
         client_name:             document.getElementById('f-name').value.trim(),
         client_company:          document.getElementById('f-company').value.trim(),
         client_email:            document.getElementById('f-email').value.trim(),
-        website_url:             (urlVal === '' || urlVal.toLowerCase() === 'none') ? null : urlVal,
+        website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
         pain:                    document.getElementById('f-pain').value,
         industry_specific_field: document.getElementById('f-area').value.trim(),
         timestamp:               new Date().toISOString(),

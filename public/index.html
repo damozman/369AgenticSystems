@@ -1279,7 +1279,7 @@
         client_name:             (data.get('name')     || '').trim(),
         client_company:          (data.get('business') || '').trim(),
         client_email:            (data.get('email')    || '').trim(),
-        website_url:             (urlVal === '' || urlVal.toLowerCase() === 'none') ? null : urlVal,
+        website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
         pain:                    null,
         industry_specific_field: (data.get('business') || '').trim(),
         timestamp:               new Date().toISOString(),
