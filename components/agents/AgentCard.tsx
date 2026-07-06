@@ -109,7 +109,7 @@ const SIZE_CONFIG = {
 
 function imagePath(agent: AgentName, vertical: Vertical): string {
   const v = vertical === 'real-estate' ? 'real_estate' : vertical
-  return `/agents/${agent}/${agent}_${v}.png`
+  return `/agents/${agent}/${agent}_${v}.jpg`
 }
 
 export function AgentCard({ agent, vertical, size = 'medium', showDescription = true }: AgentCardProps) {

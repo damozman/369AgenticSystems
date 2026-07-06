@@ -256,7 +256,7 @@ export default async function AgentPage({ params }: { params: Promise<{ agent: s
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5', borderRadius: 20, overflow: 'hidden', border: `1px solid ${data.color}22`, boxShadow: `0 0 80px ${data.color}14` }}>
               <Image
-                src={`/agents/${data.slug}/${data.slug}_original.png`}
+                src={`/agents/${data.slug}/${data.slug}_original.jpg`}
                 alt={`${data.name} — ${data.role}`}
                 fill
                 className="object-cover"
