@@ -3,41 +3,28 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { TIERS as TIER_CONFIGS, SETUP_FEE } from '@/lib/tier-config'
 
-// ── Tiers ─────────────────────────────────────────────────────────────────────
+// ── Derive display-ready tiers from the single source of truth ────────────────
 
-const TIERS = [
-  {
-    name:        'Starter',
-    price:       400,
-    description: 'Best for: Small crews just getting started',
-    services:    ['24/7 AI Receptionist', 'Crystal Clear Call Quality', 'Lead capture + dashboard', 'SMS confirmations'],
-    includedFree: null as null | { label: string; value: string },
-  },
-  {
-    name:        'Pro',
-    price:       600,
-    badge:       'Most Popular',
-    description: 'Best for: Growing companies scaling fast',
-    services:    ['Everything in Starter', 'Lead follow-up automation', 'Nurture sequences', 'Conversion tracking'],
-    includedFree: {
-      label: 'Crystal Clear Call Quality — included free',
-      value: '$25/mo value',
-    },
-  },
-  {
-    name:        'Elite',
-    price:       750,
-    description: 'Best for: High-volume operations',
-    services:    ['Everything in Pro', 'Review request automation', 'Custom Business Intelligence', 'Priority support'],
-    includedFree: {
-      label: 'Crystal Clear + Custom BI — included free',
-      value: '$74/mo total value',
-    },
-  },
-]
+function getIncludedFree(tierIndex: number) {
+  if (tierIndex === 0) return null
+  const cumulative = TIER_CONFIGS.slice(0, tierIndex + 1)
+    .flatMap(t => t.features.filter(f => f.retellFeature))
+  if (cumulative.length === 0) return null
+  const labels = cumulative.map(f => f.badge ?? f.label).join(' + ')
+  const total  = cumulative.reduce((s, f) => s + (f.retailValue ?? 0), 0)
+  return { label: `${labels} — included free`, value: `$${total}/mo value` }
+}
 
-const SETUP_FEE = 1500
+const TIERS = TIER_CONFIGS.map((tier, i) => ({
+  name:         tier.name,
+  price:        tier.price,
+  badge:        tier.featured ? 'Most Popular' : undefined,
+  description:  tier.description,
+  services:     tier.features.filter(f => !f.isSection).map(f => f.label),
+  includedFree: getIncludedFree(i),
+}))
 const RECOVERY_RATE = 0.30 // conservative 30% of missed calls convert
 
 const ROI_COPY: Record<string, string> = {

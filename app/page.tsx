@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import EarlyAccessForm from '@/components/landing/EarlyAccessForm'
 import AmbientOrb from '@/components/landing/AmbientOrb'
 import { AgentTeamGrid } from '@/components/agents/AgentTeamGrid'
@@ -144,11 +145,30 @@ export default function HomePage() {
           <span style={{ fontFamily: "'Instrument Sans', monospace", fontSize: 15, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
             <span style={{ color: '#D4AF37' }}>369</span> AGENTIC SYSTEMS
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', boxShadow: '0 0 8px rgba(245,158,11,0.6)' }} />
-            <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-              EARLY ACCESS OPEN
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', boxShadow: '0 0 8px rgba(245,158,11,0.6)' }} />
+              <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                EARLY ACCESS OPEN
+              </span>
+            </div>
+            <Link
+              href="/book-demo"
+              style={{
+                padding: '8px 18px',
+                background: '#D4AF37',
+                color: '#0A0A0A',
+                borderRadius: 7,
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: 'none',
+                fontFamily: "'Instrument Sans', sans-serif",
+                letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Book a Call
+            </Link>
           </div>
         </nav>
 
