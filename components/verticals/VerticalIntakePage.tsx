@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LiveDemoWidget } from '@/components/portal/LiveDemoWidget'
+import { AgentTeamGrid } from '@/components/agents/AgentTeamGrid'
 
 // ── Vertical config ───────────────────────────────────────────────────────────
 
@@ -359,25 +360,9 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
             </p>
           </div>
 
-          {/* ── Meet Ava ───────────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 40, padding: '20px 24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(148,163,184,0.08)', borderRadius: 14 }}>
-            <div style={{ position: 'relative', width: 72, height: 90, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/agents/ava/ava_${vertical === 'real-estate' ? 'real_estate' : vertical}.jpg`}
-                alt="Ava — AI Receptionist"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 16, fontWeight: 700, color: '#D4AF37' }}>Ava</span>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', boxShadow: '0 0 6px rgba(74,222,128,0.6)', display: 'inline-block' }} />
-                <span style={{ fontFamily: 'monospace', fontSize: 8, color: '#4ADE80', textTransform: 'uppercase', letterSpacing: '0.15em' }}>LIVE</span>
-              </div>
-              <p style={{ margin: '0 0 4px', fontSize: 12, color: '#94A3B8' }}>Your AI Receptionist — answers every call, 24/7.</p>
-              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>// 369 AGENTIC SYSTEMS</p>
-            </div>
+          {/* ── Agent Team ─────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: 40 }}>
+            <AgentTeamGrid vertical={vertical} size="small" />
           </div>
 
           {/* ── Comparison table ───────────────────────────────────────────── */}

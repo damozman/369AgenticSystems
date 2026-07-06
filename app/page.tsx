@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import EarlyAccessForm from '@/components/landing/EarlyAccessForm'
 import AmbientOrb from '@/components/landing/AmbientOrb'
+import { AgentTeamGrid } from '@/components/agents/AgentTeamGrid'
 
 export const metadata: Metadata = {
   title: '369 Agentic Systems | AI Workforce Infrastructure',
@@ -251,62 +252,21 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Meet Ava */}
+        {/* Meet the Team */}
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <p style={{ margin: '0 0 12px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.22em' }}>
               // DIGITAL WORKFORCE — LIVE NOW
             </p>
             <div style={{ width: 44, height: 2, background: '#D4AF37', margin: '0 auto 20px' }} />
             <h2 style={{ margin: '0 0 12px', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 700, color: '#FFFFFF', fontFamily: "'Instrument Sans', sans-serif" }}>
-              Meet Ava
+              Meet the Team
             </h2>
-            <p style={{ margin: '0 auto', maxWidth: 480, fontSize: 15, color: '#64748B', lineHeight: 1.75 }}>
-              Your 24/7 AI receptionist — deployed across every vertical, answering calls, capturing leads, and booking appointments around the clock.
+            <p style={{ margin: '0 auto', maxWidth: 520, fontSize: 15, color: '#64748B', lineHeight: 1.75 }}>
+              Your autonomous AI workforce — deployed 24/7, handling intake, outreach, and intelligence across every vertical.
             </p>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-            {(['roofing', 'dental', 'legal', 'real-estate', 'insurance', 'saas'] as const).map((vertical) => {
-              const COLORS: Record<string, string> = {
-                roofing: '#FF4500', dental: '#EC4899', legal: '#60A5FA',
-                'real-estate': '#0EA5E9', insurance: '#14B8A6', saas: '#8B5CF6',
-              }
-              const VIRTUES: Record<string, string> = {
-                roofing: 'Never Miss a Storm Lead', dental: 'Patient Retention, Not Voicemail',
-                legal: 'High-Value Cases, Never Cold', 'real-estate': 'Lead Velocity, Always',
-                insurance: 'Every Quote, Every Follow-Up', saas: 'Churn Prevention, Conversion Focus',
-              }
-              const imgKey = vertical === 'real-estate' ? 'real_estate' : vertical
-              const color = COLORS[vertical]
-              return (
-                <div key={vertical} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                  padding: '20px 16px',
-                  background: 'rgba(255,255,255,0.03)',
-                  backdropFilter: 'blur(24px)',
-                  border: '1px solid rgba(148,163,184,0.08)',
-                  borderTop: `2px solid ${color}`,
-                  borderRadius: 14,
-                }}>
-                  <div style={{ position: 'relative', width: 120, height: 150, borderRadius: 10, overflow: 'hidden' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/agents/ava/ava_${imgKey}.jpg`} alt={`Ava for ${vertical}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${color}33 0%, transparent 55%)`, pointerEvents: 'none' }} />
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700, color, fontFamily: "'Instrument Sans', sans-serif" }}>Ava</p>
-                    <p style={{ margin: '0 0 6px', fontFamily: 'monospace', fontSize: 8, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.15em' }}>AI Receptionist · {vertical}</p>
-                    <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.55 }}>{VIRTUES[vertical]}</p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}99`, display: 'inline-block' }} />
-                    <span style={{ fontFamily: 'monospace', fontSize: 8, color, textTransform: 'uppercase', letterSpacing: '0.15em' }}>LIVE</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <AgentTeamGrid vertical="original" size="medium" />
         </section>
 
         {/* How it works */}
