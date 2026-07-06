@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 
 export type AgentName   = 'ava' | 'rex' | 'nova' | 'felix' | 'scout'
 export type Vertical    = 'roofing' | 'hvac' | 'plumbing' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'dental' | 'wholesale' | 'original'
@@ -119,23 +120,31 @@ export function AgentCard({ agent, vertical, size = 'medium', showDescription = 
   const dim        = SIZE_CONFIG[size]
 
   return (
+    <Link
+      href={`/agents/${agent}`}
+      style={{ textDecoration: 'none', display: 'block' }}
+      title={`Learn more about ${agentCfg.name}`}
+    >
     <div
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 12, padding: '20px 16px', borderRadius: 14,
         background: 'rgba(255,255,255,0.02)',
         border: `1px solid ${color}33`,
-        transition: 'border-color 0.2s, box-shadow 0.2s',
+        transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
+        cursor: 'pointer',
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLDivElement
         el.style.borderColor = `${color}66`
         el.style.boxShadow   = `0 0 24px ${color}18`
+        el.style.transform   = 'translateY(-3px)'
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement
         el.style.borderColor = `${color}33`
         el.style.boxShadow   = 'none'
+        el.style.transform   = 'translateY(0)'
       }}
     >
       {/* Status badge */}
@@ -179,5 +188,6 @@ export function AgentCard({ agent, vertical, size = 'medium', showDescription = 
         </p>
       )}
     </div>
+    </Link>
   )
 }
