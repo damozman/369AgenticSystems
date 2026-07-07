@@ -44,7 +44,7 @@ const AGENT_CONFIGS: Record<AgentName, {
       hvac:          { role: 'Seasonal Outreach',      virtue: 'Pre-season campaigns + reminders',       status: 'deploying' },
       plumbing:      { role: 'Emergency Follow-up',    virtue: 'Recovers missed emergency calls',        status: 'deploying' },
       legal:         { role: 'Lead Recovery Agent',    virtue: 'Follows up on every cold intake',        status: 'deploying' },
-      'real-estate': { role: 'Speed-to-Lead Agent',    virtue: 'SMS within 90 seconds of new leads',     status: 'deploying' },
+      'real-estate': { role: 'Speed-to-Lead Agent',    virtue: 'Follow-up within 90 seconds of new leads', status: 'deploying' },
       insurance:     { role: 'Renewal Guardian',       virtue: '30/14/7 day renewal sequences',          status: 'deploying' },
       saas:          { role: 'Trial Nurture Agent',    virtue: 'Onboarding sequences + churn prevention',status: 'deploying' },
       dental:        { role: 'Reactivation Agent',     virtue: 'Brings back lapsed patients',            status: 'future'    },
@@ -55,7 +55,7 @@ const AGENT_CONFIGS: Record<AgentName, {
     name: 'Nova', defaultRole: 'Intelligence + Delivery', defaultVirtue: 'Handles the work nobody wants to do', defaultStatus: 'deploying',
     verticals: {
       original:      { role: 'Intelligence + Delivery', virtue: 'Handles the work nobody wants to do',   status: 'deploying' },
-      roofing:       { role: 'SMS Estimating Agent',     virtue: 'Delivers estimates automatically',      status: 'deploying' },
+      roofing:       { role: 'Estimate Delivery Agent',  virtue: 'Delivers estimates automatically',      status: 'deploying' },
       hvac:          { role: 'Maintenance Reports',      virtue: 'Service history + diagnostics',         status: 'deploying' },
       plumbing:      { role: 'Quote Delivery Agent',     virtue: 'Instant quotes while they wait',        status: 'deploying' },
       legal:         { role: 'Document Drafting Agent',  virtue: 'Drafts engagement letters instantly',   status: 'deploying' },

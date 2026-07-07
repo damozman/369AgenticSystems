@@ -34,7 +34,7 @@ export const TIERS: Tier[] = [
       { label: '24/7 AI Receptionist' },
       { label: 'Crystal Clear Call Quality', retellFeature: true, retailValue: 25, badge: 'Crystal Clear' },
       { label: 'Lead capture + real-time dashboard' },
-      { label: 'SMS booking confirmations' },
+      { label: 'Email booking confirmations' },
       { label: 'Daily email summaries' },
       { label: '24/7 chat support' },
     ],

@@ -12,7 +12,7 @@ const TIER_EMAIL_FEATURES: Record<string, string[]> = {
     '24/7 AI Receptionist',
     'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
     'Real-time lead capture dashboard',
-    'SMS booking confirmations',
+    'Email booking confirmations',
     'Daily performance summaries',
   ],
   Pro: [
