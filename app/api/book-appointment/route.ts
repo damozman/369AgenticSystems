@@ -49,10 +49,13 @@ export async function POST(request: NextRequest) {
     .eq('call_id', call_id)
     .maybeSingle()
 
-  // Find linked lead (if capture-lead ran first)
-  const { data: leadRow } = callRow
-    ? await supabase.from('leads').select('id').eq('call_id', callRow.id).maybeSingle()
+  // Find linked lead (if capture-lead ran first). Ordered + limited to 1 so a stray
+  // duplicate row (pre-upsert-constraint data, or any future edge case) can't turn this
+  // into a silent null via .maybeSingle() erroring on >1 row.
+  const { data: leadRows } = callRow
+    ? await supabase.from('leads').select('id').eq('call_id', callRow.id).order('created_at', { ascending: false }).limit(1)
     : { data: null }
+  const leadRow = leadRows?.[0] ?? null
 
   // Falls back to the demo line's client_domain if not supplied — matches call-received's convention.
   const resolvedClientDomain = client_domain ?? callRow?.client_domain ?? 'demo.369agenticsystems.com'

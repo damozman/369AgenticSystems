@@ -61,9 +61,12 @@ export async function POST(request: NextRequest) {
   // Falls back to the demo line's client_domain if not supplied — matches call-received's convention.
   const resolvedClientDomain = client_domain ?? callRow?.client_domain ?? 'demo.369agenticsystems.com'
 
+  // Upsert on call_id — the LLM can call this tool more than once per call as it learns
+  // more about the caller (or duplicate-call in a single turn); this keeps one row per
+  // call instead of creating duplicates. Requires `leads.call_id` to have a UNIQUE constraint.
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .insert({
+    .upsert({
       call_id:           callRow?.id ?? null,
       client_domain:     resolvedClientDomain,
       caller_phone,
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       caller_email:      caller_email      ?? null,
       issue_description: issue_description ?? null,
       urgency:           urgency           ?? 'normal',
-    })
+    }, { onConflict: 'call_id' })
     .select()
     .single()
 

@@ -340,3 +340,19 @@ CREATE POLICY "nova: auth read"      ON nova_deliveries     FOR SELECT TO authen
 CREATE POLICY "conflicts: auth read" ON conflict_checks     FOR SELECT TO authenticated USING (true);
 -- Service-role key (used by API routes) bypasses RLS for writes automatically.
 
+
+-- ── leads.call_id uniqueness ──────────────────────────────────────────────────
+-- Fixes a real bug found in testing: Retell's LLM sometimes calls the capture_lead
+-- tool twice in one turn, which created duplicate lead rows for the same call and
+-- broke book-appointment's lead lookup (it silently returned null via .maybeSingle()
+-- erroring on >1 match). capture-lead now upserts on call_id instead of inserting.
+-- Run this AFTER the block above — first dedupes any existing duplicates (keeps the
+-- newest row per call_id), then adds the constraint the upsert relies on.
+
+DELETE FROM leads a USING leads b
+  WHERE a.call_id = b.call_id
+    AND a.call_id IS NOT NULL
+    AND a.created_at < b.created_at;
+
+ALTER TABLE leads ADD CONSTRAINT leads_call_id_unique UNIQUE (call_id);
+
