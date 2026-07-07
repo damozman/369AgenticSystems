@@ -267,6 +267,7 @@
       border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     @media (max-width: 900px) { .two-col { grid-template-columns: 1fr !important; gap: 48px !important; } }
+    @media (max-width: 480px) { .stat-row-3 { grid-template-columns: 1fr !important; gap: 24px !important; } .stat-row-3 > div { border: none !important; } }
 
     /* ── Bento grid ───────────────────────────────────────────────────────── */
     .bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -695,7 +696,7 @@
         <div class="glass bento-card span2 reveal d3" style="padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(255,69,0,0.02) 100%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
+          <div class="two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
             <div>
               <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
                 <div style="width:44px; height:44px; background:rgba(39,201,63,0.1); border:1px solid rgba(39,201,63,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;" aria-hidden="true">
@@ -788,7 +789,7 @@
         <div style="height:1px; background:linear-gradient(90deg, transparent, rgba(255,69,0,0.35), transparent); margin-bottom:44px;" aria-hidden="true"></div>
 
         <!-- Results -->
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
+        <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Loss</div>
             <div id="weekly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$75k</div>

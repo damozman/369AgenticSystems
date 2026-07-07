@@ -344,6 +344,10 @@
     @media (max-width: 900px) {
       .two-col { grid-template-columns: 1fr !important; gap: 48px !important; }
     }
+    @media (max-width: 480px) {
+      .stat-row-3 { grid-template-columns: 1fr !important; gap: 24px !important; }
+      .stat-row-3 > div { border: none !important; }
+    }
 
     /* ── Bento Grid ──────────────────────────────────────────────────────── */
     .bento {
@@ -891,7 +895,7 @@
         <div style="height:1px; background:linear-gradient(90deg, transparent, rgba(139,92,246,0.35), transparent); margin-bottom:44px;"></div>
 
         <!-- Results -->
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
+        <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Budget Freed / Mo</div>
             <div id="budget-freed" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$4,000</div>

@@ -134,6 +134,7 @@
     .problem-row:last-child { border-bottom: none; }
     .problem-icon { width: 42px; height: 42px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     @media(max-width:900px){.two-col{grid-template-columns:1fr !important;gap:48px !important;}}
+    @media(max-width:480px){.stat-row-3{grid-template-columns:1fr !important;gap:24px !important;}.stat-row-3>div{border:none !important;}}
 
     .bento { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
     @media(max-width:1024px){.bento{grid-template-columns:repeat(2,1fr);}.span2{grid-column:span 1 !important;}}
@@ -464,7 +465,7 @@
 
         <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(3,105,161,0.4),transparent);margin-bottom:44px;" aria-hidden="true"></div>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:center;margin-bottom:44px;">
+        <div class="stat-row-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:center;margin-bottom:44px;">
           <div><div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Weekly Loss</div><div id="weekly-cost" class="font-display" style="font-size:2rem;font-weight:600;color:var(--red-accent);">$2.2k</div></div>
           <div style="border-left:1px solid var(--glass-border);border-right:1px solid var(--glass-border);">
             <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Monthly Loss</div>

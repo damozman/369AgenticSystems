@@ -195,6 +195,12 @@ export default async function AgentPage({ params }: { params: Promise<{ agent: s
 
   return (
     <div style={{ background: '#0A0A0A', minHeight: '100vh', color: '#F0F0F0', fontFamily: 'var(--font-inter, Inter, sans-serif)' }}>
+      <style suppressHydrationWarning>{`
+        @media (max-width: 760px) {
+          .agent-hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .agent-hero-grid > div:last-child { max-width: 320px; margin-inline: auto; }
+        }
+      `}</style>
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
       <nav style={{ position: 'fixed', top: 0, width: '100%', zIndex: 100, borderBottom: '1px solid rgba(148,163,184,0.07)', background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
@@ -217,7 +223,7 @@ export default async function AgentPage({ params }: { params: Promise<{ agent: s
         <div aria-hidden style={{ position: 'absolute', top: '10%', left: '5%', width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${data.color}0F 0%, transparent 70%)`, pointerEvents: 'none', filter: 'blur(40px)' }} />
         <div aria-hidden style={{ position: 'absolute', bottom: '10%', right: '5%', width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, ${data.color}08 0%, transparent 70%)`, pointerEvents: 'none', filter: 'blur(60px)' }} />
 
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 400px', gap: 80, alignItems: 'center' }}>
+        <div className="agent-hero-grid" style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 400px', gap: 80, alignItems: 'center' }}>
 
           {/* Left: info */}
           <div>
