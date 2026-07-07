@@ -7,22 +7,25 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
-  let body: Record<string, unknown>
+  let raw: Record<string, unknown>
   try {
-    body = await request.json()
+    raw = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
+  // Retell custom tools POST { name, call: { call_id, ... }, args: {...} }.
+  // Still accept a flat body too, for direct/manual calls (e.g. Nova internal trigger, testing).
+  const retellCall = raw.call as { call_id?: string } | undefined
+  const source     = (raw.args ?? raw) as Record<string, unknown>
+
   const {
-    call_id,
     client_domain,
     appointment_date,
     appointment_time,
     service_type,
     location,
-  } = body as {
-    call_id?:          string
+  } = source as {
     client_domain?:    string
     appointment_date?: string
     appointment_time?: string
@@ -30,9 +33,11 @@ export async function POST(request: NextRequest) {
     location?:         string
   }
 
-  if (!call_id || !client_domain || !appointment_date || !appointment_time) {
+  const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
+
+  if (!call_id || !appointment_date || !appointment_time) {
     return NextResponse.json(
-      { error: 'Missing required fields: call_id, client_domain, appointment_date, appointment_time' },
+      { error: 'Missing required fields: call_id, appointment_date, appointment_time' },
       { status: 400 }
     )
   }
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
   // Resolve Retell call_id string → Supabase UUID
   const { data: callRow } = await supabase
     .from('calls')
-    .select('id')
+    .select('id, client_domain')
     .eq('call_id', call_id)
     .maybeSingle()
 
@@ -49,12 +54,15 @@ export async function POST(request: NextRequest) {
     ? await supabase.from('leads').select('id').eq('call_id', callRow.id).maybeSingle()
     : { data: null }
 
+  // Falls back to the demo line's client_domain if not supplied — matches call-received's convention.
+  const resolvedClientDomain = client_domain ?? callRow?.client_domain ?? 'demo.369agenticsystems.com'
+
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .insert({
       call_id:          callRow?.id ?? null,
       lead_id:          leadRow?.id ?? null,
-      client_domain,
+      client_domain:    resolvedClientDomain,
       appointment_date,
       appointment_time,
       service_type:     service_type ?? null,
@@ -76,7 +84,7 @@ export async function POST(request: NextRequest) {
       .eq('id', callRow.id)
   }
 
-  console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${client_domain}`)
+  console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${resolvedClientDomain}`)
 
   // Fire Nova (booking confirmation) — non-fatal
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
