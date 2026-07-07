@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     caller_phone,
     caller_name,
     caller_address,
+    caller_email,
     issue_description,
     urgency,
   } = body as {
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     caller_phone?:      string
     caller_name?:       string
     caller_address?:    string
+    caller_email?:      string
     issue_description?: string
     urgency?:           string
   }
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
       caller_phone,
       caller_name:       caller_name       ?? null,
       caller_address:    caller_address    ?? null,
+      caller_email:      caller_email      ?? null,
       issue_description: issue_description ?? null,
       urgency:           urgency           ?? 'normal',
     })
@@ -71,5 +74,22 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`[LEAD] ✓  Captured — ${caller_phone} @ ${client_domain}`)
+
+  // Fire Rex (follow-up) and Felix (conflict check, legal-only — gated inside its own route) — non-fatal
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (appUrl) {
+    fetch(`${appUrl}/api/rex/trigger`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ lead_id: lead.id }),
+    }).catch(err => console.error('[REX TRIGGER] Failed:', err))
+
+    fetch(`${appUrl}/api/felix/conflict-check`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ lead_id: lead.id }),
+    }).catch(err => console.error('[FELIX TRIGGER] Failed:', err))
+  }
+
   return NextResponse.json({ success: true, lead })
 }

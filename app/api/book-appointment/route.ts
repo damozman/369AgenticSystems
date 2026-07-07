@@ -77,5 +77,16 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${client_domain}`)
+
+  // Fire Nova (booking confirmation) — non-fatal
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (appUrl) {
+    fetch(`${appUrl}/api/nova/booking-confirmation`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ booking_id: booking.id }),
+    }).catch(err => console.error('[NOVA TRIGGER] Failed:', err))
+  }
+
   return NextResponse.json({ success: true, booking })
 }

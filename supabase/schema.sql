@@ -274,3 +274,69 @@ CREATE POLICY "system_audits: authenticated read"
 
 -- Service-role INSERT from /api/update-dossier bypasses RLS — no policy needed.
 
+
+-- ── Rex + Nova + Felix Agent Tables ──────────────────────────────────────────
+-- Run this block in the Supabase SQL Editor before deploying the Rex/Nova/Felix routes.
+
+-- Rex: tracks follow-up sequence state per lead
+CREATE TABLE IF NOT EXISTS follow_up_sequences (
+  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  lead_id           UUID REFERENCES leads(id) ON DELETE CASCADE,
+  client_domain     TEXT NOT NULL,
+  vertical          TEXT NOT NULL DEFAULT 'roofing',
+  sequence_step     INT DEFAULT 0,
+  step_0_sent_at    TIMESTAMPTZ,
+  step_1_sent_at    TIMESTAMPTZ,
+  step_2_sent_at    TIMESTAMPTZ,
+  completed         BOOLEAN DEFAULT FALSE,
+  converted         BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_sequences_lead     ON follow_up_sequences(lead_id);
+CREATE INDEX idx_sequences_domain   ON follow_up_sequences(client_domain);
+CREATE INDEX idx_sequences_complete ON follow_up_sequences(completed);
+
+-- Nova: logs every delivery
+CREATE TABLE IF NOT EXISTS nova_deliveries (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  booking_id    UUID REFERENCES bookings(id) ON DELETE CASCADE,
+  lead_id       UUID REFERENCES leads(id),
+  client_domain TEXT NOT NULL,
+  vertical      TEXT NOT NULL DEFAULT 'roofing',
+  delivery_type TEXT NOT NULL,
+  content       TEXT,
+  sent_to_email TEXT,
+  sent_to_phone TEXT,
+  status        TEXT DEFAULT 'sent'
+);
+
+CREATE INDEX idx_nova_booking ON nova_deliveries(booking_id);
+CREATE INDEX idx_nova_domain  ON nova_deliveries(client_domain);
+
+-- Felix: logs every conflict check
+CREATE TABLE IF NOT EXISTS conflict_checks (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  intake_lead_id  UUID REFERENCES leads(id),
+  client_domain   TEXT NOT NULL,
+  prospect_name   TEXT,
+  case_type       TEXT,
+  conflict_found  BOOLEAN DEFAULT FALSE,
+  conflict_detail TEXT,
+  flagged_at      TIMESTAMPTZ
+);
+
+CREATE INDEX idx_conflicts_domain ON conflict_checks(client_domain);
+CREATE INDEX idx_conflicts_flag   ON conflict_checks(conflict_found);
+
+ALTER TABLE follow_up_sequences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nova_deliveries     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conflict_checks     ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sequences: auth read" ON follow_up_sequences FOR SELECT TO authenticated USING (true);
+CREATE POLICY "nova: auth read"      ON nova_deliveries     FOR SELECT TO authenticated USING (true);
+CREATE POLICY "conflicts: auth read" ON conflict_checks     FOR SELECT TO authenticated USING (true);
+-- Service-role key (used by API routes) bypasses RLS for writes automatically.
+

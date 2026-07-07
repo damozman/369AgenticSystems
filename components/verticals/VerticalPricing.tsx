@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
-import { TIERS, SETUP_FEE, type TierFeature } from '@/lib/tier-config'
+import { TIERS, SETUP_FEE, type TierFeature, type TierName } from '@/lib/tier-config'
+import { STRIPE_PAYMENT_LINKS } from '@/lib/stripe-config'
 
 // ── Vertical copy ─────────────────────────────────────────────────────────────
 
@@ -143,7 +144,12 @@ export function VerticalPricing({ vertical }: Props) {
     if (tier) setSelectedTier(tier)
   }, [searchParams])
 
-  function handleCTA(tierName: string) {
+  function handleCTA(tierName: TierName) {
+    const stripeLink = STRIPE_PAYMENT_LINKS[tierName]
+    if (stripeLink) {
+      window.location.href = `${stripeLink}?client_reference_id=${vertical}`
+      return
+    }
     sessionStorage.setItem('finalTier',     tierName)
     sessionStorage.setItem('finalVertical', vertical)
     router.push('/book-demo')
@@ -257,7 +263,7 @@ export function VerticalPricing({ vertical }: Props) {
                       fontFamily:   'var(--font-display)',
                     }}
                   >
-                    Get Started with {tier.name}
+                    {STRIPE_PAYMENT_LINKS[tier.name] ? `Start Today — ${tier.name}` : `Get Started with ${tier.name}`}
                   </button>
 
                   {/* Vertical urgency note */}
