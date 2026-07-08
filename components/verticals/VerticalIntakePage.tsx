@@ -266,6 +266,20 @@ const COMPARISON = [
   },
 ]
 
+// One shared demo line handles every vertical — Ava listens for what the caller
+// needs and adapts. This is just the on-page hint telling them what to say.
+const DEMO_HINTS: Record<string, string> = {
+  roofing:       'Say you need a roof inspection',
+  hvac:          'Say your AC or heater is out',
+  plumbing:      'Say you have a plumbing emergency',
+  dental:        'Say you need to book a dental appointment',
+  legal:         'Say you need a legal consultation',
+  'real-estate': "Say you're looking to buy or sell a home",
+  insurance:     'Say you need an insurance quote',
+  saas:          'Say you want a product demo',
+  wholesale:     'Say you need to place a bulk order',
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function VerticalIntakePage({ vertical, demoPhone }: Props) {
@@ -340,7 +354,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px 80px' }}>
 
           {/* Live demo widget */}
-          {demoPhone && <LiveDemoWidget demoPhone={demoPhone} />}
+          {demoPhone && <LiveDemoWidget demoPhone={demoPhone} promptHint={DEMO_HINTS[vertical]} />}
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>

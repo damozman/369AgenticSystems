@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function HVACPage() {
-  return <VerticalIntakePage vertical="hvac" />
+  return <VerticalIntakePage vertical="hvac" demoPhone="(817) 635-0220" />
 }

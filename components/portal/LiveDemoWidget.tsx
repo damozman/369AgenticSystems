@@ -12,10 +12,11 @@ interface DemoCall {
 }
 
 interface Props {
-  demoPhone: string
+  demoPhone:  string
+  promptHint?: string
 }
 
-export function LiveDemoWidget({ demoPhone }: Props) {
+export function LiveDemoWidget({ demoPhone, promptHint = 'Say what you need — Ava handles every industry' }: Props) {
   const [calls, setCalls]               = useState<DemoCall[]>([])
   const [justCaptured, setJustCaptured] = useState(false)
 
@@ -119,7 +120,7 @@ export function LiveDemoWidget({ demoPhone }: Props) {
           Hear It Work. Right Now.
         </h2>
         <p style={{ color: '#94A3B8', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-          Call this number. Say you need a roof inspection.<br />
+          Call this number. {promptHint}.<br />
           Watch what happens below.
         </p>
       </div>

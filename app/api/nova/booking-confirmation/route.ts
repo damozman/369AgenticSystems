@@ -42,21 +42,38 @@ export async function POST(request: NextRequest) {
   const { data: lead } = booking.lead_id
     ? await supabase
         .from('leads')
-        .select('caller_name, caller_phone, caller_email')
+        .select('caller_name, caller_phone, caller_email, vertical')
         .eq('id', booking.lead_id)
         .maybeSingle()
     : { data: null }
 
-  const { data: subscription } = await supabase
-    .from('agent_subscriptions')
-    .select('vertical')
-    .eq('client_domain', booking.client_domain)
-    .maybeSingle()
+  // Prefer Ava's live classification on the lead; fall back to the client's real
+  // subscription for paying customers.
+  let rawVertical = lead?.vertical as string | undefined
+  if (!rawVertical) {
+    const { data: subscription } = await supabase
+      .from('agent_subscriptions')
+      .select('vertical')
+      .eq('client_domain', booking.client_domain)
+      .maybeSingle()
+    rawVertical = subscription?.vertical as string | undefined
+  }
 
-  const rawVertical = subscription?.vertical as string | undefined
-  const vertical: NovaVertical = NOVA_VERTICALS.includes(rawVertical as NovaVertical)
-    ? (rawVertical as NovaVertical)
-    : 'roofing'
+  const isSupported = rawVertical ? NOVA_VERTICALS.includes(rawVertical as NovaVertical) : false
+
+  // A real vertical was identified, just not one we have templates for yet — skip
+  // rather than send mismatched-industry copy (e.g. roofing language on a legal booking).
+  if (rawVertical && !isSupported) {
+    await supabase.from('nova_deliveries').insert({
+      booking_id, lead_id: booking.lead_id, client_domain: booking.client_domain,
+      vertical: rawVertical, delivery_type: 'booking_confirmation_email',
+      content: null, sent_to_email: null, sent_to_phone: null, status: 'skipped_unsupported_vertical',
+    })
+    console.log(`[NOVA] ⚠  Skipped booking ${booking_id} — no templates yet for vertical "${rawVertical}"`)
+    return NextResponse.json({ success: true, status: 'skipped_unsupported_vertical' })
+  }
+
+  const vertical: NovaVertical = isSupported ? (rawVertical as NovaVertical) : 'roofing'
 
   let status = 'sent'
   let content = ''

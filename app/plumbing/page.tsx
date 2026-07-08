@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function PlumbingPage() {
-  return <VerticalIntakePage vertical="plumbing" />
+  return <VerticalIntakePage vertical="plumbing" demoPhone="(817) 635-0220" />
 }

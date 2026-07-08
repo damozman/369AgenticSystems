@@ -356,3 +356,15 @@ DELETE FROM leads a USING leads b
 
 ALTER TABLE leads ADD CONSTRAINT leads_call_id_unique UNIQUE (call_id);
 
+
+-- ── leads.vertical (multi-vertical shared demo line) ─────────────────────────
+-- Ava now classifies which industry the caller needs (roofing, hvac, plumbing,
+-- legal, real-estate, insurance, saas, wholesale, dental) live on the call, since
+-- one shared demo number now fields callers across all verticals rather than
+-- assuming every caller is a roofing lead. Rex/Nova read this to pick the right
+-- follow-up templates (and skip sending mismatched-industry copy for verticals
+-- that don't have real templates yet).
+
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS vertical TEXT;
+CREATE INDEX IF NOT EXISTS idx_leads_vertical ON leads(vertical);
+

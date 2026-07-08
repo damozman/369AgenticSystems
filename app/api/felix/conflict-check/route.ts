@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .select('id, client_domain, caller_name, issue_description')
+    .select('id, client_domain, caller_name, issue_description, vertical')
     .eq('id', lead_id)
     .maybeSingle()
 
@@ -75,13 +75,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Lead not found or missing name' }, { status: 404 })
   }
 
-  const { data: subscription } = await supabase
-    .from('agent_subscriptions')
-    .select('vertical')
-    .eq('client_domain', lead.client_domain)
-    .maybeSingle()
+  // Prefer Ava's live classification on the lead (covers the shared demo line, which has
+  // no real subscription row); fall back to the client's real subscription for paying customers.
+  let isLegal = lead.vertical === 'legal'
+  if (!isLegal && !lead.vertical) {
+    const { data: subscription } = await supabase
+      .from('agent_subscriptions')
+      .select('vertical')
+      .eq('client_domain', lead.client_domain)
+      .maybeSingle()
+    isLegal = subscription?.vertical === 'legal'
+  }
 
-  if (subscription?.vertical !== 'legal') {
+  if (!isLegal) {
     return NextResponse.json({ skipped: 'not a legal vertical client' })
   }
 

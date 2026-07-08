@@ -6,6 +6,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const VALID_VERTICALS = [
+  'roofing', 'hvac', 'plumbing', 'legal', 'real-estate',
+  'insurance', 'saas', 'wholesale', 'dental',
+]
+
 export async function POST(request: NextRequest) {
   let raw: Record<string, unknown>
   try {
@@ -27,6 +32,7 @@ export async function POST(request: NextRequest) {
     caller_email,
     issue_description,
     urgency,
+    vertical,
   } = source as {
     client_domain?:     string
     caller_phone?:      string
@@ -35,7 +41,10 @@ export async function POST(request: NextRequest) {
     caller_email?:      string
     issue_description?: string
     urgency?:           string
+    vertical?:          string
   }
+
+  const resolvedVertical = vertical && VALID_VERTICALS.includes(vertical) ? vertical : null
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
 
@@ -61,20 +70,26 @@ export async function POST(request: NextRequest) {
   // Falls back to the demo line's client_domain if not supplied — matches call-received's convention.
   const resolvedClientDomain = client_domain ?? callRow?.client_domain ?? 'demo.369agenticsystems.com'
 
-  // Upsert on call_id — the LLM can call this tool more than once per call as it learns
-  // more about the caller (or duplicate-call in a single turn); this keeps one row per
-  // call instead of creating duplicates. Requires `leads.call_id` to have a UNIQUE constraint.
+  // The LLM calls this tool more than once per call as it learns more about the caller (or
+  // occasionally twice in one turn) — and doesn't reliably re-include every field it already
+  // gave us on earlier calls. Fetch whatever's already on file for this call_id and merge,
+  // so a later call with fewer fields can't blank out data an earlier call already captured.
+  const { data: existingLead } = callRow?.id
+    ? await supabase.from('leads').select('*').eq('call_id', callRow.id).maybeSingle()
+    : { data: null }
+
   const { data: lead, error: leadError } = await supabase
     .from('leads')
     .upsert({
       call_id:           callRow?.id ?? null,
       client_domain:     resolvedClientDomain,
       caller_phone,
-      caller_name:       caller_name       ?? null,
-      caller_address:    caller_address    ?? null,
-      caller_email:      caller_email      ?? null,
-      issue_description: issue_description ?? null,
-      urgency:           urgency           ?? 'normal',
+      caller_name:       caller_name       ?? existingLead?.caller_name       ?? null,
+      caller_address:    caller_address    ?? existingLead?.caller_address    ?? null,
+      caller_email:      caller_email      ?? existingLead?.caller_email      ?? null,
+      issue_description: issue_description ?? existingLead?.issue_description ?? null,
+      urgency:           urgency           ?? existingLead?.urgency           ?? 'normal',
+      vertical:          resolvedVertical  ?? existingLead?.vertical          ?? null,
     }, { onConflict: 'call_id' })
     .select()
     .single()

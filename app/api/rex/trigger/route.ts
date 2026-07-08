@@ -9,15 +9,33 @@ const supabase = createClient(
 
 const REX_VERTICALS: RexVertical[] = ['roofing', 'hvac', 'plumbing']
 
-async function resolveVertical(clientDomain: string): Promise<RexVertical> {
+// Resolves which vertical's follow-up templates to use, or signals that this lead's
+// vertical doesn't have real templates yet (so the caller should skip firing rather
+// than send mismatched-industry copy — e.g. a legal prospect getting a roofing email).
+async function resolveVertical(lead: { client_domain: string; vertical: string | null }): Promise<RexVertical | 'unsupported' | 'unknown'> {
+  // 1. Trust Ava's live classification first, if it's one we have templates for.
+  if (lead.vertical && REX_VERTICALS.includes(lead.vertical as RexVertical)) {
+    return lead.vertical as RexVertical
+  }
+
+  // 2. Real paying client — use their subscribed vertical.
   const { data } = await supabase
     .from('agent_subscriptions')
     .select('vertical')
-    .eq('client_domain', clientDomain)
+    .eq('client_domain', lead.client_domain)
     .maybeSingle()
+  const subVertical = data?.vertical as string | undefined
+  if (subVertical && REX_VERTICALS.includes(subVertical as RexVertical)) {
+    return subVertical as RexVertical
+  }
 
-  const vertical = data?.vertical as string | undefined
-  return REX_VERTICALS.includes(vertical as RexVertical) ? (vertical as RexVertical) : 'roofing'
+  // 3. A real vertical was identified (by Ava or the subscription), just not one we
+  //    have templates for yet.
+  if (lead.vertical || subVertical) return 'unsupported'
+
+  // 4. No vertical info at all (legacy data predating this field) — fall back to
+  //    roofing, the original single-vertical default.
+  return 'unknown'
 }
 
 export async function POST(request: NextRequest) {
@@ -35,7 +53,7 @@ export async function POST(request: NextRequest) {
 
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .select('id, client_domain, caller_name, caller_phone, caller_email')
+    .select('id, client_domain, caller_name, caller_phone, caller_email, vertical')
     .eq('id', lead_id)
     .maybeSingle()
 
@@ -58,7 +76,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ skipped: 'sequence already exists' })
   }
 
-  const vertical = await resolveVertical(lead.client_domain)
+  const resolved = await resolveVertical({ client_domain: lead.client_domain, vertical: lead.vertical })
+
+  if (resolved === 'unsupported') {
+    console.log(`[REX] ⚠  Skipped lead ${lead_id} — no follow-up templates yet for this vertical`)
+    return NextResponse.json({ skipped: 'no templates for this vertical yet' })
+  }
+
+  const vertical: RexVertical = resolved === 'unknown' ? 'roofing' : resolved
 
   if (lead.caller_email) {
     try {

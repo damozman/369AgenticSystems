@@ -1,2 +1,2 @@
 import { VerticalIntakePage } from '@/components/verticals/VerticalIntakePage'
-export default function Page() { return <VerticalIntakePage vertical="wholesale" /> }
+export default function Page() { return <VerticalIntakePage vertical="wholesale" demoPhone="(817) 635-0220" /> }

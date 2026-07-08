@@ -6,6 +6,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const VALID_VERTICALS = [
+  'roofing', 'hvac', 'plumbing', 'legal', 'real-estate',
+  'insurance', 'saas', 'wholesale', 'dental',
+]
+
 export async function POST(request: NextRequest) {
   const receivedAt = new Date().toISOString()
 
@@ -104,6 +109,8 @@ export async function POST(request: NextRequest) {
     const callerEmail     = (custom?.caller_email      as string | undefined) ?? null
     const issueDescription = (custom?.issue_description as string | undefined) ?? null
     const urgency          = (custom?.urgency           as string | undefined) ?? null
+    const rawVertical       = (custom?.vertical          as string | undefined) ?? null
+    const vertical          = rawVertical && VALID_VERTICALS.includes(rawVertical) ? rawVertical : null
 
     const updatePayload: Record<string, unknown> = {
       caller_name:       (custom?.caller_name       as string  | undefined) ?? null,
@@ -128,10 +135,10 @@ export async function POST(request: NextRequest) {
     // Post-call analysis is a more reliable extraction pass than the live mid-call tool
     // call (which sometimes drops fields under conversational pressure) — backfill any
     // lead fields that came back empty from capture_lead, without overwriting real data.
-    if (updatedCall?.id && (callerEmail || issueDescription || urgency)) {
+    if (updatedCall?.id && (callerEmail || issueDescription || urgency || vertical)) {
       const { data: leadRow } = await supabase
         .from('leads')
-        .select('id, caller_email, issue_description, urgency')
+        .select('id, caller_email, issue_description, urgency, vertical')
         .eq('call_id', updatedCall.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -142,6 +149,7 @@ export async function POST(request: NextRequest) {
         if (!leadRow.caller_email && callerEmail)         backfill.caller_email      = callerEmail
         if (!leadRow.issue_description && issueDescription) backfill.issue_description = issueDescription
         if ((!leadRow.urgency || leadRow.urgency === 'normal') && urgency) backfill.urgency = urgency
+        if (!leadRow.vertical && vertical)                 backfill.vertical          = vertical
 
         if (Object.keys(backfill).length > 0) {
           const { error: backfillError } = await supabase
