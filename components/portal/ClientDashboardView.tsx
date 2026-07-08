@@ -18,7 +18,7 @@ type Call = {
   call_outcome: string | null
 }
 
-type ActiveAgent  = { key: string; label: string; description: string; color: string }
+type ActiveAgent  = { key: string; label: string; description: string; color: string; status: 'live' | 'deploying' }
 type UpgradePath  = { tier: string; agents: string[]; price: number } | null
 type Subscription = { client_domain: string; tier: string; vertical: string }
 type Notification = { id: string; title: string; message: string }
@@ -582,12 +582,20 @@ export default function ClientDashboardView({
         <div className="space-y-2">
           {activeAgents.map(agent => (
             <div key={agent.key} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-              <CheckCircle size={16} style={{ color: agent.color }} className="flex-shrink-0" />
+              {agent.status === 'live'
+                ? <CheckCircle size={16} style={{ color: agent.color }} className="flex-shrink-0" />
+                : <Clock size={16} style={{ color: '#D4AF37' }} className="flex-shrink-0" />
+              }
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">{agent.label}</p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">{agent.description}</p>
               </div>
-              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider flex-shrink-0">Live</span>
+              <span
+                className="text-[11px] font-bold uppercase tracking-wider flex-shrink-0"
+                style={{ color: agent.status === 'live' ? '#22c55e' : '#D4AF37' }}
+              >
+                {agent.status === 'live' ? 'Live' : 'Deploying'}
+              </span>
             </div>
           ))}
         </div>

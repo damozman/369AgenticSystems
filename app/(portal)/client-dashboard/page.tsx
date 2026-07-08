@@ -11,6 +11,17 @@ const AGENT_LABELS: Record<string, { label: string; description: string; color: 
   dashboard:    { label: 'Real-time Dashboard',   description: 'Live call activity, leads, and performance metrics',  color: '#60A5FA' },
 }
 
+// Rex (follow-up) only has real templates for these verticals today — see lib/rex-sequences.ts.
+// Nova doesn't do review requests at all (no code exists for it, any vertical) — 'reviews' is
+// always 'deploying' until that's actually built.
+const FOLLOWUP_LIVE_VERTICALS = ['roofing', 'hvac', 'plumbing']
+
+function agentStatus(key: string, vertical: string): 'live' | 'deploying' {
+  if (key === 'followup') return FOLLOWUP_LIVE_VERTICALS.includes(vertical) ? 'live' : 'deploying'
+  if (key === 'reviews')  return 'deploying'
+  return 'live' // receptionist, dashboard
+}
+
 const UPGRADE_PATHS: Record<string, { tier: string; agents: string[]; price: number } | null> = {
   Starter: { tier: 'Pro',   agents: ['followup'], price: 600 },
   Pro:     { tier: 'Elite', agents: ['reviews'],  price: 750 },
@@ -178,7 +189,7 @@ export default async function ClientDashboardPage() {
   }
 
   const activeAgents = ((subscription.active_agents ?? []) as string[])
-    .map(key => ({ key, ...AGENT_LABELS[key] }))
+    .map(key => ({ key, ...AGENT_LABELS[key], status: agentStatus(key, subscription.vertical as string) }))
     .filter(a => a.label)
 
   const upgrade = UPGRADE_PATHS[subscription.tier as string] ?? null
