@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase'
+import { isAdminEmail } from '@/lib/admin'
 
 type Stage = 'email' | 'code'
 
@@ -58,7 +59,7 @@ export default function LoginPage() {
     // createBrowserClient has already synced the session to cookies;
     // refresh so Next.js server components re-run with the new session.
     router.refresh()
-    router.push('/dashboard')
+    router.push(isAdminEmail(email) ? '/dashboard' : '/client-dashboard')
   }
 
   return (

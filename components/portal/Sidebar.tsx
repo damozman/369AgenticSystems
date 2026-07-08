@@ -52,6 +52,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const isClientPortal = pathname.startsWith('/client-dashboard')
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -63,7 +64,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* ── Logo ───────────────────────────────────────────────── */}
       <div className="px-6 py-6 border-b border-[var(--border-gold)]">
-        <Link href="/portal/dashboard" className="group block">
+        <Link href={isClientPortal ? '/client-dashboard' : '/dashboard'} className="group block">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-display font-bold text-[#D4AF37] group-hover:text-[#F0C94A] transition-colors">
               369
@@ -73,7 +74,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
             </span>
           </div>
           <p className="text-xs font-mono text-slate-400 mt-0.5 uppercase tracking-[0.25em]">
-            Command Center
+            {isClientPortal ? 'Client Portal' : 'Command Center'}
           </p>
         </Link>
       </div>
@@ -92,7 +93,8 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      {/* ── Navigation ─────────────────────────────────────────── */}
+      {/* ── Navigation — admin only; client portal is a single page ──────── */}
+      {!isClientPortal && (
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV.map(({ href, label, Icon, sub }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
@@ -128,6 +130,8 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           )
         })}
       </nav>
+      )}
+      {isClientPortal && <div className="flex-1" />}
 
       {/* ── Footer / sign out ──────────────────────────────────── */}
       <div className="px-3 py-4 border-t border-[var(--border-faint)]">
