@@ -89,10 +89,11 @@ export async function POST(request: NextRequest) {
 
   console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${resolvedClientDomain}`)
 
-  // Fire Nova (booking confirmation) — non-fatal
+  // Fire Nova (booking confirmation) — non-fatal, but awaited: an un-awaited fetch risks the
+  // serverless function freezing before it completes (confirmed missing in production once already).
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   if (appUrl) {
-    fetch(`${appUrl}/api/nova/booking-confirmation`, {
+    await fetch(`${appUrl}/api/nova/booking-confirmation`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ booking_id: booking.id }),

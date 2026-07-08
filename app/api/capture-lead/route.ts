@@ -101,20 +101,25 @@ export async function POST(request: NextRequest) {
 
   console.log(`[LEAD] ✓  Captured — ${caller_phone} @ ${resolvedClientDomain}`)
 
-  // Fire Rex (follow-up) and Felix (conflict check, legal-only — gated inside its own route) — non-fatal
+  // Fire Rex (follow-up) and Felix (conflict check, legal-only — gated inside its own route) — non-fatal.
+  // Awaited (not fire-and-forget): on Vercel's serverless runtime, a function can freeze as soon as
+  // it returns a response, so an un-awaited fetch risks never actually completing. Found via a real
+  // call where Nova's equivalent trigger silently never fired in production.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   if (appUrl) {
-    fetch(`${appUrl}/api/rex/trigger`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ lead_id: lead.id }),
-    }).catch(err => console.error('[REX TRIGGER] Failed:', err))
+    await Promise.allSettled([
+      fetch(`${appUrl}/api/rex/trigger`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ lead_id: lead.id }),
+      }).catch(err => console.error('[REX TRIGGER] Failed:', err)),
 
-    fetch(`${appUrl}/api/felix/conflict-check`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ lead_id: lead.id }),
-    }).catch(err => console.error('[FELIX TRIGGER] Failed:', err))
+      fetch(`${appUrl}/api/felix/conflict-check`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ lead_id: lead.id }),
+      }).catch(err => console.error('[FELIX TRIGGER] Failed:', err)),
+    ])
   }
 
   return NextResponse.json({ success: true, lead })
