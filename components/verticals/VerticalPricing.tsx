@@ -72,7 +72,7 @@ const FAQ = [
   },
   {
     q: 'When can I get started?',
-    a: 'We onboard new clients weekly. After your discovery call we typically go live within 5–7 business days.',
+    a: 'We onboard new clients weekly. In the best case, you can be live in as little as 72 hours. If your setup involves forwarding an existing business number, plan on 5–7 business days, since that step depends on you and your carrier.',
   },
   {
     q: 'What are Crystal Clear and Custom Business Intelligence?',

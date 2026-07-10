@@ -177,6 +177,7 @@
 
     section{position:relative;z-index:1;}
     @keyframes scrollDrop{0%,100%{opacity:0.35;transform:scaleY(1);}50%{opacity:0.7;transform:scaleY(1.15);}}
+    @media (max-height: 760px) { .scroll-hint { display: none !important; } }
     .stat-block{transition:transform 0.3s ease;}
     .stat-block:hover{transform:translateY(-3px);}
     .roi-glow{box-shadow:0 0 80px rgba(255,69,0,0.06),0 0 160px rgba(255,69,0,0.03);}
@@ -255,12 +256,13 @@
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
           <div class="font-display" style="font-size:2.2rem;font-weight:600;color:var(--orange);line-height:1;letter-spacing:-0.02em;">72h</div>
-          <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;">Full deployment</div>
+          <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;">Best-case deployment</div>
         </div>
       </div>
+      <p style="margin:14px 0 0;font-size:0.7rem;color:var(--text-muted);font-family:'Courier New',monospace;">*72h is the best case. Typical range is 72 hours–7 business days depending on number setup on your end.</p>
     </div>
 
-    <div style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.4;pointer-events:none;" aria-hidden="true">
+    <div class="scroll-hint" style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.4;pointer-events:none;" aria-hidden="true">
       <span style="font-size:0.65rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);">Scroll</span>
       <div style="width:1px;height:44px;background:linear-gradient(to bottom,var(--text-muted),transparent);animation:scrollDrop 2.2s ease infinite;"></div>
     </div>
@@ -326,9 +328,10 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
             <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">&lt;60s</div><div style="color:var(--text-secondary);font-size:0.82rem;">Response time</div></div>
             <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">24/7</div><div style="color:var(--text-secondary);font-size:0.82rem;">Emergency coverage</div></div>
-            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">$0</div><div style="color:var(--text-secondary);font-size:0.82rem;">Calls fall through</div></div>
-            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">72h</div><div style="color:var(--text-secondary);font-size:0.82rem;">Full deployment</div></div>
+            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">Every</div><div style="color:var(--text-secondary);font-size:0.82rem;">Call answered</div></div>
+            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--orange);margin-bottom:4px;letter-spacing:-0.02em;">72h</div><div style="color:var(--text-secondary);font-size:0.82rem;">Best-case deploy*</div></div>
           </div>
+          <p style="margin:12px 0 0;font-size:0.72rem;color:var(--text-muted);">*Typical range is 72 hours–7 business days depending on number setup on your end.</p>
         </div>
 
       </div>
@@ -342,7 +345,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">What You Receive</span>
         <h2 id="bundle-heading" class="font-display" style="font-size:clamp(2rem,5vw,3.2rem);font-weight:600;margin-top:12px;margin-bottom:16px;letter-spacing:-0.02em;line-height:1.1;">The Emergency Response AOS Bundle</h2>
-        <p style="color:var(--text-secondary);font-size:1rem;max-width:560px;margin:0 auto;line-height:1.65;">Three precision-built deliverables that transform your HVAC company from reactive to always-on — permanently.</p>
+        <p style="color:var(--text-secondary);font-size:1rem;max-width:560px;margin:0 auto;line-height:1.65;">Two precision-built deliverables that transform your HVAC company from reactive to always-on — permanently.</p>
       </div>
 
       <div class="bento">
@@ -377,39 +380,14 @@
           </div>
         </div>
 
-        <div class="glass bento-card tall reveal d2" style="padding:40px;position:relative;overflow:hidden;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-            <div style="width:44px;height:44px;background:rgba(255,69,0,0.1);border:1px solid rgba(255,69,0,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#FF4500" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#FF4500" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </div>
-            <div><div style="font-family:'Courier New',monospace;font-size:0.75rem;color:var(--text-muted);">Deliverable_02</div><div class="font-display" style="font-weight:600;font-size:1.05rem;">AGENTS.md</div></div>
-          </div>
-          <h3 class="font-display" style="font-size:1.6rem;font-weight:600;margin-bottom:16px;line-height:1.1;">Your Digital<br>HVAC Crew</h3>
-          <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.65;margin-bottom:28px;">Three AI agents, fully defined — covering intake, dispatch, and follow-up so no call or estimate falls through the cracks.</p>
-          <div style="display:flex;flex-direction:column;gap:9px;">
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;">
-              <div><div style="font-size:0.85rem;font-weight:500;">24/7 AI Receptionist</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Call capture · issue qualification · dispatch routing</div></div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;">
-              <div><div style="font-size:0.85rem;font-weight:500;">Seasonal Outreach Agent</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Pre-season campaigns · tune-up reminders</div></div>
-              <span class="badge-standby">STANDBY</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;">
-              <div><div style="font-size:0.85rem;font-weight:500;">Estimate Follow-up Agent</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Automated estimate nurture · close sequences</div></div>
-              <span class="badge-standby">STANDBY</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass bento-card span2 reveal d3" style="padding:40px;position:relative;overflow:hidden;">
+        <div class="glass bento-card reveal d3" style="grid-column:1/-1;padding:40px;position:relative;overflow:hidden;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;">
             <div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
                 <div style="width:44px;height:44px;background:rgba(39,201,63,0.1);border:1px solid rgba(39,201,63,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#27c93f" stroke-width="1.5"/><path d="M8 21h8M12 17v4" stroke="#27c93f" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </div>
-                <div><div style="font-family:'Courier New',monospace;font-size:0.75rem;color:var(--text-muted);">Deliverable_03</div><div class="font-display" style="font-weight:600;font-size:1.05rem;">Live Dashboard</div></div>
+                <div><div style="font-family:'Courier New',monospace;font-size:0.75rem;color:var(--text-muted);">Deliverable_02</div><div class="font-display" style="font-weight:600;font-size:1.05rem;">Live Dashboard</div></div>
               </div>
               <h3 class="font-display" style="font-size:1.6rem;font-weight:600;margin-bottom:14px;line-height:1.1;">HVAC Command<br>&amp; Dispatch Center</h3>
               <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.65;">Real-time visibility into every call captured, emergency dispatched, and estimate sent. See your entire pipeline — without touching anything.</p>
@@ -501,19 +479,19 @@
           <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-family:'Courier New',monospace;font-size:0.7rem;color:#FF6533;letter-spacing:0.08em;">View profile →</div>
         </div></a>
         <a href="/agents/rex" style="text-decoration:none;display:block;"><div style="padding:24px 20px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,101,51,0.18);border-radius:14px;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(255,101,51,0.4)';this.style.boxShadow='0 12px 40px rgba(255,101,51,0.12)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,101,51,0.18)';this.style.boxShadow=''">
-          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#D4AF37;display:inline-block;"></span><span style="color:#D4AF37;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">DEPLOYING</span></div>
-          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,101,51,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/rex/rex_hvac.jpg" alt="Rex — Seasonal Outreach" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(255,101,51,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="color:#4ADE80;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">LIVE</span></div>
+          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,101,51,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/rex/rex_hvac.jpg" alt="Rex — Service Follow-up" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(255,101,51,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
           <p style="margin:0 0 4px;font-family:'Instrument Sans',sans-serif;font-size:1.05rem;font-weight:700;color:#FF6533;letter-spacing:-0.01em;">Rex</p>
-          <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Seasonal Outreach</p>
-          <p style="margin:0 0 14px;font-size:0.8rem;color:#475569;line-height:1.5;">"Pre-season campaigns + reminders"</p>
+          <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Service Follow-up</p>
+          <p style="margin:0 0 14px;font-size:0.8rem;color:#475569;line-height:1.5;">"Fires outreach in 60 seconds"</p>
           <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-family:'Courier New',monospace;font-size:0.7rem;color:#FF6533;letter-spacing:0.08em;">View profile →</div>
         </div></a>
         <a href="/agents/nova" style="text-decoration:none;display:block;"><div style="padding:24px 20px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,101,51,0.18);border-radius:14px;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(255,101,51,0.4)';this.style.boxShadow='0 12px 40px rgba(255,101,51,0.12)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,101,51,0.18)';this.style.boxShadow=''">
-          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#D4AF37;display:inline-block;"></span><span style="color:#D4AF37;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">DEPLOYING</span></div>
-          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,101,51,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/nova/nova_hvac.jpg" alt="Nova — Maintenance Reports" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(255,101,51,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="color:#4ADE80;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">LIVE</span></div>
+          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,101,51,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/nova/nova_hvac.jpg" alt="Nova — Appointment Confirmation" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(255,101,51,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
           <p style="margin:0 0 4px;font-family:'Instrument Sans',sans-serif;font-size:1.05rem;font-weight:700;color:#FF6533;letter-spacing:-0.01em;">Nova</p>
-          <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Maintenance Reports</p>
-          <p style="margin:0 0 14px;font-size:0.8rem;color:#475569;line-height:1.5;">"Service history + diagnostics"</p>
+          <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Appointment Confirmation</p>
+          <p style="margin:0 0 14px;font-size:0.8rem;color:#475569;line-height:1.5;">"Confirms every booking automatically"</p>
           <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-family:'Courier New',monospace;font-size:0.7rem;color:#FF6533;letter-spacing:0.08em;">View profile →</div>
         </div></a>
       </div>

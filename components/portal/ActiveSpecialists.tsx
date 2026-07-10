@@ -142,7 +142,7 @@ function AuditCard({ audit, index, delay, isPatching, onLeakClick }: AuditCardPr
                   animate={{ opacity: [1, 0.4, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
                 >
-                  PATCHING...
+                  REVIEWING...
                 </motion.span>
               ) : (
                 <button
@@ -303,11 +303,11 @@ export default function ActiveSpecialists({ initialAudits }: Props) {
     setActiveAudit(null)
   }
 
-  // Called the moment user clicks AUTHORIZE — close drawer, enter patching state
+  // Called the moment user clicks Mark Reviewed — close drawer, enter reviewing state
   function handleAuthorize(id: string, _domain: string) {
     setActiveAudit(null)
     setPatchingIds(prev => { const next = new Set(prev); next.add(id); return next })
-    // Supabase realtime UPDATE event fires when the patch completes
+    // Supabase realtime UPDATE event fires when the DB write completes
     // and automatically clears patchingIds + updates the card
   }
 

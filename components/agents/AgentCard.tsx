@@ -40,9 +40,9 @@ const AGENT_CONFIGS: Record<AgentName, {
     name: 'Rex', defaultRole: 'Outreach + Follow-up', defaultVirtue: 'Never lets a lead go cold', defaultStatus: 'deploying',
     verticals: {
       original:      { role: 'Outreach + Follow-up',  virtue: 'Never lets a lead go cold',              status: 'deploying' },
-      roofing:       { role: 'Storm Alert Agent',      virtue: 'Fires outreach in 60 seconds',           status: 'deploying' },
-      hvac:          { role: 'Seasonal Outreach',      virtue: 'Pre-season campaigns + reminders',       status: 'deploying' },
-      plumbing:      { role: 'Emergency Follow-up',    virtue: 'Recovers missed emergency calls',        status: 'deploying' },
+      roofing:       { role: 'Storm Damage Follow-up', virtue: 'Fires outreach in 60 seconds',           status: 'live'      },
+      hvac:          { role: 'Service Follow-up',      virtue: 'Fires outreach in 60 seconds',           status: 'live'      },
+      plumbing:      { role: 'Service Follow-up',      virtue: 'Fires outreach in 60 seconds',           status: 'live'      },
       legal:         { role: 'Lead Recovery Agent',    virtue: 'Follows up on every cold intake',        status: 'deploying' },
       'real-estate': { role: 'Speed-to-Lead Agent',    virtue: 'Follow-up within 90 seconds of new leads', status: 'deploying' },
       insurance:     { role: 'Renewal Guardian',       virtue: '30/14/7 day renewal sequences',          status: 'deploying' },
@@ -55,9 +55,9 @@ const AGENT_CONFIGS: Record<AgentName, {
     name: 'Nova', defaultRole: 'Intelligence + Delivery', defaultVirtue: 'Handles the work nobody wants to do', defaultStatus: 'deploying',
     verticals: {
       original:      { role: 'Intelligence + Delivery', virtue: 'Handles the work nobody wants to do',   status: 'deploying' },
-      roofing:       { role: 'Estimate Delivery Agent',  virtue: 'Delivers estimates automatically',      status: 'deploying' },
-      hvac:          { role: 'Maintenance Reports',      virtue: 'Service history + diagnostics',         status: 'deploying' },
-      plumbing:      { role: 'Quote Delivery Agent',     virtue: 'Instant quotes while they wait',        status: 'deploying' },
+      roofing:       { role: 'Appointment Confirmation', virtue: 'Confirms every booking automatically',  status: 'live'      },
+      hvac:          { role: 'Appointment Confirmation', virtue: 'Confirms every booking automatically',  status: 'live'      },
+      plumbing:      { role: 'Appointment Confirmation', virtue: 'Confirms every booking automatically',  status: 'live'      },
       legal:         { role: 'Document Drafting Agent',  virtue: 'Drafts engagement letters instantly',   status: 'deploying' },
       'real-estate': { role: 'Showing Coordinator',      virtue: 'Schedules, confirms, follows up',       status: 'deploying' },
       insurance:     { role: 'Claims Triage Agent',      virtue: 'Routes claims to the right handler',    status: 'deploying' },
@@ -70,7 +70,7 @@ const AGENT_CONFIGS: Record<AgentName, {
     name: 'Felix', defaultRole: 'Conflict Check Agent', defaultVirtue: 'Protects your firm from conflicts', defaultStatus: 'deploying',
     verticals: {
       original: { role: 'Conflict Check Agent', virtue: 'Protects your firm from conflicts', status: 'deploying' },
-      legal:    { role: 'Conflict Check Agent', virtue: 'Cross-references every new intake', status: 'deploying' },
+      legal:    { role: 'Conflict Check Agent', virtue: 'Cross-references every new intake', status: 'live'      },
     },
   },
   scout: {
@@ -122,7 +122,7 @@ export function AgentCard({ agent, vertical, size = 'medium', showDescription = 
   return (
     <Link
       href={`/agents/${agent}`}
-      style={{ textDecoration: 'none', display: 'block' }}
+      style={{ textDecoration: 'none', display: 'block', minWidth: 0 }}
       title={`Learn more about ${agentCfg.name}`}
     >
     <div
@@ -133,6 +133,7 @@ export function AgentCard({ agent, vertical, size = 'medium', showDescription = 
         border: `1px solid ${color}33`,
         transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
         cursor: 'pointer',
+        width: '100%', maxWidth: dim.w + 32, minWidth: 0, boxSizing: 'border-box',
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLDivElement
@@ -160,7 +161,7 @@ export function AgentCard({ agent, vertical, size = 'medium', showDescription = 
       </div>
 
       {/* Image */}
-      <div style={{ position: 'relative', width: dim.w, height: dim.h, borderRadius: 10, overflow: 'hidden', border: `1px solid ${color}22` }}>
+      <div style={{ position: 'relative', width: dim.w, maxWidth: '100%', aspectRatio: `${dim.w} / ${dim.h}`, borderRadius: 10, overflow: 'hidden', border: `1px solid ${color}22` }}>
         <Image
           src={imagePath(agent, vertical)}
           alt={`${agentCfg.name} — ${vertCfg.role}`}

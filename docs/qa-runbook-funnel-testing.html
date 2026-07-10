@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>369 Agentic Systems — Launch QA Runbook</title>
+<meta name="description" content="Funnel A/B walkthroughs, attention items, and the full public + admin link index for pre-launch testing.">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-raised: #111111;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --gold: #D4AF37;
+    --gold-dim: rgba(212,175,55,0.4);
+    --gold-wash: rgba(212,175,55,0.07);
+    --text: #F0F0F0;
+    --text-mid: #A8B0BC;
+    --text-dim: #64748B;
+    --live: #4ADE80;
+    --live-wash: rgba(74,222,128,0.09);
+    --caution: #FBBF24;
+    --caution-wash: rgba(251,191,36,0.08);
+    --critical: #F87171;
+    --critical-wash: rgba(248,113,113,0.08);
+    --info: #60A5FA;
+    --info-wash: rgba(96,165,250,0.08);
+    --font-display: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Courier New", Courier, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #FAF9F6;
+      --bg-raised: #FFFFFF;
+      --surface: rgba(10,10,10,0.025);
+      --surface-hover: rgba(10,10,10,0.045);
+      --border: rgba(10,10,10,0.09);
+      --border-strong: rgba(10,10,10,0.16);
+      --gold-wash: rgba(180,140,20,0.08);
+      --text: #16161A;
+      --text-mid: #4B5563;
+      --text-dim: #7C8592;
+      --live-wash: rgba(22,163,74,0.09);
+      --live: #16A34A;
+      --caution-wash: rgba(180,120,10,0.1);
+      --caution: #B4780A;
+      --critical-wash: rgba(220,38,38,0.08);
+      --critical: #DC2626;
+      --info-wash: rgba(37,99,235,0.08);
+      --info: #2563EB;
+      --gold: #A9821F;
+      --gold-dim: rgba(169,130,31,0.45);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  /* ── Shell ─────────────────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+  }
+
+  /* ── Nav ───────────────────────────────────────────────── */
+  nav.toc {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 20px 32px 24px;
+    border-right: 1px solid var(--border);
+  }
+  @media (max-width: 880px) {
+    nav.toc {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 24px 24px 20px;
+    }
+  }
+  .toc-brand {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+  .toc-brand span { color: var(--gold); }
+  .toc-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .toc-list { list-style: none; margin: 0; padding: 0; }
+  .toc-list li { margin-bottom: 2px; }
+  .toc-list a {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    color: var(--text-mid);
+    padding: 7px 10px;
+    border-radius: 7px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .toc-list a:hover { background: var(--surface); color: var(--text); }
+  .toc-list .n {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gold-dim);
+    flex-shrink: 0;
+  }
+  .toc-meta {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ── Main ──────────────────────────────────────────────── */
+  main { padding: 48px 40px 100px; min-width: 0; }
+  @media (max-width: 880px) { main { padding: 32px 20px 80px; } }
+
+  header.hero { margin-bottom: 56px; }
+  header.hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 4vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 10px 0 12px;
+    text-wrap: balance;
+  }
+  header.hero p.lede {
+    font-size: 15.5px;
+    color: var(--text-mid);
+    max-width: 62ch;
+    margin: 0 0 20px;
+  }
+  .status-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 7px 13px;
+    border-radius: 20px;
+  }
+  .status-line .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--caution);
+    box-shadow: 0 0 6px var(--caution);
+  }
+
+  section.block { margin-bottom: 64px; scroll-margin-top: 24px; }
+  section.block > .block-head { margin-bottom: 22px; }
+  section.block h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 6px 0 8px;
+  }
+  section.block p.dek {
+    color: var(--text-mid);
+    font-size: 14px;
+    max-width: 68ch;
+    margin: 0;
+  }
+
+  /* ── Funnel steps ──────────────────────────────────────── */
+  .funnel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg-raised);
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--gold);
+    background: var(--gold-wash);
+    border: 1px solid var(--gold-dim);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-body h3 {
+    font-size: 14.5px;
+    font-weight: 650;
+    margin: 4px 0 4px;
+  }
+  .step-body p {
+    font-size: 13.5px;
+    color: var(--text-mid);
+    margin: 0;
+    max-width: 66ch;
+  }
+  .step-body code, .step-body .url {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .step-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .tag.live { color: var(--live); border-color: var(--live); background: var(--live-wash); }
+  .tag.manual { color: var(--caution); border-color: var(--caution); background: var(--caution-wash); }
+  .tag.test { color: var(--info); border-color: var(--info); background: var(--info-wash); }
+  .tag.watch { color: var(--critical); border-color: var(--critical); background: var(--critical-wash); }
+
+  /* ── Attention cards ───────────────────────────────────── */
+  .attn-grid { display: flex; flex-direction: column; gap: 12px; }
+  .attn {
+    display: grid;
+    grid-template-columns: 4px 1fr;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+  .attn.critical .stripe { background: var(--critical); }
+  .attn.caution .stripe { background: var(--caution); }
+  .attn.info .stripe { background: var(--info); }
+  .attn .stripe { width: 4px; }
+  .attn-body { padding: 15px 18px; }
+  .attn-title {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 650; font-size: 14px; margin-bottom: 5px;
+  }
+  .attn-title .badge {
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .attn.critical .badge { color: var(--critical); background: var(--critical-wash); }
+  .attn.caution .badge { color: var(--caution); background: var(--caution-wash); }
+  .attn.info .badge { color: var(--info); background: var(--info-wash); }
+  .attn-body p { margin: 0; font-size: 13.5px; color: var(--text-mid); }
+  .attn-body code {
+    font-family: var(--font-mono); font-size: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 5px; color: var(--text);
+  }
+
+  /* ── Link tables ───────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-raised); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+  thead th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface); }
+  td.path {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+    color: var(--gold);
+  }
+  td.desc { color: var(--text-mid); }
+  .pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .pill.live { color: var(--live); background: var(--live-wash); border: 1px solid var(--live); }
+  .pill.waitlist { color: var(--text-dim); background: var(--surface); border: 1px solid var(--border-strong); }
+  .pill.admin { color: var(--gold); background: var(--gold-wash); border: 1px solid var(--gold-dim); }
+
+  .subhead {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 28px 0 12px;
+  }
+  .subhead:first-child { margin-top: 0; }
+
+  .note {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-left: 2px solid var(--border-strong);
+    padding-left: 12px;
+  }
+
+  footer.foot {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <nav class="toc" aria-label="Sections">
+    <div class="toc-brand">369 <span>Agentic</span></div>
+    <div class="toc-sub">QA Runbook</div>
+    <ul class="toc-list">
+      <li><a href="#funnel-a"><span class="n">A</span> Cold Email Funnel</a></li>
+      <li><a href="#funnel-b"><span class="n">B</span> Warm / Ads Funnel</a></li>
+      <li><a href="#attention"><span class="n">!</span> Pay Close Attention</a></li>
+      <li><a href="#public-links"><span class="n">→</span> Public Links</a></li>
+      <li><a href="#admin-links"><span class="n">◆</span> Admin Links</a></li>
+    </ul>
+    <div class="toc-meta">
+      Compiled after a full truthfulness + technical sweep. Everything below reflects actual code as of this pass — not marketing copy.
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">// Pre-launch handoff</p>
+      <h1>Two funnels, one runbook.</h1>
+      <p class="lede">
+        Automated review is done — build, type-check, console errors, mobile overflow, and a full pass checking every "Live" and "Deploying" claim against the code that's supposed to back it. What's left is the part only a human going through it as a real prospect can catch: does it <em>feel</em> right, does an email actually land, does a call actually sound good.
+      </p>
+      <span class="status-line"><span class="dot"></span> Rollout paused — no launch date set, testing in progress</span>
+    </header>
+
+    <!-- ═══ FUNNEL A ═══ -->
+    <section class="block" id="funnel-a">
+      <div class="block-head">
+        <p class="eyebrow">Funnel A</p>
+        <h2>Cold Email → Static Page → Gumloop Audit</h2>
+        <p class="dek">The outbound-led path. You send the email; the page and the audit pipeline do the rest.</p>
+      </div>
+
+      <div class="funnel">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Cold email sent</h3>
+            <p>Manually, by you — 10–15/day cadence. Links to the matching static vertical page.</p>
+            <div class="step-tags"><span class="tag manual">Manual</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Prospect lands on the static page</h3>
+            <p>e.g. <span class="url">/roofing-leads/</span> — agent roster, trust content, terminal-style intake form. Pure HTML, no React, no database.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Form submits straight to Gumloop</h3>
+            <p>Real webhook, wired and live — not a placeholder. Gumloop runs an AI audit (Gemini) against the prospect's site and business.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Gumloop posts results to <code>/api/update-dossier</code></h3>
+            <p>Writes a row to <code>system_audits</code>, then fires three emails via Resend: a Diagnostic Alert to the prospect (immediate), a Full Dossier to the prospect (+5 min), and a Call Brief to you (immediate) with talking points and a recommended close script.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Prospect books</h3>
+            <p>Every email's CTA points to <span class="url">cal.com/369agentic/30min</span>. You get the Call Brief before the call.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Test it end-to-end with your own email address on one vertical page, and confirm all three emails actually land (check spam) — the pipeline has never been tested against a real send you personally received.</p>
+    </section>
+
+    <!-- ═══ FUNNEL B ═══ -->
+    <section class="block" id="funnel-b">
+      <div class="block-head">
+        <p class="eyebrow">Funnel B</p>
+        <h2>Ads / Warm Traffic → ROI Calculator → Checkout</h2>
+        <p class="dek">The inbound-led path. A prospect self-serves through numbers and pricing, then either pays or books.</p>
+      </div>
+
+      <div class="funnel">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Warm visitor lands on the vertical page</h3>
+            <p><span class="url">/roofing</span>, <span class="url">/hvac</span>, etc. — full Next.js page with a live demo widget. They can call <strong>(817) 635-0220</strong> right now and talk to Ava.</p>
+            <div class="step-tags"><span class="tag live">Live</span><span class="tag watch">Shared demo number</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Revenue-leak calculator</h3>
+            <p><span class="url">/roofing/roi-calculator</span> — sliders produce a personalized dollar figure for what missed calls are costing them.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Pricing</h3>
+            <p><span class="url">/roofing/pricing</span> — Starter $400/mo, Pro $600/mo, Elite $750/mo, plus a $1,500 setup fee. "Start Today" buttons go to Stripe Checkout.</p>
+            <div class="step-tags"><span class="tag test">Stripe test mode</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Checkout → provisioning webhook</h3>
+            <p>On payment, the Stripe webhook creates the subscription + agent config rows, sends the client a welcome email and you an owner notification. Test card: <code>4242 4242 4242 4242</code>, any future date, any CVC — <strong>real cards will not be charged</strong>, this is test mode.</p>
+            <div class="step-tags"><span class="tag test">Test mode only</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>You provision the real thing — manually</h3>
+            <p>Buy/assign a number, build their Retell agent with their real business details, link the number, test-call it, fix whatever breaks. No automation exists for this step yet. Happy path is ~2–3 hours same-day; a first-time issue can stretch that to half a day.</p>
+            <div class="step-tags"><span class="tag manual">Fully manual</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <h3>Or: they skip straight to a call</h3>
+            <p><span class="url">/book-demo</span> — same Cal.com embed as Funnel A, for anyone who wants to talk before paying.</p>
+            <div class="step-tags"><span class="tag live">Live</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Funnels A and B are not cross-linked — a visitor on a static cold-email page has no path into the ROI calculator, and vice versa. That's the current design, not a bug, but worth knowing while you test.</p>
+    </section>
+
+    <!-- ═══ ATTENTION ═══ -->
+    <section class="block" id="attention">
+      <div class="block-head">
+        <p class="eyebrow">Read before you click anything</p>
+        <h2>Pay Close Attention To</h2>
+        <p class="dek">Things that will look like bugs while you're testing but are actually known, current-state facts — plus the few things that are genuinely still open.</p>
+      </div>
+
+      <div class="attn-grid">
+        <div class="attn critical">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Stripe is in test mode<span class="badge">Money</span></div>
+            <p>Payment links are <code>buy.stripe.com/test_...</code>. A real card will be declined, not charged. Flip to live mode is a deliberate, separate step whenever you're ready — not automatic.</p>
+          </div>
+        </div>
+        <div class="attn critical">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">No client gets a real receptionist automatically<span class="badge">Provisioning</span></div>
+            <p>A payment creates database rows and sends emails — it does not create a phone number or a Retell agent. Every real client needs manual setup by you before their line actually works. See Funnel B, step 5.</p>
+          </div>
+        </div>
+        <div class="attn caution">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Rex, Nova, and Felix aren't universal<span class="badge">Coverage</span></div>
+            <p>Rex (follow-up) and Nova (booking confirmation) are real and live only for roofing, HVAC, and plumbing. Felix (conflict check) is real and live only for legal. Every other vertical shows them as "Deploying" — that's accurate, not a display bug.</p>
+          </div>
+        </div>
+        <div class="attn caution">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Scout has zero implementation<span class="badge">SaaS only</span></div>
+            <p>Scout (competitor intelligence) exists only as marketing copy on the SaaS pages. No code runs behind it. Don't sell it as working.</p>
+          </div>
+        </div>
+        <div class="attn caution">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Dental is waitlist-only</div>
+            <p>All dental agents are intentionally marked "Future." The dental page collects emails for later, nothing more.</p>
+          </div>
+        </div>
+        <div class="attn info">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">(817) 635-0220 is a shared demo line<span class="badge">Never give this out</span></div>
+            <p>Ava answers as "ABC Company" and detects the vertical from context, ending every call with a spoken demo disclosure. It exists purely so any lead page can offer a live call. It is not, and should never become, a real client's number.</p>
+          </div>
+        </div>
+        <div class="attn info">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Your two logins behave differently on purpose</div>
+            <p><code>chris@369agenticsystems.com</code> is the only admin — it lands on the internal Command Center. <code>damozman@gmail.com</code> is deliberately a normal client account for practicing the real customer experience — it lands on <code>/client-dashboard</code> and has a real (test-mode) subscription already on it.</p>
+          </div>
+        </div>
+        <div class="attn info">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">Login codes expire in 60 minutes, single-use</div>
+            <p>If a code doesn't work, it's most likely expired or already used — request a new one rather than assuming something's broken.</p>
+          </div>
+        </div>
+        <div class="attn info">
+          <div class="stripe"></div>
+          <div class="attn-body">
+            <div class="attn-title">One dev-only false alarm, already ruled out</div>
+            <p>If you ever run the site locally (<code>npm run dev</code>), the static lead pages 404 at their exact URL — that's a local dev-server quirk. Confirmed the live site returns 200 for all of them. Not a real bug, don't re-report it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ PUBLIC LINKS ═══ -->
+    <section class="block" id="public-links">
+      <div class="block-head">
+        <p class="eyebrow">Reference</p>
+        <h2>Every Public Link a Client or Prospect Would Use</h2>
+        <p class="dek">All relative to <code>369agenticsystems.com</code>.</p>
+      </div>
+
+      <p class="subhead">Cold email pages (Funnel A)</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Vertical</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="path">/roofing-leads/</td><td class="desc">Roofing</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/hvac-leads/</td><td class="desc">HVAC</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/plumbing-leads/</td><td class="desc">Plumbing</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/legal-automation/</td><td class="desc">Legal</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/real-estate-leads/</td><td class="desc">Real Estate</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/insurance-leads/</td><td class="desc">Insurance</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/saas-optimization/</td><td class="desc">SaaS</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/wholesale-leads/</td><td class="desc">Wholesale</td><td><span class="pill live">Live</span></td></tr>
+            <tr><td class="path">/dental-leads/</td><td class="desc">Dental</td><td><span class="pill waitlist">Waitlist</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="subhead">Vertical funnels (Funnel B)</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path pattern</th><th>Applies to</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td class="path">/{vertical}</td><td class="desc">roofing, hvac, plumbing, legal, real-estate, insurance, saas, wholesale, dental</td><td class="desc">Landing page + live demo widget</td></tr>
+            <tr><td class="path">/{vertical}/roi-calculator</td><td class="desc">Same 8, excl. dental</td><td class="desc">Revenue-leak calculator</td></tr>
+            <tr><td class="path">/{vertical}/pricing</td><td class="desc">All 9</td><td class="desc">Tier cards + checkout</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="subhead">Shared pages</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td class="path">/</td><td class="desc">Homepage</td></tr>
+            <tr><td class="path">/book-demo</td><td class="desc">Cal.com discovery-call embed</td></tr>
+            <tr><td class="path">/login</td><td class="desc">OTP login — routes admin vs. client automatically</td></tr>
+            <tr><td class="path">/client-dashboard</td><td class="desc">What a paying client sees after login</td></tr>
+            <tr><td class="path">/agents/ava</td><td class="desc">Agent profile — AI Receptionist</td></tr>
+            <tr><td class="path">/agents/rex</td><td class="desc">Agent profile — Follow-up</td></tr>
+            <tr><td class="path">/agents/nova</td><td class="desc">Agent profile — Confirmation</td></tr>
+            <tr><td class="path">/agents/felix</td><td class="desc">Agent profile — Conflict Check (legal)</td></tr>
+            <tr><td class="path">/agents/scout</td><td class="desc">Agent profile — Intelligence (SaaS)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="subhead">Demo line</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Number</th><th>What happens</th></tr></thead>
+          <tbody>
+            <tr><td class="path">(817) 635-0220</td><td class="desc">Ava answers as "ABC Company," detects the vertical from what's said, ends with a spoken demo disclosure. Shared across every lead page.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══ ADMIN LINKS ═══ -->
+    <section class="block" id="admin-links">
+      <div class="block-head">
+        <p class="eyebrow">Internal only</p>
+        <h2>Admin Links &amp; What Each One Is For</h2>
+        <p class="dek">Reachable only when logged in as <code>chris@369agenticsystems.com</code>. Any other account is redirected to <code>/client-dashboard</code>.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Purpose</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="path">/dashboard</td>
+              <td class="desc">Command Center overview — the landing page after admin login.</td>
+              <td><span class="pill admin">Admin</span></td>
+            </tr>
+            <tr>
+              <td class="path">/workforce</td>
+              <td class="desc">Active Digital Employees — real Gumloop-fed prospect audits, plus Pending Responses (AI-drafted replies to inbound prospect emails, awaiting your approve/reject).</td>
+              <td><span class="pill admin">Admin</span></td>
+            </tr>
+            <tr>
+              <td class="path">/intelligence</td>
+              <td class="desc">Business Memory / Intelligence Vault. Currently sample data only, clearly labeled "Demo Data" — the real per-client memory vault is a future build, not live.</td>
+              <td><span class="pill admin">Admin</span></td>
+            </tr>
+            <tr>
+              <td class="path">/history</td>
+              <td class="desc">Deployment History — full audit log across every prospect who's ever come through the Gumloop pipeline.</td>
+              <td><span class="pill admin">Admin</span></td>
+            </tr>
+            <tr>
+              <td class="path">/receptionist</td>
+              <td class="desc">Live call activity across every client — real-time, not filtered to one account.</td>
+              <td><span class="pill admin">Admin</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">One button worth knowing about while testing: on the Workforce page, a flagged prospect audit has a "Mark Reviewed" action — this only updates internal tracking. It does not, and was deliberately never built to, take any action on a prospect's actual website.</p>
+    </section>
+
+    <footer class="foot">369 Agentic Systems — internal QA reference, not for distribution. Compiled 2026-07-08.</footer>
+  </main>
+</div>
+</body>
+</html>

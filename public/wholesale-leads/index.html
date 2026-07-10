@@ -204,6 +204,7 @@
     section { position: relative; z-index: 1; }
 
     @keyframes scrollDrop { 0%,100%{opacity:0.35; transform:scaleY(1);} 50%{opacity:0.7; transform:scaleY(1.15);} }
+    @media (max-height: 760px) { .scroll-hint { display: none !important; } }
 
     .stat-block { transition: transform 0.3s ease; }
     .stat-block:hover { transform: translateY(-3px); }
@@ -243,7 +244,7 @@
       <div class="reveal" style="margin-bottom:24px;">
         <span class="status-badge">
           <span class="pulse-dot" aria-hidden="true"></span>
-          Distribution Velocity AOS · Order Engine Active
+          Distribution Velocity AOS · 24/7 Active
         </span>
       </div>
 
@@ -254,12 +255,12 @@
       </div>
 
       <h1 id="hero-heading" class="reveal d1 font-display hero-headline" style="max-width:860px; margin-bottom:28px;">
-        Stockouts Lose Orders.<br>Manual Handoffs Lose Margins.<br>
+        The Order Call Came In.<br>Your Line Was Busy.<br>
         <span class="gradient-text">Both End Here.</span>
       </h1>
 
       <p class="reveal d2 hero-sub" style="margin-bottom:52px;">
-        12% of wholesale orders are disrupted by inventory gaps or late sales-to-warehouse handoffs. Each one costs margin, goodwill, and repeat business. The Distribution Velocity AOS monitors stock levels, routes every order automatically, and spots upsell opportunities in existing accounts — before your competition does.
+        Reorders and new-account calls don't wait for your team to be free. The Distribution Velocity AOS answers every inbound order call — day or night — qualifies it, and logs it so nothing sits waiting on a callback.
       </p>
 
       <div class="reveal d3" style="display:flex; gap:20px; flex-wrap:wrap; align-items:center; margin-bottom:72px;">
@@ -272,8 +273,8 @@
 
       <div class="reveal d4" style="display:flex; gap:40px; flex-wrap:wrap; align-items:center;">
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">12%</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Orders lost to stockout delays</div>
+          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">&lt;60s</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Response time</div>
         </div>
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
@@ -282,18 +283,19 @@
         </div>
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">3×</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">More reorders w/ automated outreach</div>
+          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">24/7</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Call answering</div>
         </div>
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">48h</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Full deployment</div>
+          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">72h</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Best-case deployment</div>
         </div>
       </div>
+      <p style="margin:14px 0 0; font-size:0.7rem; color:var(--text-muted); font-family:'Courier New',monospace;">*72h is the best case. Typical range is 72 hours–7 business days depending on number setup on your end.</p>
     </div>
 
-    <div style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;" aria-hidden="true">
+    <div class="scroll-hint" style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;" aria-hidden="true">
       <span style="font-size:0.65rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--text-muted);">Scroll</span>
       <div style="width:1px; height:44px; background:linear-gradient(to bottom, var(--text-muted), transparent); animation:scrollDrop 2.2s ease infinite;"></div>
     </div>
@@ -306,13 +308,13 @@
 
         <div class="reveal">
           <div style="margin-bottom:6px;">
-            <span class="leak-number">$590k</span>
+            <span class="leak-number">$8,200</span>
           </div>
-          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">The annual order revenue a 600-order-per-month distributor loses to undetected stockouts, missed handoffs, and dormant account opportunities — every year.</p>
+          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">The average order value a distributor risks every time an order call goes unanswered.</p>
           <div class="urgency-ticker" style="margin-bottom:32px;">
             <span class="pulse-dot" aria-hidden="true"></span>
             <span style="color:var(--lime);">FACT:</span>
-            <span style="color:var(--text-muted);">Wholesale accounts that receive automated reorder prompts and upsell recommendations place 3× more repeat orders than accounts managed manually. Most distributors never send a single proactive message.</span>
+            <span style="color:var(--text-muted);">Buyers calling in a reorder rarely leave a voicemail — if the line isn't answered, they call the next distributor on their list.</span>
           </div>
 
           <div class="glass" style="padding:32px;">
@@ -323,8 +325,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="#ef4444" stroke-width="1.5"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/><path d="M12 12v4M10 14h4" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/></svg>
               </div>
               <div>
-                <p style="font-weight:600; margin-bottom:4px;">The Stockout Cascade Effect</p>
-                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">Inventory levels not monitored in real time — by the time a stockout is discovered, orders are already delayed, customers are already frustrated, and competitors are already getting the call. Each undetected gap compounds the next.</p>
+                <p style="font-weight:600; margin-bottom:4px;">Order Calls After Hours Go Unanswered</p>
+                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">A buyer calling to reorder outside business hours hits voicemail — and calls the next distributor on their list instead.</p>
               </div>
             </div>
 
@@ -333,8 +335,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 8l4 4-4 4M7 8l-4 4 4 4M14 4l-4 16" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
               <div>
-                <p style="font-weight:600; margin-bottom:4px;">Manual Order-to-Warehouse Gaps</p>
-                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">Sales confirms the order — but the warehouse doesn't know about it until someone remembers to send the CRM update. That gap costs hours, creates fulfillment errors, and erodes the margins you fought to earn.</p>
+                <p style="font-weight:600; margin-bottom:4px;">Sales Team Buried in Existing Calls</p>
+                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">New-account and reorder calls compete with everything else your team is already handling — some simply don't get picked up in time.</p>
               </div>
             </div>
 
@@ -343,8 +345,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
               <div>
-                <p style="font-weight:600; margin-bottom:4px;">Dormant Account Revenue Drain</p>
-                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">Existing accounts reordering the same SKUs on their own schedule — while no one reviews the order patterns to identify cross-sell opportunities, volume discount triggers, or signs that an account is at risk of churning to a competitor.</p>
+                <p style="font-weight:600; margin-bottom:4px;">No Record of the Call That Got Missed</p>
+                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">A missed call rarely gets a callback, because nobody logged it in the first place.</p>
               </div>
             </div>
           </div>
@@ -356,25 +358,25 @@
             The autonomous system<br>that keeps your pipeline<br>flowing while you close.
           </h2>
           <p style="color:var(--text-secondary); font-size:0.975rem; line-height:1.7; margin-bottom:32px;">
-            The Distribution Velocity AOS monitors every SKU threshold, routes every confirmed order to the warehouse without manual intervention, and scans every account for upsell signals — automatically. Your team walks in to stocked shelves, fulfilled orders, and growth opportunities already identified.
+            The Distribution Velocity AOS answers every inbound order and reorder call — day or night — qualifies the request, and gets it logged so nothing sits waiting on a callback.
           </p>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">−88%</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Reduction in manual order handoff errors</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">Every</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Call answered</div>
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">24/7</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Inventory monitoring &amp; alert routing</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Call answering</div>
             </div>
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">3×</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">More reorders from existing accounts</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">&lt;60s</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Response time</div>
             </div>
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">48h</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Full deployment</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">72h</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Best-case deploy*</div>
             </div>
           </div>
         </div>
@@ -391,7 +393,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">What You Receive</span>
         <h2 id="bundle-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">The Distribution Velocity AOS Bundle</h2>
-        <p style="color:var(--text-secondary); font-size:1rem; max-width:560px; margin:0 auto; line-height:1.65;">Three precision-built deliverables that transform your distribution operation from reactive order management to autonomous supply-chain velocity — permanently.</p>
+        <p style="color:var(--text-secondary); font-size:1rem; max-width:560px; margin:0 auto; line-height:1.65;">Two precision-built deliverables that make sure every order call gets answered — permanently.</p>
       </div>
 
       <div class="bento">
@@ -412,12 +414,12 @@
                 </div>
               </div>
               <h3 class="font-display" style="font-size:1.75rem; font-weight:600; margin-bottom:14px; line-height:1.1;">Your Distribution Operations<br>Architecture Blueprint</h3>
-              <p style="color:var(--text-secondary); font-size:0.92rem; line-height:1.65; max-width:400px;">A complete system design document mapping your supply chain automation infrastructure — inventory thresholds, order routing rules, reorder triggers, upsell sequences, and account health scoring — all architected for your SKU catalog and fulfillment workflow.</p>
+              <p style="color:var(--text-secondary); font-size:0.92rem; line-height:1.65; max-width:400px;">A complete system design document mapping your call-response infrastructure — order intake, qualification, and logging — architected for your SKU catalog and fulfillment workflow.</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:9px; min-width:220px;">
-              <div class="check-item"><span style="color:var(--lime);">✓</span> Inventory threshold &amp; alert configuration</div>
-              <div class="check-item"><span style="color:var(--lime);">✓</span> Sales-to-warehouse routing workflow</div>
-              <div class="check-item"><span style="color:var(--lime);">✓</span> Account upsell &amp; reorder sequence</div>
+              <div class="check-item"><span style="color:var(--lime);">✓</span> Order intake &amp; qualification</div>
+              <div class="check-item"><span style="color:var(--lime);">✓</span> 24/7 call answering</div>
+              <div class="check-item"><span style="color:var(--lime);">✓</span> Order logging &amp; confirmation</div>
               <div class="check-item"><span style="color:var(--lime);">✓</span> Versioned &amp; maintainable</div>
             </div>
           </div>
@@ -426,59 +428,17 @@
         <!-- KPI card -->
         <div class="glass bento-card reveal d2" style="padding:32px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, rgba(132,204,22,0.04) 0%, transparent 60%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
-          <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:10px;">Handoff Error Rate</div>
-          <div class="font-display" style="font-size:4rem; font-weight:600; color:var(--lime); line-height:1; margin-bottom:10px; letter-spacing:-0.02em;">−88%</div>
-          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.55;">Distributors using automated order routing see manual handoff errors drop from 14% of orders to under 2% — without adding operations headcount.</p>
+          <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:10px;">Avg Response Time</div>
+          <div class="font-display" style="font-size:4rem; font-weight:600; color:var(--lime); line-height:1; margin-bottom:10px; letter-spacing:-0.02em;">&lt;60s</div>
+          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.55;">From inbound call to logged, qualified order — fully automated, around the clock.</p>
           <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:var(--text-muted); font-size:0.78rem;">Avg order value protected per route</span>
+            <span style="color:var(--text-muted); font-size:0.78rem;">Avg wholesale order value</span>
             <span style="color:var(--lime); font-weight:600; font-family:'Instrument Sans',sans-serif;">$8,200</span>
           </div>
         </div>
 
-        <!-- AGENTS.md -->
-        <div class="glass bento-card tall reveal d2" style="padding:40px; position:relative; overflow:hidden;">
-          <div style="position:absolute; bottom:-60px; left:-60px; width:200px; height:200px; background:radial-gradient(circle, rgba(132,204,22,0.06) 0%, transparent 70%); border-radius:50%; pointer-events:none;" aria-hidden="true"></div>
-
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
-            <div style="width:44px; height:44px; background:rgba(132,204,22,0.1); border:1px solid rgba(132,204,22,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#84CC16" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#84CC16" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </div>
-            <div>
-              <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
-              <div class="font-display" style="font-weight:600; font-size:1.05rem;">AGENTS.md</div>
-            </div>
-          </div>
-
-          <h3 class="font-display" style="font-size:1.6rem; font-weight:600; margin-bottom:16px; line-height:1.1;">Your Digital<br>Distribution Workforce</h3>
-          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.65; margin-bottom:28px;">Three Digital Employees that keep your supply chain moving around the clock — so your team walks in to stocked shelves, routed orders, and revenue-ready accounts already identified.</p>
-
-          <div style="display:flex; flex-direction:column; gap:9px;">
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">369 Inventory Logistics Specialist</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Tracks stock levels and automates re-order notifications</div>
-              </div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">369 Order Workflow Specialist</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Manages the handoff from sales to the warehouse via CRM</div>
-              </div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">369 Account Growth Specialist</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Identifies upsell opportunities in existing order patterns</div>
-              </div>
-              <span class="badge-standby">STANDBY</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Live Dashboard -->
-        <div class="glass bento-card span2 reveal d3" style="padding:40px; position:relative; overflow:hidden;">
+        <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(132,204,22,0.02) 100%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
@@ -488,12 +448,12 @@
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#27c93f" stroke-width="1.5"/><path d="M8 21h8M12 17v4" stroke="#27c93f" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </div>
                 <div>
-                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_03</div>
+                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
                   <div class="font-display" style="font-weight:600; font-size:1.05rem;">Live Dashboard</div>
                 </div>
               </div>
               <h3 class="font-display" style="font-size:1.6rem; font-weight:600; margin-bottom:14px; line-height:1.1;">Distribution Velocity<br>Command Center</h3>
-              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.65;">Real-time view of every inventory threshold, order in transit, upsell flag raised, and account reorder queued. See your entire distribution pipeline moving — without manually managing it.</p>
+              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.65;">Real-time view of every call answered and order logged. See your order pipeline moving — without manually managing it.</p>
             </div>
 
             <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(148,163,184,0.09); border-radius:12px; padding:18px; font-family:'Courier New',monospace; font-size:0.78rem;" aria-label="Dashboard preview">
@@ -506,19 +466,13 @@
               </div>
               <div style="display:flex; flex-direction:column; gap:2px;">
                 <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Inventory alerts sent today</span><span style="color:#27c93f;">6 / 6</span>
+                  <span style="color:var(--text-muted);">Calls answered today</span><span style="color:#27c93f;">14 / 14</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Orders routed to warehouse</span><span style="color:var(--lime);">31 orders</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Upsell flags raised today</span><span style="color:#27c93f;">12 accounts</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Reorders triggered this week</span><span style="color:#27c93f;">47</span>
+                  <span style="color:var(--text-muted);">Orders logged today</span><span style="color:var(--lime);">9 orders</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; padding:7px 0;">
-                  <span style="color:var(--text-muted);">Est. order revenue protected</span><span style="color:var(--lime); font-weight:600;">$254,200</span>
+                  <span style="color:var(--text-muted);">Est. order pipeline value</span><span style="color:var(--lime); font-weight:600;">$73,800</span>
                 </div>
               </div>
             </div>

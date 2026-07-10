@@ -186,7 +186,6 @@ export function AgentTeamGrid({ vertical, size = 'medium' }: AgentTeamGridProps)
           ? 'repeat(auto-fit, minmax(160px, 1fr))'
           : 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 16,
-        justifyItems: 'center',
       }}>
         {agents.map(agent => (
           <AgentCard

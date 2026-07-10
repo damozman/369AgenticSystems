@@ -203,6 +203,7 @@
 
     section { position: relative; z-index: 1; }
     @keyframes scrollDrop { 0%,100%{opacity:0.35; transform:scaleY(1);} 50%{opacity:0.7; transform:scaleY(1.15);} }
+    @media (max-height: 760px) { .scroll-hint { display: none !important; } }
 
     .stat-block { transition: transform 0.3s ease; }
     .stat-block:hover { transform: translateY(-3px); }
@@ -286,12 +287,13 @@
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
           <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--sky); line-height:1; letter-spacing:-0.02em;">72h</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Full deployment</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Best-case deployment</div>
         </div>
       </div>
+      <p style="margin:14px 0 0; font-size:0.7rem; color:var(--text-muted); font-family:'Courier New',monospace;">*72h is the best case. Typical range is 72 hours–7 business days depending on number setup on your end.</p>
     </div>
 
-    <div style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;" aria-hidden="true">
+    <div class="scroll-hint" style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;" aria-hidden="true">
       <span style="font-size:0.65rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--text-muted);">Scroll</span>
       <div style="width:1px; height:44px; background:linear-gradient(to bottom, var(--text-muted), transparent); animation:scrollDrop 2.2s ease infinite;"></div>
     </div>
@@ -364,17 +366,18 @@
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--sky); margin-bottom:4px; letter-spacing:-0.02em;">24/7</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Portal monitoring</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Call answering</div>
             </div>
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--sky); margin-bottom:4px; letter-spacing:-0.02em;">90d</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Nurture sequences</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--sky); margin-bottom:4px; letter-spacing:-0.02em;">Every</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Lead answered</div>
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--sky); margin-bottom:4px; letter-spacing:-0.02em;">72h</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Full deployment</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Best-case deploy*</div>
             </div>
           </div>
+          <p style="margin:12px 0 0; font-size:0.72rem; color:var(--text-muted);">*Typical range is 72 hours–7 business days depending on number setup on your end.</p>
         </div>
 
       </div>
@@ -389,7 +392,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">What You Receive</span>
         <h2 id="bundle-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">The Pipeline Velocity AOS Bundle</h2>
-        <p style="color:var(--text-secondary); font-size:1rem; max-width:560px; margin:0 auto; line-height:1.65;">Three precision-built deliverables that transform your real estate operation from reactive to velocity-driven — permanently.</p>
+        <p style="color:var(--text-secondary); font-size:1rem; max-width:560px; margin:0 auto; line-height:1.65;">Two precision-built deliverables that transform your real estate operation from reactive to velocity-driven — permanently.</p>
       </div>
 
       <div class="bento">
@@ -410,12 +413,12 @@
                 </div>
               </div>
               <h3 class="font-display" style="font-size:1.75rem; font-weight:600; margin-bottom:14px; line-height:1.1;">Your Real Estate Pipeline<br>Architecture Blueprint</h3>
-              <p style="color:var(--text-secondary); font-size:0.92rem; line-height:1.65; max-width:400px;">A complete system design document mapping your velocity infrastructure — portal integrations, lead qualification logic, showing booking flows, follow-up sequences, and listing content pipelines — all architected around your market, price points, and client profile.</p>
+              <p style="color:var(--text-secondary); font-size:0.92rem; line-height:1.65; max-width:400px;">A complete system design document mapping your call-response infrastructure — lead qualification logic and booking flows — all architected around your market, price points, and client profile.</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:9px; min-width:220px;">
-              <div class="check-item"><span style="color:var(--sky);">✓</span> Portal integration configuration</div>
-              <div class="check-item"><span style="color:var(--sky);">✓</span> Lead qualification scripts</div>
-              <div class="check-item"><span style="color:var(--sky);">✓</span> 90-day follow-up sequences</div>
+              <div class="check-item"><span style="color:var(--sky);">✓</span> Instant lead qualification</div>
+              <div class="check-item"><span style="color:var(--sky);">✓</span> Showing &amp; consultation booking</div>
+              <div class="check-item"><span style="color:var(--sky);">✓</span> 24/7 call answering</div>
               <div class="check-item"><span style="color:var(--sky);">✓</span> Versioned &amp; maintainable</div>
             </div>
           </div>
@@ -433,57 +436,8 @@
           </div>
         </div>
 
-        <!-- AGENTS.md -->
-        <div class="glass bento-card tall reveal d2" style="padding:40px; position:relative; overflow:hidden;">
-          <div style="position:absolute; bottom:-60px; left:-60px; width:200px; height:200px; background:radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%); border-radius:50%; pointer-events:none;" aria-hidden="true"></div>
-
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
-            <div style="width:44px; height:44px; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#0EA5E9" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#0EA5E9" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </div>
-            <div>
-              <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
-              <div class="font-display" style="font-weight:600; font-size:1.05rem;">AGENTS.md</div>
-            </div>
-          </div>
-
-          <h3 class="font-display" style="font-size:1.6rem; font-weight:600; margin-bottom:16px; line-height:1.1;">Your Digital<br>Pipeline Team</h3>
-          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.65; margin-bottom:28px;">Four Digital Employees that run your lead pipeline, schedule showings, generate listing content, and nurture buyers and sellers — so you only spend time with ready-to-act clients.</p>
-
-          <div style="display:flex; flex-direction:column; gap:9px;">
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">Lead Response Specialist</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Portal monitoring · instant reply · intent qualification</div>
-              </div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">Showing Coordinator</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Availability check · calendar booking · confirmation &amp; reminders</div>
-              </div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">Follow-Up Sequencer</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">90-day nurture · market update emails · re-engagement triggers</div>
-              </div>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:0.85rem; font-weight:500;">Listing Content Specialist</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">AI listing descriptions · market reports · social post generation</div>
-              </div>
-              <span class="badge-standby">STANDBY</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Live Dashboard -->
-        <div class="glass bento-card span2 reveal d3" style="padding:40px; position:relative; overflow:hidden;">
+        <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(14,165,233,0.02) 100%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
@@ -493,12 +447,12 @@
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#27c93f" stroke-width="1.5"/><path d="M8 21h8M12 17v4" stroke="#27c93f" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </div>
                 <div>
-                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_03</div>
+                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
                   <div class="font-display" style="font-weight:600; font-size:1.05rem;">Live Dashboard</div>
                 </div>
               </div>
               <h3 class="font-display" style="font-size:1.6rem; font-weight:600; margin-bottom:14px; line-height:1.1;">Pipeline Velocity<br>Command Center</h3>
-              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.65;">Real-time visibility into every active lead, showing scheduled, follow-up in progress, and commission pipeline value. See your business growing — without doing the grunt work.</p>
+              <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.65;">Real-time visibility into every active lead, showing scheduled, and commission pipeline value. See your business growing — without doing the grunt work.</p>
             </div>
 
             <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(148,163,184,0.09); border-radius:12px; padding:18px; font-family:'Courier New',monospace; font-size:0.78rem;" aria-label="Dashboard preview">
@@ -517,10 +471,7 @@
                   <span style="color:var(--text-muted);">Showings this week</span><span style="color:var(--sky);">8 scheduled</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Active nurture sequences</span><span style="color:var(--sky);">34 contacts</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <span style="color:var(--text-muted);">Listings generated</span><span style="color:#27c93f;">3 this week</span>
+                  <span style="color:var(--text-muted);">Missed calls</span><span style="color:#27c93f;">0</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; padding:7px 0;">
                   <span style="color:var(--text-muted);">Commission pipeline</span><span style="color:var(--sky); font-weight:600;">$214,000</span>

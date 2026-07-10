@@ -163,7 +163,7 @@ function OnboardingChecklist({
   totalCalls: number; totalLeads: number; bookedCalls: number; thisWeekCalls: number
 }) {
   const steps = [
-    { label: 'AI Receptionist deployed',  done: true },
+    { label: 'Account provisioned',        done: true },
     { label: 'First call received',        done: totalCalls > 0 },
     { label: 'First lead captured',        done: totalLeads > 0 || bookedCalls > 0 },
     { label: '5+ calls in a week',         done: thisWeekCalls >= 5 },
@@ -221,23 +221,10 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
     detail = "If forwarding is on and it's been slow, that's okay. If not, check forwarding below."
   } else {
     status = 'offline'; color = '#DC2626'; bg = 'rgba(220,38,38,0.06)'; border = 'rgba(220,38,38,0.2)'; dot = '#F87171'
-    headline = lastCallAt ? 'Receptionist May Be Inactive' : 'No Calls Received Yet'
+    headline = lastCallAt ? 'Receptionist May Be Inactive' : 'Setup In Progress'
     detail = lastCallAt
-      ? 'No calls in 48+ hours — verify call forwarding is active.'
-      : 'Set up call forwarding to start receiving calls through your AI receptionist.'
-  }
-
-  const [showHelp, setShowHelp]     = useState(false)
-  const [sendState, setSendState]   = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
-
-  async function handleSendInstructions() {
-    setSendState('sending')
-    try {
-      const res = await fetch('/api/send-setup-instructions', { method: 'POST' })
-      setSendState(res.ok ? 'sent' : 'error')
-    } catch {
-      setSendState('error')
-    }
+      ? 'No calls in 48+ hours — reach out if this looks wrong.'
+      : 'We\'re finishing your call forwarding setup — we\'ll notify you the moment calls start coming through.'
   }
 
   return (
@@ -252,50 +239,15 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
           </div>
         </div>
         {status !== 'active' && (
-          <button onClick={() => setShowHelp(h => !h)} className="text-xs font-medium flex-shrink-0 underline underline-offset-2" style={{ color }}>
-            {showHelp ? 'Hide' : 'How to fix →'}
-          </button>
+          <a
+            href="mailto:chris@369agenticsystems.com?subject=Receptionist Setup"
+            className="text-xs font-medium flex-shrink-0 underline underline-offset-2"
+            style={{ color }}
+          >
+            Contact us →
+          </a>
         )}
       </div>
-
-      {showHelp && status !== 'active' && (
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: border }}>
-          <p className="text-xs font-semibold text-[var(--text-primary)] mb-2">Enable call forwarding (60 seconds):</p>
-          <ul className="space-y-1">
-            {[
-              ['AT&T / Verizon', 'Dial *72 then your Retell number'],
-              ['T-Mobile',       'Settings → Phone → Call Forwarding'],
-              ['Landline / VoIP','Check your provider\'s call forwarding settings'],
-            ].map(([carrier, inst]) => (
-              <li key={carrier} className="text-xs text-[var(--text-muted)]">
-                <span className="font-semibold text-[var(--text-primary)]">{carrier}:</span> {inst}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {status !== 'active' && (
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: border }}>
-          <button
-            onClick={handleSendInstructions}
-            disabled={sendState === 'sending' || sendState === 'sent'}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-opacity"
-            style={{
-              background: sendState === 'sent' ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)',
-              border:     `1px solid ${sendState === 'sent' ? 'rgba(74,222,128,0.25)' : border}`,
-              color:      sendState === 'sent' ? '#4ADE80' : color,
-              opacity:    sendState === 'sending' ? 0.7 : 1,
-              cursor:     sendState === 'sending' || sendState === 'sent' ? 'default' : 'pointer',
-            }}
-          >
-            {sendState === 'idle'    && '📧 Send Setup Instructions to My Email'}
-            {sendState === 'sending' && 'Sending…'}
-            {sendState === 'sent'    && '✓ Instructions Sent — Check Your Inbox'}
-            {sendState === 'error'   && '⚠ Failed to send — try again'}
-          </button>
-        </div>
-      )}
     </div>
   )
 }

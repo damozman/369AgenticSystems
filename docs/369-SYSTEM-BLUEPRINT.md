@@ -124,12 +124,11 @@
 
 **Goal:** Inbound emails trigger full autonomous agent workflows; agents log results to dashboard in real-time.
 
-- [ ] Inbound email router (SendGrid Inbound Parse / AWS SES / Mailgun)
-- [ ] `/api/email-ingest` webhook: parses raw email → routes to Flowise flow by intent
+- [x] `/api/email-ingest` webhook: parses inbound prospect emails, drafts a reply via Claude (not Flowise — that piece never got built), stores it in `pending_responses` for manual approval on the Workforce page
 - [ ] Flowise agent flows: RESPONSE_SPEC, DOC_DRAFTER, FOLLOW_UP, APPT_GUARDIAN, CLAIMS_TRIAGE
 - [ ] Agent outputs logged to `system_audits` → appear in portal LiveFeed in real-time
 - [ ] `business_memory` table: per-client vault loaded into every agent context
-- [ ] Wire AUTHORIZE AGENT PATCH button → Flowise webhook (replaces current direct DB patch)
+- **DECIDED AGAINST (2026-07-07):** wiring AUTHORIZE AGENT PATCH to a real remediation webhook. Chris doesn't want 369 Agentic Systems operating on a prospect's live infrastructure (credentials, TLS, headers) sight-unseen — that's the prospect's own team's call, not something we'd automate or offer. The button now just marks the flag reviewed/dismissed internally; see `components/portal/DiagnosticDrawer.tsx`.
 
 **Architecture:**
 ```

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>369 Agentic Systems — Recent Sessions Changelog</title>
+<meta name="description" content="Everything built and fixed across recent sessions: Stripe checkout, Rex/Nova/Felix, admin/client split, and the full truthfulness sweep.">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-raised: #111111;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --gold: #D4AF37;
+    --gold-dim: rgba(212,175,55,0.4);
+    --gold-wash: rgba(212,175,55,0.07);
+    --text: #F0F0F0;
+    --text-mid: #A8B0BC;
+    --text-dim: #64748B;
+    --live: #4ADE80;
+    --live-wash: rgba(74,222,128,0.09);
+    --caution: #FBBF24;
+    --caution-wash: rgba(251,191,36,0.08);
+    --critical: #F87171;
+    --critical-wash: rgba(248,113,113,0.08);
+    --info: #60A5FA;
+    --info-wash: rgba(96,165,250,0.08);
+    --font-display: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Courier New", Courier, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #FAF9F6; --bg-raised: #FFFFFF;
+      --surface: rgba(10,10,10,0.025); --border: rgba(10,10,10,0.09); --border-strong: rgba(10,10,10,0.16);
+      --gold: #A9821F; --gold-dim: rgba(169,130,31,0.45); --gold-wash: rgba(180,140,20,0.08);
+      --text: #16161A; --text-mid: #4B5563; --text-dim: #7C8592;
+      --live-wash: rgba(22,163,74,0.09); --live: #16A34A;
+      --caution-wash: rgba(180,120,10,0.1); --caution: #B4780A;
+      --critical-wash: rgba(220,38,38,0.08); --critical: #DC2626;
+      --info-wash: rgba(37,99,235,0.08); --info: #2563EB;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+
+  .shell { display: grid; grid-template-columns: 230px minmax(0,1fr); max-width: 1160px; margin: 0 auto; }
+  @media (max-width: 880px) { .shell { grid-template-columns: 1fr; } }
+
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 32px 20px 32px 24px; border-right: 1px solid var(--border);
+  }
+  @media (max-width: 880px) {
+    nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 24px 24px 20px; }
+  }
+  .toc-brand { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; margin-bottom: 2px; }
+  .toc-brand span { color: var(--gold); }
+  .toc-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 24px; }
+  .toc-list { list-style: none; margin: 0; padding: 0; }
+  .toc-list li { margin-bottom: 2px; }
+  .toc-list a {
+    display: flex; align-items: baseline; gap: 8px; text-decoration: none; font-size: 12.5px;
+    color: var(--text-mid); padding: 6px 10px; border-radius: 7px; transition: background 0.15s, color 0.15s;
+  }
+  .toc-list a:hover { background: var(--surface); color: var(--text); }
+  .toc-list .n { font-family: var(--font-mono); font-size: 10px; color: var(--gold-dim); flex-shrink: 0; }
+
+  main { padding: 48px 40px 100px; min-width: 0; }
+  @media (max-width: 880px) { main { padding: 32px 20px 80px; } }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  header.hero { margin-bottom: 48px; }
+  header.hero h1 {
+    font-family: var(--font-display); font-size: clamp(26px, 4vw, 34px); font-weight: 700;
+    letter-spacing: -0.015em; margin: 10px 0 12px; text-wrap: balance;
+  }
+  header.hero p.lede { font-size: 15px; color: var(--text-mid); max-width: 68ch; margin: 0 0 18px; }
+  .status-line {
+    display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--text-dim); background: var(--surface); border: 1px solid var(--border); padding: 7px 13px; border-radius: 20px;
+  }
+  .status-line .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--caution); box-shadow: 0 0 6px var(--caution); }
+
+  section.era { margin-bottom: 56px; scroll-margin-top: 24px; }
+  .era-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .era-head h2 { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin: 0; }
+  .era-date { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+  .era-dek { color: var(--text-mid); font-size: 13.5px; max-width: 70ch; margin: 6px 0 18px; }
+
+  .item {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--bg-raised);
+    padding: 15px 18px; margin-bottom: 10px;
+  }
+  .item-head { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; flex-wrap: wrap; }
+  .item-title { font-weight: 650; font-size: 14px; }
+  .badge {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; border: 1px solid;
+  }
+  .badge.done { color: var(--live); border-color: var(--live); background: var(--live-wash); }
+  .badge.uncommitted { color: var(--caution); border-color: var(--caution); background: var(--caution-wash); }
+  .badge.fix { color: var(--critical); border-color: var(--critical); background: var(--critical-wash); }
+  .item p { margin: 0; font-size: 13.5px; color: var(--text-mid); }
+  .item code {
+    font-family: var(--font-mono); font-size: 12px; background: var(--surface);
+    border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; color: var(--text);
+  }
+
+  .callout {
+    margin-top: 14px; padding: 12px 16px; border-radius: 8px;
+    background: var(--gold-wash); border: 1px solid var(--gold-dim);
+    font-size: 13px; color: var(--text-mid);
+  }
+  .callout.critical { background: var(--critical-wash); border-color: var(--critical); }
+
+  footer.foot { margin-top: 44px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <nav class="toc" aria-label="Sections">
+    <div class="toc-brand">369 <span>Agentic</span></div>
+    <div class="toc-sub">Changelog</div>
+    <ul class="toc-list">
+      <li><a href="#dashboard"><span class="n">1</span> Client Dashboard</a></li>
+      <li><a href="#stripe-agents"><span class="n">2</span> Stripe + Rex/Nova/Felix</a></li>
+      <li><a href="#realcall-debug"><span class="n">3</span> Real-Call Debugging</a></li>
+      <li><a href="#demo-mobile"><span class="n">4</span> Demo Line + Mobile</a></li>
+      <li><a href="#admin-split"><span class="n">5</span> Admin/Client Split</a></li>
+      <li><a href="#truthfulness"><span class="n">6</span> Truthfulness Sweep</a></li>
+      <li><a href="#current-state"><span class="n">→</span> Current State</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">// What actually happened</p>
+      <h1>Recent Sessions, In Order</h1>
+      <p class="lede">
+        You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep. Six eras, each with what got built, what broke, and how it got fixed.
+      </p>
+      <span class="status-line"><span class="dot"></span> Most of Era 6 is still uncommitted — sitting in the working tree, not pushed</span>
+    </header>
+
+    <!-- ═══ 1. DASHBOARD ═══ -->
+    <section class="era" id="dashboard">
+      <div class="era-head"><h2>1. Client Dashboard Buildout</h2><span class="era-date">Earlier session</span></div>
+      <p class="era-dek">The premium client-facing dashboard — most of what a paying client actually sees today.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Full feature set shipped</span><span class="badge done">Done</span></div>
+        <p>Week-over-week deltas, revenue-protected card, after-hours-rescued highlight, answer-rate badge, CSV export, live call toast (Supabase Realtime), 7-day sparkline, caller sentiment, peak-hours chart, industry benchmark, onboarding checklist, on-demand setup-instructions email.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 2. STRIPE + AGENTS ═══ -->
+    <section class="era" id="stripe-agents">
+      <div class="era-head"><h2>2. Stripe Checkout + Rex/Nova/Felix Agent Pipeline</h2><span class="era-date">acad494</span></div>
+      <p class="era-dek">The big one: self-serve payment, and the first three agents beyond Ava actually built end-to-end.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Stripe self-serve checkout</span><span class="badge done">Done — test mode</span></div>
+        <p>Payment Links per tier, webhook → <code>provisionClient()</code> creates subscription + agent config rows, sends welcome + owner-notification emails. Verified end-to-end with a real test-mode purchase. Still in <code>sk_test_</code> mode — flipping to live is a deliberate separate step.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rex — follow-up agent</span><span class="badge done">Done — 3 verticals</span></div>
+        <p>Day-0/day-3/day-7 personalized email sequence, fires on lead capture. Real and live for roofing, HVAC, plumbing. SMS templates written but stubbed (no Twilio yet).</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Nova — booking confirmation agent</span><span class="badge done">Done — 3 verticals</span></div>
+        <p>Claude-written appointment-confirmation email, fires on booking. Real and live for roofing, HVAC, plumbing.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Felix — legal conflict-check agent</span><span class="badge done">Done — legal only</span></div>
+        <p>Cross-references new intakes against prior captured leads via Claude, alerts the attorney by email on a plausible conflict. Runs in parallel with intake, doesn't block booking.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 3. REAL-CALL DEBUGGING ═══ -->
+    <section class="era" id="realcall-debug">
+      <div class="era-head"><h2>3. Real-Call Debugging Rounds</h2><span class="era-date">34a7601, a64ad8e, 1d68bbf</span></div>
+      <p class="era-dek">Four consecutive real-phone-call test rounds, each surfacing a genuine bug the previous round missed.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Retell's actual tool-call payload shape</span><span class="badge fix">Fixed</span></div>
+        <p>Retell POSTs <code>{call, args}</code>, not a flat body — <code>capture-lead</code>/<code>book-appointment</code> were silently failing on every real call until unwrapped correctly.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Duplicate lead rows</span><span class="badge fix">Fixed</span></div>
+        <p>The model sometimes called <code>capture_lead</code> twice with incomplete args each time — second call nulled out the first's data. Fixed with upsert-on-<code>call_id</code> + a new unique constraint.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Dead air during tool calls</span><span class="badge fix">Fixed</span></div>
+        <p>Ava went silent while <code>capture_lead</code>/<code>book_appointment</code> ran, callers thought the line dropped. Added filler speech.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Email/issue description unreliable — 3 calls in a row</span><span class="badge fix">Fixed</span></div>
+        <p>Prompt-wording fixes didn't hold. Root fix: added these fields to Retell's async post-call analysis and backfill from there whenever the live call missed them — two independent extraction passes instead of one fragile one.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 4. DEMO LINE + MOBILE ═══ -->
+    <section class="era" id="demo-mobile">
+      <div class="era-head"><h2>4. Shared Demo Line + Mobile Fixes + First SMS Pass</h2><span class="era-date">cdc7b7e, 4b24ffc, 87eea79</span></div>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">One demo number, all 9 verticals</span><span class="badge done">Done</span></div>
+        <p><code>(817) 635-0220</code> now classifies the caller's industry live and answers as "ABC Company" — previously roofing-only. Ends every call with a spoken demo disclosure so a stray Google search doesn't confuse someone for a real business.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Fire-and-forget → awaited</span><span class="badge fix">Fixed</span></div>
+        <p>Rex/Nova/Felix trigger fetches in <code>capture-lead</code>/<code>book-appointment</code> weren't awaited — Vercel could freeze the function before they completed. Nova was silently never firing in production until this was caught and fixed.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Mobile overflow on cold-email pages</span><span class="badge fix">Fixed</span></div>
+        <p>Agent hero grid + 3-column stat rows broke on narrow viewports across all 9 static pages.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">First SMS-as-live pass</span><span class="badge fix">Fixed</span></div>
+        <p>Replaced "SMS booking confirmations" and similar claims with "Email — SMS coming soon" across tier config, agent cards, agent detail pages, and 2 static pages. (Round 2 of this, much larger, is in Era 6.)</p>
+      </div>
+    </section>
+
+    <!-- ═══ 5. ADMIN/CLIENT SPLIT ═══ -->
+    <section class="era" id="admin-split">
+      <div class="era-head"><h2>5. Admin/Client Role Separation</h2><span class="era-date">0900a46</span></div>
+      <p class="era-dek">A real security gap, not cosmetic — found because you logged in as a "client" and landed on the internal Command Center.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">No role concept existed at all</span><span class="badge fix">Fixed</span></div>
+        <p>Every logged-in user landed on <code>/dashboard</code> (the internal admin view) regardless of who they were — a real paying customer would have seen cross-client business-intelligence data. Fixed via <code>lib/admin.ts</code> (single allowlist: <code>chris@369agenticsystems.com</code>), middleware split across all 6 portal routes, login redirect, and a conditional <code>Sidebar</code>.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title"><code>damozman@gmail.com</code> kept as a real client account</span><span class="badge done">Deliberate</span></div>
+        <p>Explicitly excluded from admin on purpose — kept as a clean-slate practice client account with a real (test-mode) subscription, for experiencing the actual customer flow.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 6. TRUTHFULNESS SWEEP ═══ -->
+    <section class="era" id="truthfulness">
+      <div class="era-head"><h2>6. Full Truthfulness + Technical Sweep</h2><span class="era-date">2026-07-07 / 07-08 — mostly uncommitted</span></div>
+      <p class="era-dek">Started from one fabricated badge on your own client dashboard, ended up touching almost every page on the site. This is the largest single body of work and none of it is pushed yet.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Client dashboard: fake "LIVE" claims</span><span class="badge fix">Fixed — committed (12c4736)</span></div>
+        <p>"Review Request Agent — LIVE" had zero code behind it, shown on your own real client-dashboard screenshot. Every agent's status badge and the onboarding checklist's "AI Receptionist deployed" (hardcoded <code>true</code>) are now computed from real per-vertical, per-client state.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Setup-instructions flow disabled</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Was emailing real clients the shared demo number as their "dedicated receptionist number" with forwarding instructions — would have routed a real client's calls into the "ABC Company" demo agent. Endpoint now returns 410, button replaced with a "Contact us" mailto.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">"Authorize Agent Patch" — fake security remediation</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Internal admin tool claimed to enforce TLS, rotate credentials, and install security headers on a <em>prospect's</em> website with one click. It only ever flipped a database flag. Your call: decided against ever building this for real (you don't want 369 taking automated action on infrastructure you don't control). Button now says "Mark Reviewed," documented as a deliberate decision in the system blueprint, not a TODO.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rex/Nova/Felix under-selling what's real</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Opposite-direction bug: marketing pages showed Rex/Nova as "Deploying" for roofing/hvac/plumbing and Felix as "Deploying" for legal, even though all four are genuinely live there. Fixed across <code>AgentCard.tsx</code>, the agent detail page, and 4 static pages.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rex/Nova descriptions were themselves fabricated</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Once the badges were fixed, the fuller descriptions turned out to promise things that don't exist — Nova "generates estimate ranges" / "PDF diagnostic reports" / "repair quotes" (it sends one generic confirmation email); Rex runs "pre-season campaigns to previous customers" (it's a generic day-0/3/7 sequence triggered by any new lead). Rewritten to describe the real mechanism honestly.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Felix's "gated booking" claim</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Claimed a flagged conflict "cannot be booked until an attorney approves." Felix runs in parallel and only sends an alert email — doesn't block anything. Reworded to describe the real alert-based behavior.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">"Live in 72 hours" vs. "5–7 business days"</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Direct contradiction across two pages in the same funnel. Reconciled to "as little as 72 hours" (best case) with a footnote explaining the real range — fixed on the Next.js ROI calculator/pricing pages <em>and</em> separately baked into all 9 static HTML pages (found on a second pass, wasn't the same fix).</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">A second, hidden fictional-agent system</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Your own manual review caught it — the first sweep grepped for "LIVE"/"DEPLOYING" and completely missed an older "AGENTS.md" bento card on all 9 static pages using <code>ACTIVE</code>/<code>STANDBY</code> labels, describing a second, contradicting agent roster. 23 fictional agents removed total (Storm-Response Dispatch, Billing Assistant, SEO Strategist, Insurance Pre-Auth Specialist, and 19 others) — see <code>removed-agent-abilities-reference.html</code> for the full list.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">SaaS + Wholesale hero rewrites</span><span class="badge fix">Partial — uncommitted</span></div>
+        <p>Both pages pitched entirely different, unbuilt products (an autonomous SEO/content engine; inventory/warehouse automation). Hero and problem/fix sections rewritten to the real call-answering product. <strong>Not touched:</strong> page <code>&lt;title&gt;</code>/meta/OG tags and the ROI calculators, which compute "organic traffic value" and inventory metrics — real rewrite work, waiting on your input on what these verticals' actual story becomes.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Dental converted to waitlist-only</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Per your direction. Meta tags, hero, and — most importantly — the intake form, which used to submit to the real Gumloop pipeline and promise "your Digital Employee is being configured, expect contact within 24 hours" for a vertical that's 100% not built. Form now posts to the real <code>/api/early-access</code> waitlist endpoint with an honest confirmation message.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">One real mobile CSS bug</span><span class="badge fix">Fixed — uncommitted</span></div>
+        <p>Not a truthfulness issue — <code>/founding</code> had 105px of horizontal overflow, caused by an unclipped decorative glow plus a CSS grid <code>justifyItems: center</code> that let agent-photo cards ignore their column width. Same root-cause template was copy-pasted across all 9 static pages; fixed everywhere.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Two reference docs created</span><span class="badge done">Done</span></div>
+        <p><code>qa-runbook-funnel-testing.html</code> (Funnel A/B walkthroughs, attention items, full public + admin link index) and <code>removed-agent-abilities-reference.html</code> (all 23 removed fictional agents, by vertical, for later review) — both in this <code>docs/</code> folder.</p>
+      </div>
+
+      <div class="callout critical">
+        <strong>Nothing in this era is pushed.</strong> It's all sitting in the local working tree — 20 modified files, 2 new docs. Verified clean (<code>tsc</code>, production build, zero console errors, zero mobile overflow) but not committed, so <code>git diff</code> will show all of it.
+      </div>
+    </section>
+
+    <!-- ═══ CURRENT STATE ═══ -->
+    <section class="era" id="current-state">
+      <div class="era-head"><h2>Where Things Actually Stand</h2></div>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed</span></div>
+        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails).</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Known, deliberate gaps</span><span class="badge uncommitted">Open</span></div>
+        <p>No automation connects a Stripe payment to a real per-client Retell agent/phone number — every new client is fully manual today. Scout has zero implementation. Dental is waitlist-only by design. Stripe is test-mode only.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rollout status</span><span class="badge uncommitted">Paused</span></div>
+        <p>You paused the planned launch after finding errors on your own manual pass. No new launch date set — that's still your call, not a technical blocker.</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Compiled 2026-07-10. Cross-reference: <code>truthfulness_audit_2026-07-07.md</code>, <code>pending_items.md</code>, <code>rex_nova_felix_build_brief.md</code> (memory files) · <code>qa-runbook-funnel-testing.html</code>, <code>removed-agent-abilities-reference.html</code> (this folder).
+    </footer>
+  </main>
+</div>
+</body>
+</html>

@@ -35,12 +35,13 @@ export const metadata: Metadata = {
 const INDUSTRIES = [
   { num: '01', name: 'Legal',         aos: 'Legal Excellence AOS',       color: '#60A5FA', pain: 'High-value leads go cold while attorneys are in court',          agent: 'Intake Qualifier + Document Drafter' },
   { num: '02', name: 'Roofing',       aos: 'Speed-to-Lead AOS',          color: '#F59E0B', pain: 'First company to respond wins the job — most respond in hours',  agent: 'Instant Lead Responder + Estimator' },
-  { num: '03', name: 'SaaS',          aos: 'Growth Engine AOS',          color: '#6366F1', pain: 'Trial users churn before onboarding reaches them',               agent: 'Onboarding Specialist + Churn Guard' },
-  { num: '04', name: 'Dental',        aos: 'Patient Revenue AOS',        color: '#EC4899', pain: 'Evening and weekend inquiries go unanswered for 12–48 hours',    agent: 'Appointment Setter + Patient Nurture' },
-  { num: '05', name: 'Real Estate',   aos: 'Pipeline Velocity AOS',      color: '#0EA5E9', pain: 'Agents juggle 50+ leads manually — hot buyers slip away',         agent: 'Lead Qualifier + Showing Coordinator' },
-  { num: '06', name: 'Insurance',     aos: 'Agency Revenue AOS',         color: '#14B8A6', pain: 'Quote requests sit unworked while producers chase renewals',      agent: 'Quote Processor + Cross-Sell Agent' },
-  { num: '07', name: 'Wholesale',     aos: 'Distribution Velocity AOS',  color: '#84CC16', pain: 'Inbound POs require manual entry, causing delays and errors',     agent: 'Order Processor + Reorder Trigger' },
-  { num: '08', name: 'Your Industry', aos: 'Custom AOS',                 color: '#94A3B8', pain: 'Any repetitive revenue-critical workflow can be automated',       agent: 'Custom Agent Stack — built to spec' },
+  { num: '03', name: 'HVAC',          aos: 'Speed-to-Lead AOS',          color: '#FF6533', pain: 'Emergency no-heat/no-AC calls go to voicemail after hours',        agent: 'Instant Lead Responder + Dispatcher' },
+  { num: '04', name: 'Plumbing',      aos: 'Speed-to-Lead AOS',          color: '#0369A1', pain: 'Burst-pipe emergencies can\'t wait for a callback',                agent: 'Instant Lead Responder + Dispatcher' },
+  { num: '05', name: 'SaaS',          aos: 'Growth Engine AOS',          color: '#6366F1', pain: 'Trial users churn before onboarding reaches them',               agent: 'Onboarding Specialist + Churn Guard' },
+  { num: '06', name: 'Dental',        aos: 'Patient Revenue AOS',        color: '#EC4899', pain: 'Evening and weekend inquiries go unanswered for 12–48 hours',    agent: 'Appointment Setter + Patient Nurture' },
+  { num: '07', name: 'Real Estate',   aos: 'Pipeline Velocity AOS',      color: '#0EA5E9', pain: 'Agents juggle 50+ leads manually — hot buyers slip away',         agent: 'Lead Qualifier + Showing Coordinator' },
+  { num: '08', name: 'Insurance',     aos: 'Agency Revenue AOS',         color: '#14B8A6', pain: 'Quote requests sit unworked while producers chase renewals',      agent: 'Quote Processor + Cross-Sell Agent' },
+  { num: '09', name: 'Wholesale',     aos: 'Distribution Velocity AOS',  color: '#84CC16', pain: 'Inbound POs require manual entry, causing delays and errors',     agent: 'Order Processor + Reorder Trigger' },
 ]
 
 const STEPS = [
@@ -53,7 +54,7 @@ const STATS = [
   { value: '< 60s',   label: 'Lead Response Time' },
   { value: '24/7',    label: 'Autonomous Operation' },
   { value: '20+ hrs', label: 'Admin Reclaimed / Week' },
-  { value: '8',       label: 'Industries Deployed' },
+  { value: '9',       label: 'Industries Deployed' },
 ]
 
 export default function HomePage() {
@@ -173,7 +174,7 @@ export default function HomePage() {
         </nav>
 
         {/* Hero */}
-        <section style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 24px 80px', textAlign: 'center', position: 'relative' }}>
+        <section style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 24px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
           {/* Glow behind headline */}
           <div aria-hidden="true" style={{
             position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)',
@@ -276,14 +277,14 @@ export default function HomePage() {
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <p style={{ margin: '0 0 12px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.22em' }}>
-              // DIGITAL WORKFORCE — LIVE NOW
+              // DIGITAL WORKFORCE
             </p>
             <div style={{ width: 44, height: 2, background: '#D4AF37', margin: '0 auto 20px' }} />
             <h2 style={{ margin: '0 0 12px', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 700, color: '#FFFFFF', fontFamily: "'Instrument Sans', sans-serif" }}>
               Meet the Team
             </h2>
             <p style={{ margin: '0 auto', maxWidth: 520, fontSize: 15, color: '#64748B', lineHeight: 1.75 }}>
-              Your autonomous AI workforce — deployed 24/7, handling intake, outreach, and intelligence across every vertical.
+              Your autonomous AI workforce, handling intake, outreach, and intelligence — live agents shown below, more rolling out by vertical.
             </p>
           </div>
           <AgentTeamGrid vertical="original" size="medium" />

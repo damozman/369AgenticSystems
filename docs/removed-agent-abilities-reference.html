@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>369 Agentic Systems — Removed Agent Abilities</title>
+<meta name="description" content="Every fictional agent/capability removed during the truthfulness sweep, for later review — was any of this a real intent worth building?">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-raised: #111111;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --gold: #D4AF37;
+    --gold-dim: rgba(212,175,55,0.4);
+    --gold-wash: rgba(212,175,55,0.07);
+    --text: #F0F0F0;
+    --text-mid: #A8B0BC;
+    --text-dim: #64748B;
+    --removed: #F87171;
+    --removed-wash: rgba(248,113,113,0.08);
+    --real: #4ADE80;
+    --real-wash: rgba(74,222,128,0.08);
+    --font-display: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Courier New", Courier, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #FAF9F6; --bg-raised: #FFFFFF;
+      --surface: rgba(10,10,10,0.025); --border: rgba(10,10,10,0.09); --border-strong: rgba(10,10,10,0.16);
+      --gold: #A9821F; --gold-dim: rgba(169,130,31,0.45); --gold-wash: rgba(180,140,20,0.08);
+      --text: #16161A; --text-mid: #4B5563; --text-dim: #7C8592;
+      --removed: #DC2626; --removed-wash: rgba(220,38,38,0.08);
+      --real: #16A34A; --real-wash: rgba(22,163,74,0.09);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 100px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--gold);
+  }
+  header h1 {
+    font-family: var(--font-display); font-size: clamp(26px, 4vw, 32px);
+    font-weight: 700; letter-spacing: -0.015em; margin: 10px 0 14px; text-wrap: balance;
+  }
+  header p.lede { font-size: 15px; color: var(--text-mid); max-width: 68ch; margin: 0 0 20px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 44px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .vertical-block { margin-bottom: 52px; scroll-margin-top: 24px; }
+  .vertical-head {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border-strong);
+  }
+  .vertical-head h2 {
+    font-family: var(--font-display); font-size: 19px; font-weight: 700; margin: 0;
+  }
+  .vertical-head .count {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  }
+  .vertical-note {
+    font-size: 13px; color: var(--text-dim); margin: 8px 0 18px; line-height: 1.6;
+  }
+
+  .agent-card {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-raised); padding: 16px 18px; margin-bottom: 10px;
+  }
+  .agent-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .agent-name { font-weight: 650; font-size: 14.5px; }
+  .badge {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; border: 1px solid;
+  }
+  .badge.claimed-active { color: var(--removed); border-color: var(--removed); background: var(--removed-wash); }
+  .badge.claimed-standby { color: var(--text-dim); border-color: var(--border-strong); background: var(--surface); }
+  .claimed { font-size: 13px; color: var(--text-mid); margin: 0 0 8px; }
+  .real-note {
+    font-size: 12.5px; color: var(--real); background: var(--real-wash);
+    border-left: 2px solid var(--real); padding: 6px 10px; border-radius: 0 6px 6px 0;
+  }
+  .real-note.none { color: var(--text-dim); background: transparent; border-left-color: var(--border-strong); }
+
+  .hero-block {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-raised); padding: 16px 18px; margin-bottom: 10px;
+  }
+  .hero-block .label { font-family: var(--font-mono); font-size: 10px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+  .hero-block p { margin: 0 0 6px; font-size: 13.5px; color: var(--text-mid); }
+  .hero-block .quote { font-style: italic; color: var(--text); }
+
+  .status-note {
+    margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+    background: var(--gold-wash); border: 1px solid var(--gold-dim);
+    font-size: 12.5px; color: var(--text-mid);
+  }
+
+  footer.foot {
+    margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">// Reference — not a to-do list</p>
+    <h1>Removed Agent Abilities, By Vertical</h1>
+    <p class="lede">
+      Every fictional agent, role, or capability claim removed during the truthfulness sweep. None of this was ever built — it was marketing copy describing agents that don't exist. Keeping this list so you can decide later, vertical by vertical, whether any of it is worth actually building — versus copy that should just stay gone.
+    </p>
+  </header>
+
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot" style="background:var(--removed)"></span> Marked "ACTIVE" — falsely claimed live</span>
+    <span class="legend-item"><span class="legend-dot" style="background:var(--text-dim)"></span> Marked "STANDBY" — honestly labeled not-live, but still fictional</span>
+    <span class="legend-item"><span class="legend-dot" style="background:var(--real)"></span> Closest real equivalent that does exist</span>
+  </div>
+
+  <!-- ═══ ROOFING ═══ -->
+  <section class="vertical-block" id="roofing">
+    <div class="vertical-head"><h2>Roofing</h2><span class="count">4 fictional agents removed</span></div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Lead Qualifier</span><span class="badge claimed-active">Claimed Active</span></div>
+      <p class="claimed">"24/7 call intake · damage scope · homeowner qualification"</p>
+      <p class="real-note">Closest real thing: Ava, the actual AI receptionist — this was just a renamed duplicate of her.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Estimate Delivery</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Auto-estimate generation · email delivery · booking link" — implied it calculates an actual dollar estimate range.</p>
+      <p class="real-note none">No pricing/estimate logic exists anywhere. Nova's real capability is a written appointment-confirmation email, not an estimate.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Storm-Response Dispatch</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Hail alert monitor · mass outreach · crew scheduling"</p>
+      <p class="real-note none">Zero code anywhere. Weather/hail detection was floated as a Month-2 idea (Tomorrow.io integration) in old planning notes — never built.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Insurance Supplement Specialist</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Scope gap analysis · adjuster follow-up · supplement docs"</p>
+      <p class="real-note none">No code, no data source for insurance carrier coverage rights. Fully fictional.</p>
+    </div>
+  </section>
+
+  <!-- ═══ HVAC ═══ -->
+  <section class="vertical-block" id="hvac">
+    <div class="vertical-head"><h2>HVAC</h2><span class="count">2 fictional agents removed</span></div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Seasonal Outreach Agent</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Pre-season campaigns · tune-up reminders" — implied proactive outreach to past customers before summer/winter.</p>
+      <p class="real-note none">Rex's real trigger is a newly captured lead, not a seasonal calendar. No past-customer re-engagement list or campaign exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Estimate Follow-up Agent</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Automated estimate nurture · close sequences"</p>
+      <p class="real-note">Closest real thing: Rex's real 3-email follow-up sequence (day 0/3/7) — real, but generic, not estimate-specific.</p>
+    </div>
+  </section>
+
+  <!-- ═══ PLUMBING ═══ -->
+  <section class="vertical-block" id="plumbing">
+    <div class="vertical-head"><h2>Plumbing</h2><span class="count">2 fictional agents removed</span></div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Estimate Follow-up Agent</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Automated quote nurture · close sequences"</p>
+      <p class="real-note">Closest real thing: Rex's generic 3-email sequence.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Maintenance Plan Agent</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Annual plan upsells · service reminders"</p>
+      <p class="real-note none">No maintenance-plan product, billing, or reminder system exists anywhere in the codebase.</p>
+    </div>
+  </section>
+
+  <!-- ═══ LEGAL ═══ -->
+  <section class="vertical-block" id="legal">
+    <div class="vertical-head"><h2>Legal</h2><span class="count">5 fictional agents removed</span></div>
+    <p class="vertical-note">This one was the worst of the "falsely ACTIVE" cases — three fictional agents were marked live for a vertical where only Ava and Felix are actually real.</p>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Digital Intake Specialist</span><span class="badge claimed-active">Claimed Active</span></div>
+      <p class="claimed">Generic intake description.</p>
+      <p class="real-note">Closest real thing: Ava. Renamed duplicate.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Document Drafter</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">Implied it drafts legal documents (engagement letters, intake summaries).</p>
+      <p class="real-note none">No document generation exists. Nova is not live for legal at all.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Follow-up Scheduler</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">Implied active lead follow-up scheduling.</p>
+      <p class="real-note none">Rex is not live for legal. No code runs for this vertical.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Compliance Monitor</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">No description given beyond the name.</p>
+      <p class="real-note none">Fully fictional, no spec beyond a name.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Billing Assistant</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">No description given beyond the name.</p>
+      <p class="real-note none">Wholly invented. Not one of the 5 real agents (Ava/Rex/Nova/Felix/Scout), no billing system exists anywhere.</p>
+    </div>
+
+    <div class="status-note">Also fixed on Felix's real agent-profile page: it claimed the booking flow was "gated" — that a flagged conflict "cannot be booked until an attorney reviews and approves." Felix actually runs in parallel and only sends an alert email; it doesn't block anything. Reworded to describe the real alert-based behavior.</div>
+  </section>
+
+  <!-- ═══ REAL ESTATE ═══ -->
+  <section class="vertical-block" id="real-estate">
+    <div class="vertical-head"><h2>Real Estate</h2><span class="count">4 fictional agents removed</span></div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Lead Response Specialist</span><span class="badge claimed-active">Claimed Active</span></div>
+      <p class="claimed">"Portal monitoring · instant reply · intent qualification"</p>
+      <p class="real-note">Closest real thing: Ava. But "portal monitoring" (implying active Zillow/Realtor.com scanning) isn't real — Ava only answers inbound calls.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Showing Coordinator</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Availability check · calendar booking · confirmation & reminders"</p>
+      <p class="real-note none">Nova is not live for real estate.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Follow-Up Sequencer</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"90-day nurture · market update emails · re-engagement triggers"</p>
+      <p class="real-note none">Rex is not live for real estate. No 90-day sequence, no market-update content, exists anywhere.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Listing Content Specialist</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"AI listing descriptions · market reports · social post generation"</p>
+      <p class="real-note none">Fully fictional — closer to a Scout-style content agent than anything on the real roster.</p>
+    </div>
+
+    <div class="status-note">The dashboard mockup on this page also showed fake metrics for these agents ("Active nurture sequences: 34 contacts," "Listings generated: 3 this week") — replaced with real, honest metrics (calls answered, missed calls).</div>
+  </section>
+
+  <!-- ═══ INSURANCE ═══ -->
+  <section class="vertical-block" id="insurance">
+    <div class="vertical-head"><h2>Insurance</h2><span class="count">3 fictional agents removed</span></div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Claims Triage Specialist</span><span class="badge claimed-active">Claimed Active</span></div>
+      <p class="claimed">"Automates initial claim intake and documentation"</p>
+      <p class="real-note">Closest real thing: Ava. But there's no claims-specific intake logic — just general call answering.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Renewal Guardian</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Monitors policy expirations · initiates renewal sequences"</p>
+      <p class="real-note none">Rex is not live for insurance. No policy-expiration tracking exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Policy Lead Specialist</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Qualifies & routes new quote requests instantly"</p>
+      <p class="real-note none">Fictional — no routing logic beyond Ava's call handling exists.</p>
+    </div>
+
+    <div class="status-note">Also removed: a fabricated "−78% Lapse Prevention Rate" statistic ("policy lapse rates drop from 23% to under 5%") with no basis — no renewal-sequence feature exists to have produced that number.</div>
+  </section>
+
+  <!-- ═══ SAAS ═══ -->
+  <section class="vertical-block" id="saas">
+    <div class="vertical-head"><h2>SaaS</h2><span class="count">4 fictional agents + entire page positioning</span></div>
+    <p class="vertical-note">The deepest case. This wasn't just fictional agents bolted onto a real page — the entire hero, "fact ticker," and problem section pitched a different, unbuilt product: an autonomous SEO/content growth engine. Bento section and hero/problem section fixed; page &lt;title&gt;/meta/OG/Twitter/JSON-LD and the ROI calculator (which computes "organic traffic value" from "content/SEO spend") were <strong>not</strong> touched — that's real rewrite work, not a copy fix, and needs your input on what SaaS's real story becomes.</p>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">SEO Strategist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Keyword gap analysis · topical authority maps · intent clustering"</p>
+      <p class="real-note none">No SEO/keyword tooling exists anywhere in the codebase.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Technical Content Specialist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Brief generation · long-form drafting · on-page optimization"</p>
+      <p class="real-note none">No content-generation pipeline exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Conversion Optimizer</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"CRO testing · landing page copy · CTR improvement loops"</p>
+      <p class="real-note none">No A/B testing or CRO tooling exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Market Intelligence Bot</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Competitor monitoring · pricing signals · SERP rank tracking"</p>
+      <p class="real-note">This one maps conceptually to <strong>Scout</strong> (the real, planned SaaS-exclusive agent) — but Scout itself has zero implementation today. Worth remembering this description when Scout eventually gets built.</p>
+    </div>
+
+    <div class="hero-block">
+      <p class="label">Hero positioning removed</p>
+      <p>Badge: <span class="quote">"Growth Engine AOS · Autonomous SEO & Content Sovereignty"</span></p>
+      <p>Fact ticker: <span class="quote">"94% of all published content gets zero organic traffic"</span></p>
+      <p>H1: <span class="quote">"Your Competitors Are Ranking. You're Still Writing Drafts."</span></p>
+      <p>Subhead: <span class="quote">"Deploy an autonomous growth engine that researches keywords, produces high-authority content, updates product listings, and monitors competitors."</span></p>
+      <p>Stats: 10x content output, 70% CAC reduction, "10x Content Output Multiplier" KPI card</p>
+      <p>Dashboard mockup: "Keywords ranking +47," "Articles published: 12," "Organic sessions ↑34%," "Competitor alerts: 3 new," "CAC $147→$44"</p>
+    </div>
+  </section>
+
+  <!-- ═══ WHOLESALE ═══ -->
+  <section class="vertical-block" id="wholesale">
+    <div class="vertical-head"><h2>Wholesale</h2><span class="count">3 fictional agents + entire page positioning</span></div>
+    <p class="vertical-note">Same depth of issue as SaaS — the hero and problem section pitched inventory/warehouse/CRM automation, not the real call-answering product. Fixed hero + problem/fix section; page &lt;title&gt;/meta/OG/JSON-LD not checked/touched.</p>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Inventory Logistics Specialist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Tracks stock levels and automates re-order notifications"</p>
+      <p class="real-note none">No inventory/SKU tracking system exists anywhere.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Order Workflow Specialist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Manages the handoff from sales to the warehouse via CRM"</p>
+      <p class="real-note none">No CRM/warehouse integration exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">369 Account Growth Specialist</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Identifies upsell opportunities in existing order patterns"</p>
+      <p class="real-note none">No order-pattern analysis exists.</p>
+    </div>
+
+    <div class="hero-block">
+      <p class="label">Hero positioning removed</p>
+      <p>Badge: <span class="quote">"Distribution Velocity AOS · Order Engine Active"</span></p>
+      <p>H1: <span class="quote">"Stockouts Lose Orders. Manual Handoffs Lose Margins."</span></p>
+      <p>Subhead: implied real-time stock monitoring, automatic order routing, upsell-opportunity scanning.</p>
+      <p>Problem rows: "The Stockout Cascade Effect," "Manual Order-to-Warehouse Gaps," "Dormant Account Revenue Drain"</p>
+      <p>KPI card: "−88% Handoff Error Rate" fabricated statistic</p>
+      <p>Dashboard mockup: "Inventory alerts sent," "Orders routed to warehouse," "Upsell flags raised," "Reorders triggered"</p>
+    </div>
+  </section>
+
+  <!-- ═══ DENTAL ═══ -->
+  <section class="vertical-block" id="dental">
+    <div class="vertical-head"><h2>Dental</h2><span class="count">3 fictional agents + full page conversion to waitlist</span></div>
+    <p class="vertical-note">Most severe case overall — dental is 100% not-live (confirmed, no agents deployed for this vertical at all), yet this page had 3 agents marked "ACTIVE." Per your direction, the whole page is now converted to waitlist-only — hero, meta tags, and the intake form (which used to submit to the real Gumloop pipeline and promise "your Digital Employee is being configured, expect contact within 24 hours" — actively false for a 100% unbuilt vertical).</p>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Appointment Guardian</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Multi-touch reminders · confirmation · reschedule handling"</p>
+      <p class="real-note none">Nothing is live for dental. Fully fictional.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Reactivation Specialist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Lapsed patient campaigns · recall sequences · booking"</p>
+      <p class="real-note none">No reactivation-campaign system exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Insurance Pre-Auth Specialist</span><span class="badge claimed-active">Claimed Active — falsely</span></div>
+      <p class="claimed">"Overnight verification · benefit summaries · pre-auth submission"</p>
+      <p class="real-note none">No insurance verification integration exists.</p>
+    </div>
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Digital Intake Specialist</span><span class="badge claimed-standby">Claimed Standby</span></div>
+      <p class="claimed">"Automated forms · treatment plan follow-up · referral tracking"</p>
+      <p class="real-note none">Fictional.</p>
+    </div>
+
+    <div class="status-note">Also removed: fabricated "−85% No-Show Reduction" statistic, and a dashboard mockup showing fake "Reactivations in progress: 47 patients" / "Insurance verified overnight: 12/12" metrics.</div>
+  </section>
+
+  <footer class="foot">
+    Compiled from the 2026-07-08 truthfulness sweep. Cross-reference with the memory file <code>truthfulness_audit_2026-07-07.md</code> for the technical/mobile fixes that ran alongside this.
+  </footer>
+</div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Shield, Zap } from 'lucide-react'
+import { X, Shield } from 'lucide-react'
 import type { SystemAudit } from './ActiveSpecialists'
 
 interface Props {
@@ -47,20 +47,13 @@ function buildVectors(audit: SystemAudit): VulnVector[] {
   return vectors
 }
 
-const PATCH_STEPS = [
-  'Enforce TLS on all form submission and API endpoints',
-  'Rotate any exposed credentials or API tokens',
-  'Install missing security headers (HSTS, CSP, X-Frame-Options)',
-  'Run post-patch rescan — confirm leak is fully sealed',
-]
-
 export default function DiagnosticDrawer({ audit, onClose, onAuthorize }: Props) {
   const [authorizing, setAuthorizing] = useState(false)
 
   async function handleAuthorize() {
     if (!audit || authorizing) return
     setAuthorizing(true)
-    onAuthorize(audit.id!, audit.client_domain) // immediately: close drawer + card enters PATCHING state
+    onAuthorize(audit.id!, audit.client_domain) // immediately: close drawer + card enters reviewed state
     try {
       await fetch('/api/patch-audit', {
         method: 'POST',
@@ -153,27 +146,6 @@ export default function DiagnosticDrawer({ audit, onClose, onAuthorize }: Props)
               {/* Divider */}
               <div className="border-t border-[#161616]" />
 
-              {/* Agent deployment plan */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap size={10} className="text-[#D4AF37] flex-shrink-0" />
-                  <p className="text-[10px] font-mono text-[#D4AF37] uppercase tracking-wider">
-                    Agent Deployment Plan
-                  </p>
-                </div>
-                <div className="space-y-2.5 pl-1">
-                  {PATCH_STEPS.map((step, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="text-[#D4AF37] text-[10px] font-mono flex-shrink-0 mt-0.5">›</span>
-                      <p className="text-xs text-slate-400 leading-relaxed">{step}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-[#161616]" />
-
               {/* Live metrics snapshot */}
               <div>
                 <p className="text-[9px] font-mono text-slate-700 uppercase tracking-wider mb-2">
@@ -206,7 +178,7 @@ export default function DiagnosticDrawer({ audit, onClose, onAuthorize }: Props)
             {/* Footer CTA */}
             <div className="flex-shrink-0 px-6 py-5 border-t border-[#161616] bg-[#0A0A0A]">
               <p className="text-[9px] font-mono text-slate-700 mb-3 uppercase tracking-wider">
-                // Deployment requires your explicit authorization
+                // Updates internal tracking only — no changes are made to the prospect&apos;s site
               </p>
               <button
                 onClick={handleAuthorize}
@@ -225,10 +197,10 @@ export default function DiagnosticDrawer({ audit, onClose, onAuthorize }: Props)
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       className="inline-block w-3.5 h-3.5 border-2 border-[#D4AF37] border-t-transparent rounded-full"
                     />
-                    Deploying Agent...
+                    Marking Reviewed...
                   </>
                 ) : (
-                  'Authorize Agent Patch →'
+                  'Mark Reviewed →'
                 )}
               </button>
             </div>

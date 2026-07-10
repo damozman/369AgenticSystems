@@ -436,6 +436,7 @@
       0%,100% { opacity:0.35; transform:scaleY(1); }
       50%      { opacity:0.7;  transform:scaleY(1.15); }
     }
+    @media (max-height: 760px) { .scroll-hint { display: none !important; } }
 
     /* ── Hover stats ─────────────────────────────────────────────────────── */
     .stat-block { transition: transform 0.3s ease; }
@@ -529,7 +530,7 @@
         <div class="stat-divider" style="height:40px;"></div>
         <div class="stat-block">
           <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--gold); line-height:1;">72h</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">deployment window</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">best-case deploy*</div>
         </div>
         <div class="stat-divider" style="height:40px;"></div>
         <div class="stat-block">
@@ -537,10 +538,11 @@
           <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">task accuracy rate</div>
         </div>
       </div>
+      <p style="margin:14px 0 0; font-size:0.7rem; color:var(--text-muted); font-family:'Courier New',monospace;">*72h is the best case. Typical range is 72 hours–7 business days depending on setup on your end.</p>
     </div>
 
     <!-- scroll indicator -->
-    <div style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;">
+    <div class="scroll-hint" style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:0.4; pointer-events:none;">
       <span style="font-size:0.65rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--text-muted);">Scroll</span>
       <div style="width:1px; height:44px; background:linear-gradient(to bottom, var(--text-muted), transparent); animation:scrollDrop 2.2s ease infinite;"></div>
     </div>
@@ -616,7 +618,7 @@
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--gold); margin-bottom:4px;">72h</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Full deployment</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Best-case deploy*</div>
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--gold); margin-bottom:4px;">$0</div>
@@ -637,7 +639,7 @@
         <div class="gold-line"></div>
         <span class="section-label">What You Receive</span>
         <h2 class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em;">The AOS Context Bundle</h2>
-        <p style="color:var(--text-secondary); font-size:1rem; max-width:540px; margin:0 auto; line-height:1.65;">Three precision-engineered deliverables that transform your firm from reactive to fully agentic.</p>
+        <p style="color:var(--text-secondary); font-size:1rem; max-width:540px; margin:0 auto; line-height:1.65;">Two precision-engineered deliverables that transform your firm from reactive to fully agentic.</p>
       </div>
 
       <div class="bento">
@@ -673,58 +675,16 @@
         <div class="glass bento-card reveal d2" style="padding:32px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, rgba(212,175,55,0.04) 0%, transparent 60%); pointer-events:none; border-radius:16px;"></div>
           <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:10px;">Time to First ROI</div>
-          <div class="font-display" style="font-size:4.5rem; font-weight:600; color:var(--gold); line-height:1; margin-bottom:10px;">72h</div>
-          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.55;">From audit call to fully deployed agentic infrastructure running live.</p>
+          <div class="font-display" style="font-size:4.5rem; font-weight:600; color:var(--gold); line-height:1; margin-bottom:10px;">72h*</div>
+          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.55;">Best case from audit call to your AI receptionist live. Typical range is 72 hours–7 business days.</p>
           <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center;">
             <span style="color:var(--text-muted); font-size:0.78rem;">Avg hours recovered/wk</span>
             <span style="color:var(--gold); font-weight:600; font-family:'Instrument Sans',sans-serif;">40+</span>
           </div>
         </div>
 
-        <!-- ── Card 3: AGENTS.md (tall — spans 2 rows) ── -->
-        <div class="glass bento-card tall reveal d2" style="padding:40px; position:relative; overflow:hidden;">
-          <div style="position:absolute; bottom:-60px; left:-60px; width:200px; height:200px; background:radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%); border-radius:50%; pointer-events:none;"></div>
-
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
-            <div style="width:44px; height:44px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#818CF8" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </div>
-            <div>
-              <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
-              <div class="font-display" style="font-weight:600; font-size:1.05rem;">AGENTS.md</div>
-            </div>
-          </div>
-
-          <h3 class="font-display" style="font-size:1.6rem; font-weight:600; margin-bottom:16px; line-height:1.1;">Your Digital<br>Workforce Manifest</h3>
-          <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.65; margin-bottom:28px;">Every Digital Employee fully defined — roles, permissions, memory access, tool bindings, escalation paths, and handoff protocols. Zero ambiguity. Maximum autonomy.</p>
-
-          <!-- Agent roster -->
-          <div style="display:flex; flex-direction:column; gap:9px;">
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.85rem; font-weight:500;">Digital Intake Specialist</span>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.85rem; font-weight:500;">Document Drafter</span>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.85rem; font-weight:500;">Follow-up Scheduler</span>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.85rem; font-weight:500;">Compliance Monitor</span>
-              <span class="badge-standby">STANDBY</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:13px 16px; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.85rem; font-weight:500;">Billing Assistant</span>
-              <span class="badge-active">ACTIVE</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Card 4: Live Dashboard (spans 2 cols) ── -->
-        <div class="glass bento-card span2 reveal d3" style="padding:40px; position:relative; overflow:hidden;">
+        <!-- ── Card 3: Live Dashboard (spans full width) ── -->
+        <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(39,201,63,0.02) 100%); pointer-events:none; border-radius:16px;"></div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
@@ -734,7 +694,7 @@
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#27c93f" stroke-width="1.5"/><path d="M8 21h8M12 17v4" stroke="#27c93f" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </div>
                 <div>
-                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_03</div>
+                  <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted);">Deliverable_02</div>
                   <div class="font-display" style="font-weight:600; font-size:1.05rem;">Live Dashboard</div>
                 </div>
               </div>
@@ -877,7 +837,7 @@
           <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-family:'Courier New',monospace;font-size:0.7rem;color:#60A5FA;letter-spacing:0.08em;">View profile →</div>
         </div></a>
         <a href="/agents/felix" style="text-decoration:none;display:block;"><div style="padding:24px 20px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(96,165,250,0.18);border-radius:14px;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(96,165,250,0.4)';this.style.boxShadow='0 12px 40px rgba(96,165,250,0.12)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(96,165,250,0.18)';this.style.boxShadow=''">
-          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#D4AF37;display:inline-block;"></span><span style="color:#D4AF37;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">DEPLOYING</span></div>
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="color:#4ADE80;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">LIVE</span></div>
           <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(96,165,250,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/felix/felix_legal.jpg" alt="Felix — Conflict Check Agent" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(96,165,250,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
           <p style="margin:0 0 4px;font-family:'Instrument Sans',sans-serif;font-size:1.05rem;font-weight:700;color:#60A5FA;letter-spacing:-0.01em;">Felix</p>
           <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Conflict Check Agent</p>

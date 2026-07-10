@@ -646,17 +646,22 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
           </form>
 
           {/* Trust strip */}
-          <div style={{ marginTop: 32, padding: '20px 24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
-            {[
-              '✓  30-day results guarantee',
-              '✓  Live in 72 hours',
-              '✓  No long-term contracts',
-              '✓  Cancel anytime',
-            ].map(item => (
-              <span key={item} style={{ fontFamily: 'monospace', fontSize: 10, color: '#475569', letterSpacing: '0.05em' }}>
-                {item}
-              </span>
-            ))}
+          <div style={{ marginTop: 32, padding: '20px 24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
+              {[
+                '✓  30-day results guarantee',
+                '✓  Live in as little as 72 hours',
+                '✓  No long-term contracts',
+                '✓  Cancel anytime',
+              ].map(item => (
+                <span key={item} style={{ fontFamily: 'monospace', fontSize: 10, color: '#475569', letterSpacing: '0.05em' }}>
+                  {item}
+                </span>
+              ))}
+            </div>
+            <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 9.5, color: '#334155', fontFamily: 'monospace' }}>
+              Typical range: 72 hours–7 business days, depending on number setup and forwarding on your end.
+            </p>
           </div>
 
         </div>
