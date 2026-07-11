@@ -191,16 +191,18 @@ CREATE POLICY "bookings: authenticated read" ON bookings FOR SELECT TO authentic
 
 -- AGENT_SUBSCRIPTIONS: one row per paying client — tier, vertical, active agents
 CREATE TABLE IF NOT EXISTS agent_subscriptions (
-  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at     TIMESTAMPTZ DEFAULT now(),
-  client_domain  TEXT        NOT NULL UNIQUE,
-  user_email     TEXT        NOT NULL,
-  vertical       TEXT        NOT NULL,  -- 'roofing' | 'hvac' | 'plumbing' | 'dental'
-  tier           TEXT        NOT NULL CHECK (tier IN ('Starter', 'Pro', 'Elite')),
-  active_agents  TEXT[]      NOT NULL DEFAULT '{}',
-  monthly_cost   INT         NOT NULL,
-  setup_paid     BOOLEAN     DEFAULT FALSE,
-  activated_at   TIMESTAMPTZ
+  id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at              TIMESTAMPTZ DEFAULT now(),
+  client_domain           TEXT        NOT NULL UNIQUE,
+  user_email              TEXT        NOT NULL,
+  vertical                TEXT        NOT NULL,  -- 'roofing' | 'hvac' | 'plumbing' | 'dental'
+  tier                    TEXT        NOT NULL CHECK (tier IN ('Starter', 'Pro', 'Elite')),
+  active_agents           TEXT[]      NOT NULL DEFAULT '{}',
+  monthly_cost            INT         NOT NULL,
+  setup_paid              BOOLEAN     DEFAULT FALSE,
+  activated_at            TIMESTAMPTZ,
+  retell_agent_id         TEXT,                  -- Per-client Retell agent ID
+  retell_phone_number     TEXT                   -- Per-client Retell phone number
 );
 
 CREATE INDEX idx_subscriptions_email  ON agent_subscriptions(user_email);

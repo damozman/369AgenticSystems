@@ -49,12 +49,14 @@ export async function sendWelcomeEmail({
   tier,
   vertical,
   clientDomain,
+  retellPhoneNumber,
 }: {
-  toEmail:      string
-  businessName: string
-  tier:         string
-  vertical:     string
-  clientDomain: string
+  toEmail:           string
+  businessName:      string
+  tier:              string
+  vertical:          string
+  clientDomain:      string
+  retellPhoneNumber?: string
 }) {
   const features = TIER_EMAIL_FEATURES[tier] ?? TIER_EMAIL_FEATURES.Starter
   const vc       = VERTICAL_COPY[vertical] ?? VERTICAL_COPY.roofing
@@ -63,6 +65,20 @@ export async function sendWelcomeEmail({
     .join('')
 
   const subject = `Your ${vc.label} AI Workforce is being configured — 369 Agentic Systems`
+
+  const phoneSection = retellPhoneNumber ? `
+      <div style="background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+        <p style="margin:0 0 8px;font-size:12px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.12em;">
+          Your Dedicated Phone Number
+        </p>
+        <p style="margin:0;font-size:18px;font-weight:700;color:#FFFFFF;font-family:monospace;letter-spacing:0.05em;">
+          ${retellPhoneNumber}
+        </p>
+        <p style="margin:12px 0 0;font-size:12px;color:#94A3B8;">
+          This number is now live and answering calls 24/7.
+        </p>
+      </div>
+    ` : ''
 
   const html = `
     <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;background:#0A0A0A;color:#FFFFFF;padding:40px 32px;border-radius:12px;">
@@ -81,6 +97,8 @@ export async function sendWelcomeEmail({
         ${vc.tagline} Your digital workforce is being configured now.
         We'll have everything live within 5–7 business days.
       </p>
+
+      ${phoneSection}
 
       <div style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:20px 24px;margin-bottom:28px;">
         <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.12em;">

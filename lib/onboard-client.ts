@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendWelcomeEmail, sendOwnerNotification } from '@/lib/email-sequences'
+import { provisionRetellAgent } from '@/lib/retell-provisioning'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +48,27 @@ export async function provisionClient(input: ProvisionClientInput) {
   const activeAgents = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
   const monthlyCost  = PRICE_BY_TIER[tier]  ?? 400
 
-  // 1. Create subscription record
+  // 0. Provision Retell agent (new per-client agent from template)
+  console.log(`[ONBOARD] Provisioning Retell agent for ${businessName}...`)
+  let retellAgentId: string
+  let retellPhoneNumber: string
+
+  try {
+    const retellResult = await provisionRetellAgent({
+      businessName,
+      vertical,
+      clientDomain,
+    })
+    retellAgentId = retellResult.agentId
+    retellPhoneNumber = retellResult.phoneNumber
+    console.log(`[ONBOARD] ✓ Retell agent provisioned: ${retellAgentId} → ${retellPhoneNumber}`)
+  } catch (e) {
+    console.error('[ONBOARD] Retell provisioning failed:', e)
+    // For now, fail the whole onboarding if Retell provisioning fails
+    throw new Error(`Failed to provision Retell agent: ${e instanceof Error ? e.message : e}`)
+  }
+
+  // 1. Create subscription record (with Retell agent ID + phone number)
   const { data: subscription, error: subError } = await supabase
     .from('agent_subscriptions')
     .upsert({
@@ -59,6 +80,8 @@ export async function provisionClient(input: ProvisionClientInput) {
       monthly_cost:   monthlyCost,
       setup_paid:     setupPaid,
       activated_at:   new Date().toISOString(),
+      retell_agent_id: retellAgentId,
+      retell_phone_number: retellPhoneNumber,
     }, { onConflict: 'client_domain' })
     .select()
     .single()
@@ -93,7 +116,14 @@ export async function provisionClient(input: ProvisionClientInput) {
 
   // 3. Send welcome email to client
   try {
-    await sendWelcomeEmail({ toEmail: email, businessName, tier, vertical, clientDomain })
+    await sendWelcomeEmail({
+      toEmail: email,
+      businessName,
+      tier,
+      vertical,
+      clientDomain,
+      retellPhoneNumber,
+    })
     console.log(`[ONBOARD] Welcome email sent → ${email}`)
   } catch (e) {
     console.error('[ONBOARD] Welcome email failed:', e)
