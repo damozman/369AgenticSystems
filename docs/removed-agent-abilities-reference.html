@@ -127,6 +127,58 @@
     <span class="legend-item"><span class="legend-dot" style="background:var(--real)"></span> Closest real equivalent that does exist</span>
   </div>
 
+  <!-- ═══ ROUND 2 — 2026-07-10 FOLLOW-UP ═══ -->
+  <section class="vertical-block" id="round-2">
+    <div class="vertical-head"><h2>Round 2 — 2026-07-10 Follow-Up</h2><span class="count">what the first sweep missed</span></div>
+    <p class="vertical-note">
+      The 2026-07-08 sweep fixed the "AGENTS.md" bento card on each of the 9 static <code>public/*-leads/</code> pages. It did not touch three other places the exact same fictional-capability copy was independently duplicated: the homepage's own separate bento grid, the shared React component that renders agent cards across the Next.js app, and several pages' own agent-roster/problem sections (a different section from the bento card that was already fixed). Same root cause as before — a fabricated capability gets written once, then copy-pasted into 3–4 files, and only some of them get caught per pass. Lesson now saved to memory: check every place a claim is duplicated, not just the first place it's found.
+    </p>
+
+    <div class="hero-block">
+      <p class="label">Homepage (public/index.html) — never covered by Round 1</p>
+      <p>This is the actual homepage (per CLAUDE.md, <code>public/index.html</code> IS the site's homepage) and it ran its own separate 8-card "System" bento grid, directly contradicting the honest "Meet the Roster" section 200 lines below it on the same page.</p>
+      <p>Legal card: <span class="quote">"AI-drafted motions, letters & correspondence"</span> + "AI Drafting Specialist" — Nova doesn't draft anything.</p>
+      <p>SaaS card: <span class="quote">"Autonomous keyword research & on-page SEO"</span> + Content Engine / SEO Research / Competitor Gap "Specialists" — same fiction already fixed on the SaaS page itself, but never on the homepage.</p>
+      <p>Wholesale card: <span class="quote">"Real-time inventory alerts & reorder triggers"</span> + "Inventory Logistics Specialist" — same story.</p>
+      <p>Insurance card: <span class="quote">"Automated policy renewal sequences — 68% retention"</span> + "Claims Triage Specialist" + "Renewal Guardian" — none of this exists or is planned.</p>
+      <p>Plus two unqualified "72h" deployment claims (hero metric strip + "Why 369" pillar) with no best-case disclaimer, unlike every other page — and an unexplained "94% Ops Admin Eliminated" stat with no basis anywhere in the codebase.</p>
+      <p>Also found: Felix's badge in the homepage's separate "Meet the Roster" section still said "Deploying" (gold) even though Felix is live — a second, independent hardcoded badge that Round 1's AgentCard.tsx fix didn't reach.</p>
+      <p class="real-note">All rewritten to match the real per-vertical capability model (Ava live everywhere; Rex/Nova live only for roofing/hvac/plumbing, "planned" elsewhere; Felix live for legal only; Scout planned for SaaS only) — see the current file for exact wording.</p>
+    </div>
+
+    <div class="hero-block">
+      <p class="label">components/agents/AgentCard.tsx — the shared source, not just static copy</p>
+      <p>This is the actual React component Next.js renders everywhere an agent card appears. It had the identical fabricated per-vertical role/virtue strings baked in as data, independent of any static HTML page: Nova = "Document Drafting Agent" / "Drafts engagement letters instantly" (legal), "Claims Triage Agent" / "Routes claims to the right handler" (insurance), "Content Engine Agent" / "Daily SEO content + competitor gaps" (saas), "Order Routing Agent" / "Routes to correct warehouse instantly" (wholesale). Rex = "Renewal Guardian" / "30/14/7 day renewal sequences" (insurance), "Trial Nurture Agent" / "Onboarding sequences + churn prevention" (saas), "Order Follow-up Agent" / "Confirms POs + reorder triggers" (wholesale).</p>
+      <p class="real-note">Rewritten to the real generic mechanism per agent (Rex = "Follow-up Specialist," day-0/3/7 email; Nova = "[X] Confirmation," single templated booking email), consistent with what <code>app/agents/[agent]/page.tsx</code> already said correctly. Scout's saas entry ("Monitors competitors + finds content gaps") was verified accurate and left alone.</p>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Legal page — separate roster section (not the bento card fixed in Round 1)</span><span class="badge claimed-standby">Repeated on 4 lines</span></div>
+      <p class="claimed">Nova's photo alt-text, visible role label, and quote all said "Document Drafting Agent" / "Drafts engagement letters instantly"; the roster intro said "document drafting" as one of "Four specialists... all automated"; the intake form's dropdown offered "Manual document drafting" as a pain point; a problem-row claimed "2–4 hours per engagement on work an agent completes in 90 seconds."</p>
+      <p class="real-note none">Nova only sends a templated confirmation email — never drafts anything, not even in the "planned" roadmap for legal. All four instances rewritten (Nova → "Appointment Confirmation Agent," dropdown option → conflict-check pain point, problem row → after-hours calls).</p>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Insurance page — full page, not just the bento card</span><span class="badge claimed-active">Whole product was fictional</span></div>
+      <p class="claimed">Round 1 only removed a fabricated "−78% Lapse Prevention" stat. It missed that the entire page — title, meta, OG, JSON-LD, H1, stat block, problem section, ROI calculator (hardcoded 23% "lapse rate" formula), and agent roster (Rex "Renewal Guardian," Nova "Claims Triage Agent") — pitched an autonomous policy-renewal-and-claims-triage product that was never built, the same depth of issue as the SaaS/Wholesale pages.</p>
+      <p class="real-note none">Fully rewritten to the real call-answering AOS model, matching the treatment SaaS and Wholesale already got: 24/7 call answering, qualifies, logs the request; ROI calculator now models missed calls × premium value instead of a fictional lapse rate.</p>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Dental page — one leftover active-tense paragraph</span><span class="badge claimed-active">Contradicted the page's own waitlist framing</span></div>
+      <p class="claimed">Mid-page: "The Patient Revenue AOS monitors your schedule 24/7. It sends smart reminders... runs automated reactivation campaigns... handles insurance pre-verification overnight" — present tense, plus an unqualified "72h — Full deployment" stat, despite the hero already correctly saying "Launching 2026" / "is being built."</p>
+      <p class="real-note none">Reworded to future tense ("is being built to...") and the stat changed to "2026 — Planned launch."</p>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Real Estate page — nurture sequence length</span><span class="badge claimed-standby">Minor but real</span></div>
+      <p class="claimed">"The Pipeline Velocity AOS runs 90-day nurture sequences so no lead ever truly goes cold."</p>
+      <p class="real-note none">Rex's real sequence is day 0/3/7, then it stops — there is no 90-day mechanism. Reworded to describe the real day-0/3/7 sequence.</p>
+    </div>
+
+    <div class="status-note">Also fixed: <code>app/founding/page.tsx</code>'s per-vertical INDUSTRIES list had the same fabricated "agent" descriptions ("Intake Qualifier + Document Drafter," "Order Processor + Reorder Trigger," etc.) — this page is currently disabled (not publicly routed), but fixed anyway since it may get re-enabled later.</div>
+  </section>
+
   <!-- ═══ ROOFING ═══ -->
   <section class="vertical-block" id="roofing">
     <div class="vertical-head"><h2>Roofing</h2><span class="count">4 fictional agents removed</span></div>
@@ -369,7 +421,7 @@
   </section>
 
   <footer class="foot">
-    Compiled from the 2026-07-08 truthfulness sweep. Cross-reference with the memory file <code>truthfulness_audit_2026-07-07.md</code> for the technical/mobile fixes that ran alongside this.
+    Compiled from the 2026-07-08 truthfulness sweep, updated 2026-07-10 with a Round 2 follow-up sweep (see top section) that caught duplicated fictional copy the first pass missed. Cross-reference with the memory files <code>truthfulness_audit_2026-07-07.md</code> and <code>feedback_truthfulness_gatekeeping.md</code>.
   </footer>
 </div>
 </body>

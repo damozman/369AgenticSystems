@@ -33,15 +33,15 @@ export const metadata: Metadata = {
 }
 
 const INDUSTRIES = [
-  { num: '01', name: 'Legal',         aos: 'Legal Excellence AOS',       color: '#60A5FA', pain: 'High-value leads go cold while attorneys are in court',          agent: 'Intake Qualifier + Document Drafter' },
-  { num: '02', name: 'Roofing',       aos: 'Speed-to-Lead AOS',          color: '#F59E0B', pain: 'First company to respond wins the job — most respond in hours',  agent: 'Instant Lead Responder + Estimator' },
-  { num: '03', name: 'HVAC',          aos: 'Speed-to-Lead AOS',          color: '#FF6533', pain: 'Emergency no-heat/no-AC calls go to voicemail after hours',        agent: 'Instant Lead Responder + Dispatcher' },
-  { num: '04', name: 'Plumbing',      aos: 'Speed-to-Lead AOS',          color: '#0369A1', pain: 'Burst-pipe emergencies can\'t wait for a callback',                agent: 'Instant Lead Responder + Dispatcher' },
-  { num: '05', name: 'SaaS',          aos: 'Growth Engine AOS',          color: '#6366F1', pain: 'Trial users churn before onboarding reaches them',               agent: 'Onboarding Specialist + Churn Guard' },
-  { num: '06', name: 'Dental',        aos: 'Patient Revenue AOS',        color: '#EC4899', pain: 'Evening and weekend inquiries go unanswered for 12–48 hours',    agent: 'Appointment Setter + Patient Nurture' },
-  { num: '07', name: 'Real Estate',   aos: 'Pipeline Velocity AOS',      color: '#0EA5E9', pain: 'Agents juggle 50+ leads manually — hot buyers slip away',         agent: 'Lead Qualifier + Showing Coordinator' },
-  { num: '08', name: 'Insurance',     aos: 'Agency Revenue AOS',         color: '#14B8A6', pain: 'Quote requests sit unworked while producers chase renewals',      agent: 'Quote Processor + Cross-Sell Agent' },
-  { num: '09', name: 'Wholesale',     aos: 'Distribution Velocity AOS',  color: '#84CC16', pain: 'Inbound POs require manual entry, causing delays and errors',     agent: 'Order Processor + Reorder Trigger' },
+  { num: '01', name: 'Legal',         aos: 'Legal Excellence AOS',       color: '#60A5FA', pain: 'High-value leads go cold while attorneys are in court',          agent: '24/7 Intake + Conflict Check' },
+  { num: '02', name: 'Roofing',       aos: 'Speed-to-Lead AOS',          color: '#F59E0B', pain: 'First company to respond wins the job — most respond in hours',  agent: '24/7 Call Answering + Follow-up' },
+  { num: '03', name: 'HVAC',          aos: 'Speed-to-Lead AOS',          color: '#FF6533', pain: 'Emergency no-heat/no-AC calls go to voicemail after hours',        agent: '24/7 Call Answering + Follow-up' },
+  { num: '04', name: 'Plumbing',      aos: 'Speed-to-Lead AOS',          color: '#0369A1', pain: 'Burst-pipe emergencies can\'t wait for a callback',                agent: '24/7 Call Answering + Follow-up' },
+  { num: '05', name: 'SaaS',          aos: 'Demo Response AOS',          color: '#6366F1', pain: 'Demo requests and trial signups go cold before anyone follows up',agent: '24/7 Call Answering + Follow-up' },
+  { num: '06', name: 'Dental',        aos: 'Patient Revenue AOS',        color: '#EC4899', pain: 'Evening and weekend inquiries go unanswered for 12–48 hours',    agent: 'Planned — waitlist' },
+  { num: '07', name: 'Real Estate',   aos: 'Pipeline Velocity AOS',      color: '#0EA5E9', pain: 'Agents juggle 50+ leads manually — hot buyers slip away',         agent: '24/7 Call Answering + Follow-up' },
+  { num: '08', name: 'Insurance',     aos: 'Agency Revenue AOS',         color: '#14B8A6', pain: 'Quote requests sit unworked while producers are on other calls', agent: '24/7 Call Answering + Follow-up' },
+  { num: '09', name: 'Wholesale',     aos: 'Distribution Velocity AOS',  color: '#84CC16', pain: 'Inbound order calls go to voicemail during busy hours',           agent: '24/7 Call Answering + Follow-up' },
 ]
 
 const STEPS = [
