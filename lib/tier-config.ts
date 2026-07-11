@@ -28,14 +28,15 @@ export const TIERS: Tier[] = [
   {
     name:        'Starter',
     price:       400,
-    description: 'Best for small crews just getting started',
+    description: 'Your AI receptionist is live in 24 hours. Answer every call, capture every lead, track ROI monthly.',
     agents:      ['receptionist', 'dashboard'],
     features: [
-      { label: '24/7 AI Receptionist' },
+      { label: '24/7 AI Receptionist (unique phone number)' },
       { label: 'Crystal Clear Call Quality', retellFeature: true, retailValue: 25, badge: 'Crystal Clear' },
       { label: 'Lead capture + real-time dashboard' },
+      { label: 'Business context from onboarding questionnaire' },
       { label: 'Email booking confirmations' },
-      { label: 'Daily email summaries' },
+      { label: 'Daily email summaries + monthly ROI report' },
       { label: '24/7 chat support' },
     ],
     retellConfig: {
@@ -48,11 +49,12 @@ export const TIERS: Tier[] = [
     name:        'Pro',
     price:       600,
     featured:    true,
-    description: 'Best for growing companies scaling fast',
+    description: 'Receptionist + automated follow-up for ALL 9 industries. Vertical-specific messaging built in.',
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Starter, plus:', isSection: true },
-      { label: 'Automated lead follow-up sequence' },
+      { label: 'Automated 3-step follow-up sequence (all 9 verticals)' },
+      { label: 'Vertical-specific messaging (legal deadlines, real estate timing, etc.)' },
       { label: 'Enhanced Voice Quality', retellFeature: true, badge: 'Enhanced' },
       { label: 'Priority email support' },
     ],
@@ -65,13 +67,14 @@ export const TIERS: Tier[] = [
   {
     name:        'Elite',
     price:       750,
-    description: 'Best for high-volume operations',
+    description: 'Full AI team: receptionist + follow-up + call analytics. For high-volume, data-driven operations.',
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Pro, plus:', isSection: true },
-      { label: 'Premium Voice Quality', retellFeature: true, badge: 'Premium' },
+      { label: 'Premium Voice Quality (indistinguishable from human)', retellFeature: true, badge: 'Premium' },
       { label: 'Custom Business Intelligence', retellFeature: true, retailValue: 49, badge: 'Custom BI' },
-      { label: 'Priority onboarding & support' },
+      { label: 'Call recording + searchable transcript archive (coming soon)' },
+      { label: 'Priority onboarding & dedicated support' },
     ],
     retellConfig: {
       voiceQuality:  'premium',
