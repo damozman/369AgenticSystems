@@ -69,24 +69,24 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 ---
 
-### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY 🚀 IN PROGRESS (2026-07-11)
+### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY ✅ DONE (2026-07-11)
 **Effort:** 4–6 days · **Impact:** 6x (lets you sell Pro everywhere) · **Do third.**
 
 **The problem:** Rex/Nova follow-up is only live for roofing/HVAC/plumbing. If someone in legal, SaaS, insurance pays for Pro, they get nothing different from Starter. That's a pricing lie.
 
-**What needs to happen:**
-- Write Rex follow-up templates for the other 6 verticals (legal, real-estate, insurance, saas, wholesale, dental):
-  - **Legal:** "Ms. [Name], following up on your inquiry about [service]. We have availability this week..."
-  - **Real Estate:** "Ms. [Name], checking in on your interest in [property type]. Let's find the right fit..."
-  - **Insurance:** "Ms. [Name], following up on your quote request for [coverage]. We can lock in your rate..."
-  - **SaaS:** "Hi [Name], thanks for reaching out about [product]. Let's talk about how we solve your problem..."
-  - **Wholesale:** "Hi [Name], confirming your order inquiry for [SKU]. We have stock..."
-  - **Dental:** Waitlist — skip for now
-- Deploy to all 6 verticals, test on the demo line
-- Update code constant `FOLLOWUP_LIVE_VERTICALS` to include all 9
-- Update pricing page copy: Pro available for all verticals, not just 3
+**What was built:**
+- ✅ Rex follow-up templates for all 9 verticals with vertical-specific urgency messaging:
+  - **Legal:** Statute of limitations / case deadlines
+  - **Real Estate:** Market timing / buyer pool competition
+  - **Insurance:** Protection gaps / rate locking window
+  - **SaaS:** Time-to-value / ROI timeline
+  - **Wholesale:** Inventory levels / stock availability
+  - **Dental:** Dental health consequences / treatment cost escalation
+- ✅ 3-step email + SMS template for each vertical
+- ✅ Updated `FOLLOWUP_LIVE_VERTICALS` to include all 9
+- ✅ Pro tier now delivers real follow-up for all verticals
 
-**Why this is #3:** Without this, you're selling a tier you can't deliver. Every non-roofing Pro customer will feel shortchanged.
+**Why this was #3:** Without this, you're selling a tier you can't deliver. Now Pro has real differentiation across every vertical.
 
 ---
 
@@ -172,12 +172,12 @@ These were floated in early planning. True value, but not core to feeling like a
 
 ## Implementation Timeline (recommended)
 
-**Week 1–2 (before cold emails):**
+**Week 1–2 (before cold emails): ✅ COMPLETE (2026-07-11)**
 - [x] Fix tier copy (make it honest) ✅ DONE 2026-07-11
 - [x] Per-client provisioning automation ✅ DONE 2026-07-11
 - [x] Real ROI dashboard ✅ DONE 2026-07-11
-- [ ] Rex/Nova parity (all 9 verticals) 🚀 IN PROGRESS 2026-07-11
-- [ ] Test Stripe → Retell → Supabase end-to-end ✅ DONE (verified multiple times)
+- [x] Rex/Nova parity (all 9 verticals) ✅ DONE 2026-07-11
+- [x] Test Stripe → Retell → Supabase end-to-end ✅ DONE (verified multiple times)
 
 **Week 3–4 (first 3 clients live):**
 - [ ] Live call transfer (Elite)
