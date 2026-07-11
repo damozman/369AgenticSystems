@@ -11,10 +11,10 @@ const AGENT_LABELS: Record<string, { label: string; description: string; color: 
   dashboard:    { label: 'Real-time Dashboard',   description: 'Live call activity, leads, and performance metrics',  color: '#60A5FA' },
 }
 
-// Rex (follow-up) only has real templates for these verticals today — see lib/rex-sequences.ts.
+// Rex (follow-up) now has templates for all 9 verticals — see lib/rex-sequences.ts.
 // Nova doesn't do review requests at all (no code exists for it, any vertical) — 'reviews' is
 // always 'deploying' until that's actually built.
-const FOLLOWUP_LIVE_VERTICALS = ['roofing', 'hvac', 'plumbing']
+const FOLLOWUP_LIVE_VERTICALS = ['roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental']
 
 function agentStatus(key: string, vertical: string): 'live' | 'deploying' {
   if (key === 'followup') return FOLLOWUP_LIVE_VERTICALS.includes(vertical) ? 'live' : 'deploying'
