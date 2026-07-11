@@ -39,6 +39,65 @@ export interface ProvisionRetellAgentOutput {
 }
 
 /**
+ * Allocate a unique phone number for an agent from Retell
+ */
+async function allocatePhoneNumber(agentId: string, preferredAreaCode?: string): Promise<string> {
+  const https = await import('https')
+
+  return new Promise((resolve, reject) => {
+    const payload: any = {
+      agent_id: agentId,
+    }
+
+    // Add area code preference if provided
+    if (preferredAreaCode) {
+      payload.area_code = preferredAreaCode
+    }
+
+    const postData = JSON.stringify(payload)
+
+    const options = {
+      hostname: 'api.retellai.com',
+      port: 443,
+      path: '/v2/phone-numbers',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RETELL_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+      },
+    }
+
+    const req = https.request(options, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            const response = JSON.parse(data)
+            // Retell returns phone_number or similar field
+            const phoneNumber = response.phone_number || response.number
+            if (phoneNumber) {
+              resolve(phoneNumber)
+            } else {
+              reject(new Error(`No phone number in response: ${data}`))
+            }
+          } else {
+            reject(new Error(`Retell API error: ${res.statusCode} ${data}`))
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Retell response: ${e instanceof Error ? e.message : e}`))
+        }
+      })
+    })
+
+    req.on('error', reject)
+    req.write(postData)
+    req.end()
+  })
+}
+
+/**
  * Create a new Retell agent for a client by cloning the template for their vertical
  */
 export async function provisionRetellAgent(
@@ -94,18 +153,22 @@ export async function provisionRetellAgent(
 
   console.log(`[RETELL] ✓ Agent created: ${newAgent.agent_id}`)
 
-  // For now, return the template's phone number
-  // TODO: In phase 2, allocate new phone numbers per client via Retell's phone provisioning API
-  // The preferredAreaCode can be passed to the phone provisioning endpoint to request an area code match
-  const phoneNumber = process.env.RETELL_PHONE_NUMBER || ''
-
-  if (preferredAreaCode) {
-    console.log(`[RETELL] Client requested area code: ${preferredAreaCode} (phase 2: pass to phone provisioning API)`)
+  // Allocate a unique phone number for this client
+  console.log(`[RETELL] Allocating phone number${preferredAreaCode ? ` (area code ${preferredAreaCode})` : ''}...`)
+  let phoneNumber: string
+  try {
+    phoneNumber = await allocatePhoneNumber(newAgent.agent_id || '', preferredAreaCode)
+    console.log(`[RETELL] ✓ Phone allocated: ${phoneNumber}`)
+  } catch (e) {
+    console.error(`[RETELL] Phone allocation failed:`, e)
+    // Fallback to shared demo number if allocation fails
+    phoneNumber = process.env.RETELL_PHONE_NUMBER || ''
+    console.warn(`[RETELL] Falling back to demo number: ${phoneNumber}`)
   }
 
   return {
     agentId: newAgent.agent_id || '',
-    phoneNumber: phoneNumber || '',
+    phoneNumber,
     agentName: newAgent.agent_name || '',
   }
 }
