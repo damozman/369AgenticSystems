@@ -127,6 +127,28 @@
     <span class="legend-item"><span class="legend-dot" style="background:var(--real)"></span> Closest real equivalent that does exist</span>
   </div>
 
+  <!-- ═══ ROUND 3 — 2026-07-11 PRICING PAGE ═══ -->
+  <section class="vertical-block" id="round-3">
+    <div class="vertical-head"><h2>Round 3 — 2026-07-11 Pricing Page</h2><span class="count">the paid product itself, not marketing copy</span></div>
+    <p class="vertical-note">
+      Rounds 1 and 2 were both marketing-page overclaims — landing pages, agent bios, hero copy. This one is different in kind: <code>lib/tier-config.ts</code> is the actual file that drives the real pricing page and Stripe checkout. Its Pro and Elite tier feature lists promised capabilities that don't exist anywhere in the codebase, presented as plain included-feature checkmarks with no "planned" qualifier (the pricing component has no such qualifier system to begin with). Caught while writing <code>docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md</code> — no customer impact yet since Stripe is still test-mode, but this would have been a real broken promise the moment a client paid for Elite expecting review automation.
+    </p>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Pro tier ($600/mo)</span><span class="badge claimed-active">Sold as included, not built</span></div>
+      <p class="claimed">"Lead scoring &amp; prioritization," "Conversion tracking," "Advanced reporting" — zero implementation anywhere in the codebase.</p>
+      <p class="real-note">Pro's one real differentiator over Starter: Rex's automated follow-up sequence (live for roofing/HVAC/plumbing, planned elsewhere). Feature list rewritten to "Automated lead follow-up sequence," plus two real, previously-unlisted Retell platform features (Enhanced Voice Quality) and a service-level commitment (priority email support).</p>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-card-head"><span class="agent-name">Elite tier ($750/mo)</span><span class="badge claimed-active">Sold as included, not built</span></div>
+      <p class="claimed">"Review request automation," "AI review response drafting," "Reputation score monitoring," "Referral tracking" — none of this exists. Confirmed against the client dashboard's own code comment: Nova doesn't do review requests for any vertical, and the "reviews" agent key is hardcoded to always show "deploying," never "live."</p>
+      <p class="real-note none">No review-platform integration, no reputation monitoring, no referral tracking exists or is scheduled. Feature list rewritten to the two real bundled Retell features Elite actually gets (Premium Voice Quality, Custom Business Intelligence) plus priority onboarding/support. Elite's <code>agents</code> array also had a phantom 'reviews' entry removed — that field isn't rendered on the pricing page itself, but was still inaccurate metadata worth correcting.</p>
+    </div>
+
+    <div class="status-note">Also found and left alone (dead code, not currently exploitable): <code>PREMIUM_ADDONS</code> in the same file — Live Call Transfer, Branded Caller ID, Spanish Support, Custom Voice, HIPAA Pack, $29–$99/mo each — defined but never imported or rendered anywhere in the actual pricing UI. Not sellable today. Flag before ever wiring it up.</div>
+  </section>
+
   <!-- ═══ ROUND 2 — 2026-07-10 FOLLOW-UP ═══ -->
   <section class="vertical-block" id="round-2">
     <div class="vertical-head"><h2>Round 2 — 2026-07-10 Follow-Up</h2><span class="count">what the first sweep missed</span></div>
@@ -421,7 +443,7 @@
   </section>
 
   <footer class="foot">
-    Compiled from the 2026-07-08 truthfulness sweep, updated 2026-07-10 with a Round 2 follow-up sweep (see top section) that caught duplicated fictional copy the first pass missed. Cross-reference with the memory files <code>truthfulness_audit_2026-07-07.md</code> and <code>feedback_truthfulness_gatekeeping.md</code>.
+    Compiled from the 2026-07-08 truthfulness sweep, updated 2026-07-10 with a Round 2 follow-up sweep and 2026-07-11 with a Round 3 pricing-page fix (see top sections). Cross-reference with the memory files <code>truthfulness_audit_2026-07-07.md</code>, <code>feedback_truthfulness_gatekeeping.md</code>, and <code>pricing_tier_overclaim_2026-07-11.md</code>.
   </footer>
 </div>
 </body>

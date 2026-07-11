@@ -11,20 +11,11 @@ You can sell and deliver the **Starter tier ($400/mo + $1,500 setup) honestly, t
 
 ---
 
-## 🔴 New finding — the pricing page itself overclaims (found while writing this doc)
+## ✅ Fixed 2026-07-11 — the pricing page overclaim
 
-`lib/tier-config.ts` — the file that literally drives the checkout page and Stripe line items — lists these as included features:
+`lib/tier-config.ts` used to list Pro/Elite features that didn't exist anywhere in the codebase ("Lead scoring & prioritization," "Conversion tracking," "Advanced reporting" on Pro; "Review request automation," "AI review response drafting," "Reputation score monitoring," "Referral tracking" on Elite). Rewritten to only list what's real: Pro now shows the actual follow-up sequence plus Enhanced Voice Quality (real Retell feature) and priority email support; Elite shows Premium Voice Quality + Custom Business Intelligence (both real Retell features) plus priority onboarding/support. Full before/after logged in `docs/reference/removed-agent-abilities-reference.html` (Round 3) and `pricing_tier_overclaim_2026-07-11.md` in memory.
 
-- **Pro ($600/mo):** "Lead scoring & prioritization," "Conversion tracking," "Advanced reporting"
-- **Elite ($750/mo):** "Review request automation," "AI review response drafting," "Reputation score monitoring," "Referral tracking"
-
-None of these exist anywhere in the codebase. No lead-scoring logic, no conversion-tracking system, no review-platform integration, no reputation monitoring, no referral tracking. This isn't a marketing-copy issue on a landing page — it's the actual paid tier definition rendered on the real pricing page (`components/verticals/VerticalPricing.tsx` reads `tier.features` directly).
-
-**Why it hasn't bitten you yet:** Stripe is still in test mode — confirmed via `.env.local` (`sk_test_...`), matching your own choice to stay in test mode. No real customer has paid for a tier that overpromises. But the moment Stripe goes live, someone can pay $750/mo for Elite and get Starter-plus-a-generic-follow-up-email, not review automation or reputation monitoring.
-
-Separately: `PREMIUM_ADDONS` in the same file (Live Call Transfer $49, Branded Caller ID $29, Spanish Support $79, Custom Voice $99, HIPAA Pack $99) is dead code — defined but never rendered on the actual pricing page, so it's not currently sellable. Lower priority, but same root problem if it ever gets wired up before being built.
-
-**Recommendation:** Before live-mode Stripe, either (a) strip the unbuilt bullets from Pro/Elite and reprice around what's actually different — right now Pro's only real differentiator is Rex/Nova being live instead of "planned," and Elite has no real differentiator at all — or (b) actually scope and build the smallest honest version of one of these (review-request automation is probably the most learnable/buildable of the four). Your call which; I'd lean (a) first since it's a copy fix, not a build, and keeps you sellable immediately.
+`PREMIUM_ADDONS` in the same file (Live Call Transfer, Branded Caller ID, Spanish Support, Custom Voice, HIPAA Pack) is still dead code — defined but never rendered anywhere in the pricing UI. Left alone since it's not currently sellable either way; flag before ever wiring it up.
 
 ---
 
@@ -33,8 +24,8 @@ Separately: `PREMIUM_ADDONS` in the same file (Live Call Transfer $49, Branded C
 | Tier | Price | What's actually included |
 |---|---|---|
 | **Starter** | $400/mo + $1,500 setup | Ava answers calls 24/7, qualifies, books. Real-time dashboard. HD call quality (real Retell feature). Daily email summary. |
-| **Pro** | $600/mo | Everything in Starter, **plus Rex/Nova follow-up + confirmation email — but only for roofing, HVAC, plumbing.** For every other vertical, Pro is currently identical to Starter with a higher price tag. Lead scoring / conversion tracking / advanced reporting: not real. |
-| **Elite** | $750/mo | Everything in Pro, plus premium voice quality and Retell's built-in caller analytics (real). Review automation / reputation monitoring / referral tracking: not real. |
+| **Pro** | $600/mo | Everything in Starter, **plus Rex/Nova follow-up + confirmation email — but only for roofing, HVAC, plumbing.** For every other vertical, Pro is currently identical to Starter with a higher price tag beyond the real Enhanced Voice Quality bump. |
+| **Elite** | $750/mo | Everything in Pro, plus Premium Voice Quality and Retell's Custom Business Intelligence (both real, bundled Retell features) and priority onboarding/support. |
 
 ---
 
@@ -70,7 +61,7 @@ There is still no automation connecting a Stripe payment to a real per-client Re
 
 ## Before you take real money — the actual checklist
 
-1. Fix the Pro/Elite feature list on the pricing page (the finding at the top of this doc) — highest priority, this is the literal thing customers pay against.
+1. ~~Fix the Pro/Elite feature list on the pricing page~~ — done 2026-07-11.
 2. Decide Rex/Nova rollout for the 6 verticals where they're still "planned" — either build them out or make sure Pro-tier pricing for those verticals doesn't promise something Starter already includes.
 3. Flip Stripe to live mode when ready (see `stripe_live_mode_prep` notes — direct-curl signature testing technique, Vercel env var masking behavior).
 4. Confirm the `/onboarding-complete` Payment Link redirect (still unresolved as of the last check).
