@@ -3,6 +3,8 @@
 ### Built to implement through Claude Code in VS Code, on top of your existing 369 stack
 ### Target: $2,000/month net, then expand into the full Digital Workforce
 
+> **Status note (2026-07-10):** This is the doc that became the real product — Ava/Rex/Nova are live, built per Part 3's plan. **Parts 3–4 (the build itself) are now historical** — kept for context on why things are structured the way they are, not as active instructions. **Parts 1, 2, 5, 6, 7, 8 are still the active sales/retention/ops playbook** — the pitch, pricing, demo-to-close flow, and churn-fighting tactics described there are what's actually in use.
+
 ---
 
 ## HOW TO USE THIS DOCUMENT
@@ -10,11 +12,9 @@
 This blueprint has 8 parts. Two are strategy (read once), the rest are execution.
 
 - **Parts 1–2:** the offer + the math. Know these cold before you sell.
-- **Parts 3–4:** the technical build + reusable templates. **Feed these section-by-section into Claude Code** — each build phase has a ready-to-paste prompt.
-- **Parts 5–6:** sales, launch, and keeping clients (fighting churn).
-- **Parts 7–8:** the 30-day timeline and the guardrails.
-
-Work order: **build the engine once (Part 3) → land client #1 (Part 5) → that client's config becomes your template → repeat faster.**
+- **Parts 3–4:** the technical build + reusable templates — **historical, already built.**
+- **Parts 5–6:** sales, launch, and keeping clients (fighting churn) — **still active.**
+- **Parts 7–8:** the 30-day timeline and the guardrails — **still active reference.**
 
 ---
 
