@@ -29,6 +29,7 @@ export interface ProvisionRetellAgentInput {
   businessName: string
   vertical: string
   clientDomain: string
+  preferredAreaCode?: string
 }
 
 export interface ProvisionRetellAgentOutput {
@@ -43,7 +44,7 @@ export interface ProvisionRetellAgentOutput {
 export async function provisionRetellAgent(
   input: ProvisionRetellAgentInput
 ): Promise<ProvisionRetellAgentOutput> {
-  const { businessName, vertical, clientDomain } = input
+  const { businessName, vertical, clientDomain, preferredAreaCode } = input
 
   // Get template agent ID for this vertical
   const templateAgentId = TEMPLATE_AGENT_IDS[vertical]
@@ -95,7 +96,12 @@ export async function provisionRetellAgent(
 
   // For now, return the template's phone number
   // TODO: In phase 2, allocate new phone numbers per client via Retell's phone provisioning API
+  // The preferredAreaCode can be passed to the phone provisioning endpoint to request an area code match
   const phoneNumber = process.env.RETELL_PHONE_NUMBER || ''
+
+  if (preferredAreaCode) {
+    console.log(`[RETELL] Client requested area code: ${preferredAreaCode} (phase 2: pass to phone provisioning API)`)
+  }
 
   return {
     agentId: newAgent.agent_id || '',

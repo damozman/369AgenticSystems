@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
   const businessName = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.businessName)
   const clientDomain = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.clientDomain)
   const phone        = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.phone)
+  const areaCode     = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.areaCode)
 
   if (!vertical || !email || !businessName || !clientDomain) {
     console.error('[STRIPE WEBHOOK] Missing required fields on session', session.id, {
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
       tier,
       clientDomain,
       setupPaid: true,
+      preferredAreaCode: areaCode,
     })
   } catch (e) {
     console.error('[STRIPE WEBHOOK] provisionClient failed:', e)

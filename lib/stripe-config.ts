@@ -22,4 +22,5 @@ export const STRIPE_CUSTOM_FIELD_KEYS = {
   businessName: 'business_name',
   clientDomain: 'website_domain',
   phone:        'phone',
+  areaCode:     'preferred_area_code',
 } as const

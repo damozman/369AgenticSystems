@@ -27,15 +27,16 @@ const DEFAULT_PROMPTS: Record<string, string> = {
 }
 
 export interface ProvisionClientInput {
-  businessName:       string
-  ownerName?:         string
-  email:              string
-  phone?:             string
-  vertical:           string
-  tier:               string
-  clientDomain:       string
+  businessName:        string
+  ownerName?:          string
+  email:               string
+  phone?:              string
+  vertical:            string
+  tier:                string
+  clientDomain:        string
   monthlyRevenueLost?: number
-  setupPaid?:         boolean
+  setupPaid?:          boolean
+  preferredAreaCode?:  string
 }
 
 export async function provisionClient(input: ProvisionClientInput) {
@@ -43,6 +44,7 @@ export async function provisionClient(input: ProvisionClientInput) {
     businessName, ownerName, email, phone,
     vertical, tier, clientDomain, monthlyRevenueLost,
     setupPaid = false,
+    preferredAreaCode,
   } = input
 
   const activeAgents = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
@@ -58,6 +60,7 @@ export async function provisionClient(input: ProvisionClientInput) {
       businessName,
       vertical,
       clientDomain,
+      preferredAreaCode,
     })
     retellAgentId = retellResult.agentId
     retellPhoneNumber = retellResult.phoneNumber
@@ -69,20 +72,27 @@ export async function provisionClient(input: ProvisionClientInput) {
   }
 
   // 1. Create subscription record (with Retell agent ID + phone number)
+  const subscriptionData: any = {
+    client_domain:  clientDomain,
+    user_email:     email,
+    vertical,
+    tier,
+    active_agents:  activeAgents,
+    monthly_cost:   monthlyCost,
+    setup_paid:     setupPaid,
+    activated_at:   new Date().toISOString(),
+    retell_agent_id: retellAgentId,
+    retell_phone_number: retellPhoneNumber,
+  }
+
+  // Store preferred area code if provided (for phase 2 phone provisioning)
+  if (preferredAreaCode) {
+    subscriptionData.preferred_area_code = preferredAreaCode
+  }
+
   const { data: subscription, error: subError } = await supabase
     .from('agent_subscriptions')
-    .upsert({
-      client_domain:  clientDomain,
-      user_email:     email,
-      vertical,
-      tier,
-      active_agents:  activeAgents,
-      monthly_cost:   monthlyCost,
-      setup_paid:     setupPaid,
-      activated_at:   new Date().toISOString(),
-      retell_agent_id: retellAgentId,
-      retell_phone_number: retellPhoneNumber,
-    }, { onConflict: 'client_domain' })
+    .upsert(subscriptionData, { onConflict: 'client_domain' })
     .select()
     .single()
 
