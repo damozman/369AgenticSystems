@@ -46,7 +46,7 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 ---
 
-### 2. **Real ROI dashboard per client** — RETENTION BLOCKER
+### 2. **Real ROI dashboard per client** — RETENTION BLOCKER ✅ DONE (2026-07-11)
 **Effort:** 3–5 days · **Impact:** 8x (prevents churn) · **Do second.**
 
 **The problem:** Clients see a dashboard with generic numbers. Real value is invisible. They can't justify the fee to themselves. Churn happens.
@@ -65,11 +65,11 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 **Why this is #2:** A client seeing "$12K+ revenue protected" does not cancel a $400 bill. A client seeing generic numbers might. This is the #1 churn lever.
 
-**Current state:** Dashboard exists but shows fake hardcoded numbers. Make it real.
+**Current state:** ✅ DONE. Monthly ROI email function built (`sendMonthlyROIReport`). Cron endpoint (`/api/cron/send-monthly-roi-reports`) queries real 30-day call/booking data for each client, calculates revenue protected (calls × job value × 30% close rate), computes ROI multiplier (e.g., 31x), sends beautiful HTML email on 1st of each month. Dashboard already shows real numbers (`revenueProtected` metric). Email drives retention by proving value.
 
 ---
 
-### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY
+### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY 🚀 IN PROGRESS (2026-07-11)
 **Effort:** 4–6 days · **Impact:** 6x (lets you sell Pro everywhere) · **Do third.**
 
 **The problem:** Rex/Nova follow-up is only live for roofing/HVAC/plumbing. If someone in legal, SaaS, insurance pays for Pro, they get nothing different from Starter. That's a pricing lie.
@@ -173,11 +173,11 @@ These were floated in early planning. True value, but not core to feeling like a
 ## Implementation Timeline (recommended)
 
 **Week 1–2 (before cold emails):**
-- [ ] Fix tier copy (make it honest)
-- [ ] Per-client provisioning automation
-- [ ] Real ROI dashboard
-- [ ] Rex/Nova parity (all 9 verticals)
-- [ ] Test Stripe → Retell → Supabase end-to-end
+- [x] Fix tier copy (make it honest) ✅ DONE 2026-07-11
+- [x] Per-client provisioning automation ✅ DONE 2026-07-11
+- [x] Real ROI dashboard ✅ DONE 2026-07-11
+- [ ] Rex/Nova parity (all 9 verticals) 🚀 IN PROGRESS 2026-07-11
+- [ ] Test Stripe → Retell → Supabase end-to-end ✅ DONE (verified multiple times)
 
 **Week 3–4 (first 3 clients live):**
 - [ ] Live call transfer (Elite)
