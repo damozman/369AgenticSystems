@@ -238,14 +238,50 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_notifications_domain    ON notifications(client_domain);
 CREATE INDEX idx_notifications_dismissed ON notifications(dismissed);
 
--- RLS: enable + authenticated read for admin portal
-ALTER TABLE agent_subscriptions  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agent_configurations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications        ENABLE ROW LEVEL SECURITY;
+-- ONBOARDING QUESTIONNAIRE: client vetting form responses
+CREATE TABLE IF NOT EXISTS client_questionnaires (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at            TIMESTAMPTZ DEFAULT now(),
+  updated_at            TIMESTAMPTZ DEFAULT now(),
+  client_domain         TEXT        NOT NULL UNIQUE REFERENCES agent_subscriptions(client_domain) ON DELETE CASCADE,
 
-CREATE POLICY "agent_subscriptions: authenticated read"  ON agent_subscriptions  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "agent_configurations: authenticated read" ON agent_configurations FOR SELECT TO authenticated USING (true);
-CREATE POLICY "notifications: authenticated read"        ON notifications        FOR SELECT TO authenticated USING (true);
+  -- Form responses
+  respondent_role       TEXT,
+  pain_point            TEXT,
+  service_types         TEXT,
+  avg_job_value         TEXT,
+  has_emergency_service BOOLEAN,
+  emergency_contact     TEXT,
+  response_time         TEXT,
+  common_objections     TEXT,
+  jargon                TEXT,
+  other_notes           TEXT,
+
+  -- Metadata
+  completed_at          TIMESTAMPTZ,
+  kb_uploaded_at        TIMESTAMPTZ
+);
+
+CREATE INDEX idx_questionnaires_domain ON client_questionnaires(client_domain);
+
+-- RLS: enable + authenticated read for admin portal
+ALTER TABLE agent_subscriptions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_configurations    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_questionnaires   ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "agent_subscriptions: authenticated read"      ON agent_subscriptions      FOR SELECT TO authenticated USING (true);
+CREATE POLICY "agent_configurations: authenticated read"     ON agent_configurations     FOR SELECT TO authenticated USING (true);
+CREATE POLICY "notifications: authenticated read"            ON notifications            FOR SELECT TO authenticated USING (true);
+CREATE POLICY "client_questionnaires: owner access"          ON client_questionnaires    FOR SELECT TO authenticated USING (
+  client_domain IN (SELECT client_domain FROM agent_subscriptions WHERE user_email = auth.jwt() ->> 'email')
+);
+CREATE POLICY "client_questionnaires: owner write"           ON client_questionnaires    FOR UPDATE TO authenticated USING (
+  client_domain IN (SELECT client_domain FROM agent_subscriptions WHERE user_email = auth.jwt() ->> 'email')
+);
+CREATE POLICY "client_questionnaires: owner insert"          ON client_questionnaires    FOR INSERT TO authenticated WITH CHECK (
+  client_domain IN (SELECT client_domain FROM agent_subscriptions WHERE user_email = auth.jwt() ->> 'email')
+);
 -- Service-role key (used by API routes) bypasses RLS for writes automatically.
 
 

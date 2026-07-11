@@ -100,6 +100,15 @@ export async function sendWelcomeEmail({
 
       ${phoneSection}
 
+      <div style="background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.4);border-radius:10px;padding:24px;margin-bottom:28px;text-align:center;">
+        <p style="margin:0 0 16px;font-size:14px;color:#FFFFFF;">
+          <strong>Fast-track your setup:</strong> Answer a quick questionnaire so your agent understands your business.
+        </p>
+        <a href="https://369agenticsystems.com/onboarding/questionnaire/${clientDomain}" style="display:inline-block;background:#D4AF37;color:#0A0A0A;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:opacity 0.2s;">
+          Complete Questionnaire (5 min)
+        </a>
+      </div>
+
       <div style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:20px 24px;margin-bottom:28px;">
         <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.12em;">
           Your Active Agents — ${tier} Plan
