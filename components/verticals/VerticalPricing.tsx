@@ -13,54 +13,70 @@ const COPY: Record<string, { headline: string; subhead: string; urgency: string 
   roofing: {
     headline: 'Pricing for Roofing Companies',
     subhead:  'Never lose another job to a missed call — starting at $400/mo.',
-    urgency:  'Roofing season is here — new client slots are filling fast.',
+    urgency:  'Roofing season is here. Your AI is live within 24 hours. Every missed call costs you $2,000+ in lost jobs.',
   },
   hvac: {
     headline: 'Pricing for HVAC Companies',
     subhead:  'Emergency calls answered 24/7, every night and weekend — starting at $400/mo.',
-    urgency:  'Summer heat rush is on — lock in your setup before slots fill.',
+    urgency:  'Summer heat rush hits TODAY. Your AI answers emergency calls 24/7 while you sleep. Live in one day. $350+ average emergency call value.',
   },
   plumbing: {
     headline: 'Pricing for Plumbing Companies',
     subhead:  'Burst pipes at 2 AM? We answer. Starting at $400/mo.',
-    urgency:  'Emergency plumbers are in high demand — don\'t miss another call.',
+    urgency:  'Burst pipes don\'t wait. Your AI answers emergency calls 24/7, captures job details, books technicians. Live tomorrow. Average emergency call: $400+.',
   },
   dental: {
     headline: 'Pricing for Dental Practices',
     subhead:  'Never miss a patient inquiry again — starting at $400/mo.',
-    urgency:  'Patient slots are limited — practices booking now for next month.',
+    urgency:  'Patient calls come at all hours. Your AI answers 24/7, books appointments, sends confirmations. Live in hours. Average patient value: $200+.',
   },
   legal: {
     headline: 'Pricing for Law Firms',
     subhead:  'High-value cases need instant response — starting at $400/mo.',
-    urgency:  'Every hour of delay hands qualified leads to faster-responding firms.',
+    urgency:  'High-value cases need instant response. Your AI qualifies callers, captures details, routes urgent matters to you within minutes. Live today. Average case value: $5,000+.',
   },
   'real-estate': {
     headline: 'Pricing for Real Estate Agents',
     subhead:  'Hot buyers won\'t wait — starting at $400/mo.',
-    urgency:  'Market is moving fast — agents onboarding now are closing faster.',
+    urgency:  'Hot buyers won\'t wait. Your AI answers within seconds, qualifies interest, books showings automatically. Live in hours. Average deal: $9,000+.',
   },
   insurance: {
     headline: 'Pricing for Insurance Agencies',
     subhead:  'Quote requests don\'t wait — starting at $400/mo.',
-    urgency:  'Agencies responding within 5 minutes close 90% more policies.',
+    urgency:  'Quote requests deserve instant response. Your AI captures coverage needs, pulls quotes, books consultations. Agencies responding same-day close 3x faster. Live tomorrow. Average policy: $1,200+.',
   },
   saas: {
     headline: 'Pricing for SaaS Companies',
     subhead:  'Trial users decide in minutes — starting at $400/mo.',
-    urgency:  'Every hour before first contact drops your conversion rate.',
+    urgency:  'Trial users decide in minutes, not days. Your AI greets them instantly, answers setup questions, books onboarding calls. Live today. Average customer lifetime value: $2,400+.',
   },
   wholesale: {
     headline: 'Pricing for Wholesale Distributors',
     subhead:  'Inbound orders need instant acknowledgment — starting at $400/mo.',
-    urgency:  'Distributors with instant response retain 40% more accounts.',
+    urgency:  'Order inquiries can\'t wait. Your AI confirms stock, takes orders, routes to fulfillment. Live today. Average order: $2,500+.',
   },
 }
 
 const FAQ = [
   {
     q: 'What\'s included in the $1,500 setup?',
-    a: 'Agent configuration for your vertical, dashboard setup, an onboarding call, system prompt tuning, and full integration with your existing workflow.',
+    a: 'Unique phone number allocated (live same day), AI agent configured for your vertical, questionnaire link sent for business context, Knowledge Base auto-populated, dashboard access + onboarding call, system prompt tuning. Done in 24 hours.',
+  },
+  {
+    q: 'How long until my AI is answering calls?',
+    a: 'As little as 24 hours. We allocate your dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire. Most clients are live within a day. If forwarding an existing business number, add 5-7 business days for carrier setup on your end.',
+  },
+  {
+    q: 'Will the AI know about my business?',
+    a: 'Yes. Right after setup, you complete a 5-minute questionnaire about your services, pain points, common objections, and how you like to handle calls. We upload this to your agent\'s Knowledge Base so it references your business context on every call.',
+  },
+  {
+    q: 'What\'s this monthly ROI report?',
+    a: 'On the 1st of each month, you get an email showing real numbers: calls answered, leads captured, estimated revenue protected (using your vertical\'s average job value), and ROI multiplier. Example: "You protected $12,600 in revenue this month. Your fee was $400. ROI: 31x." It\'s proof that the service works.',
+  },
+  {
+    q: 'Do I get follow-up automation?',
+    a: 'Only in Pro and Elite. Pro includes automated 3-step email follow-up sequences (vertical-specific). Legal gets deadline urgency, Real Estate gets market timing angles, Insurance gets coverage gap messaging. Follow-up now works for ALL 9 verticals, not just the first 3.',
   },
   {
     q: 'Can I upgrade my tier later?',
@@ -68,11 +84,7 @@ const FAQ = [
   },
   {
     q: 'What if it doesn\'t work for me?',
-    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your setup fee. No questions asked.',
-  },
-  {
-    q: 'When can I get started?',
-    a: 'We onboard new clients weekly. In the best case, you can be live in as little as 72 hours. If your setup involves forwarding an existing business number, plan on 5–7 business days, since that step depends on you and your carrier.',
+    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your setup fee. No questions asked. But most clients see ROI within week 1.',
   },
   {
     q: 'What are Crystal Clear and Custom Business Intelligence?',
