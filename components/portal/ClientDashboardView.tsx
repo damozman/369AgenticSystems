@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Phone, CalendarCheck, Users, X, Sun, Moon, CheckCircle, Zap, ArrowRight, Clock } from 'lucide-react'
 import { LiveCallToast } from './LiveCallToast'
 import { PeakHoursBar } from './PeakHoursBar'
+import TranscriptSearch from './TranscriptSearch'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -568,6 +569,14 @@ export default function ClientDashboardView({
           </a>
         </div>
       )}
+
+      {/* ── Elite: Transcript Search ────────────────────────────────── */}
+      <div className="mb-6">
+        <TranscriptSearch
+          clientDomain={subscription.client_domain}
+          tier={subscription.tier as string}
+        />
+      </div>
 
       {/* ── Call detail modal ──────────────────────────────────────── */}
       {selectedCall && (

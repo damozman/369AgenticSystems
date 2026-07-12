@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         caller_phone:     fromNumber ?? 'unknown',
         duration_seconds: durationSeconds,
         transcript:       (call.transcript as string) ?? null,
+        recording_url:    (call.recording_url as string) ?? null,
         call_outcome:     outcome,
         captured_at:      new Date().toISOString(),
       }, { onConflict: 'call_id' })

@@ -123,13 +123,15 @@ CREATE TABLE IF NOT EXISTS calls (
   caller_name      TEXT,
   duration_seconds INT,
   transcript       TEXT,
+  recording_url    TEXT,                         -- Elite: Retell recording CDN URL
   call_outcome     TEXT,  -- 'in_progress' | 'booked' | 'captured_lead' | 'no_answer' | 'spam'
   captured_at      TIMESTAMPTZ
 );
 
-CREATE INDEX idx_calls_client  ON calls(client_domain);
-CREATE INDEX idx_calls_outcome ON calls(call_outcome);
-CREATE INDEX idx_calls_created ON calls(created_at DESC);
+CREATE INDEX idx_calls_client    ON calls(client_domain);
+CREATE INDEX idx_calls_outcome   ON calls(call_outcome);
+CREATE INDEX idx_calls_created   ON calls(created_at DESC);
+CREATE INDEX idx_calls_transcript ON calls USING GIN(to_tsvector('english', transcript)) WHERE transcript IS NOT NULL;
 
 
 -- LEADS: caller info captured during a call
