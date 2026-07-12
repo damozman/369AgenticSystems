@@ -206,7 +206,9 @@ CREATE TABLE IF NOT EXISTS agent_subscriptions (
   retell_agent_id         TEXT,                  -- Per-client Retell agent ID
   retell_phone_number     TEXT,                  -- Per-client Retell phone number
   preferred_area_code     TEXT,                  -- Preferred area code for phone number allocation (phase 2)
-  owner_phone             TEXT                   -- Elite only: owner's phone for live call transfer
+  owner_phone             TEXT,                  -- Elite only: owner's phone for live call transfer
+  sms_phone_number        TEXT,                  -- Pro/Elite: dedicated SMS phone for follow-ups
+  followup_method         TEXT DEFAULT 'email'   -- 'email' | 'sms' | 'combo' — which channel for Rex follow-ups
 );
 
 CREATE INDEX idx_subscriptions_email  ON agent_subscriptions(user_email);

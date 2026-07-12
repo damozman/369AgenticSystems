@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { sendSms } from '@/lib/twilio-sms'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -195,7 +196,11 @@ export const REX_SMS_TEMPLATES: Record<RexVertical, { step0: string; step1: stri
   },
 }
 
-/** SMS stub — logs instead of sending. Replace with a real Twilio call once TWILIO_* env vars exist. */
-export async function sendSMS(to: string, body: string): Promise<void> {
-  console.log(`[SMS STUB] → ${to}: ${body}`)
+/**
+ * Send SMS via Twilio (or stub if not configured)
+ * Used for Pro/Elite follow-up sequences
+ */
+export async function sendSMS(to: string, body: string, trackingId?: string): Promise<boolean> {
+  const result = await sendSms({ toPhone: to, message: body, trackingId })
+  return result.success
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendWelcomeEmail, sendOwnerNotification } from '@/lib/email-sequences'
 import { provisionRetellAgent } from '@/lib/retell-provisioning'
+import { allocateSmsNumber } from '@/lib/twilio-sms'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +73,18 @@ export async function provisionClient(input: ProvisionClientInput) {
     throw new Error(`Failed to provision Retell agent: ${e instanceof Error ? e.message : e}`)
   }
 
+  // Allocate SMS number for Pro/Elite (for Rex follow-ups)
+  let smsPhoneNumber: string | null = null
+  if ((tier === 'Pro' || tier === 'Elite') && activeAgents.includes('followup')) {
+    console.log(`[ONBOARD] Allocating SMS number for ${tier}...`)
+    smsPhoneNumber = await allocateSmsNumber(preferredAreaCode)
+    if (smsPhoneNumber) {
+      console.log(`[ONBOARD] ✓ SMS number allocated: ${smsPhoneNumber}`)
+    } else {
+      console.warn(`[ONBOARD] SMS allocation failed, falling back to email-only`)
+    }
+  }
+
   // 1. Create subscription record (with Retell agent ID + phone number)
   const subscriptionData: any = {
     client_domain:  clientDomain,
@@ -94,6 +107,12 @@ export async function provisionClient(input: ProvisionClientInput) {
   // Store owner phone for Elite tier (live call transfer)
   if (tier === 'Elite' && phone) {
     subscriptionData.owner_phone = phone
+  }
+
+  // Store SMS number for Pro/Elite (follow-up channel option)
+  if (smsPhoneNumber) {
+    subscriptionData.sms_phone_number = smsPhoneNumber
+    subscriptionData.followup_method = 'combo'  // Default to combo (email + SMS)
   }
 
   const { data: subscription, error: subError } = await supabase
