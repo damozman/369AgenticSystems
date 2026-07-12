@@ -61,6 +61,7 @@ export async function provisionClient(input: ProvisionClientInput) {
       vertical,
       clientDomain,
       preferredAreaCode,
+      ownerPhone: tier === 'Elite' ? phone : undefined, // Pass owner phone for Elite tier live transfer
     })
     retellAgentId = retellResult.agentId
     retellPhoneNumber = retellResult.phoneNumber
@@ -85,9 +86,14 @@ export async function provisionClient(input: ProvisionClientInput) {
     retell_phone_number: retellPhoneNumber,
   }
 
-  // Store preferred area code if provided (for phase 2 phone provisioning)
+  // Store preferred area code if provided
   if (preferredAreaCode) {
     subscriptionData.preferred_area_code = preferredAreaCode
+  }
+
+  // Store owner phone for Elite tier (live call transfer)
+  if (tier === 'Elite' && phone) {
+    subscriptionData.owner_phone = phone
   }
 
   const { data: subscription, error: subError } = await supabase

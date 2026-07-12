@@ -203,7 +203,8 @@ CREATE TABLE IF NOT EXISTS agent_subscriptions (
   activated_at            TIMESTAMPTZ,
   retell_agent_id         TEXT,                  -- Per-client Retell agent ID
   retell_phone_number     TEXT,                  -- Per-client Retell phone number
-  preferred_area_code     TEXT                   -- Preferred area code for phone number allocation (phase 2)
+  preferred_area_code     TEXT,                  -- Preferred area code for phone number allocation (phase 2)
+  owner_phone             TEXT                   -- Elite only: owner's phone for live call transfer
 );
 
 CREATE INDEX idx_subscriptions_email  ON agent_subscriptions(user_email);

@@ -67,10 +67,11 @@ export const TIERS: Tier[] = [
   {
     name:        'Elite',
     price:       750,
-    description: 'Full AI team: receptionist + follow-up + call analytics. For high-volume, data-driven operations.',
+    description: 'Full AI team: receptionist + follow-up + live transfers. Seamless handoff to your team when needed.',
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Pro, plus:', isSection: true },
+      { label: 'Live Call Transfer (routes urgent calls to your phone in real time)' },
       { label: 'Premium Voice Quality (indistinguishable from human)', retellFeature: true, badge: 'Premium' },
       { label: 'Custom Business Intelligence', retellFeature: true, retailValue: 49, badge: 'Custom BI' },
       { label: 'Call recording + searchable transcript archive (coming soon)' },

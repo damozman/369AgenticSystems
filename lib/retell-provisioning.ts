@@ -30,6 +30,7 @@ export interface ProvisionRetellAgentInput {
   vertical: string
   clientDomain: string
   preferredAreaCode?: string
+  ownerPhone?: string  // Elite: owner's phone for live call transfer
 }
 
 export interface ProvisionRetellAgentOutput {
@@ -103,7 +104,7 @@ async function allocatePhoneNumber(agentId: string, preferredAreaCode?: string):
 export async function provisionRetellAgent(
   input: ProvisionRetellAgentInput
 ): Promise<ProvisionRetellAgentOutput> {
-  const { businessName, vertical, clientDomain, preferredAreaCode } = input
+  const { businessName, vertical, clientDomain, preferredAreaCode, ownerPhone } = input
 
   // Get template agent ID for this vertical
   const templateAgentId = TEMPLATE_AGENT_IDS[vertical]
@@ -125,7 +126,7 @@ export async function provisionRetellAgent(
   // Create a new agent from the template config
   console.log(`[RETELL] Creating new agent for ${businessName}...`)
 
-  const newAgentConfig = {
+  const newAgentConfig: any = {
     ...templateAgent,
     // Override the agent name to identify it belongs to this client
     agent_name: `${businessName} — ${vertical.charAt(0).toUpperCase() + vertical.slice(1)}`,
@@ -134,6 +135,12 @@ export async function provisionRetellAgent(
     created_at: undefined,
     updated_at: undefined,
     last_modification_timestamp: undefined,
+  }
+
+  // Elite: configure live call transfer to owner's phone
+  if (ownerPhone) {
+    newAgentConfig.transfer_phone_number = ownerPhone
+    console.log(`[RETELL] Configured live transfer to ${ownerPhone}`)
   }
 
   // Remove undefined fields
