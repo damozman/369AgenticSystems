@@ -29,6 +29,14 @@ export async function POST(request: NextRequest) {
 
   console.log(`[RETELL] ▶  event=${event ?? 'unknown'} keys=${Object.keys(webhook).join(',')}`)
 
+  // TEMP DIAGNOSTIC — confirms which field(s) Retell actually sends so we can
+  // reverse-lookup client_domain instead of the hardcoded demo value below.
+  // Remove once the agent_id → client_domain lookup is implemented.
+  console.log('[RETELL][DIAG] call keys:', call ? Object.keys(call).join(',') : 'no call object')
+  console.log('[RETELL][DIAG] agent_id:', (call as Record<string, unknown> | undefined)?.agent_id)
+  console.log('[RETELL][DIAG] to_number:', (call as Record<string, unknown> | undefined)?.to_number)
+  console.log('[RETELL][DIAG] full call payload:', JSON.stringify(call))
+
   if (!event) {
     return NextResponse.json({ error: 'Missing event' }, { status: 400 })
   }

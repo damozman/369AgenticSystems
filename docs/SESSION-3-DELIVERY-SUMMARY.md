@@ -7,6 +7,27 @@
 
 ---
 
+## ⚠️ KNOWN CRITICAL BLOCKER — NOT PART OF THIS SESSION, NOT YET FIXED
+
+This document covers Priorities #4–7 only. It does **not** mean the app is safe to
+onboard real customers onto yet. A separate, pre-existing bug — found in the
+2026-07-12 QA audit (`docs/QA-SECURITY-AUDIT-2026-07-12.md`) — is still live:
+
+`app/api/call-received/route.ts` hardcodes `client_domain: 'demo.369agenticsystems.com'`
+on every inbound call webhook. **Every real customer's calls are currently being
+written to the demo account, not their own.** None of the features below (ROI
+reports, admin dashboard, transcript search, SMS follow-up) can report correct
+per-customer data until this is fixed, because they all read from `calls` filtered
+by `client_domain`.
+
+Fix in progress: extract `agent_id` from the Retell webhook → look up
+`client_domain` via `agent_subscriptions.retell_agent_id` → stop hardcoding.
+Diagnostic logging shipped 2026-07-12 to confirm the exact webhook field name
+before the lookup is written. Do not tell customers any of the below is "live"
+until this is resolved and verified with a real test-tier call.
+
+---
+
 ## Executive Summary
 
 **All 7 priorities for Real Agency Operations are now COMPLETE and tested.** The codebase is production-ready pending manual testing verification using the provided testing runbook.
