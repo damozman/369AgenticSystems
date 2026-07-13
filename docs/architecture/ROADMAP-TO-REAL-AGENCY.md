@@ -48,6 +48,28 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 ---
 
+### 1b. **Client dashboard essentials** — FIRST-DAY EXPERIENCE GAP (found 2026-07-13)
+**Effort:** ~1–2 days · **Impact:** High — this is the first thing a real customer sees after paying.
+
+**The problem:** Found by actually testing a real signup end-to-end (Watertown Roofing) rather than reading the code. Four real gaps:
+1. The customer's own phone number was nowhere on their dashboard — no way to reference it, copy it, or give it to their team.
+2. The status banner said "Setup In Progress — finishing your call forwarding setup" for a brand-new customer with zero calls, directly contradicting "Your AI receptionist is active and ready to answer" elsewhere on the same page. Leftover language from an old manual-provisioning assumption that no longer applies now that provisioning is instant.
+3. No visibility into whether the customer completed the onboarding questionnaire — if they skip the email link, there's no way to know their agent is still running on generic (not personalized) defaults.
+4. No billing/subscription management link anywhere — every payment-method or invoice question becomes a manual email to Chris.
+
+**What's done (2026-07-13):**
+- ✅ Phone number now shown prominently in the dashboard header with a copy button (`PhoneNumberCard` in `ClientDashboardView.tsx`)
+- ✅ Status banner fixed — new customers now see a neutral "Receptionist Live — waiting for your first call" instead of the contradictory forwarding message
+
+**Still to build:**
+- [ ] Questionnaire completion status/CTA on the dashboard (card that disappears once `client_questionnaires.completed_at` is set)
+- [ ] Billing/subscription management link (Stripe customer portal)
+- [ ] "Call your number now to hear it live" nudge for brand-new customers
+
+**Why this matters:** these are things a real, paying customer needs on day one, not nice-to-haves. Found the same way everything else this week was found — by actually using the product, not reading the code.
+
+---
+
 ### 2. **Real ROI dashboard per client** — RETENTION BLOCKER ✅ DONE (2026-07-11)
 **Effort:** 3–5 days · **Impact:** 8x (prevents churn) · **Do second.**
 
@@ -185,6 +207,10 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Deploy-time messaging standardized to 24 hours across the whole site ✅ DONE 2026-07-13
 
 **Week 3–4 (first 3 clients live):**
+- [x] Client dashboard: phone number display + fixed contradictory status banner ✅ DONE 2026-07-13
+- [ ] Client dashboard: questionnaire completion CTA
+- [ ] Client dashboard: billing/subscription management link
+- [ ] Client dashboard: "call your number now" nudge for new customers
 - [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [ ] Verify personalization end-to-end with a real signup before treating it as done
