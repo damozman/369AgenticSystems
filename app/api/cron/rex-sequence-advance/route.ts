@@ -44,22 +44,33 @@ export async function GET(request: NextRequest) {
     if (!lead) continue
     const vertical = asRexVertical(seq.vertical)
 
+    let emailSent = false
     if (lead.caller_email) {
       try {
         await sendRexStep1Email({
           toEmail: lead.caller_email, callerName: lead.caller_name ?? undefined,
           vertical, clientDomain: seq.client_domain,
         })
+        emailSent = true
       } catch (e) { console.error('[REX] Step 1 email failed:', e) }
     }
-    if (lead.caller_phone) await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step1)
+    const smsSent = lead.caller_phone ? await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step1) : false
 
-    await supabase
-      .from('follow_up_sequences')
-      .update({ sequence_step: 1, step_1_sent_at: new Date().toISOString() })
-      .eq('id', seq.id)
-
-    advancedToStep1++
+    // Only advance (and stamp step_1_sent_at, which step 2's timing depends on)
+    // if something actually went out, or there was no contact info to try in
+    // the first place — a caught failure used to advance anyway, meaning a
+    // real delivery failure silently skipped the customer straight to step 2's
+    // 7-day clock instead of retrying step 1 the next day.
+    const hadContactInfo = !!lead.caller_email || !!lead.caller_phone
+    if (!hadContactInfo || emailSent || smsSent) {
+      await supabase
+        .from('follow_up_sequences')
+        .update({ sequence_step: 1, step_1_sent_at: new Date().toISOString() })
+        .eq('id', seq.id)
+      advancedToStep1++
+    } else {
+      console.error(`[REX CRON] ✗  Step 1 failed entirely for sequence ${seq.id} — will retry next run`)
+    }
   }
 
   // ── Step 1 → Step 2 (7 days, final) ─────────────────────────────────────────
@@ -81,22 +92,28 @@ export async function GET(request: NextRequest) {
     if (!lead) continue
     const vertical = asRexVertical(seq.vertical)
 
+    let emailSent = false
     if (lead.caller_email) {
       try {
         await sendRexStep2Email({
           toEmail: lead.caller_email, callerName: lead.caller_name ?? undefined,
           vertical, clientDomain: seq.client_domain,
         })
+        emailSent = true
       } catch (e) { console.error('[REX] Step 2 email failed:', e) }
     }
-    if (lead.caller_phone) await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step2)
+    const smsSent = lead.caller_phone ? await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step2) : false
 
-    await supabase
-      .from('follow_up_sequences')
-      .update({ sequence_step: 2, completed: true, step_2_sent_at: new Date().toISOString() })
-      .eq('id', seq.id)
-
-    advancedToStep2++
+    const hadContactInfo = !!lead.caller_email || !!lead.caller_phone
+    if (!hadContactInfo || emailSent || smsSent) {
+      await supabase
+        .from('follow_up_sequences')
+        .update({ sequence_step: 2, completed: true, step_2_sent_at: new Date().toISOString() })
+        .eq('id', seq.id)
+      advancedToStep2++
+    } else {
+      console.error(`[REX CRON] ✗  Step 2 failed entirely for sequence ${seq.id} — will retry next run`)
+    }
   }
 
   console.log(`[REX CRON] ✓  Advanced ${advancedToStep1} → step 1, ${advancedToStep2} → step 2 (completed)`)

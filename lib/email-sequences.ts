@@ -3,7 +3,10 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const OWNER_EMAIL = 'chris@369agenticsystems.com'
-const FROM        = '369 Agentic Systems <chris@369agenticsystems.com>'
+// 369agenticsystems.com (root domain) was never added/verified in Resend — every
+// send from it has failed silently since inception. alerts.369agenticsystems.com
+// is the actual verified sending domain.
+const FROM        = '369 Agentic Systems <chris@alerts.369agenticsystems.com>'
 
 // ── Tier feature lists for emails (rebranded Retell feature names) ────────────
 

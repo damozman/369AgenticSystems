@@ -116,9 +116,16 @@ export async function POST(request: NextRequest) {
     status,
   })
 
+  // Only mark as sent if the email actually went out — this used to be
+  // unconditional `true`, hiding real delivery failures (e.g. the Resend
+  // unverified-domain bug) behind a database that claimed success.
+  const wasSent = status === 'sent'
   await supabase
     .from('bookings')
-    .update({ confirmation_sent: true, confirmation_sent_at: new Date().toISOString() })
+    .update({
+      confirmation_sent:    wasSent,
+      confirmation_sent_at: wasSent ? new Date().toISOString() : null,
+    })
     .eq('id', booking_id)
 
   if (booking.lead_id) {

@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
 
   const vertical: RexVertical = resolved === 'unknown' ? 'roofing' : resolved
 
+  let emailSent = false
   if (lead.caller_email) {
     try {
       await sendRexStep0Email({
@@ -93,13 +94,15 @@ export async function POST(request: NextRequest) {
         vertical,
         clientDomain: lead.client_domain,
       })
+      emailSent = true
     } catch (e) {
       console.error('[REX] Step 0 email failed:', e)
     }
   }
 
+  let smsSent = false
   if (lead.caller_phone) {
-    await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step0)
+    smsSent = await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step0)
   }
 
   const { error: seqError } = await supabase.from('follow_up_sequences').insert({
@@ -115,11 +118,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: seqError.message }, { status: 500 })
   }
 
-  await supabase
-    .from('leads')
-    .update({ follow_up_sent: true, follow_up_sent_at: new Date().toISOString() })
-    .eq('id', lead_id)
+  // Only mark as sent if something actually went out — a caught send failure
+  // used to get marked true anyway, hiding real delivery failures (e.g. the
+  // Resend unverified-domain bug) behind a database that claimed success.
+  const anySent = emailSent || smsSent
+  if (anySent) {
+    await supabase
+      .from('leads')
+      .update({ follow_up_sent: true, follow_up_sent_at: new Date().toISOString() })
+      .eq('id', lead_id)
+    console.log(`[REX] ✓  Step 0 fired for lead ${lead_id} (${vertical})`)
+  } else {
+    console.error(`[REX] ✗  Step 0 failed entirely (no email, no SMS) for lead ${lead_id} (${vertical})`)
+  }
 
-  console.log(`[REX] ✓  Step 0 fired for lead ${lead_id} (${vertical})`)
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: anySent })
 }

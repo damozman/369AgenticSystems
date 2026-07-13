@@ -5,7 +5,10 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 const resend    = new Resend(process.env.RESEND_API_KEY)
 
 const OWNER_EMAIL = 'chris@369agenticsystems.com'
-const FROM        = 'Nova · 369 Agentic Systems <chris@369agenticsystems.com>'
+// 369agenticsystems.com (root domain) was never added/verified in Resend — every
+// send from it has failed silently since inception. alerts.369agenticsystems.com
+// is the actual verified sending domain.
+const FROM        = 'Nova · 369 Agentic Systems <chris@alerts.369agenticsystems.com>'
 
 export type NovaVertical = 'roofing' | 'hvac' | 'plumbing'
 
