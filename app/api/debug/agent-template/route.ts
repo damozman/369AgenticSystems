@@ -6,6 +6,8 @@
 import { Retell } from 'retell-sdk'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 const retell = new Retell({ apiKey: process.env.RETELL_API_KEY || '' })
 
 const TEMPLATE_AGENT_IDS: Record<string, string> = {
