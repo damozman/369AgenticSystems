@@ -40,62 +40,18 @@ export interface ProvisionRetellAgentOutput {
 }
 
 /**
- * Allocate a unique phone number for an agent from Retell
+ * Allocate a unique phone number for an agent from Retell and bind it as
+ * that agent's inbound number.
  */
 async function allocatePhoneNumber(agentId: string, preferredAreaCode?: string): Promise<string> {
-  const https = await import('https')
+  const areaCode = preferredAreaCode ? parseInt(preferredAreaCode, 10) : undefined
 
-  return new Promise((resolve, reject) => {
-    const payload: any = {
-      agent_id: agentId,
-    }
-
-    // Add area code preference if provided
-    if (preferredAreaCode) {
-      payload.area_code = preferredAreaCode
-    }
-
-    const postData = JSON.stringify(payload)
-
-    const options = {
-      hostname: 'api.retellai.com',
-      port: 443,
-      path: '/v2/phone-numbers',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RETELL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-      },
-    }
-
-    const req = https.request(options, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        try {
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            const response = JSON.parse(data)
-            // Retell returns phone_number or similar field
-            const phoneNumber = response.phone_number || response.number
-            if (phoneNumber) {
-              resolve(phoneNumber)
-            } else {
-              reject(new Error(`No phone number in response: ${data}`))
-            }
-          } else {
-            reject(new Error(`Retell API error: ${res.statusCode} ${data}`))
-          }
-        } catch (e) {
-          reject(new Error(`Failed to parse Retell response: ${e instanceof Error ? e.message : e}`))
-        }
-      })
-    })
-
-    req.on('error', reject)
-    req.write(postData)
-    req.end()
+  const response = await client.phoneNumber.create({
+    inbound_agents: [{ agent_id: agentId, weight: 1 }],
+    ...(areaCode && !Number.isNaN(areaCode) ? { area_code: areaCode } : {}),
   })
+
+  return response.phone_number
 }
 
 /**
@@ -182,10 +138,16 @@ export async function provisionRetellAgent(
     phoneNumber = await allocatePhoneNumber(newAgent.agent_id || '', preferredAreaCode)
     console.log(`[RETELL] ✓ Phone allocated: ${phoneNumber}`)
   } catch (e) {
-    console.error(`[RETELL] Phone allocation failed:`, e)
-    // Fallback to shared demo number if allocation fails
-    phoneNumber = process.env.RETELL_PHONE_NUMBER || ''
-    console.warn(`[RETELL] Falling back to demo number: ${phoneNumber}`)
+    // No silent fallback to the shared demo number — a customer without their
+    // own phone number isn't provisioned. Clean up the orphaned agent so
+    // failed attempts don't accumulate unusable agents in the Retell account.
+    console.error(`[RETELL] Phone allocation failed, deleting orphaned agent ${newAgent.agent_id}:`, e)
+    if (newAgent.agent_id) {
+      await client.agent.delete(newAgent.agent_id).catch(deleteErr =>
+        console.error(`[RETELL] Failed to clean up orphaned agent ${newAgent.agent_id}:`, deleteErr)
+      )
+    }
+    throw new Error(`Failed to allocate phone number: ${e instanceof Error ? e.message : e}`)
   }
 
   return {
