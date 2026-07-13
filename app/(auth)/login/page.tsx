@@ -68,11 +68,11 @@ export default function LoginPage() {
       <div className="text-center mb-10">
         <div className="inline-flex items-baseline gap-2.5 mb-1.5">
           <span className="text-3xl font-display font-bold text-[#D4AF37]">369</span>
-          <span className="text-sm font-display text-slate-400 uppercase tracking-[0.25em]">
+          <span className="text-sm font-display text-[#94a3b8] uppercase tracking-[0.25em]">
             Agentic Systems
           </span>
         </div>
-        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.3em]">
+        <p className="text-[10px] font-mono text-[#475569] uppercase tracking-[0.3em]">
           Client Command Center
         </p>
       </div>
@@ -100,10 +100,10 @@ export default function LoginPage() {
               <p className="text-[#D4AF37] font-mono text-[10px] tracking-[0.2em] uppercase mb-1.5">
                 [SECURE ACCESS]
               </p>
-              <h1 className="text-xl font-display font-semibold text-white">
+              <h1 className="text-xl font-display font-semibold text-[#ffffff]">
                 Enter Command Center
               </h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-[#94a3b8] mt-1">
                 A one-time access code will be sent to your registered email.
               </p>
             </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-[10px] font-mono text-slate-500 uppercase tracking-[0.15em] mb-2"
+                  className="block text-[10px] font-mono text-[#64748b] uppercase tracking-[0.15em] mb-2"
                 >
                   Client Email
                 </label>
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   onChange={e => setEmail(e.target.value)}
                   required
                   placeholder="you@yourcompany.com"
-                  className="w-full bg-[#0D0D0D] border border-[rgba(255,255,255,0.08)] rounded-lg px-4 py-3 text-sm font-mono text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-[rgba(212,175,55,0.45)] transition-colors"
+                  className="w-full bg-[#0D0D0D] border border-[rgba(255,255,255,0.08)] rounded-lg px-4 py-3 text-sm font-mono text-[#e2e8f0] placeholder:text-[#334155] focus:outline-none focus:border-[rgba(212,175,55,0.45)] transition-colors"
                 />
               </div>
 
@@ -149,10 +149,10 @@ export default function LoginPage() {
               <p className="text-[#D4AF37] font-mono text-[10px] tracking-[0.2em] uppercase mb-1.5">
                 [UPLINK ESTABLISHED]
               </p>
-              <h1 className="text-xl font-display font-semibold text-white">
+              <h1 className="text-xl font-display font-semibold text-[#ffffff]">
                 Enter Access Code
               </h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-[#94a3b8] mt-1">
                 A 6-digit code was dispatched to{' '}
                 <span className="text-[#D4AF37]">{email}</span>
               </p>
@@ -162,7 +162,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="otp"
-                  className="block text-[10px] font-mono text-slate-500 uppercase tracking-[0.15em] mb-2"
+                  className="block text-[10px] font-mono text-[#64748b] uppercase tracking-[0.15em] mb-2"
                 >
                   Access Code
                 </label>
@@ -177,7 +177,7 @@ export default function LoginPage() {
                   required
                   autoFocus
                   placeholder="000000"
-                  className="w-full bg-[#0D0D0D] border border-[rgba(255,255,255,0.08)] rounded-lg px-4 py-3 text-2xl font-mono text-center text-slate-200 placeholder:text-slate-700 tracking-[0.5em] focus:outline-none focus:border-[rgba(212,175,55,0.45)] transition-colors"
+                  className="w-full bg-[#0D0D0D] border border-[rgba(255,255,255,0.08)] rounded-lg px-4 py-3 text-2xl font-mono text-center text-[#e2e8f0] placeholder:text-[#334155] tracking-[0.5em] focus:outline-none focus:border-[rgba(212,175,55,0.45)] transition-colors"
                 />
               </div>
 
@@ -199,13 +199,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => { setStage('email'); setOtp(''); setError(null) }}
-                className="w-full text-[10px] font-mono text-slate-600 hover:text-slate-400 transition-colors py-1"
+                className="w-full text-[10px] font-mono text-[#475569] hover:text-[#94a3b8] transition-colors py-1"
               >
                 ← use a different email
               </button>
             </form>
 
-            <div className="mt-5 space-y-1 text-xs font-mono text-slate-600">
+            <div className="mt-5 space-y-1 text-xs font-mono text-[#475569]">
               <p><span className="text-[#D4AF37]">›</span> Code expires in 60 minutes</p>
               <p><span className="text-[#D4AF37]">›</span> Single-use authentication</p>
               <p>
@@ -217,7 +217,7 @@ export default function LoginPage() {
         )}
       </motion.div>
 
-      <p className="text-center text-[10px] font-mono text-slate-700 mt-6">
+      <p className="text-center text-[10px] font-mono text-[#334155] mt-6">
         369 Agentic Systems · Encrypted Portal Access
       </p>
     </div>

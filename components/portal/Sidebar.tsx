@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -53,6 +54,16 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const router = useRouter()
   const supabase = createClient()
   const isClientPortal = pathname.startsWith('/client-dashboard')
+
+  // The admin Command Center must always be dark (CLAUDE.md) — the light/dark
+  // toggle only applies to the client portal. Force-strip a stale `light` class
+  // left on <html> from a client-dashboard visit earlier in the same session;
+  // App Router layouts persist across navigation, so this doesn't reset itself.
+  useEffect(() => {
+    if (!isClientPortal) {
+      document.documentElement.classList.remove('light')
+    }
+  }, [isClientPortal])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -142,10 +153,12 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           <LogOut size={15} className="group-hover:text-red-400 transition-colors" />
           <span className="text-sm">Sign Out</span>
         </button>
-        <ThemeToggle
-          showLabel
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-slate-600 hover:text-slate-300 hover:bg-[var(--metric-bg)] transition-all duration-150"
-        />
+        {isClientPortal && (
+          <ThemeToggle
+            showLabel
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-slate-600 hover:text-slate-300 hover:bg-[var(--metric-bg)] transition-all duration-150"
+          />
+        )}
         <p className="text-[9px] font-mono text-slate-800 text-center mt-3">
           369 Agentic Systems v1.0
         </p>

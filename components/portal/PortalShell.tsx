@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import Sidebar from './Sidebar'
 import ThemeToggle from './ThemeToggle'
 
 export default function PortalShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const pathname = usePathname()
+  const isClientPortal = pathname.startsWith('/client-dashboard')
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-base)]">
@@ -48,7 +51,9 @@ export default function PortalShell({ children }: { children: React.ReactNode })
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em]">Agentic</span>
           </div>
 
-          <ThemeToggle className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors" />
+          {isClientPortal && (
+            <ThemeToggle className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors" />
+          )}
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>
