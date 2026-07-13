@@ -109,6 +109,9 @@ export async function sendWelcomeEmail({
         <a href="https://369agenticsystems.com/onboarding/questionnaire/${clientDomain}" style="display:inline-block;background:#D4AF37;color:#0A0A0A;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:opacity 0.2s;">
           Complete Questionnaire (5 min)
         </a>
+        <p style="margin:14px 0 0;font-size:12px;color:#64748B;">
+          Prefer to explore first? <a href="https://369agenticsystems.com/login" style="color:#D4AF37;">Access your dashboard</a> anytime — sign in with ${toEmail}.
+        </p>
       </div>
 
       <div style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:20px 24px;margin-bottom:28px;">
