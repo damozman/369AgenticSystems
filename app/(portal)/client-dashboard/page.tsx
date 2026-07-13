@@ -55,9 +55,14 @@ export default async function ClientDashboardPage() {
           <Zap size={20} style={{ color: '#D4AF37' }} />
         </div>
         <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">No active subscription</h2>
-        <p className="text-sm text-[var(--text-muted)] max-w-sm mb-6 leading-relaxed">
+        <p className="text-sm text-[var(--text-muted)] max-w-sm mb-2 leading-relaxed">
           Your account isn&apos;t linked to a deployment yet. Contact us to get your AI workforce configured.
         </p>
+        {user?.email && (
+          <p className="text-xs font-mono text-[var(--text-muted)] mb-6">
+            Signed in as {user.email} — wrong account? <a href="/login" className="underline hover:opacity-80">Sign in with a different email</a>.
+          </p>
+        )}
         <a
           href="mailto:chris@369agenticsystems.com?subject=Account Setup"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-opacity hover:opacity-90"

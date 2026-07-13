@@ -98,7 +98,6 @@ export async function sendWelcomeEmail({
       </h1>
       <p style="margin:0 0 24px;font-size:15px;color:#94A3B8;line-height:1.7;">
         ${vc.tagline} Your digital workforce is being configured now.
-        Your dedicated number is live within 24 hours.
       </p>
 
       ${phoneSection}
@@ -131,8 +130,8 @@ export async function sendWelcomeEmail({
       </p>
 
       <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
-        <p style="margin:0;font-size:11px;color:#1E293B;font-family:monospace;">
-          369 Agentic Systems · ${clientDomain} · ${tier} Plan
+        <p style="margin:0;font-size:11px;color:#64748B;font-family:monospace;">
+          369 Agentic Systems &middot; ${clientDomain} &middot; ${tier} Plan
         </p>
       </div>
     </div>
