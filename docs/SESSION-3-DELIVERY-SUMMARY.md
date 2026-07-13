@@ -7,24 +7,40 @@
 
 ---
 
-## ⚠️ KNOWN CRITICAL BLOCKER — NOT PART OF THIS SESSION, NOT YET FIXED
+## ⚠️ KNOWN CRITICAL BLOCKERS — NOT PART OF THIS SESSION
 
-This document covers Priorities #4–7 only. It does **not** mean the app is safe to
-onboard real customers onto yet. A separate, pre-existing bug — found in the
-2026-07-12 QA audit (`docs/QA-SECURITY-AUDIT-2026-07-12.md`) — is still live:
+This document covers Priorities #4–7 code only. It does **not** mean the app was
+safe to onboard real customers onto. Two categories of pre-existing bugs were
+found in a 2026-07-12 QA audit and follow-up investigation
+(`docs/QA-SECURITY-AUDIT-2026-07-12.md`):
 
-`app/api/call-received/route.ts` hardcodes `client_domain: 'demo.369agenticsystems.com'`
-on every inbound call webhook. **Every real customer's calls are currently being
-written to the demo account, not their own.** None of the features below (ROI
-reports, admin dashboard, transcript search, SMS follow-up) can report correct
-per-customer data until this is fixed, because they all read from `calls` filtered
-by `client_domain`.
+**1. Schema drift — FIXED 2026-07-12.** Production Supabase never received the
+migration for the columns/tables this session's code assumed existed:
+`calls.recording_url`, six columns on `agent_subscriptions`
+(`retell_agent_id`, `retell_phone_number`, `preferred_area_code`, `owner_phone`,
+`sms_phone_number`, `followup_method`), and the entire `client_questionnaires`
+table. Real effects while broken: `call_ended` webhooks 500'd (duration/transcript
+never saved), `onboard-client.ts` threw *after* creating a live Retell agent+phone
+(orphaned resource, no DB record, no welcome email), and the questionnaire
+advertised on all 9 cold-email pages failed on every submission. No real
+customers were live yet, so no customer-facing harm — but any test signups run
+before this fix may have created orphaned Retell agents worth reconciling.
+Applied via `supabase/migrations/2026-07-12-priority-4-7-schema-catchup.sql`
+and reverified column-by-column against production — all tables now match
+`schema.sql`.
 
+**2. Hardcoded demo domain — STILL OPEN.** `app/api/call-received/route.ts`
+hardcodes `client_domain: 'demo.369agenticsystems.com'` on every inbound call
+webhook. Every real customer's calls would still be written to the demo account,
+not their own. None of the features below (ROI reports, admin dashboard,
+transcript search, SMS follow-up) can report correct per-customer data until
+this is fixed, because they all read from `calls` filtered by `client_domain`.
 Fix in progress: extract `agent_id` from the Retell webhook → look up
 `client_domain` via `agent_subscriptions.retell_agent_id` → stop hardcoding.
-Diagnostic logging shipped 2026-07-12 to confirm the exact webhook field name
-before the lookup is written. Do not tell customers any of the below is "live"
-until this is resolved and verified with a real test-tier call.
+Diagnostic logging shipped 2026-07-12 to confirm the exact webhook field name;
+waiting on a real test call's log output to write the lookup. Do not tell
+customers any of the below is "live" until this is resolved and verified with
+a real test-tier call.
 
 ---
 
