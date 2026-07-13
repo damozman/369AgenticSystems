@@ -40,6 +40,29 @@ export interface ProvisionRetellAgentOutput {
 }
 
 /**
+ * Clone the vertical's template LLM into a new, per-client LLM with the
+ * caller's real business name baked into the greeting. Without this, every
+ * client on a vertical shares the exact same LLM object — same hardcoded
+ * greeting, same prompt, no personalization, and no way to layer in
+ * questionnaire-driven context later without leaking it to every other
+ * customer on that LLM.
+ */
+async function cloneAgentLlm(templateLlmId: string, businessName: string): Promise<string> {
+  const templateLlm = await client.llm.retrieve(templateLlmId)
+
+  const newLlmConfig: any = { ...templateLlm }
+  delete newLlmConfig.llm_id
+  delete newLlmConfig.version
+  delete newLlmConfig.last_modification_timestamp
+  delete newLlmConfig.is_published
+
+  newLlmConfig.begin_message = `Thank you for calling ${businessName}, this is Ava. How can I help you today?`
+
+  const newLlm = await client.llm.create(newLlmConfig)
+  return newLlm.llm_id
+}
+
+/**
  * Allocate a unique phone number for an agent from Retell and bind it as
  * that agent's inbound number.
  */
@@ -79,13 +102,34 @@ export async function provisionRetellAgent(
     throw new Error(`Failed to retrieve template agent: ${e instanceof Error ? e.message : e}`)
   }
 
-  // Create a new agent from the template config
+  // Clone the template's LLM so this client gets their own conversational
+  // brain with their real business name in the greeting, instead of sharing
+  // the template's LLM (and its hardcoded placeholder greeting) with every
+  // other client on this vertical.
+  if (templateAgent.response_engine?.type !== 'retell-llm') {
+    throw new Error(`Template agent ${templateAgentId} is not a retell-llm response engine`)
+  }
+  const templateLlmId = templateAgent.response_engine.llm_id
+
+  console.log(`[RETELL] Cloning LLM for ${businessName}...`)
+  let newLlmId: string
+  try {
+    newLlmId = await cloneAgentLlm(templateLlmId, businessName)
+    console.log(`[RETELL] ✓ LLM cloned: ${newLlmId}`)
+  } catch (e) {
+    console.error(`[RETELL] Failed to clone LLM:`, e)
+    throw new Error(`Failed to clone LLM: ${e instanceof Error ? e.message : e}`)
+  }
+
+  // Create a new agent from the template config, pointed at the new LLM
   console.log(`[RETELL] Creating new agent for ${businessName}...`)
 
   const newAgentConfig: any = {
     ...templateAgent,
     // Override the agent name to identify it belongs to this client
     agent_name: `${businessName} — ${vertical.charAt(0).toUpperCase() + vertical.slice(1)}`,
+    // Point at this client's own cloned LLM, not the shared template's
+    response_engine: { type: 'retell-llm', llm_id: newLlmId },
     // Remove read-only fields and version metadata from the template's own
     // revision history — Retell rejects "version > 0" on agent creation, and
     // the template's version_title/description shouldn't carry to a clone.
@@ -98,14 +142,6 @@ export async function provisionRetellAgent(
     version_title: undefined,
     version_description: undefined,
     is_published: undefined,
-  }
-
-  // response_engine.version is the LLM's own version number, not the agent's —
-  // Retell rejects it here too ("Cannot specify version > 0 for new agent"),
-  // confirmed by reproducing the exact create() call directly against the API.
-  if (newAgentConfig.response_engine) {
-    const { version: _responseEngineVersion, ...responseEngineRest } = newAgentConfig.response_engine
-    newAgentConfig.response_engine = responseEngineRest
   }
 
   // Elite: configure live call transfer to owner's phone
@@ -125,7 +161,10 @@ export async function provisionRetellAgent(
   try {
     newAgent = await client.agent.create(newAgentConfig)
   } catch (e) {
-    console.error(`[RETELL] Failed to create agent:`, e)
+    console.error(`[RETELL] Failed to create agent, cleaning up orphaned LLM ${newLlmId}:`, e)
+    await client.llm.delete(newLlmId).catch(deleteErr =>
+      console.error(`[RETELL] Failed to clean up orphaned LLM ${newLlmId}:`, deleteErr)
+    )
     throw new Error(`Failed to create Retell agent: ${e instanceof Error ? e.message : e}`)
   }
 
@@ -139,14 +178,17 @@ export async function provisionRetellAgent(
     console.log(`[RETELL] ✓ Phone allocated: ${phoneNumber}`)
   } catch (e) {
     // No silent fallback to the shared demo number — a customer without their
-    // own phone number isn't provisioned. Clean up the orphaned agent so
-    // failed attempts don't accumulate unusable agents in the Retell account.
+    // own phone number isn't provisioned. Clean up the orphaned agent + LLM so
+    // failed attempts don't accumulate unusable resources in the Retell account.
     console.error(`[RETELL] Phone allocation failed, deleting orphaned agent ${newAgent.agent_id}:`, e)
     if (newAgent.agent_id) {
       await client.agent.delete(newAgent.agent_id).catch(deleteErr =>
         console.error(`[RETELL] Failed to clean up orphaned agent ${newAgent.agent_id}:`, deleteErr)
       )
     }
+    await client.llm.delete(newLlmId).catch(deleteErr =>
+      console.error(`[RETELL] Failed to clean up orphaned LLM ${newLlmId}:`, deleteErr)
+    )
     throw new Error(`Failed to allocate phone number: ${e instanceof Error ? e.message : e}`)
   }
 
