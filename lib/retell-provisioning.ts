@@ -130,11 +130,18 @@ export async function provisionRetellAgent(
     ...templateAgent,
     // Override the agent name to identify it belongs to this client
     agent_name: `${businessName} — ${vertical.charAt(0).toUpperCase() + vertical.slice(1)}`,
-    // Remove read-only fields
+    // Remove read-only fields and version metadata from the template's own
+    // revision history — Retell rejects "version > 0" on agent creation, and
+    // the template's version_title/description shouldn't carry to a clone.
     agent_id: undefined,
     created_at: undefined,
     updated_at: undefined,
     last_modification_timestamp: undefined,
+    version: undefined,
+    base_version: undefined,
+    version_title: undefined,
+    version_description: undefined,
+    is_published: undefined,
   }
 
   // Elite: configure live call transfer to owner's phone
