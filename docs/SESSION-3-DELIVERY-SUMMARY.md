@@ -29,18 +29,23 @@ Applied via `supabase/migrations/2026-07-12-priority-4-7-schema-catchup.sql`
 and reverified column-by-column against production — all tables now match
 `schema.sql`.
 
-**2. Hardcoded demo domain — STILL OPEN.** `app/api/call-received/route.ts`
-hardcodes `client_domain: 'demo.369agenticsystems.com'` on every inbound call
-webhook. Every real customer's calls would still be written to the demo account,
-not their own. None of the features below (ROI reports, admin dashboard,
-transcript search, SMS follow-up) can report correct per-customer data until
-this is fixed, because they all read from `calls` filtered by `client_domain`.
-Fix in progress: extract `agent_id` from the Retell webhook → look up
-`client_domain` via `agent_subscriptions.retell_agent_id` → stop hardcoding.
-Diagnostic logging shipped 2026-07-12 to confirm the exact webhook field name;
-waiting on a real test call's log output to write the lookup. Do not tell
-customers any of the below is "live" until this is resolved and verified with
-a real test-tier call.
+**2. Hardcoded demo domain — FIXED 2026-07-12, NEEDS A REAL-CUSTOMER TEST.**
+`app/api/call-received/route.ts` used to hardcode
+`client_domain: 'demo.369agenticsystems.com'` on every inbound call webhook.
+Confirmed via a real test call that Retell sends `agent_id` as a top-level
+field on the call payload. The webhook now resolves `client_domain` by looking
+up `agent_subscriptions.retell_agent_id`, with an explicit (not silent)
+pass-through for the shared demo line's known `agent_id`; any other unrecognized
+agent gets a 404 instead of silently writing to the wrong account.
+`capture-lead` and `book-appointment` already derived `client_domain` from the
+`calls` row, so they inherit the fix with no changes.
+
+**Still needed before calling this verified:** the only real call tested so far
+went through the *demo* line, which only exercises the pass-through branch, not
+the actual `agent_subscriptions` lookup a real customer would hit. Provision (or
+use an existing) test-tier customer, call their number, and confirm the call
+lands under their `client_domain`, not the demo account, before telling
+customers any of this is live.
 
 ---
 
