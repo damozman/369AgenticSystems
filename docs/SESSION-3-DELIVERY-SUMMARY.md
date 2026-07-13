@@ -47,6 +47,28 @@ use an existing) test-tier customer, call their number, and confirm the call
 lands under their `client_domain`, not the demo account, before telling
 customers any of this is live.
 
+**UPDATE 2026-07-13 — the above was tested and confirmed the same night this
+doc was written wasn't enough.** A real Stripe test signup surfaced 3 more
+provisioning bugs beyond the domain fix (agent creation rejected the template's
+own version metadata, phone allocation hit a nonexistent Retell endpoint, and a
+silent fallback would have handed a real customer the demo line's phone
+number). All fixed and verified by running the real functions against the live
+Retell API — not inferred from logs. The real per-customer lookup branch (not
+just the demo pass-through) is now confirmed working: a real test agent's call
+correctly attributed to that customer's `client_domain`.
+
+Beyond the domain fix, this session also found and fixed that every customer
+sharing a vertical shared the exact same underlying Retell LLM — no
+personalization at all, hardcoded "ABC Company" greeting for everyone — and
+that the questionnaire → knowledge-base sync was posting to a fabricated
+endpoint that had 404'd since it was built. Both are now fixed: each client
+gets their own LLM with a real personalized greeting, and questionnaire
+answers merge into that client's own prompt. Verified at the function level;
+**not yet verified through an actual signup + live call** — that's the
+standing gap before treating personalization as launch-ready. Full detail:
+`retell_provisioning_gaps_2026-07-13.md` (memory), Era 7 of
+`docs/reference/changelog-recent-sessions.html`.
+
 ---
 
 ## Executive Summary

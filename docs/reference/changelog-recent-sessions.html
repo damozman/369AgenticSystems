@@ -137,6 +137,7 @@
       <li><a href="#demo-mobile"><span class="n">4</span> Demo Line + Mobile</a></li>
       <li><a href="#admin-split"><span class="n">5</span> Admin/Client Split</a></li>
       <li><a href="#truthfulness"><span class="n">6</span> Truthfulness Sweep</a></li>
+      <li><a href="#provisioning-fixes"><span class="n">7</span> Provisioning Bugs + Real Personalization</a></li>
       <li><a href="#current-state"><span class="n">→</span> Current State</a></li>
     </ul>
   </nav>
@@ -146,9 +147,9 @@
       <p class="eyebrow">// What actually happened</p>
       <h1>Recent Sessions, In Order</h1>
       <p class="lede">
-        You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep. Six eras, each with what got built, what broke, and how it got fixed.
+        You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep and the provisioning-pipeline debugging that followed. Seven eras, each with what got built, what broke, and how it got fixed.
       </p>
-      <span class="status-line"><span class="dot"></span> Most of Era 6 is still uncommitted — sitting in the working tree, not pushed</span>
+      <span class="status-line"><span class="dot"></span> Era 7 is fully committed and pushed — the per-client provisioning pipeline is confirmed working for the first time</span>
     </header>
 
     <!-- ═══ 1. DASHBOARD ═══ -->
@@ -304,26 +305,73 @@
       </div>
     </section>
 
+    <!-- ═══ 7. PROVISIONING BUGS + REAL PERSONALIZATION ═══ -->
+    <section class="era" id="provisioning-fixes">
+      <div class="era-head"><h2>7. Provisioning Bugs + Real Personalization</h2><span class="era-date">2026-07-12/13 — 7011368..270f593, all pushed</span></div>
+      <p class="era-dek">Started as a homepage sweep, turned into the first real end-to-end test of the per-client provisioning pipeline built back in Era "2026-07-11" (Priority #1) — and found it had never actually worked. Every fix below was verified by calling the real function or hitting the real API directly, not inferred from reading the code.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Production schema had silently drifted from <code>schema.sql</code></span><span class="badge fix">Fixed</span></div>
+        <p><code>calls.recording_url</code>, six columns on <code>agent_subscriptions</code> (<code>retell_agent_id</code>, <code>retell_phone_number</code>, <code>owner_phone</code>, <code>sms_phone_number</code>, <code>followup_method</code>, <code>preferred_area_code</code>), and the entire <code>client_questionnaires</code> table existed in <code>schema.sql</code> and were referenced by shipped code, but the migration had never been run against production. Found via a column-by-column probe script, not by trusting the file. Real effect: every <code>call_ended</code> webhook was 500ing, and <code>onboard-client.ts</code> would throw <em>after</em> already creating a real Retell agent.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Every real customer's calls were being written to the shared demo account</span><span class="badge fix">Fixed</span></div>
+        <p><code>call-received/route.ts</code> hardcoded <code>client_domain: 'demo.369agenticsystems.com'</code> on every webhook, for every customer, always. Fixed by extracting <code>agent_id</code> from the real Retell payload (confirmed the exact field via a live test call) and looking it up in <code>agent_subscriptions.retell_agent_id</code>, with an explicit — not accidental — pass-through for the shared demo line. Verified against both the demo line and a real per-customer agent.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Agent provisioning 400'd on every real signup</span><span class="badge fix">Fixed</span></div>
+        <p>Cloning a template agent spread its own version metadata (<code>version</code>, <code>response_engine.version</code>) into the create payload — Retell rejects any <code>version &gt; 0</code> on a new agent. Two separate fields caused the identical error; found the second one by reproducing the exact API call locally instead of guessing from the error message a second time.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Phone number allocation hit an endpoint that doesn't exist</span><span class="badge fix">Fixed</span></div>
+        <p><code>allocatePhoneNumber()</code> hand-rolled a raw HTTPS POST to <code>/v2/phone-numbers</code> — 404, always. Real retell-sdk call is <code>client.phoneNumber.create()</code>. Also removed a silent fallback that wrote the <em>shared demo line's own phone number</em> into a real customer's database row when allocation failed — a real customer would have been told to call the demo line as if it were theirs.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Elite transcript search 500'd on every real request</span><span class="badge fix">Fixed</span></div>
+        <p><code>request.nextUrl.searchParams</code> triggered Next.js's static-optimization bailout; the route's own <code>catch</code> block swallowed the internal error and returned a generic 500. Added <code>export const dynamic = 'force-dynamic'</code>.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Real personalization built — every customer shared one LLM before this</span><span class="badge uncommitted">Built, function-verified — not yet pipeline-verified</span></div>
+        <p>Cloning an agent only cloned the wrapper (name, phone, voice) — every customer on a vertical shared the exact same underlying LLM, same hardcoded "ABC Company" greeting, same generic prompt, no real personalization despite marketing copy implying otherwise. <code>cloneAgentLlm()</code> now gives each client their own LLM with their real business name baked in at provisioning. The questionnaire → knowledge-base sync was also found to be posting to a fabricated endpoint (404 on every call since it was built) — rewritten to merge questionnaire answers directly into that client's own prompt instead, idempotently. Both verified by running the real exported functions against the live Retell API (provision → insert fake data → sync twice → confirm no duplication → clean up) — <strong>not yet verified via an actual Stripe signup + real phone call</strong>, which is the standing gap before trusting this further.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">A typo'd template agent ID for dental</span><span class="badge fix">Found, not yet fixed</span></div>
+        <p><code>RETELL_TEMPLATE_AGENT_DENTAL</code> in <code>.env.local</code>/Vercel has an extra digit and doesn't match any real agent. Not urgent — dental isn't launched — but will break dental onboarding the instant it does.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Deploy-time messaging standardized to 24 hours everywhere</span><span class="badge fix">Fixed</span></div>
+        <p>Homepage, all 9 vertical cold-email pages, agent detail pages, the intake form, and the welcome email all previously said some mix of "72 hours" and "5–7 business days" (the exact contradiction Era 6 thought it had already resolved — it hadn't, fully). Standardized to 24 hours, backed by this era's confirmation that provisioning is synchronous within the webhook. Also dropped a "carrier forwarding" caveat that no longer applies — every customer gets a new dedicated number by policy, porting isn't part of the standard offering.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Test resource discipline</span><span class="badge done">Done</span></div>
+        <p>Every debugging round in this era created real, billable Retell resources (agents, phone numbers) and Supabase rows. All of it — including 3 orphaned agents created by resend retries during debugging, with no dedup — was tracked and deleted by the end of the session. Verified zero remnants in both Retell and Supabase; the real demo line was never touched.</p>
+      </div>
+
+      <div class="callout critical">
+        <strong>The core lesson of this era:</strong> multiple prior sessions' memory notes and delivery docs claimed this exact pipeline was "verified end-to-end" — those claims predated the schema even existing to support the writes. A schema file or a "DONE" doc sitting in the repo is not the same as the live system actually working. Everything in this era was confirmed by calling the real function or hitting the real API directly.
+      </div>
+    </section>
+
     <!-- ═══ CURRENT STATE ═══ -->
     <section class="era" id="current-state">
       <div class="era-head"><h2>Where Things Actually Stand</h2></div>
 
       <div class="item">
-        <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed</span></div>
-        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails).</p>
+        <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed 2026-07-13</span></div>
+        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails) · <strong>per-client provisioning (agent + phone number + correct call attribution), confirmed working via a real Stripe signup for the first time</strong> · per-client LLM personalization + questionnaire-to-prompt merge, built and function-verified.</p>
       </div>
       <div class="item">
         <div class="item-head"><span class="item-title">Known, deliberate gaps</span><span class="badge uncommitted">Open</span></div>
-        <p>No automation connects a Stripe payment to a real per-client Retell agent/phone number — every new client is fully manual today. Scout has zero implementation. Dental is waitlist-only by design. Stripe is test-mode only.</p>
+        <p>Personalization (Era 7) hasn't been verified through an actual Stripe signup + live phone call yet — only at the function level. Scout has zero implementation. Dental is waitlist-only by design, and its template agent ID is currently a typo that will break onboarding the moment it launches. Stripe is test-mode only. Retell account showed a low-credits warning as of this session — check before relying on any of this.</p>
       </div>
       <div class="item">
         <div class="item-head"><span class="item-title">Rollout status</span><span class="badge uncommitted">Paused</span></div>
-        <p>You paused the planned launch after finding errors on your own manual pass. No new launch date set — that's still your call, not a technical blocker.</p>
+        <p>You paused the planned launch after finding errors on your own manual pass. No new launch date set — that's still your call, not a technical blocker. Era 7 fixed the specific pipeline this launch depends on, but the standing next step is a real signup + real call to confirm personalization end-to-end before treating any of it as launch-ready.</p>
       </div>
     </section>
 
     <footer class="foot">
-      Compiled 2026-07-10. Cross-reference: <code>truthfulness_audit_2026-07-07.md</code>, <code>pending_items.md</code>, <code>rex_nova_felix_build_brief.md</code> (memory files) · <code>qa-runbook-funnel-testing.html</code>, <code>removed-agent-abilities-reference.html</code> (this folder).
+      Compiled 2026-07-10, updated 2026-07-13. Cross-reference: <code>truthfulness_audit_2026-07-07.md</code>, <code>pending_items.md</code>, <code>rex_nova_felix_build_brief.md</code>, <code>retell_provisioning_gaps_2026-07-13.md</code>, <code>feedback_schema_drift.md</code> (memory files) · <code>qa-runbook-funnel-testing.html</code>, <code>removed-agent-abilities-reference.html</code>, <code>QA-SECURITY-AUDIT-2026-07-12.md</code>, <code>SESSION-3-DELIVERY-SUMMARY.md</code> (docs).
     </footer>
   </main>
 </div>

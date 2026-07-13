@@ -1,7 +1,31 @@
 # Onboarding Questionnaire + Knowledge Base Integration Plan
 **Detailed design for post-checkout client vetting → Retell agent context**
 
-Last updated: 2026-07-11 | Status: Planning (pre-build)
+Last updated: 2026-07-11 | Status: **SUPERSEDED 2026-07-13 — see note below**
+
+> **2026-07-13:** This doc got built roughly as planned, but Part 4.6's Retell KB
+> API (`POST /v2/agents/{agent_id}/knowledge-base`) doesn't exist — it was never
+> a real Retell endpoint. That wrong endpoint got implemented verbatim in
+> `lib/retell-kb-sync.ts` and 404'd on every single questionnaire submission
+> since it was built, undetected until a real signup was tested end-to-end.
+> Lesson: this doc was never checked against the actual retell-sdk before being
+> implemented from — a planning doc's confidence isn't the same as a verified
+> API contract.
+>
+> **What actually shipped instead (simpler than this whole doc):** each client
+> now gets their own real LLM clone at provisioning time (not a shared
+> template), so there's no knowledge-base API involved at all — the
+> questionnaire's answers just merge directly into that client's own
+> `general_prompt` via `client.llm.update()`, idempotently (a marker-delimited
+> section gets replaced on re-sync, not duplicated). Same trigger points (form
+> submit + cron retry), same `client_questionnaires` schema, same
+> `questionnaireToKB()` transform (Part 4.2's structure, reused unchanged) —
+> just a different, real destination for the output. See
+> `lib/retell-kb-sync.ts` and `retell_provisioning_gaps_2026-07-13.md` (memory)
+> for the actual implementation. Parts 1–3 and 4.1–4.2 of this doc (the
+> questionnaire form, its fields, and the KB-entry structure) are still
+> accurate — only Part 4.6's API contract and the "Knowledge Base" framing in
+> Parts 4.1–4.4 are wrong.
 
 ---
 

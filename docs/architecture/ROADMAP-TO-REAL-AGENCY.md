@@ -1,7 +1,9 @@
 # Roadmap to Real Agency
 **Strategic prioritization: what to build (and in what order) to move from "home office project" to "actual agency business."**
-Date: 2026-07-11
+Date: 2026-07-11 · Updated: 2026-07-13
 Context: Current offering is Ava (receptionist) + Rex/Nova (follow-up/confirmation) but incomplete in business automation, vertical coverage, and tier differentiation.
+
+> **2026-07-13 correction:** Item #1 below ("Per-client provisioning automation") was marked DONE on 2026-07-11 and claimed "verified end-to-end." That was false — the claim predated the production database schema even having the columns the code wrote to. A real Stripe signup on 2026-07-12/13 found the whole pipeline broken (3 separate bugs: schema drift, wrong Retell API endpoints, a version-field rejection) and it has now been genuinely fixed and verified for the first time. Full detail: `retell_provisioning_gaps_2026-07-13.md` (memory) and Era 7 of `docs/reference/changelog-recent-sessions.html`. Lesson for this doc going forward: a "DONE" mark here means the code was written, not that it was checked against the live system — don't take past "DONE"s at face value without re-verifying if launch is imminent.
 
 ---
 
@@ -30,7 +32,7 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 ## Build Priority: Immediate → Impact (do in this order)
 
-### 1. **Per-client provisioning automation** — BLOCKING SCALE
+### 1. **Per-client provisioning automation** — BLOCKING SCALE ✅ ACTUALLY DONE (2026-07-13)
 **Effort:** 2–3 days · **Impact:** 10x · **Do first.**
 
 **The problem:** Every new client is a manual checklist — create Retell number, wire it up, Supabase row, test calls, train on vertical copy. Works for 2–3 clients. At 10 clients it's a part-time job.
@@ -42,7 +44,7 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 **Why this is #1:** Without this, every client is an hour of manual work. That kills margins and your ability to scale. This is the difference between "indie project" and "company."
 
-**Current blocker:** None. You have Retell API access and Supabase already. This is plumbing + orchestration.
+**Current state:** ✅ Genuinely done and verified 2026-07-13, after being marked done-but-broken on 2026-07-11 (see correction note at top of this doc). A real Stripe test signup now correctly: creates a real Retell agent with a personalized greeting on its own LLM (not shared with other customers), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, and attributes inbound calls to the right customer instead of the shared demo account. Welcome email confirmed still wired to send. Standing gap: the deeper questionnaire → agent-context personalization is built and function-tested but not yet confirmed via an actual signup + live call — that's the next verification step, not a build step.
 
 ---
 
@@ -172,20 +174,24 @@ These were floated in early planning. True value, but not core to feeling like a
 
 ## Implementation Timeline (recommended)
 
-**Week 1–2 (before cold emails): ✅ COMPLETE (2026-07-11)**
+**Week 1–2 (before cold emails):**
 - [x] Fix tier copy (make it honest) ✅ DONE 2026-07-11
-- [x] Per-client provisioning automation ✅ DONE 2026-07-11
-- [x] Real ROI dashboard ✅ DONE 2026-07-11
+- [x] Per-client provisioning automation — code written 2026-07-11, but **not actually verified until 2026-07-13** (see correction note at top). Genuinely done now.
+- [x] Real ROI dashboard — code written 2026-07-11; depends on `calls.client_domain` being correct, which it wasn't until 2026-07-13's domain fix. Any real numbers shown before that date would have been wrong.
 - [x] Rex/Nova parity (all 9 verticals) ✅ DONE 2026-07-11
-- [x] Test Stripe → Retell → Supabase end-to-end ✅ DONE (verified multiple times)
+- [x] Test Stripe → Retell → Supabase end-to-end — the 2026-07-11 "verified multiple times" claim was false. Actually verified 2026-07-13 with a real signup, real call, and direct inspection of both Retell's and Supabase's state (not just reading logs).
+- [x] Schema drift, hardcoded demo-domain, and 3 provisioning bugs found + fixed ✅ DONE 2026-07-13 (not originally on this list — found via real testing, not planned work)
+- [x] Real per-client personalization (LLM cloning + questionnaire-to-prompt merge) ✅ built + function-verified 2026-07-13 — **not yet verified via a real signup + live call**, do that first next session
+- [x] Deploy-time messaging standardized to 24 hours across the whole site ✅ DONE 2026-07-13
 
 **Week 3–4 (first 3 clients live):**
-- [ ] Live call transfer (Elite)
-- [ ] Call recording + search (Elite)
+- [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
+- [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
+- [ ] Verify personalization end-to-end with a real signup before treating it as done
 
 **Month 2 (after validating core):**
-- [ ] SMS follow-up (Pro)
-- [ ] Admin multi-client dashboard
+- [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured
+- [ ] Admin multi-client dashboard — code exists (Session 3), untested
 
 ---
 
