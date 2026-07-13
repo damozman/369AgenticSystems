@@ -144,6 +144,14 @@ export async function provisionRetellAgent(
     is_published: undefined,
   }
 
+  // response_engine.version is the LLM's own version number, not the agent's —
+  // Retell rejects it here too ("Cannot specify version > 0 for new agent"),
+  // confirmed by reproducing the exact create() call directly against the API.
+  if (newAgentConfig.response_engine) {
+    const { version: _responseEngineVersion, ...responseEngineRest } = newAgentConfig.response_engine
+    newAgentConfig.response_engine = responseEngineRest
+  }
+
   // Elite: configure live call transfer to owner's phone
   if (ownerPhone) {
     newAgentConfig.transfer_phone_number = ownerPhone
