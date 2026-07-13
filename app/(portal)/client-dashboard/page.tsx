@@ -223,9 +223,10 @@ export default async function ClientDashboardPage() {
       activeAgents={activeAgents}
       upgrade={upgrade}
       subscription={{
-        client_domain: subscription.client_domain,
-        tier:          subscription.tier,
-        vertical:      subscription.vertical,
+        client_domain:       subscription.client_domain,
+        tier:                subscription.tier,
+        vertical:            subscription.vertical,
+        retell_phone_number: subscription.retell_phone_number ?? null,
       }}
       notifications={notifications ?? []}
       lastCallAt={(lastCallRow ?? [])[0]?.created_at ?? null}

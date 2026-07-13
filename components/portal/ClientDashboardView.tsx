@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Phone, CalendarCheck, Users, X, Sun, Moon, CheckCircle, Zap, ArrowRight, Clock } from 'lucide-react'
+import { Phone, CalendarCheck, Users, X, Sun, Moon, CheckCircle, Zap, ArrowRight, Clock, Copy, Check } from 'lucide-react'
 import { LiveCallToast } from './LiveCallToast'
 import { PeakHoursBar } from './PeakHoursBar'
 import TranscriptSearch from './TranscriptSearch'
@@ -21,7 +21,7 @@ type Call = {
 
 type ActiveAgent  = { key: string; label: string; description: string; color: string; status: 'live' | 'deploying' }
 type UpgradePath  = { tier: string; agents: string[]; price: number } | null
-type Subscription = { client_domain: string; tier: string; vertical: string }
+type Subscription = { client_domain: string; tier: string; vertical: string; retell_phone_number: string | null }
 type Notification = { id: string; title: string; message: string }
 
 type WeeklyStats = {
@@ -204,28 +204,69 @@ function OnboardingChecklist({
   )
 }
 
-function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
-  const hoursSince = lastCallAt
-    ? (Date.now() - new Date(lastCallAt).getTime()) / (1000 * 60 * 60)
-    : Infinity
+function formatPhoneNumber(e164: string): string {
+  const digits = e164.replace(/\D/g, '').replace(/^1/, '')
+  if (digits.length !== 10) return e164
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
 
-  let status: 'active' | 'quiet' | 'offline'
+function PhoneNumberCard({ phoneNumber }: { phoneNumber: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(phoneNumber)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div
+      className="mb-5 rounded-xl border p-4 flex items-center justify-between gap-3"
+      style={{ background: 'rgba(212,175,55,0.06)', borderColor: 'rgba(212,175,55,0.2)' }}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <Phone size={16} style={{ color: '#D4AF37' }} className="flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">Your Dedicated Number</p>
+          <p className="text-lg font-bold text-[var(--text-primary)] font-mono">{formatPhoneNumber(phoneNumber)}</p>
+        </div>
+      </div>
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1.5 text-xs font-medium flex-shrink-0 px-3 py-1.5 rounded-lg border transition-colors"
+        style={{ color: '#D4AF37', borderColor: 'rgba(212,175,55,0.3)' }}
+      >
+        {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
+      </button>
+    </div>
+  )
+}
+
+function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
+  let status: 'active' | 'waiting' | 'quiet' | 'offline'
   let color: string, bg: string, border: string, dot: string, headline: string, detail: string
 
-  if (hoursSince < 24) {
-    status = 'active'; color = '#059669'; bg = 'rgba(5,150,105,0.06)'; border = 'rgba(5,150,105,0.2)'; dot = '#4ADE80'
-    headline = 'Receptionist Active'
-    detail = `Last call ${hoursSince < 1 ? 'less than an hour' : `${Math.floor(hoursSince)}h`} ago`
-  } else if (hoursSince < 48) {
-    status = 'quiet'; color = '#D97706'; bg = 'rgba(217,119,6,0.06)'; border = 'rgba(217,119,6,0.2)'; dot = '#F59E0B'
-    headline = 'No Calls in 24+ Hours'
-    detail = "If forwarding is on and it's been slow, that's okay. If not, check forwarding below."
+  if (!lastCallAt) {
+    // Brand new — the number is live immediately at provisioning, there's no
+    // "finishing setup" delay. This is a normal, expected state, not a problem.
+    status = 'waiting'; color = '#2563EB'; bg = 'rgba(37,99,235,0.06)'; border = 'rgba(37,99,235,0.2)'; dot = '#60A5FA'
+    headline = 'Receptionist Live'
+    detail = 'Your number is live and ready to answer — waiting for your first call.'
   } else {
-    status = 'offline'; color = '#DC2626'; bg = 'rgba(220,38,38,0.06)'; border = 'rgba(220,38,38,0.2)'; dot = '#F87171'
-    headline = lastCallAt ? 'Receptionist May Be Inactive' : 'Setup In Progress'
-    detail = lastCallAt
-      ? 'No calls in 48+ hours — reach out if this looks wrong.'
-      : 'We\'re finishing your call forwarding setup — we\'ll notify you the moment calls start coming through.'
+    const hoursSince = (Date.now() - new Date(lastCallAt).getTime()) / (1000 * 60 * 60)
+    if (hoursSince < 24) {
+      status = 'active'; color = '#059669'; bg = 'rgba(5,150,105,0.06)'; border = 'rgba(5,150,105,0.2)'; dot = '#4ADE80'
+      headline = 'Receptionist Active'
+      detail = `Last call ${hoursSince < 1 ? 'less than an hour' : `${Math.floor(hoursSince)}h`} ago`
+    } else if (hoursSince < 48) {
+      status = 'quiet'; color = '#D97706'; bg = 'rgba(217,119,6,0.06)'; border = 'rgba(217,119,6,0.2)'; dot = '#F59E0B'
+      headline = 'No Calls in 24+ Hours'
+      detail = "That's normal during slow periods — nothing to do unless it continues."
+    } else {
+      status = 'offline'; color = '#DC2626'; bg = 'rgba(220,38,38,0.06)'; border = 'rgba(220,38,38,0.2)'; dot = '#F87171'
+      headline = 'Receptionist May Be Inactive'
+      detail = 'No calls in 48+ hours — reach out if this looks wrong.'
+    }
   }
 
   return (
@@ -239,7 +280,7 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
             <p className="text-xs mt-0.5 text-[var(--text-muted)] leading-snug">{detail}</p>
           </div>
         </div>
-        {status !== 'active' && (
+        {(status === 'quiet' || status === 'offline') && (
           <a
             href="mailto:chris@369agenticsystems.com?subject=Receptionist Setup"
             className="text-xs font-medium flex-shrink-0 underline underline-offset-2"
@@ -301,6 +342,10 @@ export default function ClientDashboardView({
           </button>
         </div>
       </div>
+
+      {subscription.retell_phone_number && (
+        <PhoneNumberCard phoneNumber={subscription.retell_phone_number} />
+      )}
 
       {/* ── Notifications ──────────────────────────────────────────── */}
       {notifications.length > 0 && (
