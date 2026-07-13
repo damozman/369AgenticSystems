@@ -650,7 +650,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
               {[
                 '✓  30-day results guarantee',
-                '✓  Live in as little as 72 hours',
+                '✓  Live within 24 hours',
                 '✓  No long-term contracts',
                 '✓  Cancel anytime',
               ].map(item => (
@@ -660,7 +660,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
               ))}
             </div>
             <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 9.5, color: '#334155', fontFamily: 'monospace' }}>
-              Typical range: 72 hours–7 business days, depending on number setup and forwarding on your end.
+              Your dedicated phone number is live within 24 hours of signup.
             </p>
           </div>
 

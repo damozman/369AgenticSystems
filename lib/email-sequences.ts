@@ -95,7 +95,7 @@ export async function sendWelcomeEmail({
       </h1>
       <p style="margin:0 0 24px;font-size:15px;color:#94A3B8;line-height:1.7;">
         ${vc.tagline} Your digital workforce is being configured now.
-        We'll have everything live within 5–7 business days.
+        Your dedicated number is live within 24 hours.
       </p>
 
       ${phoneSection}

@@ -358,7 +358,7 @@ export default async function AgentPage({ params }: { params: Promise<{ agent: s
             Ready to put {data.name} to work?
           </h2>
           <p style={{ margin: '0 0 36px', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.65 }}>
-            30 minutes. We map your pipeline, show you exactly what {data.name} handles, and deploy within 72 hours.
+            30 minutes. We map your pipeline, show you exactly what {data.name} handles, and deploy within 24 hours.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/book-demo" style={{ padding: '14px 32px', background: `linear-gradient(135deg, ${data.color} 0%, ${data.color}CC 100%)`, color: '#0A0A0A', borderRadius: 8, fontSize: '1rem', fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-display, Instrument Sans, sans-serif)' }}>

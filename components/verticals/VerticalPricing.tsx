@@ -64,7 +64,7 @@ const FAQ = [
   },
   {
     q: 'How long until my AI is answering calls?',
-    a: 'As little as 24 hours. We allocate your dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire. Most clients are live within a day. If forwarding an existing business number, add 5-7 business days for carrier setup on your end.',
+    a: 'As little as 24 hours. We allocate a new dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire. Most clients are live within a day.',
   },
   {
     q: 'Will the AI know about my business?',
