@@ -11,6 +11,29 @@ const VALID_VERTICALS = [
   'insurance', 'saas', 'wholesale', 'dental',
 ]
 
+const DEMO_DOMAIN = 'demo.369agenticsystems.com'
+
+// The shared demo line (used on marketing pages) isn't a provisioned customer,
+// so it has no row in agent_subscriptions — route it to the demo domain
+// explicitly rather than letting it fall through as an "unknown agent."
+async function resolveClientDomain(agentId: string | undefined): Promise<string | null> {
+  if (!agentId) return null
+  if (agentId === process.env.RETELL_AGENT_ID) return DEMO_DOMAIN
+
+  const { data, error } = await supabase
+    .from('agent_subscriptions')
+    .select('client_domain')
+    .eq('retell_agent_id', agentId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[RETELL] ✗  client_domain lookup failed:', error.message)
+    return null
+  }
+
+  return data?.client_domain ?? null
+}
+
 export async function POST(request: NextRequest) {
   const receivedAt = new Date().toISOString()
 
@@ -29,14 +52,6 @@ export async function POST(request: NextRequest) {
 
   console.log(`[RETELL] ▶  event=${event ?? 'unknown'} keys=${Object.keys(webhook).join(',')}`)
 
-  // TEMP DIAGNOSTIC — confirms which field(s) Retell actually sends so we can
-  // reverse-lookup client_domain instead of the hardcoded demo value below.
-  // Remove once the agent_id → client_domain lookup is implemented.
-  console.log('[RETELL][DIAG] call keys:', call ? Object.keys(call).join(',') : 'no call object')
-  console.log('[RETELL][DIAG] agent_id:', (call as Record<string, unknown> | undefined)?.agent_id)
-  console.log('[RETELL][DIAG] to_number:', (call as Record<string, unknown> | undefined)?.to_number)
-  console.log('[RETELL][DIAG] full call payload:', JSON.stringify(call))
-
   if (!event) {
     return NextResponse.json({ error: 'Missing event' }, { status: 400 })
   }
@@ -48,6 +63,7 @@ export async function POST(request: NextRequest) {
 
   const callId     = call.call_id     as string | undefined
   const fromNumber = call.from_number as string | undefined
+  const agentId    = call.agent_id    as string | undefined
 
   if (!callId) {
     console.error('[RETELL] ✗  Missing call_id. call:', JSON.stringify(call))
@@ -56,9 +72,15 @@ export async function POST(request: NextRequest) {
 
   // ── call_started ──────────────────────────────────────────────────────────
   if (event === 'call_started') {
+    const clientDomain = await resolveClientDomain(agentId)
+    if (!clientDomain) {
+      console.error(`[RETELL] ✗  Unknown agent_id, cannot attribute call: ${agentId}`)
+      return NextResponse.json({ error: 'Unknown agent' }, { status: 404 })
+    }
+
     const { error } = await supabase.from('calls').insert({
       call_id:      callId,
-      client_domain: 'demo.369agenticsystems.com',
+      client_domain: clientDomain,
       caller_phone: fromNumber ?? 'unknown',
       call_outcome: 'in_progress',
       created_at:   receivedAt,
@@ -69,12 +91,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`[RETELL] ✓  call_started — ${callId} from ${fromNumber}`)
+    console.log(`[RETELL] ✓  call_started — ${callId} from ${fromNumber} → ${clientDomain}`)
     return NextResponse.json({ success: true, event })
   }
 
   // ── call_ended ────────────────────────────────────────────────────────────
   if (event === 'call_ended') {
+    const clientDomain = await resolveClientDomain(agentId)
+    if (!clientDomain) {
+      console.error(`[RETELL] ✗  Unknown agent_id, cannot attribute call: ${agentId}`)
+      return NextResponse.json({ error: 'Unknown agent' }, { status: 404 })
+    }
+
     const startTs = call.start_timestamp as number | undefined
     const endTs   = call.end_timestamp   as number | undefined
     const durationSeconds = startTs && endTs
@@ -92,7 +120,7 @@ export async function POST(request: NextRequest) {
       .from('calls')
       .upsert({
         call_id:          callId,
-        client_domain:    'demo.369agenticsystems.com',
+        client_domain:    clientDomain,
         caller_phone:     fromNumber ?? 'unknown',
         duration_seconds: durationSeconds,
         transcript:       (call.transcript as string) ?? null,
@@ -106,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`[RETELL] ✓  call_ended — ${callId} → ${outcome} (${durationSeconds}s)`)
+    console.log(`[RETELL] ✓  call_ended — ${callId} → ${outcome} (${durationSeconds}s) → ${clientDomain}`)
     return NextResponse.json({ success: true, event, outcome })
   }
 
