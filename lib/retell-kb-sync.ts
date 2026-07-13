@@ -1,25 +1,45 @@
 /**
- * Sync questionnaire to Retell agent Knowledge Base
+ * Sync questionnaire answers into the client's own Retell LLM prompt.
+ *
+ * Originally this posted to a knowledge-base endpoint that doesn't exist in the
+ * real Retell API (`/v2/agents/{id}/knowledge-base` — 404 on every call since it
+ * was built). Now that provisioning gives each client their own LLM clone (see
+ * lib/retell-provisioning.ts), the simpler and correct fix is to merge the
+ * questionnaire answers directly into that client's general_prompt — no
+ * knowledge-base API needed, and no risk of leaking one client's business
+ * context into another's, since each client has an independent LLM.
  */
 
+import { Retell } from 'retell-sdk'
 import { createClient } from '@supabase/supabase-js'
-import { questionnaireToKB, formatForRetellAPI, type Questionnaire } from '@/lib/questionnaire-to-kb'
+import { questionnaireToKB, type Questionnaire } from '@/lib/questionnaire-to-kb'
 
 const RETELL_API_KEY = process.env.RETELL_API_KEY || ''
+if (!RETELL_API_KEY) {
+  throw new Error('RETELL_API_KEY is not configured')
+}
+
+const client = new Retell({ apiKey: RETELL_API_KEY })
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-if (!RETELL_API_KEY) {
-  throw new Error('RETELL_API_KEY is not configured')
+const CONTEXT_MARKER_START = '\n\n<!-- BUSINESS_CONTEXT_START -->\n'
+const CONTEXT_MARKER_END = '\n<!-- BUSINESS_CONTEXT_END -->'
+
+// Replaces any previously-synced context block (idempotent — safe to call
+// repeatedly, e.g. if the client updates their questionnaire answers later).
+function mergePromptWithContext(basePrompt: string, contextSection: string): string {
+  const startIdx = basePrompt.indexOf(CONTEXT_MARKER_START)
+  const cleanBase = startIdx === -1 ? basePrompt : basePrompt.slice(0, startIdx)
+  return `${cleanBase}${CONTEXT_MARKER_START}${contextSection}${CONTEXT_MARKER_END}`
 }
 
 export async function syncQuestionnaireToKB(clientDomain: string): Promise<boolean> {
   try {
     console.log(`[KB-SYNC] Syncing questionnaire for ${clientDomain}...`)
 
-    // 1. Get subscription to find agent ID
     const { data: subscription, error: subError } = await supabase
       .from('agent_subscriptions')
       .select('retell_agent_id')
@@ -31,35 +51,34 @@ export async function syncQuestionnaireToKB(clientDomain: string): Promise<boole
       return false
     }
 
-    const agentId = subscription.retell_agent_id
-
-    // 2. Get questionnaire responses
     const { data: questionnaire, error: questError } = await supabase
       .from('client_questionnaires')
       .select('*')
       .eq('client_domain', clientDomain)
       .single()
 
-    if (questError) {
+    if (questError || !questionnaire) {
       console.error(`[KB-SYNC] No questionnaire found for ${clientDomain}`)
       return false
     }
 
-    // 3. Transform to KB entries
-    const kbEntries = questionnaireToKB(questionnaire)
-    const kbPayload = formatForRetellAPI(kbEntries)
+    const entries = questionnaireToKB(questionnaire as Questionnaire)
+    const contextSection = entries
+      .map(e => `## ${e.title}\n${e.content}`)
+      .join('\n\n')
 
-    console.log(`[KB-SYNC] Uploading ${kbEntries.length} KB entries to agent ${agentId}...`)
-
-    // 4. Upload to Retell via direct API (SDK doesn't support KB updates yet)
-    try {
-      await syncViaDirectAPI(agentId, kbPayload)
-    } catch (e) {
-      console.error(`[KB-SYNC] Failed to upload KB:`, e)
-      throw e
+    const agent = await client.agent.retrieve(subscription.retell_agent_id)
+    if (agent.response_engine?.type !== 'retell-llm') {
+      console.error(`[KB-SYNC] Agent ${subscription.retell_agent_id} is not a retell-llm agent`)
+      return false
     }
 
-    // 5. Mark as synced in Supabase
+    const llm = await client.llm.retrieve(agent.response_engine.llm_id)
+    const mergedPrompt = mergePromptWithContext(llm.general_prompt || '', contextSection)
+
+    await client.llm.update(llm.llm_id, { general_prompt: mergedPrompt })
+    console.log(`[KB-SYNC] ✓ Merged ${entries.length} context entries into ${llm.llm_id}`)
+
     const { error: updateError } = await supabase
       .from('client_questionnaires')
       .update({ kb_uploaded_at: new Date().toISOString() })
@@ -69,52 +88,10 @@ export async function syncQuestionnaireToKB(clientDomain: string): Promise<boole
       console.error(`[KB-SYNC] Failed to mark as synced:`, updateError.message)
     }
 
-    console.log(`[KB-SYNC] ✓ KB synced for ${clientDomain}`)
+    console.log(`[KB-SYNC] ✓ Synced for ${clientDomain}`)
     return true
   } catch (e) {
     console.error(`[KB-SYNC] Error:`, e)
     return false
   }
-}
-
-/**
- * Fallback: Direct API call to Retell (if SDK doesn't support KB updates)
- */
-async function syncViaDirectAPI(agentId: string, kbPayload: any): Promise<void> {
-  const https = await import('https')
-
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      agent_id: agentId,
-      ...kbPayload,
-    })
-
-    const options = {
-      hostname: 'api.retellai.com',
-      port: 443,
-      path: `/v2/agents/${agentId}/knowledge-base`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RETELL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-      },
-    }
-
-    const req = https.request(options, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          resolve()
-        } else {
-          reject(new Error(`Retell API error: ${res.statusCode} ${data}`))
-        }
-      })
-    })
-
-    req.on('error', reject)
-    req.write(postData)
-    req.end()
-  })
 }
