@@ -39,11 +39,18 @@ export default async function ClientDashboardPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: subscription } = await supabaseAdmin
+  // .maybeSingle() throws (and returns null data) if more than one row matches —
+  // one email can end up with multiple subscription rows (a second business, a
+  // re-signup, leftover test data). Take the most recent instead of erroring
+  // into a false "no subscription" for a customer who genuinely has one.
+  const { data: subscriptions } = await supabaseAdmin
     .from('agent_subscriptions')
     .select('*')
     .eq('user_email', user?.email ?? '')
-    .maybeSingle()
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const subscription = subscriptions?.[0] ?? null
 
   if (!subscription) {
     return (
