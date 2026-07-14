@@ -62,10 +62,11 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 - ✅ Status banner fixed — new customers now see a neutral "Receptionist Live — waiting for your first call" instead of the contradictory forwarding message
 - ✅ Welcome email had no way back to the dashboard at all if you didn't click the questionnaire CTA — found live, mid-test. Added a secondary "Access your dashboard" link to `/login`.
 - ✅ Questionnaire completion folded into the existing "Getting Started" checklist as its own step — sourced from real `client_questionnaires.completed_at`, with a "Complete now →" link when not done (the one step in that checklist a customer can actually act on directly)
+- ✅ "Call your number now to hear it live" nudge — tap-to-call phone number, nudge shown only until the first real call lands
+- ✅ Preferred area code at checkout — Chris asked if customers could already do this; they couldn't, the webhook read a custom field that no live Payment Link actually had configured (Stripe caps custom fields at 3, all 3 slots were taken by business name/domain/phone). Fixed by moving phone collection to Stripe's native `phone_number_collection` setting, freeing the 3rd slot for `preferred_area_code`. All 3 live Payment Links updated + verified via the Stripe API. Not yet confirmed with a real checkout that `customer_details.phone` populates as expected — do that on the next signup.
 
 **Still to build:**
-- [ ] Billing/subscription management link (Stripe customer portal)
-- [ ] "Call your number now to hear it live" nudge for brand-new customers
+- [ ] Billing/subscription management link (Stripe customer portal) — IN PROGRESS
 
 **Why this matters:** these are things a real, paying customer needs on day one, not nice-to-haves. Found the same way everything else this week was found — by actually using the product, not reading the code.
 
