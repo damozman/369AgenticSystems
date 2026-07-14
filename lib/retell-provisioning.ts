@@ -47,7 +47,7 @@ export interface ProvisionRetellAgentOutput {
  * questionnaire-driven context later without leaking it to every other
  * customer on that LLM.
  */
-async function cloneAgentLlm(templateLlmId: string, businessName: string): Promise<string> {
+async function cloneAgentLlm(templateLlmId: string, businessName: string, ownerPhone?: string): Promise<string> {
   const templateLlm = await client.llm.retrieve(templateLlmId)
 
   const newLlmConfig: any = { ...templateLlm }
@@ -57,6 +57,24 @@ async function cloneAgentLlm(templateLlmId: string, businessName: string): Promi
   delete newLlmConfig.is_published
 
   newLlmConfig.begin_message = `Thank you for calling ${businessName}, this is Ava. How can I help you today?`
+
+  // Elite: live call transfer. This is a tool on the LLM's general_tools, not
+  // an agent-level field — confirmed by reproducing a real call where the
+  // agent had no way to actually transfer and just recited the owner's phone
+  // number back as text instead. The `transfer_phone_number` field this used
+  // to set doesn't exist anywhere in the real retell-sdk Agent type.
+  if (ownerPhone) {
+    newLlmConfig.general_tools = [
+      ...(newLlmConfig.general_tools || []),
+      {
+        type: 'transfer_call',
+        name: 'transfer_to_owner',
+        description: 'Transfer the caller to the business owner when they explicitly ask to speak with a real person, describe a genuine emergency, or have a situation too complex to handle over the phone. Let the caller know you\'re connecting them before transferring.',
+        transfer_destination: { type: 'predefined', number: ownerPhone },
+        transfer_option: { type: 'cold_transfer', transfer_ring_duration_ms: 30000 },
+      },
+    ]
+  }
 
   const newLlm = await client.llm.create(newLlmConfig)
   return newLlm.llm_id
@@ -114,8 +132,8 @@ export async function provisionRetellAgent(
   console.log(`[RETELL] Cloning LLM for ${businessName}...`)
   let newLlmId: string
   try {
-    newLlmId = await cloneAgentLlm(templateLlmId, businessName)
-    console.log(`[RETELL] ✓ LLM cloned: ${newLlmId}`)
+    newLlmId = await cloneAgentLlm(templateLlmId, businessName, ownerPhone)
+    console.log(`[RETELL] ✓ LLM cloned: ${newLlmId}${ownerPhone ? ' (with live transfer to owner)' : ''}`)
   } catch (e) {
     console.error(`[RETELL] Failed to clone LLM:`, e)
     throw new Error(`Failed to clone LLM: ${e instanceof Error ? e.message : e}`)
@@ -142,12 +160,6 @@ export async function provisionRetellAgent(
     version_title: undefined,
     version_description: undefined,
     is_published: undefined,
-  }
-
-  // Elite: configure live call transfer to owner's phone
-  if (ownerPhone) {
-    newAgentConfig.transfer_phone_number = ownerPhone
-    console.log(`[RETELL] Configured live transfer to ${ownerPhone}`)
   }
 
   // Remove undefined fields
