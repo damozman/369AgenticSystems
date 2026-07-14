@@ -1,4 +1,5 @@
 import type { TierName } from '@/lib/tier-config'
+import type Stripe from 'stripe'
 
 // Public Payment Link URLs — set once Chris creates the 3 products in Stripe.
 // Safe to expose client-side; these are just checkout page URLs, not secrets.
@@ -26,3 +27,14 @@ export const STRIPE_CUSTOM_FIELD_KEYS = {
   clientDomain: 'website_domain',
   areaCode:     'preferred_area_code',
 } as const
+
+// Shared between the webhook (provisioning) and the post-payment redirect page
+// (immediate confirmation, before the webhook has necessarily landed) — both
+// read the same raw Stripe session, so they need to extract fields identically.
+export function customFieldValue(
+  fields: Stripe.Checkout.Session.CustomField[] | null | undefined,
+  key: string
+): string | undefined {
+  const field = fields?.find(f => f.key === key)
+  return field?.type === 'text' ? field.text?.value ?? undefined : undefined
+}

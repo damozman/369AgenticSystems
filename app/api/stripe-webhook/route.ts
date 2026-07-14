@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { provisionClient } from '@/lib/onboard-client'
-import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS } from '@/lib/stripe-config'
+import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
 
 function getStripeClient(): Stripe {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
-}
-
-function customFieldValue(
-  fields: Stripe.Checkout.Session.CustomField[] | null | undefined,
-  key: string
-): string | undefined {
-  const field = fields?.find(f => f.key === key)
-  return field?.type === 'text' ? field.text?.value ?? undefined : undefined
 }
 
 export async function POST(request: NextRequest) {
