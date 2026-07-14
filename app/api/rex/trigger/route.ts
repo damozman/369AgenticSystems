@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const REX_VERTICALS: RexVertical[] = ['roofing', 'hvac', 'plumbing']
+const REX_VERTICALS: RexVertical[] = ['roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental']
 
 // Resolves which vertical's follow-up templates to use, or signals that this lead's
 // vertical doesn't have real templates yet (so the caller should skip firing rather

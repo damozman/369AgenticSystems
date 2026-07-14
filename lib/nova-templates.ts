@@ -10,12 +10,21 @@ const OWNER_EMAIL = 'chris@369agenticsystems.com'
 // is the actual verified sending domain.
 const FROM        = 'Nova · 369 Agentic Systems <chris@alerts.369agenticsystems.com>'
 
-export type NovaVertical = 'roofing' | 'hvac' | 'plumbing'
+export type NovaVertical = 'roofing' | 'hvac' | 'plumbing' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale' | 'dental'
 
+// Colors match the vertical palette used everywhere else (CLAUDE.md, Rex's VERTICAL_COPY).
+// visitNoun terms match the exact examples already given to Ava in the live book_appointment
+// tool description ('Legal consultation', 'Product demo') where one exists, for consistency.
 const VERTICAL_COPY: Record<NovaVertical, { label: string; accentColor: string; visitNoun: string }> = {
-  roofing:  { label: 'Roofing',  accentColor: '#FF4500', visitNoun: 'inspection' },
-  hvac:     { label: 'HVAC',     accentColor: '#FF6533', visitNoun: 'service visit' },
-  plumbing: { label: 'Plumbing', accentColor: '#0369A1', visitNoun: 'service visit' },
+  roofing:      { label: 'Roofing',     accentColor: '#FF4500', visitNoun: 'inspection' },
+  hvac:         { label: 'HVAC',        accentColor: '#FF6533', visitNoun: 'service visit' },
+  plumbing:     { label: 'Plumbing',    accentColor: '#0369A1', visitNoun: 'service visit' },
+  legal:        { label: 'Legal',       accentColor: '#60A5FA', visitNoun: 'consultation' },
+  'real-estate':{ label: 'Real Estate', accentColor: '#0EA5E9', visitNoun: 'showing' },
+  insurance:    { label: 'Insurance',   accentColor: '#14B8A6', visitNoun: 'policy review' },
+  saas:         { label: 'SaaS',        accentColor: '#8B5CF6', visitNoun: 'demo' },
+  wholesale:    { label: 'Wholesale',   accentColor: '#84CC16', visitNoun: 'consultation' },
+  dental:       { label: 'Dental',      accentColor: '#EC4899', visitNoun: 'appointment' },
 }
 
 function systemPromptFor(vertical: NovaVertical): string {

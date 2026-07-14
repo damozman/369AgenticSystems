@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const NOVA_VERTICALS: NovaVertical[] = ['roofing', 'hvac', 'plumbing']
+const NOVA_VERTICALS: NovaVertical[] = ['roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental']
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
