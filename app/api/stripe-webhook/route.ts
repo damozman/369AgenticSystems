@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   const vertical = session.client_reference_id
   const email    = session.customer_details?.email
   const ownerName = session.customer_details?.name ?? undefined
+  const stripeCustomerId = typeof session.customer === 'string' ? session.customer : undefined
 
   const businessName = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.businessName)
   const clientDomain = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.clientDomain)
@@ -82,6 +83,7 @@ export async function POST(request: NextRequest) {
       clientDomain,
       setupPaid: true,
       preferredAreaCode: areaCode,
+      stripeCustomerId,
     })
   } catch (e) {
     console.error('[STRIPE WEBHOOK] provisionClient failed:', e)

@@ -38,6 +38,7 @@ export interface ProvisionClientInput {
   monthlyRevenueLost?: number
   setupPaid?:          boolean
   preferredAreaCode?:  string
+  stripeCustomerId?:   string
 }
 
 export async function provisionClient(input: ProvisionClientInput) {
@@ -46,6 +47,7 @@ export async function provisionClient(input: ProvisionClientInput) {
     vertical, tier, clientDomain, monthlyRevenueLost,
     setupPaid = false,
     preferredAreaCode,
+    stripeCustomerId,
   } = input
 
   const activeAgents = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
@@ -102,6 +104,11 @@ export async function provisionClient(input: ProvisionClientInput) {
   // Store preferred area code if provided
   if (preferredAreaCode) {
     subscriptionData.preferred_area_code = preferredAreaCode
+  }
+
+  // Store Stripe customer ID so the dashboard can link to the Billing Portal
+  if (stripeCustomerId) {
+    subscriptionData.stripe_customer_id = stripeCustomerId
   }
 
   // Store owner phone for Elite tier (live call transfer)

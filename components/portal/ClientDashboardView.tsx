@@ -650,6 +650,16 @@ export default function ClientDashboardView({
         />
       </div>
 
+      {/* ── Billing ────────────────────────────────────────────────── */}
+      <div className="mb-8 text-center">
+        <a
+          href="/api/billing-portal"
+          className="text-xs font-medium underline underline-offset-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          Manage billing &amp; payment method
+        </a>
+      </div>
+
       {/* ── Call detail modal ──────────────────────────────────────── */}
       {selectedCall && (
         <div
