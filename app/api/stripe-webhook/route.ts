@@ -49,8 +49,10 @@ export async function POST(request: NextRequest) {
 
   const businessName = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.businessName)
   const clientDomain = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.clientDomain)
-  const phone        = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.phone)
   const areaCode     = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.areaCode)
+  // Collected via Stripe's native phone_number_collection, not a custom field —
+  // custom_fields is capped at 3 per Payment Link, and this leaves room for areaCode.
+  const phone        = session.customer_details?.phone ?? undefined
 
   if (!vertical || !email || !businessName || !clientDomain) {
     console.error('[STRIPE WEBHOOK] Missing required fields on session', session.id, {

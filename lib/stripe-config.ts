@@ -18,9 +18,11 @@ export const STRIPE_PRICE_ID_TO_TIER: Record<string, TierName> = {
 
 // Custom field keys Chris must configure on each Stripe Payment Link (Stripe Dashboard →
 // Payment Link → "Add custom field"). The webhook reads these exact keys back off the session.
+// Stripe caps custom_fields at 3 per Payment Link — phone is collected via Stripe's native
+// phone_number_collection setting instead (session.customer_details.phone), not a custom
+// field, to leave room for preferred_area_code.
 export const STRIPE_CUSTOM_FIELD_KEYS = {
   businessName: 'business_name',
   clientDomain: 'website_domain',
-  phone:        'phone',
   areaCode:     'preferred_area_code',
 } as const
