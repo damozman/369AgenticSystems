@@ -150,7 +150,7 @@
       <p class="lede">
         You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep and the provisioning-pipeline debugging that followed. Eight eras, each with what got built, what broke, and how it got fixed.
       </p>
-      <span class="status-line"><span class="dot" style="background:var(--live);box-shadow:0 0 6px var(--live);"></span> Era 8 pushed — a real signup verified the full pipeline end-to-end for the first time, including live call transfer and personalization</span>
+      <span class="status-line"><span class="dot" style="background:var(--live);box-shadow:0 0 6px var(--live);"></span> Era 8 pushed — Rex/Nova now live in all 9 verticals, real post-payment page shipped, target launch Monday 2026-07-20 gated on readiness</span>
     </header>
 
     <!-- ═══ 1. DASHBOARD ═══ -->
@@ -398,9 +398,21 @@
         <div class="item-head"><span class="item-title"><code>caller_address</code> field clarified as "the job site, ask if it differs"</span><span class="badge done">Done</span></div>
         <p>Old live wording ("Property or business address, if relevant") never told Ava the address is the job site, or to check whether it might differ from the caller's own property. Updated across all 8 active vertical templates (dental has no working template yet) plus Northside's already-cloned agent. A direct Retell platform config change, not a code change.</p>
       </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rex/Nova extended from 3 verticals to all 9 — the largest gap in the launch plan</span><span class="badge done">Done</span></div>
+        <p>The master launch plan puts Real Estate as the #2 sales priority, but Rex/Nova follow-up (Pro's entire differentiator) only worked for roofing/hvac/plumbing. Checked the real code rather than trust Era "2026-07-11"'s old "DONE" claim: Rex already had complete email+SMS content for all 9 verticals, real-estate included — a grep miss (quoted object key) initially made it look missing, corrected immediately. It was just never switched on. Nova was the real gap — hard-restricted to 3 verticals with zero config for the rest, but its architecture generates confirmation copy live via Claude rather than hand-writing it per vertical, so closing the gap was a config change, not a content project. Verified live for real-estate and saas.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Real post-payment page — customer was getting Stripe's generic confirmation</span><span class="badge done">Done</span></div>
+        <p>An old checklist item flagged an "unresolved onboarding-complete redirect." Checked directly against Stripe: nothing was redirecting there at all — the page didn't exist, and all 3 live Payment Links used Stripe's default hosted confirmation. Not broken, just a missed moment. Built a real page that reads business name/domain/email straight off the Stripe session (no dependency on the webhook having finished provisioning yet), shows the phone number if it's ready or a "still on the way" message if not, and links straight to the questionnaire. Verified against a real completed session from earlier in this same era's Northside Roofing signup — real data rendered correctly end to end. All 3 live links updated.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Retell account balance checked and topped up</span><span class="badge done">Done</span></div>
+        <p>Chris checked directly on Retell's dashboard (no API exposes this — confirmed by checking the SDK) and cross-verified the day's phone-number and usage numbers reported mid-session against what Retell actually showed. Matched.</p>
+      </div>
 
       <div class="callout">
-        <strong>Same lesson as Era 7, again:</strong> "live call transfer" and "the dashboard shows real bookings" both sat in the codebase looking finished. Both were actually broken, and both were found by using the product on a real call, not by reading the code that implements them.
+        <strong>Same lesson as Era 7, again:</strong> "live call transfer," "the dashboard shows real bookings," and "the post-payment redirect works" all sat looking finished. All three were actually broken or missing, and all three were found by checking the real system directly, not by reading the code that implements them.
       </div>
     </section>
 
@@ -410,15 +422,15 @@
 
       <div class="item">
         <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed 2026-07-14</span></div>
-        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails) · per-client provisioning (agent + phone number + correct call attribution) · <strong>per-client LLM personalization + questionnaire-to-prompt merge, confirmed on a real signup + real call for the first time</strong> · <strong>Elite live call transfer (warm, with private handoff briefing), confirmed on real calls</strong> · Elite call recording + transcript search, confirmed against real data · client dashboard essentials (phone display, billing portal, questionnaire CTA, first-call nudge) · <strong>real-time email alerts to the client on new leads/bookings, with a universal calendar attachment on bookings</strong>.</p>
+        <p>Ava (all 9 verticals) · <strong>Rex + Nova now live across all 9 verticals</strong>, not just roofing/hvac/plumbing · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails) · per-client provisioning (agent + phone number + correct call attribution) · per-client LLM personalization + questionnaire-to-prompt merge, confirmed on a real signup + real call · Elite live call transfer (warm, with private handoff briefing), confirmed on real calls · Elite call recording + transcript search, confirmed against real data · client dashboard essentials (phone display, billing portal, questionnaire CTA, first-call nudge) · real-time email alerts to the client on new leads/bookings, with a universal calendar attachment on bookings · <strong>a real post-payment page replacing Stripe's generic confirmation</strong>, verified against a real completed session.</p>
       </div>
       <div class="item">
         <div class="item-head"><span class="item-title">Known, deliberate gaps</span><span class="badge uncommitted">Open</span></div>
-        <p>SMS follow-up (Pro) — code exists, Twilio not configured. Admin multi-client dashboard — code exists, untested. Scout has zero implementation. Dental is waitlist-only by design and its template agent doesn't exist yet on Retell. Stripe is test-mode only. The email/phone spelling-confirmation instruction is live on all 9 templates but not yet verified on a real call. Retell account showed a low-credits warning as of Era 7 — recheck before relying on any of this.</p>
+        <p>SMS follow-up (Pro) — code exists, Twilio not configured. Admin multi-client dashboard — code exists, untested. Scout has zero implementation. Dental is waitlist-only by design (Chris confirmed keeping it that way 2026-07-14) and its template agent doesn't exist yet on Retell. Stripe is deliberately still test-mode — Chris's call, "soon but not yet." The email/phone spelling-confirmation instruction is live on all 9 templates but not yet verified on a real call.</p>
       </div>
       <div class="item">
-        <div class="item-head"><span class="item-title">Rollout status</span><span class="badge uncommitted">Paused — technical blockers cleared</span></div>
-        <p>No new launch date set — that's your call, not a technical one. As of Era 8, every piece of the core pipeline (provisioning, personalization, live transfer, transcript search, dashboard essentials, client alerts) has been confirmed against the real system on at least one real signup or real call, which was not true as of Era 7.</p>
+        <div class="item-head"><span class="item-title">Rollout status</span><span class="badge done">Target: Monday 2026-07-20, gated on readiness</span></div>
+        <p>Chris, 2026-07-14: "We'll try it on Monday. But I need to get everything exactly where it needs to be before I'm ready to launch." As of the end of this era, every piece of the core pipeline — provisioning, personalization, live transfer, transcript search, dashboard essentials, client alerts, Rex/Nova parity across all 9 verticals, and the post-payment page — has been confirmed against the real system on at least one real signup or real call. The remaining open items (above) are either deliberately deferred or need a real phone call to close, not further code work.</p>
       </div>
     </section>
 

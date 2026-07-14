@@ -3,7 +3,7 @@
 
 > Companion to `369-SYSTEM-BLUEPRINT.md` in this folder — that one explains the architecture, this one answers "if someone pays right now, what do they actually get."
 
-> **2026-07-14 update:** as of a real signup (Northside Roofing) run end-to-end with no manual intervention, the whole core pipeline is now genuinely verified together: provisioning, questionnaire-driven personalization (confirmed on a real call — agent quoted the exact warranty/pricing/scheduling language from the questionnaire), Elite live call transfer (previously completely broken — `transfer_phone_number` isn't a real Retell field — now fixed and confirmed on real calls, upgraded to a warm transfer with a private handoff briefing), Elite transcript search (confirmed against real data, recording URLs confirmed actually playable), and client dashboard essentials (phone number display, billing portal, questionnaire completion tracking). New this session: real-time email alerts to the client the moment a lead or booking happens (not just a dashboard stat), with a calendar `.ics` attachment on bookings. Full detail: Era 8 of `docs/reference/changelog-recent-sessions.html` and item 1e of `docs/architecture/ROADMAP-TO-REAL-AGENCY.md`.
+> **2026-07-14 update (full day):** as of a real signup (Northside Roofing) run end-to-end with no manual intervention, the whole core pipeline is genuinely verified together: provisioning, questionnaire-driven personalization (confirmed on a real call — agent quoted exact warranty/pricing/scheduling language from the questionnaire), Elite live call transfer (previously completely broken — `transfer_phone_number` isn't a real Retell field — now fixed, upgraded to a warm transfer with a private handoff briefing, confirmed on real calls), Elite transcript search (confirmed against real data), and client dashboard essentials (phone number display, billing portal, questionnaire tracking). Later the same day: real-time email alerts to the client the moment a lead or booking happens (with a calendar `.ics` attachment on bookings), **Rex/Nova follow-up extended from 3 verticals to all 9** (the single largest gap in the launch plan — closed), and a real post-payment page replacing Stripe's generic confirmation screen. Retell's account balance was also checked and topped up directly on their dashboard. Full detail: Era 8 of `docs/reference/changelog-recent-sessions.html` and items 1e/1f/1g of `docs/architecture/ROADMAP-TO-REAL-AGENCY.md`.
 
 > **2026-07-13 update:** the "manual provisioning" section below was accurate as of 2026-07-11 but is now wrong — real per-client automated provisioning was tested and confirmed working the same night this note was added, after a real Stripe signup uncovered it had never actually worked (schema drift, wrong Retell API endpoints, a version-field rejection). See the corrected section below and `retell_provisioning_gaps_2026-07-13.md` (memory) for the full story.
 
@@ -11,7 +11,7 @@
 
 ## The short version
 
-You can sell and deliver **Starter and Pro tiers honestly, today, for roofing/HVAC/plumbing** — 24/7 call answering, real per-client personalization, follow-up and confirmation emails, and now real-time lead/booking alerts, all confirmed on real calls with a real signup. **Elite is now real too** — live call transfer and transcript search were both completely broken as of two days ago (not just untested) and are now fixed and confirmed on real calls. The remaining gap is the same as before: every other vertical's follow-up/confirmation layer (Rex/Nova) is still "planned," not built — a Pro/Elite sale in legal, SaaS, insurance, etc. is still paying for something that doesn't exist yet. **Fix that before Stripe goes live**, not after.
+You can sell and deliver **Starter, Pro, and Elite honestly, today, across all 9 verticals.** 24/7 call answering, real per-client personalization, live call transfer and transcript search (Elite), Rex/Nova follow-up and confirmation (Pro/Elite, now genuinely live everywhere, not just roofing/HVAC/plumbing), and real-time lead/booking alerts to the client — all confirmed against the real system, most of it on real calls or a real signup. The one deliberate, known exception is dental (waitlist-only by design, not part of this launch). Stripe is still in test mode — that's the one remaining gate before real money moves, and it's a decision, not a bug.
 
 ---
 
@@ -28,7 +28,7 @@ You can sell and deliver **Starter and Pro tiers honestly, today, for roofing/HV
 | Tier | Price | What's actually included |
 |---|---|---|
 | **Starter** | $400/mo + $1,500 setup | Ava answers calls 24/7, qualifies, books, personalized to the business via the onboarding questionnaire. Real-time dashboard with phone number, billing portal, questionnaire tracking. Real-time email alert to the client on every new lead/booking (with calendar invite on bookings). HD call quality (real Retell feature). Daily email summary. |
-| **Pro** | $600/mo | Everything in Starter, **plus Rex/Nova follow-up + confirmation email — but only for roofing, HVAC, plumbing.** For every other vertical, Pro is currently identical to Starter with a higher price tag beyond the real Enhanced Voice Quality bump. |
+| **Pro** | $600/mo | Everything in Starter, **plus Rex/Nova follow-up + confirmation email — now live in all 9 verticals**, not just roofing/HVAC/plumbing (closed 2026-07-14). Plus real Enhanced Voice Quality. |
 | **Elite** | $750/mo | Everything in Pro, plus **live call transfer** (warm transfer with a private handoff briefing to the owner — confirmed on real calls), **call recording + searchable transcript archive** (confirmed against real data), Premium Voice Quality and Retell's Custom Business Intelligence (real, bundled Retell features), and priority onboarding/support. Both headline Elite features were completely broken until 2026-07-14 — confirm this note is still current before quoting Elite. |
 
 ---
@@ -38,11 +38,11 @@ You can sell and deliver **Starter and Pro tiers honestly, today, for roofing/HV
 | Vertical | Ava (receptionist) | Rex (follow-up) | Nova (confirmation) | Felix / Scout |
 |---|---|---|---|---|
 | Roofing, HVAC, Plumbing | ✅ Live | ✅ Live | ✅ Live | — |
-| Legal | ✅ Live | Planned | Planned | Felix ✅ live (conflict check) |
-| Real Estate, Insurance, SaaS, Wholesale | ✅ Live | Planned | Planned | Scout planned, SaaS only |
-| Dental | Waitlist — nothing live | — | — | — |
+| Legal | ✅ Live | ✅ Live | ✅ Live | Felix ✅ live (conflict check) |
+| Real Estate, Insurance, SaaS, Wholesale | ✅ Live | ✅ Live | ✅ Live | Scout planned, SaaS only |
+| Dental | Waitlist — nothing live | Content exists, agent doesn't | Content exists, agent doesn't | — |
 
-If someone signs up for Pro/Elite in a vertical other than roofing/HVAC/plumbing today, they're paying for follow-up/confirmation that doesn't exist yet. This is the same underlying gap the pricing-page finding above is describing, just viewed from the vertical angle instead of the tier angle.
+**Closed 2026-07-14:** Rex/Nova now live in all 9 verticals — verified live for real-estate and saas specifically, mechanically identical for the rest since Nova generates its confirmation copy live via Claude rather than per-vertical hand-written templates. A Pro/Elite sale in any launched vertical now delivers what it promises. Dental is the one deliberate exception — content is ready, but its template agent doesn't exist on Retell yet and it's staying waitlist-only by design.
 
 ---
 
@@ -51,9 +51,9 @@ If someone signs up for Pro/Elite in a vertical other than roofing/HVAC/plumbing
 Both funnels are wired to real endpoints, not placeholders (checked directly, no `GUMLOOP_WEBHOOK_URL_HERE` or dead links remain anywhere in `/public`):
 
 - **Cold-email funnel** (static pages → Gumloop → 3-email sequence): live, real webhook, differentiated by `source_tag` per vertical.
-- **Warm funnel** (ROI calculator → pricing → Stripe checkout → client dashboard → real Retell agent + phone number): genuinely verified end-to-end **in Stripe test mode**, most recently 2026-07-14 — a real test purchase creates a real Retell agent (with a personalized greeting, not a shared template), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, correctly attributes that customer's inbound calls, and the deeper questionnaire-driven personalization now confirmed live on a real call too (not just function-tested). Not yet tested with real money.
+- **Warm funnel** (ROI calculator → pricing → Stripe checkout → real post-payment page → client dashboard → real Retell agent + phone number): genuinely verified end-to-end **in Stripe test mode**, most recently 2026-07-14 — a real test purchase creates a real Retell agent (with a personalized greeting, not a shared template), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, correctly attributes that customer's inbound calls, lands on a real confirmation page (not Stripe's generic one) with a direct link into the questionnaire, and the deeper questionnaire-driven personalization is confirmed live on a real call too. Not yet tested with real money.
 
-**Funnels are ready to execute on** in the sense that nothing is broken or placeholder — the gap isn't the funnel, it's what the funnel is currently allowed to sell (see pricing finding above).
+**Funnels are ready to execute on** — nothing is broken or placeholder, and as of 2026-07-14 the tier/vertical promises the funnel sells actually match what's built. The one remaining gate before real money moves is Stripe test mode itself, which is Chris's call, not a technical blocker.
 
 ---
 

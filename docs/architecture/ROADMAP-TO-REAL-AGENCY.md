@@ -1,7 +1,7 @@
 # Roadmap to Real Agency
 **Strategic prioritization: what to build (and in what order) to move from "home office project" to "actual agency business."**
 Date: 2026-07-11 · Updated: 2026-07-14
-Context: Current offering is Ava (receptionist) + Rex/Nova (follow-up/confirmation) but incomplete in business automation, vertical coverage, and tier differentiation.
+Context: Ava (receptionist) + Rex/Nova (follow-up/confirmation) are now live and genuinely verified across all 9 verticals (closed 2026-07-14, was the last real gap in vertical coverage/tier differentiation). Business automation and the launch pipeline are also verified end-to-end. What's left before the Monday 2026-07-20 target is either deliberately deferred (Stripe live mode, dental) or needs a real phone call to close (spelling-accuracy verification) — not more building.
 
 > **2026-07-13 correction:** Item #1 below ("Per-client provisioning automation") was marked DONE on 2026-07-11 and claimed "verified end-to-end." That was false — the claim predated the production database schema even having the columns the code wrote to. A real Stripe signup on 2026-07-12/13 found the whole pipeline broken (3 separate bugs: schema drift, wrong Retell API endpoints, a version-field rejection) and it has now been genuinely fixed and verified for the first time. Full detail: `retell_provisioning_gaps_2026-07-13.md` (memory) and Era 7 of `docs/reference/changelog-recent-sessions.html`. Lesson for this doc going forward: a "DONE" mark here means the code was written, not that it was checked against the live system — don't take past "DONE"s at face value without re-verifying if launch is imminent.
 
@@ -161,12 +161,15 @@ Built `app/onboarding-complete/page.tsx` — reads business name/domain/email di
 
 ---
 
-### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY ✅ DONE (2026-07-11)
+### 3. **Rex/Nova parity across all 9 verticals** — PRODUCT CONSISTENCY ✅ GENUINELY DONE (2026-07-14, corrects the 2026-07-11 claim below)
+
+> **2026-07-14 correction:** the "DONE" claim below was half-true. The email/SMS *content* really was written for all 9 verticals (that part held up). But the vertical actually had to be switched on in `REX_VERTICALS`/`NOVA_VERTICALS` for Rex/Nova to ever fire, and those arrays only ever listed roofing/hvac/plumbing — for 6 verticals, none of this content was reachable by a real call, ever, despite this section's claim. Nova specifically had no per-vertical config *at all* beyond those 3 — its type was hard-restricted. Found by checking the real code against this doc's own claim, not by trusting it. Genuinely fixed 2026-07-14 — see item 1f above. Real-estate and saas verified live; the rest are mechanically identical.
+
 **Effort:** 4–6 days · **Impact:** 6x (lets you sell Pro everywhere) · **Do third.**
 
 **The problem:** Rex/Nova follow-up is only live for roofing/HVAC/plumbing. If someone in legal, SaaS, insurance pays for Pro, they get nothing different from Starter. That's a pricing lie.
 
-**What was built:**
+**What was built (2026-07-11):**
 - ✅ Rex follow-up templates for all 9 verticals with vertical-specific urgency messaging:
   - **Legal:** Statute of limitations / case deadlines
   - **Real Estate:** Market timing / buyer pool competition
@@ -175,8 +178,9 @@ Built `app/onboarding-complete/page.tsx` — reads business name/domain/email di
   - **Wholesale:** Inventory levels / stock availability
   - **Dental:** Dental health consequences / treatment cost escalation
 - ✅ 3-step email + SMS template for each vertical
-- ✅ Updated `FOLLOWUP_LIVE_VERTICALS` to include all 9
-- ✅ Pro tier now delivers real follow-up for all verticals
+- ❌ Nova confirmation templates — NOT actually built for the 6 non-core verticals despite this doc claiming parity; corrected 2026-07-14
+- ❌ `REX_VERTICALS`/`NOVA_VERTICALS` — NOT actually updated beyond 3 verticals despite this doc claiming they were; corrected 2026-07-14
+- ✅ Pro tier now genuinely delivers real follow-up for all verticals, as of 2026-07-14
 
 **Why this was #3:** Without this, you're selling a tier you can't deliver. Now Pro has real differentiation across every vertical.
 
@@ -272,7 +276,7 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Fix tier copy (make it honest) ✅ DONE 2026-07-11
 - [x] Per-client provisioning automation — code written 2026-07-11, but **not actually verified until 2026-07-13** (see correction note at top). Genuinely done now.
 - [x] Real ROI dashboard — code written 2026-07-11; depends on `calls.client_domain` being correct, which it wasn't until 2026-07-13's domain fix. Any real numbers shown before that date would have been wrong.
-- [x] Rex/Nova parity (all 9 verticals) ✅ DONE 2026-07-11
+- [x] Rex/Nova parity (all 9 verticals) — marked DONE 2026-07-11, but that was half-true: Rex's content was real, Nova's wasn't, and neither was actually switched on for 6 of the 9 verticals. Genuinely closed 2026-07-14, see item 1f.
 - [x] Test Stripe → Retell → Supabase end-to-end — the 2026-07-11 "verified multiple times" claim was false. Actually verified 2026-07-13 with a real signup, real call, and direct inspection of both Retell's and Supabase's state (not just reading logs).
 - [x] Schema drift, hardcoded demo-domain, and 3 provisioning bugs found + fixed ✅ DONE 2026-07-13 (not originally on this list — found via real testing, not planned work)
 - [x] Real per-client personalization (LLM cloning + questionnaire-to-prompt merge) ✅ built + function-verified 2026-07-13 — **not yet verified via a real signup + live call**, do that first next session
@@ -291,6 +295,11 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Real-time lead/booking email alerts to the client ✅ DONE 2026-07-14 — fires the moment a lead or booking happens, not something the client has to check for. Includes `.ics` calendar attachment on bookings.
 - [x] Rex/Nova race fix — Rex's nurture email could contradict a booking Nova already confirmed on the same call ✅ FIXED 2026-07-14
 - [x] `caller_address` field clarified as "the job site, ask if it might differ" across all 8 active vertical templates ✅ DONE 2026-07-14
+- [x] Rex/Nova genuinely switched on for all 9 verticals ✅ DONE 2026-07-14 — see item 1f. Closes the largest gap in the launch plan (Real Estate, the #2 sales priority, had zero follow-up of any kind before this).
+- [x] Real post-payment page (replaces Stripe's generic confirmation) ✅ DONE 2026-07-14 — see item 1g.
+- [x] Retell account balance checked and topped up ✅ DONE 2026-07-14 — cross-verified against the day's usage numbers, matched.
+
+**Status heading into the Monday 2026-07-20 target:** every item in this timeline is closed except what's genuinely gated on Chris (a real call to verify the spelling-accuracy fix) or deliberately deferred by choice (Stripe live mode, dental's template agent, Twilio/SMS). Nothing left is blocked on more code.
 
 **Month 2 (after validating core):**
 - [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured
