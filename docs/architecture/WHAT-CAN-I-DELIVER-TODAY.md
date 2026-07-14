@@ -70,12 +70,12 @@ As of 2026-07-13, a Stripe payment automatically provisions a real, dedicated Re
 ## Before you take real money — the actual checklist
 
 1. ~~Fix the Pro/Elite feature list on the pricing page~~ — done 2026-07-11.
-2. Decide Rex/Nova rollout for the 6 verticals where they're still "planned" — either build them out or make sure Pro-tier pricing for those verticals doesn't promise something Starter already includes. **Still open — the largest remaining gap between pricing and reality.**
-3. Flip Stripe to live mode when ready (see `stripe_live_mode_prep` notes — direct-curl signature testing technique, Vercel env var masking behavior). **Still test-mode only.**
-4. Confirm the `/onboarding-complete` Payment Link redirect (still unresolved as of the last check).
+2. ~~Decide Rex/Nova rollout for the 6 verticals where they're still "planned"~~ — done 2026-07-14: Rex already had content for all 9, just needed switching on; Nova extended to all 9 via its Claude-generated (not hand-written) template system. Verified live for real-estate and saas.
+3. Flip Stripe to live mode when ready (see `stripe_live_mode_prep` notes — direct-curl signature testing technique, Vercel env var masking behavior). **Deliberately still test-mode — Chris's call, "soon but not yet" as of 2026-07-14.**
+4. ~~Confirm the `/onboarding-complete` Payment Link redirect~~ — done 2026-07-14: turned out nothing was redirecting there at all (page didn't exist, links used Stripe's generic confirmation). Built a real page and wired up all 3 live links; verified against a real completed session.
 5. ~~Have your manual provisioning steps written down~~ — superseded 2026-07-13: provisioning is now automated and verified, no manual checklist needed for the core flow.
 6. ~~Run one real signup all the way through the questionnaire to confirm personalization actually works~~ — done 2026-07-14, confirmed on a real call.
-7. Fix the typo'd `RETELL_TEMPLATE_AGENT_DENTAL` env var before dental ever launches — currently points at a nonexistent agent ID. **Still open** — confirmed again 2026-07-14 while patching the other 8 vertical templates.
-8. Check Retell account credit balance — showed a low-credits warning as of 2026-07-13, unrelated to any code issue but will stop everything if it runs out. **Recheck — not verified again since.**
-9. Confirm the email/phone spelling-accuracy instruction (added 2026-07-14) actually changes agent behavior on a real call, not just sitting unused in the prompt.
-10. Twilio still isn't configured — Pro-tier SMS follow-up and any future SMS-based client alerts are blocked on this, not on code.
+7. Fix the typo'd `RETELL_TEMPLATE_AGENT_DENTAL` env var before dental ever launches — currently points at a nonexistent agent ID. **Deliberately deferred — Chris confirmed dental stays waitlist-only for now, 2026-07-14.**
+8. ~~Check Retell account credit balance~~ — done 2026-07-14: Chris checked directly on Retell's dashboard, topped up the balance, and cross-verified the day's usage against the numbers reported mid-session — matched.
+9. Confirm the email/phone spelling-accuracy instruction (added 2026-07-14) actually changes agent behavior on a real call, not just sitting unused in the prompt. **Still open — needs a real test call.**
+10. Twilio still isn't configured — Pro-tier SMS follow-up and any future SMS-based client alerts are blocked on this, not on code. **Still open, not urgent.**
