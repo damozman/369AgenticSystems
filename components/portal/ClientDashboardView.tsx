@@ -48,6 +48,7 @@ type SentimentStats = {
 
 type Props = {
   stats: { totalCalls: number; bookedCalls: number; totalLeads: number; answerRate: number | null }
+  questionnaireCompleted: boolean
   recentCalls:      Call[]
   activeAgents:     ActiveAgent[]
   upgrade:          UpgradePath
@@ -159,12 +160,18 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 function OnboardingChecklist({
-  totalCalls, totalLeads, bookedCalls, thisWeekCalls,
+  totalCalls, totalLeads, bookedCalls, thisWeekCalls, questionnaireCompleted, clientDomain,
 }: {
   totalCalls: number; totalLeads: number; bookedCalls: number; thisWeekCalls: number
+  questionnaireCompleted: boolean; clientDomain: string
 }) {
-  const steps = [
+  const steps: { label: string; done: boolean; href?: string }[] = [
     { label: 'Account provisioned',        done: true },
+    {
+      label: 'Complete business questionnaire',
+      done:  questionnaireCompleted,
+      href:  questionnaireCompleted ? undefined : `https://369agenticsystems.com/onboarding/questionnaire/${clientDomain}`,
+    },
     { label: 'First call received',        done: totalCalls > 0 },
     { label: 'First lead captured',        done: totalLeads > 0 || bookedCalls > 0 },
     { label: '5+ calls in a week',         done: thisWeekCalls >= 5 },
@@ -197,6 +204,11 @@ function OnboardingChecklist({
             <span className="text-xs" style={{ color: step.done ? 'var(--text-muted)' : 'var(--text-primary)' }}>
               {step.label}
             </span>
+            {step.href && (
+              <a href={step.href} className="text-xs font-medium underline underline-offset-2" style={{ color: '#60A5FA' }}>
+                Complete now →
+              </a>
+            )}
           </div>
         ))}
       </div>
@@ -297,7 +309,7 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ClientDashboardView({
-  stats, recentCalls, activeAgents, upgrade, subscription,
+  stats, questionnaireCompleted, recentCalls, activeAgents, upgrade, subscription,
   notifications, lastCallAt, weeklyStats, dailyCounts, hourlyBreakdown, callerStats, sentimentStats,
 }: Props) {
   const [isDark, setIsDark]             = useState(false)
@@ -372,6 +384,8 @@ export default function ClientDashboardView({
         totalLeads={stats.totalLeads}
         bookedCalls={stats.bookedCalls}
         thisWeekCalls={weeklyStats.thisWeekCalls}
+        questionnaireCompleted={questionnaireCompleted}
+        clientDomain={subscription.client_domain}
       />
 
       {/* ── Stat cards ─────────────────────────────────────────────── */}

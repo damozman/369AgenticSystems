@@ -106,6 +106,7 @@ export default async function ClientDashboardPage() {
     { data: notifications },
     { data: lastCallRow },
     { data: calls30dData },
+    { data: questionnaireRow },
   ] = await Promise.all([
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain),
     supabaseAdmin.from('calls').select('*', { count: 'exact', head: true }).eq('client_domain', clientDomain).eq('call_outcome', 'booked'),
@@ -135,6 +136,11 @@ export default async function ClientDashboardPage() {
       .select('created_at,call_outcome,caller_phone,sentiment')
       .eq('client_domain', clientDomain)
       .gte('created_at', since30d),
+    supabaseAdmin
+      .from('client_questionnaires')
+      .select('completed_at')
+      .eq('client_domain', clientDomain)
+      .maybeSingle(),
   ])
 
   // Compute weekly deltas and highlights from the 30-day window
@@ -211,8 +217,11 @@ export default async function ClientDashboardPage() {
     ? Math.round(((tc - (noAnswerCalls ?? 0)) / tc) * 100)
     : null
 
+  const questionnaireCompleted = !!questionnaireRow?.completed_at
+
   return (
     <ClientDashboardView
+      questionnaireCompleted={questionnaireCompleted}
       stats={{
         totalCalls:  tc,
         bookedCalls: bookedCalls ?? 0,
