@@ -71,6 +71,18 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 All four original gaps closed, plus three more found along the way (missing dashboard link in the welcome email, preferred area code never actually reachable, customer name never actually captured). Nothing outstanding on this item.
 
+---
+
+### 1c. **Agent never confirms email/phone accuracy back to the caller** — found reviewing the Northside Roofing transcript ✅ FIXED (2026-07-14)
+
+Chris caught it manually reviewing a real transcript: the caller spelled their email letter-by-letter ("D a m o z m a n at gmail dot com"), but the agent confirmed it back as a natural-sounding word ("damosman@gmail.com" — note the S where a Z should be) instead of spelling it back. Letters that sound alike over the phone (B/D, M/N, S/Z) are exactly the kind of error a caller can't catch unless the agent spells it back — and a wrong email means the customer silently never gets their quote, with nobody noticing the lead died.
+
+Checked all 9 vertical templates directly — none had any instruction to confirm email or phone accuracy at all, just "ask for an email address." Added an explicit accuracy-check instruction to all 9 templates' `general_prompt`: spell email back letter-by-letter and confirm, read phone digits back grouped and confirm. Verified via re-fetch that the instruction saved correctly.
+
+**Caveat:** this only affects the templates, so it applies automatically to every *future* signup (cloning pulls the current template), but doesn't retroactively update any already-cloned customer agent. Not an active concern since no real customers are live yet, but worth knowing if this ever needs to be pushed to an existing customer's agent later — would need a direct `client.llm.update()` per customer, not just a template edit.
+
+**Not yet verified on a real call** — do that on the next test signup to confirm the agent actually spells things back rather than just having the instruction sitting in the prompt unused.
+
 **Why this matters:** these are things a real, paying customer needs on day one, not nice-to-haves. Found the same way everything else this week was found — by actually using the product, not reading the code.
 
 ---
