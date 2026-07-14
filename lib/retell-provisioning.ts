@@ -71,7 +71,18 @@ async function cloneAgentLlm(templateLlmId: string, businessName: string, ownerP
         name: 'transfer_to_owner',
         description: 'Transfer the caller to the business owner when they explicitly ask to speak with a real person, describe a genuine emergency, or have a situation too complex to handle over the phone. Let the caller know you\'re connecting them before transferring.',
         transfer_destination: { type: 'predefined', number: ownerPhone },
-        transfer_option: { type: 'cold_transfer', transfer_ring_duration_ms: 30000 },
+        // Warm transfer with a private handoff: the AI briefs the owner
+        // privately (e.g. "I have Chris on the line with an active leak")
+        // before connecting the caller — the owner hears context, the caller
+        // doesn't hear the AI talking about them.
+        transfer_option: {
+          type: 'warm_transfer',
+          transfer_ring_duration_ms: 30000,
+          private_handoff_option: {
+            type: 'prompt',
+            prompt: 'Give a brief, natural one-sentence heads-up to whoever answers, based on the conversation so far — caller\'s first name and the core issue. Example: "I have Chris on the line with an active roof leak." Keep it under 10 seconds, then hand off.',
+          },
+        },
       },
     ]
   }
