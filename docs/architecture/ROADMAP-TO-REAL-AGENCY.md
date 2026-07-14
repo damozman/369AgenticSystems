@@ -1,6 +1,6 @@
 # Roadmap to Real Agency
 **Strategic prioritization: what to build (and in what order) to move from "home office project" to "actual agency business."**
-Date: 2026-07-11 · Updated: 2026-07-13
+Date: 2026-07-11 · Updated: 2026-07-14
 Context: Current offering is Ava (receptionist) + Rex/Nova (follow-up/confirmation) but incomplete in business automation, vertical coverage, and tier differentiation.
 
 > **2026-07-13 correction:** Item #1 below ("Per-client provisioning automation") was marked DONE on 2026-07-11 and claimed "verified end-to-end." That was false — the claim predated the production database schema even having the columns the code wrote to. A real Stripe signup on 2026-07-12/13 found the whole pipeline broken (3 separate bugs: schema drift, wrong Retell API endpoints, a version-field rejection) and it has now been genuinely fixed and verified for the first time. Full detail: `retell_provisioning_gaps_2026-07-13.md` (memory) and Era 7 of `docs/reference/changelog-recent-sessions.html`. Lesson for this doc going forward: a "DONE" mark here means the code was written, not that it was checked against the live system — don't take past "DONE"s at face value without re-verifying if launch is imminent.
@@ -97,6 +97,26 @@ Chris asked what the "0 Appointments" tile meant when he knew a call had ended i
 Corrected the existing bad data for this real booking (call outcome → `booked`, appointment year → 2026) so the dashboard reflects reality immediately, on top of fixing the underlying code.
 
 **Why this matters:** this is exactly the kind of bug that erodes trust silently — the AI told the caller "you're all set," and would have been right, except the business's own dashboard would have shown nothing scheduled and the appointment would have been dated for the wrong year. Neither the agent nor a casual glance at the dashboard would have revealed either problem — it took Chris specifically noticing a `0` that didn't match what he knew happened.
+
+---
+
+### 1e. **Client had no way to know about a new lead/booking without watching the dashboard** — ✅ DONE (2026-07-14)
+
+Chris asked why he only got 2 of the 3 emails he expected while reviewing a test booking, which led into a real gap: the dashboard's "Appointments"/"Leads" stats are running totals — nothing on screen signals "this one is new." A client working in the field (a roofer on a roof) has no reason to be watching a counter.
+
+**Built:** two new client-facing (not agency-facing) email alerts, firing the moment they happen:
+- New appointment booked → owner gets caller name/phone/email/address, appointment time, a "View in Dashboard" button, and an `.ics` calendar attachment (universal format — the test business account uses Yahoo, not Gmail, so a Google-Calendar-specific link would've been the wrong call).
+- New lead captured, call *didn't* end in a booking → same info, minus the calendar invite, gated so it never double-fires alongside the booking alert for the same call.
+
+Both sent to `agent_subscriptions.user_email` — the same address the client logs into their dashboard with, not the agency's own inbox. Verified end-to-end by driving the real `/api/call-received`, `/api/capture-lead`, and `/api/book-appointment` routes against a local dev server and confirming actual delivery via Resend, not just log output.
+
+**Found and fixed two more real bugs along the way, from the same review:**
+1. **`caller_address`/`caller_email` existed on the `leads` table but were never selected or passed into either alert** — caught by Chris noticing the address was missing from a test email. Fixed in both `book-appointment/route.ts` and `call-received/route.ts`.
+2. **Rex's follow-up email had no gate against an existing booking.** `capture_lead` is instructed to fire "before the call ends" regardless of outcome, which in practice often lands *after* `book_appointment` on a call that ends in a booking — so Rex's "we'll reach out to schedule" nurture email could go out right after Nova already confirmed a specific date/time on the same call, sending contradictory messaging. The obvious fix (check `bookings.lead_id`) had its own gap: if the booking is created before the lead row exists (the exact race being guarded against), `lead_id` comes back null on the booking. Fixed by checking both `lead_id` and `call_id`, verified live against that exact failure order.
+
+**Also clarified `caller_address`'s live tool description** across all 8 active vertical templates (roofing, hvac, plumbing, legal, real-estate, insurance, saas, wholesale — dental has no working template yet) plus Northside Roofing's already-cloned agent, after confirming the ambiguity was real: the old wording ("Property or business address, if relevant") didn't tell Ava the address is the job site, or to ask if the job site might differ from the caller's own property (a rental, a client's property, a delivery site). This was a direct Retell platform config change, not a code change — nothing to commit for that piece.
+
+**Why this matters:** every fix this session so far has been about the pipeline working correctly *and the data being right*. This one is about the client actually finding out in time to act — a correct system nobody notices in time isn't fully done yet.
 
 ---
 
@@ -250,6 +270,9 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Live call transfer (Elite) ✅ FULLY VERIFIED 2026-07-14 — was actually broken, not just untested (agent-level field that doesn't exist in the real SDK). Fixed, confirmed on a real call: caller described an emergency, agent said "connecting you to Chris," Chris actually received the call.
 - [x] Call recording + search (Elite) ✅ VERIFIED 2026-07-14 — real search against real data returned accurate results, recording URL confirmed actually playable (real 6.7MB audio file, not a broken link)
 - [x] Verify personalization end-to-end with a real signup ✅ DONE 2026-07-14 — confirmed on a real call, agent used the exact questionnaire content (warranty, scheduling, pricing) when handling a real objection. Found + fixed one more bug in the process (unawaited KB sync).
+- [x] Real-time lead/booking email alerts to the client ✅ DONE 2026-07-14 — fires the moment a lead or booking happens, not something the client has to check for. Includes `.ics` calendar attachment on bookings.
+- [x] Rex/Nova race fix — Rex's nurture email could contradict a booking Nova already confirmed on the same call ✅ FIXED 2026-07-14
+- [x] `caller_address` field clarified as "the job site, ask if it might differ" across all 8 active vertical templates ✅ DONE 2026-07-14
 
 **Month 2 (after validating core):**
 - [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured

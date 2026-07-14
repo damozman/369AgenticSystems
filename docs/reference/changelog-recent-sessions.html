@@ -138,6 +138,7 @@
       <li><a href="#admin-split"><span class="n">5</span> Admin/Client Split</a></li>
       <li><a href="#truthfulness"><span class="n">6</span> Truthfulness Sweep</a></li>
       <li><a href="#provisioning-fixes"><span class="n">7</span> Provisioning Bugs + Real Personalization</a></li>
+      <li><a href="#launch-readiness"><span class="n">8</span> Launch Readiness + Client Alerts</a></li>
       <li><a href="#current-state"><span class="n">→</span> Current State</a></li>
     </ul>
   </nav>
@@ -147,9 +148,9 @@
       <p class="eyebrow">// What actually happened</p>
       <h1>Recent Sessions, In Order</h1>
       <p class="lede">
-        You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep and the provisioning-pipeline debugging that followed. Seven eras, each with what got built, what broke, and how it got fixed.
+        You asked if this existed — it didn't yet. This is the first real changelog, covering everything from the Stripe/Rex/Nova/Felix build through the full truthfulness sweep and the provisioning-pipeline debugging that followed. Eight eras, each with what got built, what broke, and how it got fixed.
       </p>
-      <span class="status-line"><span class="dot"></span> Era 7 is fully committed and pushed — the per-client provisioning pipeline is confirmed working for the first time</span>
+      <span class="status-line"><span class="dot" style="background:var(--live);box-shadow:0 0 6px var(--live);"></span> Era 8 pushed — a real signup verified the full pipeline end-to-end for the first time, including live call transfer and personalization</span>
     </header>
 
     <!-- ═══ 1. DASHBOARD ═══ -->
@@ -352,26 +353,77 @@
       </div>
     </section>
 
+    <!-- ═══ 8. LAUNCH READINESS + CLIENT ALERTS ═══ -->
+    <section class="era" id="launch-readiness">
+      <div class="era-head"><h2>8. Launch Readiness + Client Alerts</h2><span class="era-date">2026-07-14, all pushed</span></div>
+      <p class="era-dek">A full real signup (Northside Roofing) run end-to-end with no manual intervention, then a string of gaps found the same way as Era 7 — by actually using the product, not reading the code — plus a new feature built after noticing the dashboard's stats are silent about what's new.</p>
+
+      <div class="item">
+        <div class="item-head"><span class="item-title">Full pipeline re-verified end-to-end on one real signup</span><span class="badge done">Confirmed</span></div>
+        <p>Northside Roofing, no manual patching: preferred area code honored, real Stripe customer with billing address captured, <code>stripe_customer_id</code> stored, greeting personalization and questionnaire-driven prompt merge both fired automatically, a real call confirmed the agent quoting exact warranty details from the questionnaire, and welcome/owner-notification/Rex emails all delivered. First time every piece from Era 7 worked together with zero manual patching.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Client dashboard essentials — 4 real first-day gaps</span><span class="badge fix">Fixed</span></div>
+        <p>Found by testing a real signup, not reading code: phone number was nowhere on the dashboard (added <code>PhoneNumberCard</code>, tap-to-call + copy); status banner contradicted itself for a zero-call new customer ("Setup In Progress" next to "active and ready"); no visibility into questionnaire completion (folded into the onboarding checklist); no billing management link (real Stripe Billing Portal session via new <code>/api/billing-portal</code>). Also found mid-test: the welcome email had no path back to the dashboard if the questionnaire link wasn't clicked, and the customer's own name was never captured (<code>billing_address_collection</code> defaulted to <code>"auto"</code>, not <code>"required"</code>).</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Preferred area code at checkout — never actually reachable</span><span class="badge fix">Fixed</span></div>
+        <p>Chris asked if this already worked; it didn't. The webhook read a custom field no live Payment Link had configured — Stripe caps custom fields at 3, all 3 slots were already taken. Freed a slot by moving phone collection to Stripe's native <code>phone_number_collection</code> setting.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Agent never confirmed email/phone accuracy back to the caller</span><span class="badge fix">Fixed</span></div>
+        <p>Caught reviewing a real transcript: caller spelled their email letter-by-letter, agent read it back with a wrong letter (S for Z) and nobody caught it. None of the 9 vertical templates had any accuracy-check instruction. Added one to all 9 — spell email back, read phone digits back grouped. Applies to future signups via the template; not yet verified on a real call.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">A real booking existed but the dashboard showed 0 Appointments</span><span class="badge fix">Fixed</span></div>
+        <p>Chris circled the stat and asked. Two independent bugs: <code>call_ended</code> unconditionally re-derived the outcome by keyword-matching Retell's summary and silently overwrote the real-time <code>'booked'</code> stamp from <code>book-appointment.ts</code>; separately, <code>available-slots</code> formatted dates without a year, so the LLM had no grounding and guessed 2025 instead of 2026 on every booking, every vertical. Fixed both; corrected the existing bad row directly.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Elite live call transfer was completely broken, not just untested</span><span class="badge fix">Fixed</span></div>
+        <p>Chris tried a real Elite call expecting a live transfer — the agent just recited the phone number as text. <code>transfer_phone_number</code> isn't a real field on the Retell SDK's Agent type (grepped to confirm) — the real mechanism is a <code>transfer_call</code> tool inside the LLM's <code>general_tools</code>. Fixed, patched directly onto Northside's live agent, and confirmed on a real call: agent said "connecting you to Chris," Chris's phone actually rang. Later upgraded from cold to warm transfer with a private handoff prompt after Chris asked whether the agent could brief him before connecting — confirmed on a second real call.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Elite call recording + transcript search</span><span class="badge done">Verified</span></div>
+        <p>Hit the real search endpoint against real data — accurate results with highlighted snippets, and the recording URL confirmed actually playable (real 6.7MB audio file via a HEAD request, not a broken link).</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Client had no way to know about a new lead/booking without watching the dashboard</span><span class="badge done">Built + verified</span></div>
+        <p>The dashboard's Appointments/Leads stats are running totals — nothing signals "this one is new" to a client who isn't at a PC. Built two client-facing email alerts (not agency-facing) that fire the moment a lead or booking happens: caller name/phone/email/address, tap-to-call and mailto links, a dashboard button, and — on bookings — a universal <code>.ics</code> calendar attachment (not a Google-Calendar-only link, since the test business account is on Yahoo). Verified by driving the real webhook routes against a local dev server and confirming actual Resend delivery.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title">Rex's nurture email could contradict a booking Nova already confirmed</span><span class="badge fix">Fixed</span></div>
+        <p>Found while reviewing the new alert emails: <code>capture_lead</code> is instructed to fire "before the call ends" regardless of outcome, which in practice can land <em>after</em> <code>book_appointment</code> on a call that ends in a booking — so Rex's "we'll reach out to schedule" email could go out right after Nova already confirmed a specific time. The obvious fix (check <code>bookings.lead_id</code>) had its own gap: a booking created before the lead row exists has a null <code>lead_id</code>. Fixed by checking both <code>lead_id</code> and <code>call_id</code>; verified live against that exact failure order.</p>
+      </div>
+      <div class="item">
+        <div class="item-head"><span class="item-title"><code>caller_address</code> field clarified as "the job site, ask if it differs"</span><span class="badge done">Done</span></div>
+        <p>Old live wording ("Property or business address, if relevant") never told Ava the address is the job site, or to check whether it might differ from the caller's own property. Updated across all 8 active vertical templates (dental has no working template yet) plus Northside's already-cloned agent. A direct Retell platform config change, not a code change.</p>
+      </div>
+
+      <div class="callout">
+        <strong>Same lesson as Era 7, again:</strong> "live call transfer" and "the dashboard shows real bookings" both sat in the codebase looking finished. Both were actually broken, and both were found by using the product on a real call, not by reading the code that implements them.
+      </div>
+    </section>
+
     <!-- ═══ CURRENT STATE ═══ -->
     <section class="era" id="current-state">
       <div class="era-head"><h2>Where Things Actually Stand</h2></div>
 
       <div class="item">
-        <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed 2026-07-13</span></div>
-        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails) · <strong>per-client provisioning (agent + phone number + correct call attribution), confirmed working via a real Stripe signup for the first time</strong> · per-client LLM personalization + questionnaire-to-prompt merge, built and function-verified.</p>
+        <div class="item-head"><span class="item-title">Live and real, right now</span><span class="badge done">Confirmed 2026-07-14</span></div>
+        <p>Ava (all 9 verticals) · Rex + Nova (roofing/hvac/plumbing only) · Felix (legal only) · Stripe checkout (test mode) · admin/client role split · shared multi-vertical demo line · Funnel A email sequence (Gumloop → 3 emails) · per-client provisioning (agent + phone number + correct call attribution) · <strong>per-client LLM personalization + questionnaire-to-prompt merge, confirmed on a real signup + real call for the first time</strong> · <strong>Elite live call transfer (warm, with private handoff briefing), confirmed on real calls</strong> · Elite call recording + transcript search, confirmed against real data · client dashboard essentials (phone display, billing portal, questionnaire CTA, first-call nudge) · <strong>real-time email alerts to the client on new leads/bookings, with a universal calendar attachment on bookings</strong>.</p>
       </div>
       <div class="item">
         <div class="item-head"><span class="item-title">Known, deliberate gaps</span><span class="badge uncommitted">Open</span></div>
-        <p>Personalization (Era 7) hasn't been verified through an actual Stripe signup + live phone call yet — only at the function level. Scout has zero implementation. Dental is waitlist-only by design, and its template agent ID is currently a typo that will break onboarding the moment it launches. Stripe is test-mode only. Retell account showed a low-credits warning as of this session — check before relying on any of this.</p>
+        <p>SMS follow-up (Pro) — code exists, Twilio not configured. Admin multi-client dashboard — code exists, untested. Scout has zero implementation. Dental is waitlist-only by design and its template agent doesn't exist yet on Retell. Stripe is test-mode only. The email/phone spelling-confirmation instruction is live on all 9 templates but not yet verified on a real call. Retell account showed a low-credits warning as of Era 7 — recheck before relying on any of this.</p>
       </div>
       <div class="item">
-        <div class="item-head"><span class="item-title">Rollout status</span><span class="badge uncommitted">Paused</span></div>
-        <p>You paused the planned launch after finding errors on your own manual pass. No new launch date set — that's still your call, not a technical blocker. Era 7 fixed the specific pipeline this launch depends on, but the standing next step is a real signup + real call to confirm personalization end-to-end before treating any of it as launch-ready.</p>
+        <div class="item-head"><span class="item-title">Rollout status</span><span class="badge uncommitted">Paused — technical blockers cleared</span></div>
+        <p>No new launch date set — that's your call, not a technical one. As of Era 8, every piece of the core pipeline (provisioning, personalization, live transfer, transcript search, dashboard essentials, client alerts) has been confirmed against the real system on at least one real signup or real call, which was not true as of Era 7.</p>
       </div>
     </section>
 
     <footer class="foot">
-      Compiled 2026-07-10, updated 2026-07-13. Cross-reference: <code>truthfulness_audit_2026-07-07.md</code>, <code>pending_items.md</code>, <code>rex_nova_felix_build_brief.md</code>, <code>retell_provisioning_gaps_2026-07-13.md</code>, <code>feedback_schema_drift.md</code> (memory files) · <code>qa-runbook-funnel-testing.html</code>, <code>removed-agent-abilities-reference.html</code>, <code>QA-SECURITY-AUDIT-2026-07-12.md</code>, <code>SESSION-3-DELIVERY-SUMMARY.md</code> (docs).
+      Compiled 2026-07-10, updated 2026-07-14. Cross-reference: <code>truthfulness_audit_2026-07-07.md</code>, <code>retell_provisioning_gaps_2026-07-13.md</code>, <code>feedback_schema_drift.md</code>, <code>feedback_verify_against_live_systems.md</code> (memory files) · <code>qa-runbook-funnel-testing.html</code>, <code>removed-agent-abilities-reference.html</code>, <code>QA-SECURITY-AUDIT-2026-07-12.md</code>, <code>SESSION-3-DELIVERY-SUMMARY.md</code>, <code>architecture/ROADMAP-TO-REAL-AGENCY.md</code> (docs).
     </footer>
   </main>
 </div>
