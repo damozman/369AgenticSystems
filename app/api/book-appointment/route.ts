@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendClientBookingAlert } from '@/lib/email-sequences'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
   // duplicate row (pre-upsert-constraint data, or any future edge case) can't turn this
   // into a silent null via .maybeSingle() erroring on >1 row.
   const { data: leadRows } = callRow
-    ? await supabase.from('leads').select('id').eq('call_id', callRow.id).order('created_at', { ascending: false }).limit(1)
+    ? await supabase.from('leads').select('id, caller_name, caller_phone, caller_email, caller_address').eq('call_id', callRow.id).order('created_at', { ascending: false }).limit(1)
     : { data: null }
   const leadRow = leadRows?.[0] ?? null
 
@@ -88,6 +89,34 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${resolvedClientDomain}`)
+
+  // Alert the client (business owner) directly — the dashboard's Appointments count is a
+  // running total with nothing to signal "this one is new," so someone in the field would
+  // never know without this. Non-fatal: a failed alert shouldn't fail the booking.
+  const { data: ownerSub } = await supabase
+    .from('agent_subscriptions')
+    .select('user_email')
+    .eq('client_domain', resolvedClientDomain)
+    .maybeSingle()
+
+  if (ownerSub?.user_email) {
+    try {
+      await sendClientBookingAlert({
+        toEmail:         ownerSub.user_email,
+        callerName:      leadRow?.caller_name ?? undefined,
+        callerPhone:     leadRow?.caller_phone ?? 'unknown',
+        callerEmail:     leadRow?.caller_email ?? undefined,
+        callerAddress:   leadRow?.caller_address ?? undefined,
+        appointmentDate: appointment_date,
+        appointmentTime: appointment_time,
+        serviceType:     service_type ?? undefined,
+        location:        location ?? undefined,
+      })
+      console.log(`[BOOKING] ✓  Owner alert sent → ${ownerSub.user_email}`)
+    } catch (e) {
+      console.error('[BOOKING] Owner alert failed:', e)
+    }
+  }
 
   // Fire Nova (booking confirmation) — non-fatal, but awaited: an un-awaited fetch risks the
   // serverless function freezing before it completes (confirmed missing in production once already).

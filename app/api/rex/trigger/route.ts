@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
   const { data: lead, error: leadError } = await supabase
     .from('leads')
-    .select('id, client_domain, caller_name, caller_phone, caller_email, vertical')
+    .select('id, client_domain, caller_name, caller_phone, caller_email, vertical, call_id')
     .eq('id', lead_id)
     .maybeSingle()
 
@@ -64,6 +64,23 @@ export async function POST(request: NextRequest) {
 
   if (!lead.caller_email && !lead.caller_phone) {
     return NextResponse.json({ skipped: 'no contact method' })
+  }
+
+  // capture_lead is called "before the call ends" per Ava's tool instructions, which in
+  // practice often lands AFTER book_appointment on a call that ends in a booking. When
+  // that happens, the booking row is created before the lead row exists, so its lead_id
+  // comes back null — check by call_id too, or a booking made in that order would slip
+  // past a lead_id-only check and Rex's "we'll reach out to schedule" nurture email would
+  // fire right after Nova already confirmed a specific date/time on the same call.
+  const [{ data: bookingByLead }, { data: bookingByCall }] = await Promise.all([
+    supabase.from('bookings').select('id').eq('lead_id', lead_id).maybeSingle(),
+    lead.call_id
+      ? supabase.from('bookings').select('id').eq('call_id', lead.call_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  if (bookingByLead || bookingByCall) {
+    return NextResponse.json({ skipped: 'already booked — Nova already confirmed, nothing to nurture' })
   }
 
   const { data: existing } = await supabase

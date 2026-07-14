@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendClientLeadAlert } from '@/lib/email-sequences'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert — handles the case where call_started webhook was missed
-    const { error } = await supabase
+    const { data: endedCall, error } = await supabase
       .from('calls')
       .upsert({
         call_id:          callId,
@@ -146,6 +147,8 @@ export async function POST(request: NextRequest) {
         call_outcome:     outcome,
         captured_at:      new Date().toISOString(),
       }, { onConflict: 'call_id' })
+      .select('id')
+      .single()
 
     if (error) {
       console.error('[RETELL] ✗  Upsert failed:', error.message)
@@ -153,6 +156,45 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[RETELL] ✓  call_ended — ${callId} → ${outcome} (${durationSeconds}s) → ${clientDomain}`)
+
+    // Alert the client about a captured lead that DIDN'T end in a booking — a booking
+    // already gets its own, more specific alert from book-appointment.ts. Same reasoning
+    // as the booking alert: the dashboard's running totals don't signal "this one is new."
+    if (outcome === 'captured_lead' && clientDomain !== DEMO_DOMAIN) {
+      const { data: leadRow } = await supabase
+        .from('leads')
+        .select('caller_name, caller_phone, caller_email, caller_address, issue_description, urgency')
+        .eq('call_id', endedCall.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (leadRow) {
+        const { data: ownerSub } = await supabase
+          .from('agent_subscriptions')
+          .select('user_email')
+          .eq('client_domain', clientDomain)
+          .maybeSingle()
+
+        if (ownerSub?.user_email) {
+          try {
+            await sendClientLeadAlert({
+              toEmail:           ownerSub.user_email,
+              callerName:        leadRow.caller_name ?? undefined,
+              callerPhone:       leadRow.caller_phone ?? fromNumber ?? 'unknown',
+              callerEmail:       leadRow.caller_email ?? undefined,
+              callerAddress:     leadRow.caller_address ?? undefined,
+              issueDescription:  leadRow.issue_description ?? undefined,
+              urgency:           leadRow.urgency ?? undefined,
+            })
+            console.log(`[RETELL] ✓  Lead alert sent → ${ownerSub.user_email}`)
+          } catch (e) {
+            console.error('[RETELL] Lead alert failed:', e)
+          }
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, event, outcome })
   }
 

@@ -201,6 +201,212 @@ export async function sendOwnerNotification({
   return resend.emails.send({ from: FROM, to: OWNER_EMAIL, subject, html })
 }
 
+// ── Real-time lead/booking alerts to the CLIENT (not the agency) ──────────────
+// The dashboard's "Appointments"/"Leads" stats are running totals — nothing on
+// screen signals "this one is new." A client working in the field has no reason
+// to be watching a counter, so these fire the moment a lead or booking happens.
+
+function alertShell(kicker: string, heading: string, rows: [string, string][], footer: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  return `
+    <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;background:#0A0A0A;color:#FFFFFF;padding:40px 32px;border-radius:12px;">
+      <p style="margin:0 0 8px;font-size:11px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.15em;">
+        // ${kicker}
+      </p>
+      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#FFFFFF;">${heading}</h1>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
+        ${rows.map(([k, v]) => `
+          <tr>
+            <td style="padding:8px 0;color:#64748B;width:140px;vertical-align:top;">${k}</td>
+            <td style="padding:8px 0;color:#FFFFFF;font-weight:500;">${v}</td>
+          </tr>
+        `).join('')}
+      </table>
+      ${appUrl ? `
+      <a href="${appUrl}/client-dashboard" style="display:inline-block;background:#D4AF37;color:#0A0A0A;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;text-decoration:none;margin-bottom:20px;">
+        View in Dashboard →
+      </a>
+      ` : ''}
+      <p style="margin:0;font-size:13px;color:#475569;">${footer}</p>
+    </div>
+  `
+}
+
+function telLink(phone: string): string {
+  return `<a href="tel:${phone}" style="color:#FFFFFF;text-decoration:underline;">${phone}</a>`
+}
+
+function mailtoLink(email: string): string {
+  return `<a href="mailto:${email}" style="color:#FFFFFF;text-decoration:underline;">${email}</a>`
+}
+
+// ── .ics calendar attachment for booking alerts ────────────────────────────────
+// A universal file every calendar app can open (Yahoo, Outlook, Apple, Google) —
+// a "Add to Google Calendar" link would silently fail to be the right fit for
+// non-Google inboxes, which is exactly the account type in use here.
+
+function chicagoUTCOffsetMinutes(approxUTC: Date): number {
+  const tzName = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', timeZoneName: 'shortOffset',
+  }).formatToParts(approxUTC).find(p => p.type === 'timeZoneName')?.value ?? 'GMT-6'
+  const m = tzName.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+  if (!m) return -360
+  const sign = m[1] === '-' ? -1 : 1
+  return sign * (parseInt(m[2], 10) * 60 + (m[3] ? parseInt(m[3], 10) : 0))
+}
+
+// appointment_date/time are stored as plain wall-clock strings for Central Time
+// (matches available-slots' convention) with no offset info, so DST has to be
+// resolved per-date rather than assumed fixed.
+function parseAppointmentToUTC(dateStr: string, timeStr: string): Date {
+  const [time, meridiemRaw] = timeStr.trim().split(/\s+/)
+  const meridiem = (meridiemRaw ?? '').toUpperCase()
+  let [hh, mm] = time.split(':').map(Number)
+  if (meridiem === 'PM' && hh !== 12) hh += 12
+  if (meridiem === 'AM' && hh === 12) hh = 0
+
+  const [y, mo, d] = dateStr.split('-').map(Number)
+  const offsetMin = chicagoUTCOffsetMinutes(new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)))
+  return new Date(Date.UTC(y, mo - 1, d, hh, mm, 0) - offsetMin * 60000)
+}
+
+function icsTimestamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+}
+
+function escapeICS(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')
+}
+
+function buildBookingICS({
+  title, description, location, appointmentDate, appointmentTime,
+}: {
+  title: string
+  description: string
+  location?: string
+  appointmentDate: string
+  appointmentTime: string
+}): string {
+  const start = parseAppointmentToUTC(appointmentDate, appointmentTime)
+  const end   = new Date(start.getTime() + 60 * 60000) // 1hr default — no duration field exists yet
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//369 Agentic Systems//Booking Alert//EN',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${start.getTime()}-${Math.random().toString(36).slice(2)}@369agenticsystems.com`,
+    `DTSTAMP:${icsTimestamp(new Date())}`,
+    `DTSTART:${icsTimestamp(start)}`,
+    `DTEND:${icsTimestamp(end)}`,
+    `SUMMARY:${escapeICS(title)}`,
+    `DESCRIPTION:${escapeICS(description)}`,
+    ...(location ? [`LOCATION:${escapeICS(location)}`] : []),
+    'END:VEVENT',
+    'END:VCALENDAR',
+    '',
+  ].join('\r\n')
+}
+
+export async function sendClientBookingAlert({
+  toEmail,
+  callerName,
+  callerPhone,
+  callerEmail,
+  callerAddress,
+  appointmentDate,
+  appointmentTime,
+  serviceType,
+  location,
+}: {
+  toEmail:          string
+  callerName?:      string
+  callerPhone:      string
+  callerEmail?:     string
+  callerAddress?:   string
+  appointmentDate:  string
+  appointmentTime:  string
+  serviceType?:     string
+  location?:        string
+}) {
+  const html = alertShell(
+    'NEW APPOINTMENT BOOKED',
+    callerName ?? 'New Appointment',
+    [
+      ['Caller',   callerName ?? 'Not provided'],
+      ['Phone',    telLink(callerPhone)],
+      ...(callerEmail   ? [['Email', mailtoLink(callerEmail)] as [string, string]] : []),
+      ['When',     `${appointmentDate} at ${appointmentTime}`],
+      ...(serviceType   ? [['Service', serviceType]   as [string, string]] : []),
+      ...(location      ? [['Location', location]     as [string, string]] : []),
+      ...(callerAddress ? [['Address', callerAddress] as [string, string]] : []),
+    ],
+    'Your AI receptionist booked this automatically. Open the attached invite to add it to your calendar.'
+  )
+
+  const ics = buildBookingICS({
+    title:       `${serviceType ?? 'Appointment'} — ${callerName ?? callerPhone}`,
+    description: [
+      `Caller: ${callerName ?? 'Not provided'} (${callerPhone})`,
+      callerEmail ? `Email: ${callerEmail}` : null,
+    ].filter(Boolean).join('\\n'),
+    location: location ?? callerAddress,
+    appointmentDate,
+    appointmentTime,
+  })
+
+  return resend.emails.send({
+    from: FROM, to: toEmail,
+    subject: `📅 New appointment booked — ${callerName ?? callerPhone}`,
+    html,
+    attachments: [{
+      filename:    'appointment.ics',
+      content:     Buffer.from(ics),
+      contentType: 'text/calendar',
+    }],
+  })
+}
+
+export async function sendClientLeadAlert({
+  toEmail,
+  callerName,
+  callerPhone,
+  callerEmail,
+  callerAddress,
+  issueDescription,
+  urgency,
+}: {
+  toEmail:            string
+  callerName?:        string
+  callerPhone:        string
+  callerEmail?:       string
+  callerAddress?:     string
+  issueDescription?:  string
+  urgency?:           string
+}) {
+  const isUrgent = urgency === 'high' || urgency === 'emergency'
+  const html = alertShell(
+    isUrgent ? 'URGENT LEAD CAPTURED' : 'NEW LEAD CAPTURED',
+    callerName ?? 'New Lead',
+    [
+      ['Caller',  callerName ?? 'Not provided'],
+      ['Phone',   telLink(callerPhone)],
+      ...(callerEmail   ? [['Email', mailtoLink(callerEmail)] as [string, string]] : []),
+      ...(callerAddress ? [['Address', callerAddress]         as [string, string]] : []),
+      ...(issueDescription ? [['Issue', issueDescription]     as [string, string]] : []),
+      ...(urgency           ? [['Urgency', urgency]           as [string, string]] : []),
+    ],
+    'No appointment was booked on this call yet — call them back directly or follow up from the dashboard.'
+  )
+
+  return resend.emails.send({
+    from: FROM, to: toEmail,
+    subject: `${isUrgent ? '🚨' : '📞'} New lead — ${callerName ?? callerPhone}`,
+    html,
+  })
+}
+
 // ── Auto-activation upgrade nudge to client ───────────────────────────────────
 
 export async function sendUpgradeNudge({
