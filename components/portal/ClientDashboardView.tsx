@@ -222,7 +222,7 @@ function formatPhoneNumber(e164: string): string {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
 }
 
-function PhoneNumberCard({ phoneNumber }: { phoneNumber: string }) {
+function PhoneNumberCard({ phoneNumber, totalCalls }: { phoneNumber: string; totalCalls: number }) {
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -233,23 +233,36 @@ function PhoneNumberCard({ phoneNumber }: { phoneNumber: string }) {
 
   return (
     <div
-      className="mb-5 rounded-xl border p-4 flex items-center justify-between gap-3"
+      className="mb-5 rounded-xl border p-4"
       style={{ background: 'rgba(212,175,55,0.06)', borderColor: 'rgba(212,175,55,0.2)' }}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <Phone size={16} style={{ color: '#D4AF37' }} className="flex-shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">Your Dedicated Number</p>
-          <p className="text-lg font-bold text-[var(--text-primary)] font-mono">{formatPhoneNumber(phoneNumber)}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Phone size={16} style={{ color: '#D4AF37' }} className="flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">Your Dedicated Number</p>
+            <a href={`tel:${phoneNumber}`} className="text-lg font-bold text-[var(--text-primary)] font-mono hover:opacity-80 transition-opacity">
+              {formatPhoneNumber(phoneNumber)}
+            </a>
+          </div>
         </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-xs font-medium flex-shrink-0 px-3 py-1.5 rounded-lg border transition-colors"
+          style={{ color: '#D4AF37', borderColor: 'rgba(212,175,55,0.3)' }}
+        >
+          {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
+        </button>
       </div>
-      <button
-        onClick={handleCopy}
-        className="flex items-center gap-1.5 text-xs font-medium flex-shrink-0 px-3 py-1.5 rounded-lg border transition-colors"
-        style={{ color: '#D4AF37', borderColor: 'rgba(212,175,55,0.3)' }}
-      >
-        {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
-      </button>
+      {totalCalls === 0 && (
+        <a
+          href={`tel:${phoneNumber}`}
+          className="flex items-center gap-1.5 mt-3 pt-3 text-xs font-medium border-t"
+          style={{ color: '#D4AF37', borderColor: 'rgba(212,175,55,0.15)' }}
+        >
+          <Phone size={12} /> Try it now — call your number to hear it live →
+        </a>
+      )}
     </div>
   )
 }
@@ -356,7 +369,7 @@ export default function ClientDashboardView({
       </div>
 
       {subscription.retell_phone_number && (
-        <PhoneNumberCard phoneNumber={subscription.retell_phone_number} />
+        <PhoneNumberCard phoneNumber={subscription.retell_phone_number} totalCalls={stats.totalCalls} />
       )}
 
       {/* ── Notifications ──────────────────────────────────────────── */}
