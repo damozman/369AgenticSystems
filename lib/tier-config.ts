@@ -74,7 +74,7 @@ export const TIERS: Tier[] = [
       { label: 'Live Call Transfer (routes urgent calls to your phone in real time)' },
       { label: 'Premium Voice Quality (indistinguishable from human)', retellFeature: true, badge: 'Premium' },
       { label: 'Custom Business Intelligence', retellFeature: true, retailValue: 49, badge: 'Custom BI' },
-      { label: 'Call recording + searchable transcript archive (coming soon)' },
+      { label: 'Call recording + searchable transcript archive' },
       { label: 'Priority onboarding & dedicated support' },
     ],
     retellConfig: {
