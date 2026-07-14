@@ -87,6 +87,19 @@ Checked all 9 vertical templates directly — none had any instruction to confir
 
 ---
 
+### 1d. **A real booking existed but the dashboard showed 0 Appointments** — found by Chris circling one stat tile ✅ FIXED (2026-07-14)
+
+Chris asked what the "0 Appointments" tile meant when he knew a call had ended in a real booking. Traced it to two independent, real bugs:
+
+1. **`call_outcome` was getting silently overwritten.** `book-appointment.ts` correctly stamps `calls.call_outcome = 'booked'` in real time the moment a booking is created, mid-call — that part always worked. But `call-received`'s `call_ended` handler unconditionally *re-derives* the outcome by keyword-matching Retell's summary text and overwrites it regardless, defaulting to `'captured_lead'` if the summary doesn't happen to contain the word "booked." A real appointment silently reverted to "just a lead" the moment the call ended. Fixed: check the existing outcome first — a real booking's ground truth now always wins over the fallback guess.
+2. **The appointment was booked for the wrong year.** `available-slots` deliberately formatted its date strings without a year ("Tuesday, July 14th at 2:00 PM"), even though it computes the real date correctly server-side. That means the LLM had zero grounding for the actual current year anywhere in the conversation, and had to guess when constructing the booking — it guessed 2025, a full year off. This would have affected *every* booking, across every vertical, not just this one call. Fixed by including the year in the formatted slot strings.
+
+Corrected the existing bad data for this real booking (call outcome → `booked`, appointment year → 2026) so the dashboard reflects reality immediately, on top of fixing the underlying code.
+
+**Why this matters:** this is exactly the kind of bug that erodes trust silently — the AI told the caller "you're all set," and would have been right, except the business's own dashboard would have shown nothing scheduled and the appointment would have been dated for the wrong year. Neither the agent nor a casual glance at the dashboard would have revealed either problem — it took Chris specifically noticing a `0` that didn't match what he knew happened.
+
+---
+
 ### 2. **Real ROI dashboard per client** — RETENTION BLOCKER ✅ DONE (2026-07-11)
 **Effort:** 3–5 days · **Impact:** 8x (prevents churn) · **Do second.**
 
