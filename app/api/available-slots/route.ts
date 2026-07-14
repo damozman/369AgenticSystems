@@ -25,7 +25,12 @@ function formatSlot(date: Date, time: string): string {
   const dayOfMonth = parseInt(
     new Intl.DateTimeFormat('en-US', { ...opts, day: 'numeric' }).format(date)
   )
-  return `${weekday}, ${month} ${ordinal(dayOfMonth)} at ${time}`
+  const year = new Intl.DateTimeFormat('en-US', { ...opts, year: 'numeric' }).format(date)
+  // Year is included deliberately — without it, the LLM has no grounding for
+  // the current year anywhere in the conversation and has to guess when it
+  // later constructs book_appointment's appointment_date argument. Confirmed
+  // on a real booking: it guessed 2025 instead of the real year, 2026.
+  return `${weekday}, ${month} ${ordinal(dayOfMonth)}, ${year} at ${time}`
 }
 
 export async function GET() {

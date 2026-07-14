@@ -109,11 +109,29 @@ export async function POST(request: NextRequest) {
       ? Math.floor((endTs - startTs) / 1000)
       : null
 
-    const summary = ((call.call_summary as string) ?? '').toLowerCase()
-    let outcome = 'captured_lead'
-    if      (summary.includes('booked') || summary.includes('appointment')) outcome = 'booked'
-    else if (summary.includes('spam')   || summary.includes('hang'))        outcome = 'spam'
-    else if (summary.includes('no answer') || summary.includes('voicemail')) outcome = 'no_answer'
+    // book-appointment stamps call_outcome = 'booked' in real time, mid-call,
+    // the moment a real booking row is created — that's ground truth, more
+    // reliable than guessing from Retell's summary text. Don't let this
+    // event's keyword-matching downgrade a real booking back to a guess.
+    // Confirmed on a real call: a real appointment was booked and correctly
+    // stamped, then this upsert clobbered it back to 'captured_lead' because
+    // the summary didn't happen to contain the word "booked".
+    const { data: existingCall } = await supabase
+      .from('calls')
+      .select('call_outcome')
+      .eq('call_id', callId)
+      .maybeSingle()
+
+    let outcome: string
+    if (existingCall?.call_outcome === 'booked') {
+      outcome = 'booked'
+    } else {
+      const summary = ((call.call_summary as string) ?? '').toLowerCase()
+      outcome = 'captured_lead'
+      if      (summary.includes('booked') || summary.includes('appointment')) outcome = 'booked'
+      else if (summary.includes('spam')   || summary.includes('hang'))        outcome = 'spam'
+      else if (summary.includes('no answer') || summary.includes('voicemail')) outcome = 'no_answer'
+    }
 
     // Upsert — handles the case where call_started webhook was missed
     const { error } = await supabase
