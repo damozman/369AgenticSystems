@@ -43,10 +43,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`[QUESTIONNAIRE] ✓ Saved for ${client_domain}`)
 
-    // Trigger KB sync in background (don't wait for it)
-    syncQuestionnaireToKB(client_domain).catch(e => {
-      console.error(`[QUESTIONNAIRE] Background KB sync failed:`, e)
-    })
+    // Awaited, not fire-and-forget: on Vercel's serverless runtime a function
+    // can freeze as soon as it returns a response, so an un-awaited call risks
+    // never actually completing. Confirmed via a real signup — the questionnaire
+    // saved correctly but the prompt merge silently never ran until awaited.
+    // Non-fatal: the questionnaire itself is already saved above; if this fails,
+    // the sync-questionnaire-kb cron will retry it (kb_uploaded_at stays null).
+    try {
+      await syncQuestionnaireToKB(client_domain)
+    } catch (e) {
+      console.error(`[QUESTIONNAIRE] KB sync failed:`, e)
+    }
 
     return NextResponse.json({ success: true, message: 'Questionnaire saved' })
   } catch (e) {
