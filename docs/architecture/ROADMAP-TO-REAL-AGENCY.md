@@ -44,7 +44,7 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 **Why this is #1:** Without this, every client is an hour of manual work. That kills margins and your ability to scale. This is the difference between "indie project" and "company."
 
-**Current state:** ✅ Genuinely done and verified 2026-07-13, after being marked done-but-broken on 2026-07-11 (see correction note at top of this doc). A real Stripe test signup now correctly: creates a real Retell agent with a personalized greeting on its own LLM (not shared with other customers), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, and attributes inbound calls to the right customer instead of the shared demo account. Welcome email confirmed still wired to send. Standing gap: the deeper questionnaire → agent-context personalization is built and function-tested but not yet confirmed via an actual signup + live call — that's the next verification step, not a build step.
+**Current state:** ✅ Genuinely done and verified 2026-07-13/14, after being marked done-but-broken on 2026-07-11 (see correction note at top of this doc). A real Stripe test signup (leakfree.com) confirmed the full chain: creates a real Retell agent with a personalized greeting on its own LLM ("Thank you for calling Leakfree Roofing Company"), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, attributes inbound calls to the right customer, and — the last open piece — **the questionnaire's business context actually shapes live call behavior**, not just the stored prompt. Confirmed on a real call: caller mentioned price-shopping and asked about warranty; agent responded with the exact 25-year warranty, "we work around your schedule," and "$10,000 and up" language straight from the questionnaire, and handled the price objection smoothly per the questionnaire's guidance. Found and fixed one more bug getting here — `/api/questionnaire/submit` fired the prompt-merge sync without awaiting it, so it silently never completed on Vercel's serverless runtime (same bug class as the historical Nova fire-and-forget issue). Nothing outstanding on this item.
 
 ---
 
@@ -215,7 +215,7 @@ These were floated in early planning. True value, but not core to feeling like a
 - [ ] Client dashboard: "call your number now" nudge for new customers
 - [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
-- [ ] Verify personalization end-to-end with a real signup before treating it as done — IN PROGRESS, current session
+- [x] Verify personalization end-to-end with a real signup ✅ DONE 2026-07-14 — confirmed on a real call, agent used the exact questionnaire content (warranty, scheduling, pricing) when handling a real objection. Found + fixed one more bug in the process (unawaited KB sync).
 
 **Month 2 (after validating core):**
 - [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured
