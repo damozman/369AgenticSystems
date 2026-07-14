@@ -60,9 +60,10 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 **What's done (2026-07-13):**
 - ✅ Phone number now shown prominently in the dashboard header with a copy button (`PhoneNumberCard` in `ClientDashboardView.tsx`)
 - ✅ Status banner fixed — new customers now see a neutral "Receptionist Live — waiting for your first call" instead of the contradictory forwarding message
+- ✅ Welcome email had no way back to the dashboard at all if you didn't click the questionnaire CTA — found live, mid-test. Added a secondary "Access your dashboard" link to `/login`.
+- ✅ Questionnaire completion folded into the existing "Getting Started" checklist as its own step — sourced from real `client_questionnaires.completed_at`, with a "Complete now →" link when not done (the one step in that checklist a customer can actually act on directly)
 
 **Still to build:**
-- [ ] Questionnaire completion status/CTA on the dashboard (card that disappears once `client_questionnaires.completed_at` is set)
 - [ ] Billing/subscription management link (Stripe customer portal)
 - [ ] "Call your number now to hear it live" nudge for brand-new customers
 
@@ -208,12 +209,13 @@ These were floated in early planning. True value, but not core to feeling like a
 
 **Week 3–4 (first 3 clients live):**
 - [x] Client dashboard: phone number display + fixed contradictory status banner ✅ DONE 2026-07-13
-- [ ] Client dashboard: questionnaire completion CTA
+- [x] Client dashboard: questionnaire completion CTA (folded into Getting Started checklist) ✅ DONE 2026-07-13
+- [x] Welcome email: missing dashboard-access link ✅ DONE 2026-07-13 (found live, mid-test)
 - [ ] Client dashboard: billing/subscription management link
 - [ ] Client dashboard: "call your number now" nudge for new customers
 - [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
-- [ ] Verify personalization end-to-end with a real signup before treating it as done
+- [ ] Verify personalization end-to-end with a real signup before treating it as done — IN PROGRESS, current session
 
 **Month 2 (after validating core):**
 - [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured
