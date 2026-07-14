@@ -48,7 +48,7 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 
 ---
 
-### 1b. **Client dashboard essentials** — FIRST-DAY EXPERIENCE GAP (found 2026-07-13)
+### 1b. **Client dashboard essentials** — FIRST-DAY EXPERIENCE GAP ✅ DONE (2026-07-13/14)
 **Effort:** ~1–2 days · **Impact:** High — this is the first thing a real customer sees after paying.
 
 **The problem:** Found by actually testing a real signup end-to-end (Watertown Roofing) rather than reading the code. Four real gaps:
@@ -64,9 +64,9 @@ Claude Web's original direction pitched a full digital workforce (5+ agents, doc
 - ✅ Questionnaire completion folded into the existing "Getting Started" checklist as its own step — sourced from real `client_questionnaires.completed_at`, with a "Complete now →" link when not done (the one step in that checklist a customer can actually act on directly)
 - ✅ "Call your number now to hear it live" nudge — tap-to-call phone number, nudge shown only until the first real call lands
 - ✅ Preferred area code at checkout — Chris asked if customers could already do this; they couldn't, the webhook read a custom field that no live Payment Link actually had configured (Stripe caps custom fields at 3, all 3 slots were taken by business name/domain/phone). Fixed by moving phone collection to Stripe's native `phone_number_collection` setting, freeing the 3rd slot for `preferred_area_code`. All 3 live Payment Links updated + verified via the Stripe API. Not yet confirmed with a real checkout that `customer_details.phone` populates as expected — do that on the next signup.
+- ✅ Billing/subscription management link — `agent_subscriptions.stripe_customer_id` now captured from the checkout webhook (needs the migration in `supabase/migrations/2026-07-14-stripe-customer-id.sql` run manually), new `GET /api/billing-portal` route creates a real Stripe Billing Portal session and redirects. Verified the account's portal is actually configured (a separate one-time Stripe-side requirement) by creating a real session against a known customer ID — succeeded. Link added to the dashboard footer. **Not yet verified end-to-end with a real logged-in customer clicking the link** — existing test subscriptions predate this field, so this needs a fresh signup to fully confirm.
 
-**Still to build:**
-- [ ] Billing/subscription management link (Stripe customer portal) — IN PROGRESS
+All four original gaps closed, plus two more found along the way (missing dashboard link in the welcome email, preferred area code never actually reachable). Nothing left on this item except the one real-signup verification noted above.
 
 **Why this matters:** these are things a real, paying customer needs on day one, not nice-to-haves. Found the same way everything else this week was found — by actually using the product, not reading the code.
 
@@ -212,8 +212,9 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Client dashboard: phone number display + fixed contradictory status banner ✅ DONE 2026-07-13
 - [x] Client dashboard: questionnaire completion CTA (folded into Getting Started checklist) ✅ DONE 2026-07-13
 - [x] Welcome email: missing dashboard-access link ✅ DONE 2026-07-13 (found live, mid-test)
-- [ ] Client dashboard: billing/subscription management link
-- [ ] Client dashboard: "call your number now" nudge for new customers
+- [x] Client dashboard: billing/subscription management link ✅ DONE 2026-07-14 (Stripe Billing Portal, needs one real signup to fully verify the click-through)
+- [x] Client dashboard: "call your number now" nudge for new customers ✅ DONE 2026-07-14
+- [x] Checkout: preferred area code actually reachable ✅ DONE 2026-07-14 (found via Chris asking — was never wired to a real Payment Link field)
 - [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [x] Verify personalization end-to-end with a real signup ✅ DONE 2026-07-14 — confirmed on a real call, agent used the exact questionnaire content (warranty, scheduling, pricing) when handling a real objection. Found + fixed one more bug in the process (unawaited KB sync).
