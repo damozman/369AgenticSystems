@@ -146,7 +146,7 @@ Owner gets an incoming call. Ava qualifies them, then routes the call live to ow
 
 ---
 
-### 5. **Elite: Call recording + transcript search**
+### 5. **Elite: Call recording + transcript search** ✅ VERIFIED WORKING (2026-07-14)
 **Effort:** 3–4 days · **Impact:** 4x on Elite perceived value
 
 Store call recordings in Supabase. Build a search UI: owner searches for keyword (e.g., "roof replacement"), sees all calls with that phrase, filters by outcome (booked vs. no-answer).
@@ -154,6 +154,8 @@ Store call recordings in Supabase. Build a search UI: owner searches for keyword
 Use case: owner trains their team on what language closed deals, what language lost them.
 
 **Why:** This is the "second brain" feature. Most agencies don't have this. It's a real differentiator.
+
+**Verified directly against production, real data (Northside Roofing):** hit `/api/search-transcripts` with query "leak" — got back 2 accurate results with correct transcripts and highlighted snippets. Confirmed the recording URL isn't just present but actually playable — HEAD request returned a real 6.7MB audio file, not a broken link. The dashboard's empty search box (no results shown before typing anything) is correct by design, not a bug — Chris flagged it as a question, confirmed it's the intended search-first UI.
 
 ---
 
@@ -233,7 +235,7 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Client dashboard: "call your number now" nudge for new customers ✅ DONE 2026-07-14
 - [x] Checkout: preferred area code actually reachable ✅ DONE 2026-07-14 (found via Chris asking — was never wired to a real Payment Link field)
 - [x] Live call transfer (Elite) ✅ FULLY VERIFIED 2026-07-14 — was actually broken, not just untested (agent-level field that doesn't exist in the real SDK). Fixed, confirmed on a real call: caller described an emergency, agent said "connecting you to Chris," Chris actually received the call.
-- [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
+- [x] Call recording + search (Elite) ✅ VERIFIED 2026-07-14 — real search against real data returned accurate results, recording URL confirmed actually playable (real 6.7MB audio file, not a broken link)
 - [x] Verify personalization end-to-end with a real signup ✅ DONE 2026-07-14 — confirmed on a real call, agent used the exact questionnaire content (warranty, scheduling, pricing) when handling a real objection. Found + fixed one more bug in the process (unawaited KB sync).
 
 **Month 2 (after validating core):**
