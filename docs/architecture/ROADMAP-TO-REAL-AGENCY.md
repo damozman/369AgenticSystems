@@ -120,6 +120,24 @@ Both sent to `agent_subscriptions.user_email` — the same address the client lo
 
 ---
 
+### 1f. **Rex/Nova now live for all 9 verticals** — closes the biggest gap in the launch plan ✅ DONE (2026-07-14)
+
+The master launch plan calls for all 9 verticals launching together, with Real Estate as the #2 sales priority — but Rex/Nova follow-up (Pro tier's whole differentiator) only worked for roofing/hvac/plumbing. Checked the actual code rather than trust item 3's old "DONE" claim: Rex already had complete email+SMS content for all 9 verticals, real-estate included — it was just never switched on (`REX_VERTICALS` only listed 3). Nova was the real gap: its vertical type was hard-restricted to 3, with zero config for the rest.
+
+Nova's architecture turned out to make this a config change, not a content-writing project — it generates the confirmation body live via Claude from a vertical-parameterized prompt rather than hand-written per-vertical copy. Added `VERTICAL_COPY` entries (label/color/visitNoun) for the remaining 6 verticals and flipped both `REX_VERTICALS` and `NOVA_VERTICALS` to all 9. Verified live for real-estate and saas — both fired correctly end-to-end through the real routes.
+
+**Standing item:** dental has content and is now switched on, but its template agent doesn't exist on Retell yet (separate, known, deliberately-deferred issue) — harmless until a real dental customer exists.
+
+---
+
+### 1g. **Real post-payment page** — customer got Stripe's generic confirmation, not ours ✅ DONE (2026-07-14)
+
+An old checklist item flagged an "unresolved `/onboarding-complete` redirect" — checked directly against Stripe and found that wasn't quite right either: none of the 3 live Payment Links redirected there at all (the page didn't exist), they were all using Stripe's default hosted confirmation screen. Not broken, just a missed chance to drop the customer straight into the product at the moment they're most engaged.
+
+Built `app/onboarding-complete/page.tsx` — reads business name/domain/email directly off the Stripe session (available the instant checkout completes, no dependency on our own webhook having finished provisioning yet, since there's no guaranteed ordering between the two), shows the phone number if it's already provisioned or a "still on the way" message if not, and links straight to the questionnaire. Updated all 3 live Payment Links to actually redirect here. Verified against a real completed session from tonight's Northside Roofing signup — real business name, real phone number, correct link, all rendered correctly — plus the no-session/invalid-session fallback paths.
+
+---
+
 ### 2. **Real ROI dashboard per client** — RETENTION BLOCKER ✅ DONE (2026-07-11)
 **Effort:** 3–5 days · **Impact:** 8x (prevents churn) · **Do second.**
 
