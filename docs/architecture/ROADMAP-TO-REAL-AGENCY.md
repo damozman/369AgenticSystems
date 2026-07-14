@@ -133,14 +133,16 @@ Checked all 9 vertical templates directly — none had any instruction to confir
 
 ## Then: Build Real Tier Features (in this order)
 
-### 4. **Elite: Live call transfer**
+### 4. **Elite: Live call transfer** — CODE WAS BROKEN, NOT JUST UNTESTED ✅ FIXED (2026-07-14)
 **Effort:** 2 days · **Impact:** 5x on Elite conversion
 
 Owner gets an incoming call. Ava qualifies them, then routes the call live to owner's phone right now (with fallback voicemail after 30s).
 
-Retell supports this natively. Wire it up in the dashboard as an Elite opt-in toggle.
+**What actually happened:** Chris tried this on a real Elite call (Northside Roofing) expecting a live transfer — instead the agent just recited the owner's phone number as text. Confirmed directly against the live agent: `transfer_phone_number` was `undefined` even though `provisionRetellAgent()` was setting it, and there was no `transfer_call` tool registered at all. Grepped the real retell-sdk Agent type — `transfer_phone_number` isn't a field anywhere in it. Same root pattern as the other Retell integration bugs this session (wrong phone endpoint, fake KB endpoint): a plausible field name that was never checked against the real SDK.
 
-**Why:** This is the feature that justifies Elite's $750/mo price. It's the jump from "AI handles simple calls" to "AI gets expert help for complex calls."
+**Real mechanism:** a `TransferCallTool` entry in the LLM's `general_tools` array (same place as `capture_lead`/`book_appointment`), not an agent-level field. Fixed in `lib/retell-provisioning.ts` — `cloneAgentLlm()` now adds a `transfer_call` tool (cold transfer, 30s ring) when provisioning an Elite client with an owner phone. Verified by running the real provisioning function against the live API and confirming the tool registered correctly via re-fetch. **Not yet verified with an actual live phone transfer** — needs a real call from a fresh Elite signup to confirm the transfer itself connects, not just that the tool exists.
+
+**Why:** This is the feature that justifies Elite's $750/mo price. It's the jump from "AI handles simple calls" to "AI gets expert help for complex calls." It had never worked for any Elite signup until this fix.
 
 ---
 
@@ -230,7 +232,7 @@ These were floated in early planning. True value, but not core to feeling like a
 - [x] Client dashboard: billing/subscription management link ✅ DONE 2026-07-14 (Stripe Billing Portal, needs one real signup to fully verify the click-through)
 - [x] Client dashboard: "call your number now" nudge for new customers ✅ DONE 2026-07-14
 - [x] Checkout: preferred area code actually reachable ✅ DONE 2026-07-14 (found via Chris asking — was never wired to a real Payment Link field)
-- [ ] Live call transfer (Elite) — code exists (Session 3), untested per the standing testing runbook
+- [x] Live call transfer (Elite) ✅ FIXED 2026-07-14 — was actually broken, not just untested (agent-level field that doesn't exist in the real SDK, no transfer_call tool ever registered). Fixed, verified via re-fetch. Not yet verified with an actual live phone transfer.
 - [ ] Call recording + search (Elite) — code exists (Session 3), untested per the standing testing runbook
 - [x] Verify personalization end-to-end with a real signup ✅ DONE 2026-07-14 — confirmed on a real call, agent used the exact questionnaire content (warranty, scheduling, pricing) when handling a real objection. Found + fixed one more bug in the process (unawaited KB sync).
 
