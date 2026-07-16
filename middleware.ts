@@ -5,7 +5,10 @@ import { isAdminEmail } from '@/lib/admin'
 
 // Admin Command Center routes — everything else under (portal) is client-dashboard,
 // open to any authenticated user (its own page scopes data by the logged-in email).
-const ADMIN_ONLY_PREFIXES = ['/dashboard', '/workforce', '/intelligence', '/history', '/receptionist']
+// /admin was missing here entirely — the (portal) layout only checks "is anyone
+// logged in," not "is this specifically the admin," so any real client could
+// navigate straight to /admin and see every other client's revenue and churn data.
+const ADMIN_ONLY_PREFIXES = ['/dashboard', '/workforce', '/intelligence', '/history', '/receptionist', '/admin']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
@@ -50,5 +53,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/workforce/:path*', '/intelligence/:path*', '/history/:path*', '/receptionist/:path*', '/client-dashboard/:path*'],
+  matcher: ['/dashboard/:path*', '/workforce/:path*', '/intelligence/:path*', '/history/:path*', '/receptionist/:path*', '/client-dashboard/:path*', '/admin/:path*'],
 }
