@@ -66,6 +66,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ skipped: 'no contact method' })
   }
 
+  // Rex is a Pro/Elite feature — Starter gets Ava (answers, books) and Nova (booking
+  // confirmation, itself a Starter-tier feature per tier-config.ts) but not automated
+  // lead nurture. This wasn't previously enforced anywhere in code, so every Starter
+  // customer's leads were silently getting the exact same follow-up sequence Pro pays
+  // $200/mo more for. Not a regression for Starter customers, though — the real-time
+  // lead alert (unconditional, every tier) already tells the owner about every lead
+  // instantly, so nothing goes silently missing; they just don't get Rex chasing it
+  // for them automatically. No subscription row at all (e.g. the shared demo line)
+  // behaves as before — only an explicit Starter tier gets skipped here.
+  const { data: subscription } = await supabase
+    .from('agent_subscriptions')
+    .select('tier')
+    .eq('client_domain', lead.client_domain)
+    .maybeSingle()
+
+  if (subscription?.tier === 'Starter') {
+    return NextResponse.json({ skipped: 'Starter tier — Rex follow-up is Pro/Elite only' })
+  }
+
   // capture_lead is called "before the call ends" per Ava's tool instructions, which in
   // practice often lands AFTER book_appointment on a call that ends in a booking. When
   // that happens, the booking row is created before the lead row exists, so its lead_id
