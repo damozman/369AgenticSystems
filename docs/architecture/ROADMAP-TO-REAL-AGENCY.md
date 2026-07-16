@@ -303,7 +303,7 @@ These were floated in early planning. True value, but not core to feeling like a
 
 **Month 2 (after validating core):**
 - [ ] SMS follow-up (Pro) — code exists (Session 3), untested; Twilio not confirmed configured
-- [ ] Admin multi-client dashboard — code exists (Session 3), untested
+- [x] Admin multi-client dashboard — code exists (Session 3), was untested. Investigating it 2026-07-16 surfaced a real, live production bug: `/admin` was missing from `middleware.ts`'s admin-only route gate entirely — the `(portal)` layout only checks "is anyone logged in," not "is this specifically the admin," so any real logged-in client could have navigated straight to `/admin` and seen every other client's revenue, MRR, and churn-risk data. Fixed (one-line addition, same pattern already protecting 5 other admin routes). Verified with real Supabase sessions: the real admin (`chris@369agenticsystems.com`) still gets in cleanly, a real client session (Northside's login) now correctly bounces to `/client-dashboard`. Also verified the dashboard's actual output against real data — every figure (1 client, 3 calls, $2.3K revenue protected, $750 MRR) matched hand-computed values from the same Supabase tables. Genuinely done now, not just "code exists."
 
 ---
 
