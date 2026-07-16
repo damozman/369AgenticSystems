@@ -1,7 +1,7 @@
 # Onboarding Questionnaire + Knowledge Base Integration Plan
 **Detailed design for post-checkout client vetting → Retell agent context**
 
-Last updated: 2026-07-11 | Status: **SUPERSEDED 2026-07-13 — see note below**
+Last updated: 2026-07-11 | Status: **SUPERSEDED 2026-07-13, fully built and verified — historical planning record, no open to-dos.** Re-checked 2026-07-16: every file this doc describes still exists and does what the correction note below says. See note below for what actually shipped.
 
 > **2026-07-13:** This doc got built roughly as planned, but Part 4.6's Retell KB
 > API (`POST /v2/agents/{agent_id}/knowledge-base`) doesn't exist — it was never
@@ -268,16 +268,16 @@ Next incoming call: agent searches KB automatically
 
 ---
 
-### 4.5 Code locations (what we'll build)
+### 4.5 Code locations (2026-07-16: all built and verified, re-checked directly against the real files)
 
 | What | Where | Status |
 |---|---|---|
-| Questionnaire form React component | `app/onboarding/questionnaire/[domain]/page.tsx` | TBD |
-| Form submission API | `app/api/questionnaire/submit` | TBD |
-| Questionnaire → KB transformer | `lib/questionnaire-to-kb.ts` | TBD |
-| KB upload to Retell | `lib/retell-kb-sync.ts` | TBD |
-| Cron trigger (or webhook) | `app/api/cron/sync-questionnaire-kb` | TBD |
-| Supabase schema | `supabase/schema.sql` (new table) | TBD |
+| Questionnaire form React component | `app/onboarding/questionnaire/[domain]/page.tsx` | ✅ Built |
+| Form submission API | `app/api/questionnaire/submit` | ✅ Built — awaits the sync (was fire-and-forget, fixed 2026-07-13) |
+| Questionnaire → transform | `lib/questionnaire-to-kb.ts` (`questionnaireToKB()`) | ✅ Built, confirmed still imported and used |
+| Merge into agent's real LLM prompt | `lib/retell-kb-sync.ts` (`syncQuestionnaireToKB()`) | ✅ Built — not a KB upload (see correction note above), merges into `general_prompt` idempotently |
+| Cron retry (safety net, not the primary trigger) | `app/api/cron/sync-questionnaire-kb` | ✅ Built, confirmed still calls the real sync function for any questionnaire with `completed_at` set but `kb_uploaded_at` still null |
+| Supabase schema | `supabase/schema.sql` (`client_questionnaires` table) | ✅ Built |
 
 ---
 
@@ -360,39 +360,14 @@ So you're not locked in — this is v1, and data will tell us what to improve.
 
 ---
 
-## OPEN QUESTIONS FOR CHRIS
+## HOW THESE QUESTIONS WERE ACTUALLY RESOLVED (2026-07-16, historical record)
 
-Before we build, clarify:
+These 5 questions were open before the build; here's what shipped, for the record:
 
-1. **Timing of questionnaire:** 
-   - Send immediately in welcome email (day 0)?
-   - Or wait 24 hours so they've settled?
-   - Or in a separate "onboarding checklist" page in the portal?
+1. **Timing:** Immediately in the welcome email (day 0) — a "Complete Questionnaire (5 min)" CTA, plus a secondary "Access your dashboard" link for anyone who wants to explore first. Also folded into the dashboard's own onboarding checklist as a trackable step (added 2026-07-13), and now also linked directly from the real post-payment page (`/onboarding-complete`, built 2026-07-14) before the welcome email even arrives.
+2. **Urgency:** Optional, exactly as this doc originally leaned — all fields optional, no hard gate. The dashboard checklist surfaces a "Complete now →" link if it's not done, rather than blocking anything.
+3. **KB refresh:** Auto-refresh on edit — resubmitting the form re-triggers the sync every time, idempotently (marker-delimited replace, not append), plus the cron retry catches anything that failed.
+4. **Vertical customization:** Same questionnaire form for all 9 verticals — no per-vertical question variants were built, and nothing since has surfaced a need for them.
+5. **Tweak later:** Just re-fill the form — no separate "Edit Agent Instructions" page exists or was needed; the same submit endpoint handles both first-fill and edits.
 
-2. **Questionnaire urgency:**
-   - Optional (nice to have)? → KB just sits empty if they skip
-   - Quasi-required? → Gentle reminder if not filled in 24 hrs?
-
-3. **KB refresh:**
-   - One-time upload after checkout?
-   - Or auto-refresh if they edit questionnaire later?
-   - Or manual "Update Agent Context" button in portal?
-
-4. **Vertical customization:**
-   - Same questionnaire for all 9 verticals?
-   - Or different questions per vertical (roofing vs. legal vs. SaaS)?
-
-5. **What if they want to tweak their KB later?**
-   - Just re-fill the questionnaire form?
-   - Or separate "Edit Agent Instructions" page in portal?
-
----
-
-## NEXT STEPS
-
-Once you answer those 5 questions, I'll:
-1. Design the exact form (which questions, in what order, conditional logic if any)
-2. Scope the Retell API calls precisely (what fields map to what KB structure)
-3. Build it all end-to-end
-
-Sound good?
+No open questions remain on this feature.
