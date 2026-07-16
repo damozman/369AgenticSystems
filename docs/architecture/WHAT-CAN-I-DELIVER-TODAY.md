@@ -41,8 +41,11 @@ You can sell and deliver **Starter, Pro, and Elite honestly, today, across all 9
 |---|---|---|---|---|
 | Roofing, HVAC, Plumbing | ✅ Live | ✅ Live | ✅ Live | — |
 | Legal | ✅ Live | ✅ Live | ✅ Live | Felix ✅ live (conflict check) |
-| Real Estate, Insurance, SaaS, Wholesale | ✅ Live | ✅ Live | ✅ Live | Scout planned, SaaS only |
+| Real Estate, Insurance, Wholesale | ✅ Live | ✅ Live | ✅ Live | — |
+| SaaS | ✅ Live (technically) | ✅ Live | ✅ Live | Scout planned |
 | Dental | Waitlist — nothing live | Content exists, agent doesn't | Content exists, agent doesn't | — |
+
+**SaaS deprioritized from active promotion, 2026-07-16** — don't lead a sales call with it. The underlying product still works, but Chris's call: phone answering is a weak fit for SaaS since phone isn't their primary lead channel. Removed from every public vertical selector (homepage, `/founding`, SEO/structured data) — the page itself and the `/saas` funnel stay live and reachable, just not promoted. Revisit Month 3-4 with a webhook-triggered trial/demo follow-up repositioning instead of call-answering. Full note: `pending_items.md` (memory).
 
 **Closed 2026-07-14:** Rex/Nova now live in all 9 verticals — verified live for real-estate and saas specifically, mechanically identical for the rest since Nova generates its confirmation copy live via Claude rather than per-vertical hand-written templates. A Pro/Elite sale in any launched vertical now delivers what it promises. Dental is the one deliberate exception — content is ready, but its template agent doesn't exist on Retell yet and it's staying waitlist-only by design.
 
