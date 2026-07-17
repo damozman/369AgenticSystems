@@ -13,7 +13,7 @@
 
 ## The short version
 
-You can sell and deliver **Starter, Pro, and Elite honestly, today, across all 9 verticals.** 24/7 call answering, real per-client personalization, live call transfer and transcript search (Elite), Rex/Nova follow-up and confirmation (Pro/Elite, now genuinely live everywhere, not just roofing/HVAC/plumbing), and real-time lead/booking alerts to the client — all confirmed against the real system, most of it on real calls or a real signup. The one deliberate, known exception is dental (waitlist-only by design, not part of this launch). Stripe is still in test mode — that's the one remaining gate before real money moves, and it's a decision, not a bug.
+You can sell and deliver **Starter, Pro, and Elite honestly, today, across 8 actively-promoted verticals** (roofing, HVAC, plumbing, legal, real estate, insurance, wholesale, plus SaaS which is technically live but deliberately pulled from promotion — see below). 24/7 call answering, real per-client personalization, live call transfer and transcript search (Elite), and real-time lead/booking alerts to the client, all confirmed against the real system. Nova's booking confirmation is genuinely a Starter feature; Rex's automated 3-step follow-up is genuinely Pro/Elite-exclusive as of 2026-07-16 (it fired on every tier by mistake until then — fixed). The one deliberate, known exception is dental (waitlist-only by design, not part of this launch). Stripe is still in test mode — that's the one remaining gate before real money moves, and it's a decision, not a bug.
 
 ---
 
@@ -84,3 +84,5 @@ As of 2026-07-13, a Stripe payment automatically provisions a real, dedicated Re
 8. ~~Check Retell account credit balance~~ — done 2026-07-14: Chris checked directly on Retell's dashboard, topped up the balance, and cross-verified the day's usage against the numbers reported mid-session — matched.
 9. Confirm the email/phone spelling-accuracy instruction (added 2026-07-14) actually changes agent behavior on a real call, not just sitting unused in the prompt. **Still open — needs a real test call.**
 10. Twilio still isn't configured — Pro-tier SMS follow-up and any future SMS-based client alerts are blocked on this, not on code. **Still open, not urgent.**
+11. ~~Rex was firing on every tier, not just Pro/Elite~~ — fixed 2026-07-16, verified live with a temporary Starter-tier test subscription (correctly skipped) and a regression check against a real Elite subscription (still fires normally).
+12. ~~Admin dashboard reachable by any logged-in client~~ — fixed 2026-07-16, verified with real Supabase sessions. Not customer-facing, doesn't change what's sellable, but was a real exposure until fixed.
