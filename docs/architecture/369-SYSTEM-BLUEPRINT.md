@@ -18,7 +18,7 @@ Last rewritten: 2026-07-10, refreshed 2026-07-16 (the 2026-07-10 version's agent
 - Elite — $750/mo
 - + $1,500 one-time setup fee
 
-**The 9 verticals:** roofing, hvac, plumbing, legal, real-estate, insurance, saas, wholesale, dental (dental is waitlist-only — see below).
+**The 9 verticals:** roofing, hvac, plumbing, legal, real-estate, insurance, saas, wholesale, dental (dental is waitlist-only — see below; saas is fully built and live but deliberately deprioritized from active promotion as of 2026-07-16 — the page and funnel still work, just unlinked from marketing. See `pending_items.md` in memory and item under "Known, deliberate gaps" in the changelog).
 
 ---
 
