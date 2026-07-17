@@ -138,6 +138,18 @@ Built `app/onboarding-complete/page.tsx` — reads business name/domain/email di
 
 ---
 
+### 1h. **Rex follow-up wasn't actually tier-gated** — Starter customers got Pro's headline feature for free ✅ FIXED (2026-07-16)
+
+Came up while building a capabilities-per-vertical list for Chris to review: Rex (the automated 3-step lead nurture) has never been tier-checked anywhere in code, despite `tier-config.ts` positioning it as Pro's headline differentiator ("Everything in Starter, plus: Automated 3-step follow-up sequence"). Every Starter customer's leads were silently getting the exact same treatment Pro customers pay $200/mo more for — the only *actually enforced* Starter-vs-Pro difference was Enhanced Voice Quality and priority email support.
+
+Nova (booking confirmation) was deliberately left alone — `tier-config.ts` already lists "Email booking confirmations" as a genuine Starter feature, so Nova firing on every tier was correctly matching its own promise; only Rex needed the gate.
+
+Chris's call on the follow-up question ("should Starter get some lighter fallback?"): no, straight cutoff. The real-time lead alert (item 1e, fires unconditionally on every tier) already tells the owner about every lead the instant it's captured, so nothing goes silently missing on Starter — they just don't get Rex chasing it for them automatically. A partial/lighter Rex on Starter would have undercut the whole point of the gate.
+
+Verified live: a temporary Starter-tier test subscription correctly gets skipped (`"Starter tier — Rex follow-up is Pro/Elite only"`), and Northside Roofing's real Elite subscription still fires Rex normally — no regression. Test subscription and data cleaned up after.
+
+---
+
 ### 2. **Real ROI dashboard per client** — RETENTION BLOCKER ✅ DONE (2026-07-11)
 **Effort:** 3–5 days · **Impact:** 8x (prevents churn) · **Do second.**
 

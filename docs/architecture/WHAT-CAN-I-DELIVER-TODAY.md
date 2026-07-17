@@ -29,8 +29,8 @@ You can sell and deliver **Starter, Pro, and Elite honestly, today, across all 9
 
 | Tier | Price | What's actually included |
 |---|---|---|
-| **Starter** | $400/mo + $1,500 setup | Ava answers calls 24/7, qualifies, books, personalized to the business via the onboarding questionnaire. Real-time dashboard with phone number, billing portal, questionnaire tracking. Real-time email alert to the client on every new lead/booking (with calendar invite on bookings). HD call quality (real Retell feature). Daily email summary. |
-| **Pro** | $600/mo | Everything in Starter, **plus Rex/Nova follow-up + confirmation email — now live in all 9 verticals**, not just roofing/HVAC/plumbing (closed 2026-07-14). Plus real Enhanced Voice Quality. |
+| **Starter** | $400/mo + $1,500 setup | Ava answers calls 24/7, qualifies, books, personalized to the business via the onboarding questionnaire. **Nova sends the caller a booking confirmation email** (genuinely a Starter feature, not Pro-gated). Real-time dashboard with phone number, billing portal, questionnaire tracking. Real-time email alert to the client on every new lead/booking (with calendar invite on bookings). HD call quality (real Retell feature). Daily email summary. **Does not include Rex follow-up** (gated 2026-07-16 — previously fired on every tier by mistake). |
+| **Pro** | $600/mo | Everything in Starter, **plus Rex's automated 3-step lead-nurture follow-up** — now genuinely gated to Pro/Elite only (fixed 2026-07-16; previously fired for Starter too, for free) and live in all 9 verticals (closed 2026-07-14). Plus real Enhanced Voice Quality. |
 | **Elite** | $750/mo | Everything in Pro, plus **live call transfer** (warm transfer with a private handoff briefing to the owner — confirmed on real calls), **call recording + searchable transcript archive** (confirmed against real data), Premium Voice Quality and Retell's Custom Business Intelligence (real, bundled Retell features), and priority onboarding/support. Both headline Elite features were completely broken until 2026-07-14 — confirm this note is still current before quoting Elite. |
 
 ---
