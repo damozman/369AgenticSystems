@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
   <!-- Guarantee -->
   <div style="padding:16px 20px;background:rgba(74,222,128,0.04);border:1px solid rgba(74,222,128,0.15);border-radius:10px;margin-bottom:28px;">
     <p style="margin:0;font-size:12px;color:#64748B;line-height:1.6;">
-      🛡 <strong style="color:#4ADE80;">30-Day Results Guarantee</strong> — If you don't capture a lead you would have otherwise missed within 30 days, we refund your setup fee. No questions asked.
+      🛡 <strong style="color:#4ADE80;">30-Day Results Guarantee</strong> — If you don't capture a lead you would have otherwise missed within 30 days, we refund your first month. No questions asked.
     </p>
   </div>
 

@@ -258,7 +258,7 @@ export function VerticalROICalculator({ vertical }: Props) {
               <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>
               <div>
                 <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 600, color: '#4ADE80' }}>30-Day Results Guarantee</p>
-                <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>If you don't capture a lead you would have missed, we refund your setup fee. No questions.</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>If you don't capture a lead you would have missed, we refund your first month. No questions.</p>
               </div>
             </div>
           </div>

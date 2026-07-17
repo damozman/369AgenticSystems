@@ -84,7 +84,7 @@ const FAQ = [
   },
   {
     q: 'What if it doesn\'t work for me?',
-    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your setup fee. No questions asked. But most clients see ROI within week 1.',
+    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your first month. No questions asked. But most clients see ROI within week 1.',
   },
   {
     q: 'What are Crystal Clear and Custom Business Intelligence?',
@@ -207,9 +207,11 @@ export function VerticalPricing({ vertical }: Props) {
             <p style={{ margin: '0 auto 10px', maxWidth: 520, fontSize: 16, color: '#64748B', lineHeight: 1.7 }}>
               {copy.subhead}
             </p>
-            <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 11, color: '#334155' }}>
-              One-time setup fee: ${SETUP_FEE.toLocaleString()}
-            </p>
+            {SETUP_FEE > 0 && (
+              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 11, color: '#334155' }}>
+                One-time setup fee: ${SETUP_FEE.toLocaleString()}
+              </p>
+            )}
           </div>
 
           {/* Tier cards */}

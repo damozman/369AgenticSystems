@@ -151,7 +151,13 @@ export function tierHasFeature(tierName: TierName, badge: string): boolean {
   return getTierFeatures(tierName).some(f => f.badge === badge)
 }
 
-export const SETUP_FEE = 1500
+// Removed from checkout 2026-07-17 (Chris's call — the fee was priced against manual
+// per-client provisioning labor that no longer exists since automated Stripe→Retell
+// provisioning shipped). Kept as an exported constant at 0, not deleted, since
+// VerticalROICalculator.tsx's math already adds it in rather than assuming it's zero —
+// changing the value here is correct, removing the export would require touching that
+// math too for no benefit.
+export const SETUP_FEE = 0
 
 export const PRICE_BY_TIER: Record<TierName, number> = {
   Starter: 400,

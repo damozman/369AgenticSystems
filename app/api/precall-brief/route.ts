@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
               <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"Too expensive"</strong> — "You're losing $X/month in missed calls. We're $400/mo. Most clients break even in the first week."</p>
               <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"I want to think about it"</strong> — "What specifically would make you confident moving forward today?"</p>
               <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"Need to talk to my partner"</strong> — "I'll send a one-pager you can both review. Can we schedule a 15-min follow-up for Thursday?"</p>
-              <p style="margin:0;"><strong style="color:#F0F0F0;">"What if it doesn't work?"</strong> — "30-day results guarantee — if you don't capture at least one lead you would have missed, we refund the setup fee."</p>
+              <p style="margin:0;"><strong style="color:#F0F0F0;">"What if it doesn't work?"</strong> — "30-day results guarantee — if you don't capture at least one lead you would have missed, we refund your first month."</p>
             </div>
           </div>
 
