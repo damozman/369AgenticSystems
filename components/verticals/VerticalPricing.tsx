@@ -59,12 +59,16 @@ const COPY: Record<string, { headline: string; subhead: string; urgency: string 
 
 const FAQ = [
   {
-    q: 'What\'s included in the $1,500 setup?',
-    a: 'Unique phone number allocated (live same day), AI agent configured for your vertical, questionnaire link sent for business context, Knowledge Base auto-populated, dashboard access + onboarding call, system prompt tuning. Done in 24 hours.',
+    q: 'What\'s included in setup?',
+    a: 'Unique phone number allocated (live same day), AI agent configured for your vertical, questionnaire link sent for business context, Knowledge Base auto-populated, dashboard access + onboarding call, system prompt tuning. Done in 24 hours. No setup fee.',
   },
   {
     q: 'How long until my AI is answering calls?',
     a: 'As little as 24 hours. We allocate a new dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire. Most clients are live within a day.',
+  },
+  {
+    q: 'I\'ve seen AI receptionists for $25-100/mo. Why is this more?',
+    a: 'Those are self-serve tools — you configure the bot yourself, and most cap your minutes. This is fully managed: we personalize your agent to your specific business through a real onboarding questionnaire, not a form you fill out alone. Flat monthly pricing means no per-call or per-minute surprise bills. Elite includes live warm call transfer to a real person when a call needs one, with a private heads-up briefing before they pick up — not just a phone number recited back to the caller. And Pro/Elite include an automated follow-up sequence that keeps working a lead after the call ends, not just call answering.',
   },
   {
     q: 'Will the AI know about my business?',
@@ -207,10 +211,17 @@ export function VerticalPricing({ vertical }: Props) {
             <p style={{ margin: '0 auto 10px', maxWidth: 520, fontSize: 16, color: '#64748B', lineHeight: 1.7 }}>
               {copy.subhead}
             </p>
-            {SETUP_FEE > 0 && (
+            {SETUP_FEE > 0 ? (
               <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 11, color: '#334155' }}>
                 One-time setup fee: ${SETUP_FEE.toLocaleString()}
               </p>
+            ) : (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 99 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
+                <span style={{ color: '#4ADE80', fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  No Setup Fees — Live in 24 Hours
+                </span>
+              </div>
             )}
           </div>
 
@@ -332,6 +343,16 @@ export function VerticalPricing({ vertical }: Props) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Guarantee callout */}
+          <div style={{ maxWidth: 760, margin: '0 auto 72px', padding: '28px 28px', background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 16, textAlign: 'center' }}>
+            <p style={{ margin: '0 0 8px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+              🛡 30-DAY RESULTS GUARANTEE
+            </p>
+            <p style={{ margin: 0, fontSize: 14, color: '#94A3B8', lineHeight: 1.7 }}>
+              If you don&apos;t see measurable results in the first 30 days, we&apos;ll refund your first month. No questions asked.
+            </p>
           </div>
 
           {/* FAQ */}
