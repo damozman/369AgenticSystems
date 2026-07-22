@@ -13,58 +13,58 @@ const COPY: Record<string, { headline: string; subhead: string; urgency: string 
   roofing: {
     headline: 'Pricing for Roofing Companies',
     subhead:  'Never lose another job to a missed call — starting at $400/mo.',
-    urgency:  'Roofing season is here. Your AI is live within 24 hours. Every missed call costs you $2,000+ in lost jobs.',
+    urgency:  'Roofing season is here. Your AI is live within minutes. Every missed call costs you $2,000+ in lost jobs.',
   },
   hvac: {
     headline: 'Pricing for HVAC Companies',
     subhead:  'Emergency calls answered 24/7, every night and weekend — starting at $400/mo.',
-    urgency:  'Summer heat rush hits TODAY. Your AI answers emergency calls 24/7 while you sleep. Live in one day. $350+ average emergency call value.',
+    urgency:  'Summer heat rush hits TODAY. Your AI answers emergency calls 24/7 while you sleep. Live in minutes. $350+ average emergency call value.',
   },
   plumbing: {
     headline: 'Pricing for Plumbing Companies',
     subhead:  'Burst pipes at 2 AM? We answer. Starting at $400/mo.',
-    urgency:  'Burst pipes don\'t wait. Your AI answers emergency calls 24/7, captures job details, books technicians. Live tomorrow. Average emergency call: $400+.',
+    urgency:  'Burst pipes don\'t wait. Your AI answers emergency calls 24/7, captures job details, books technicians. Live in minutes. Average emergency call: $400+.',
   },
   dental: {
     headline: 'Pricing for Dental Practices',
     subhead:  'Never miss a patient inquiry again — starting at $400/mo.',
-    urgency:  'Patient calls come at all hours. Your AI answers 24/7, books appointments, sends confirmations. Live in hours. Average patient value: $200+.',
+    urgency:  'Patient calls come at all hours. Your AI answers 24/7, books appointments, sends confirmations. Live in minutes. Average patient value: $200+.',
   },
   legal: {
     headline: 'Pricing for Law Firms',
     subhead:  'High-value cases need instant response — starting at $400/mo.',
-    urgency:  'High-value cases need instant response. Your AI qualifies callers, captures details, routes urgent matters to you within minutes. Live today. Average case value: $5,000+.',
+    urgency:  'High-value cases need instant response. Your AI qualifies callers, captures details, routes urgent matters to you within minutes. Live in minutes. Average case value: $5,000+.',
   },
   'real-estate': {
     headline: 'Pricing for Real Estate Agents',
     subhead:  'Hot buyers won\'t wait — starting at $400/mo.',
-    urgency:  'Hot buyers won\'t wait. Your AI answers within seconds, qualifies interest, books showings automatically. Live in hours. Average deal: $9,000+.',
+    urgency:  'Hot buyers won\'t wait. Your AI answers within seconds, qualifies interest, books showings automatically. Live in minutes. Average deal: $9,000+.',
   },
   insurance: {
     headline: 'Pricing for Insurance Agencies',
     subhead:  'Quote requests don\'t wait — starting at $400/mo.',
-    urgency:  'Quote requests deserve instant response. Your AI captures coverage needs, pulls quotes, books consultations. Agencies responding same-day close 3x faster. Live tomorrow. Average policy: $1,200+.',
+    urgency:  'Quote requests deserve instant response. Your AI captures coverage needs, pulls quotes, books consultations. Agencies responding same-day close 3x faster. Live in minutes. Average policy: $1,200+.',
   },
   saas: {
     headline: 'Pricing for SaaS Companies',
     subhead:  'Trial users decide in minutes — starting at $400/mo.',
-    urgency:  'Trial users decide in minutes, not days. Your AI greets them instantly, answers setup questions, books onboarding calls. Live today. Average customer lifetime value: $2,400+.',
+    urgency:  'Trial users decide in minutes, not days. Your AI greets them instantly, answers setup questions, books onboarding calls. Live in minutes. Average customer lifetime value: $2,400+.',
   },
   wholesale: {
     headline: 'Pricing for Wholesale Distributors',
     subhead:  'Inbound orders need instant acknowledgment — starting at $400/mo.',
-    urgency:  'Order inquiries can\'t wait. Your AI confirms stock, takes orders, routes to fulfillment. Live today. Average order: $2,500+.',
+    urgency:  'Order inquiries can\'t wait. Your AI confirms stock, takes orders, routes to fulfillment. Live in minutes. Average order: $2,500+.',
   },
 }
 
 const FAQ = [
   {
     q: 'What\'s included in setup?',
-    a: 'Unique phone number allocated (live same day), AI agent configured for your vertical, questionnaire link sent for business context, Knowledge Base auto-populated, dashboard access + onboarding call, system prompt tuning. Done in 24 hours. No setup fee.',
+    a: 'Unique phone number allocated (live within minutes), AI agent configured for your vertical, questionnaire link sent for business context, Knowledge Base auto-populated, dashboard access + onboarding call, system prompt tuning. Done in minutes. No setup fee.',
   },
   {
     q: 'How long until my AI is answering calls?',
-    a: 'As little as 24 hours. We allocate a new dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire. Most clients are live within a day.',
+    a: 'As little as a few minutes. We allocate a new dedicated phone number, configure your agent with vertical-specific settings, and send your onboarding questionnaire — all triggered automatically the moment you sign up.',
   },
   {
     q: 'I\'ve seen AI receptionists for $25-100/mo. Why is this more?',
@@ -219,7 +219,7 @@ export function VerticalPricing({ vertical }: Props) {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 99 }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
                 <span style={{ color: '#4ADE80', fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  No Setup Fees — Live in 24 Hours
+                  No Setup Fees — Live in Minutes
                 </span>
               </div>
             )}

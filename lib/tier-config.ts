@@ -28,7 +28,7 @@ export const TIERS: Tier[] = [
   {
     name:        'Starter',
     price:       400,
-    description: 'Your AI receptionist is live in 24 hours. Answer every call, capture every lead, track ROI monthly.',
+    description: 'Your AI receptionist is live in minutes. Answer every call, capture every lead, track ROI monthly.',
     agents:      ['receptionist', 'dashboard'],
     features: [
       { label: '24/7 AI Receptionist (unique phone number)' },

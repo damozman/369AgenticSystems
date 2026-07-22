@@ -650,7 +650,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
               {[
                 '✓  30-day results guarantee',
-                '✓  Live within 24 hours',
+                '✓  Live within minutes',
                 '✓  No long-term contracts',
                 '✓  Cancel anytime',
               ].map(item => (
@@ -660,7 +660,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
               ))}
             </div>
             <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 9.5, color: '#334155', fontFamily: 'monospace' }}>
-              Your dedicated phone number is live within 24 hours of signup.
+              Your dedicated phone number is live within minutes of signup.
             </p>
           </div>
 

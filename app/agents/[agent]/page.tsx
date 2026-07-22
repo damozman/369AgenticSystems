@@ -41,7 +41,7 @@ const AGENTS: Record<AgentSlug, AgentData> = {
     status:  'live',
     color:   '#D4AF37',
     tagline: 'Answers 24/7, knows your business. Every call becomes a qualified lead.',
-    description: 'Ava is a fully autonomous AI receptionist deployed on a real phone number. She answers every inbound call in under 60 seconds — nights, weekends, holidays — qualifies the caller using a system prompt tuned for your industry, captures their contact information, and either books an appointment directly on your calendar or routes the call to the right person. Before her first call, she learns your business from a 5-minute questionnaire: your pain points, services offered, pricing, and common objections. She uses this context on every single call. Your unique phone number is allocated within 24 hours and live the same day.',
+    description: 'Ava is a fully autonomous AI receptionist deployed on a real phone number. She answers every inbound call in under 60 seconds — nights, weekends, holidays — qualifies the caller using a system prompt tuned for your industry, captures their contact information, and either books an appointment directly on your calendar or routes the call to the right person. Before her first call, she learns your business from a 5-minute questionnaire: your pain points, services offered, pricing, and common objections. She uses this context on every single call. Your unique phone number is allocated and live within minutes of signup.',
     how: [
       { step: 'Your business context captured',     detail: 'Before Ava takes her first call, you answer a 5-minute questionnaire: pain points, services, pricing, jargon, common objections. She learns your business — not a generic AI.' },
       { step: 'Inbound call arrives',     detail: 'Your business number rings. Ava answers within 2–3 rings, 24 hours a day, 365 days a year. There is no voicemail.' },
@@ -50,15 +50,15 @@ const AGENTS: Record<AgentSlug, AgentData> = {
       { step: 'Booking or escalation',     detail: 'If the caller is ready to schedule, Ava books directly on your Cal.com calendar and sends a confirmation. If it\'s an emergency, she escalates to your on-call team immediately.' },
     ],
     deployments: [
-      { vertical: 'Roofing',      label: 'Roofing',      role: 'Storm Call Capture',      what: 'Knows storm seasons, insurance claim language, and cash buyer vs. adjuster. Unique phone allocated in 24 hours. Monthly ROI email included.', color: '#FF4500', slug: 'roofing'      },
-      { vertical: 'HVAC',         label: 'HVAC',         role: 'Emergency Response',      what: 'Understands emergency vs. maintenance triage. Knows HVAC terminology and pricing. Live in 24 hours with business context.', color: '#FF6533', slug: 'hvac'         },
-      { vertical: 'Plumbing',     label: 'Plumbing',     role: 'Emergency Recovery',      what: 'Answers 2 AM emergency calls. Knows average job values and routing. Allocated phone + monthly ROI tracking, same-day live.', color: '#0369A1', slug: 'plumbing'     },
-      { vertical: 'Legal',        label: 'Legal',        role: 'High-Value Intake',       what: 'Understands statute of limitations urgency. Screens case type and complexity. 24-hour phone allocation + monthly billing proof.', color: '#60A5FA', slug: 'legal'        },
-      { vertical: 'Real Estate',  label: 'Real Estate',  role: 'Market-Aware Intake',     what: 'Knows buyer urgency and market timing. Captures property type, budget, timeline. Live in 24 hours with vertical context.', color: '#0EA5E9', slug: 'real-estate'  },
-      { vertical: 'Insurance',    label: 'Insurance',    role: 'Quote Intelligence',      what: 'Understands coverage gaps and upsell opportunities. Knows insurance terminology. Same-day live + monthly ROI report.', color: '#14B8A6', slug: 'insurance'    },
-      { vertical: 'SaaS',         label: 'SaaS',         role: 'Trial Qualification',     what: 'Qualifies trial users by company size and use case. Knows SaaS language and ROI metrics. 24-hour allocation + monthly analytics.', color: '#8B5CF6', slug: 'saas'         },
-      { vertical: 'Wholesale',    label: 'Wholesale',    role: 'Order Intelligence',      what: 'Captures order details and inventory urgency. Knows wholesale pricing and SKU routing. Live in 24 hours + ROI tracking.', color: '#84CC16', slug: 'wholesale'    },
-      { vertical: 'Dental',       label: 'Dental',       role: 'Appointment Booking',     what: 'Captures new patient inquiries and books appointments. Knows insurance questions and common patient concerns. 24-hour live + monthly ROI.', color: '#EC4899', slug: 'dental'       },
+      { vertical: 'Roofing',      label: 'Roofing',      role: 'Storm Call Capture',      what: 'Knows storm seasons, insurance claim language, and cash buyer vs. adjuster. Unique phone allocated in minutes. Monthly ROI email included.', color: '#FF4500', slug: 'roofing'      },
+      { vertical: 'HVAC',         label: 'HVAC',         role: 'Emergency Response',      what: 'Understands emergency vs. maintenance triage. Knows HVAC terminology and pricing. Live in minutes with business context.', color: '#FF6533', slug: 'hvac'         },
+      { vertical: 'Plumbing',     label: 'Plumbing',     role: 'Emergency Recovery',      what: 'Answers 2 AM emergency calls. Knows average job values and routing. Allocated phone + monthly ROI tracking, live in minutes.', color: '#0369A1', slug: 'plumbing'     },
+      { vertical: 'Legal',        label: 'Legal',        role: 'High-Value Intake',       what: 'Understands statute of limitations urgency. Screens case type and complexity. Phone allocated in minutes + monthly billing proof.', color: '#60A5FA', slug: 'legal'        },
+      { vertical: 'Real Estate',  label: 'Real Estate',  role: 'Market-Aware Intake',     what: 'Knows buyer urgency and market timing. Captures property type, budget, timeline. Live in minutes with vertical context.', color: '#0EA5E9', slug: 'real-estate'  },
+      { vertical: 'Insurance',    label: 'Insurance',    role: 'Quote Intelligence',      what: 'Understands coverage gaps and upsell opportunities. Knows insurance terminology. Live in minutes + monthly ROI report.', color: '#14B8A6', slug: 'insurance'    },
+      { vertical: 'SaaS',         label: 'SaaS',         role: 'Trial Qualification',     what: 'Qualifies trial users by company size and use case. Knows SaaS language and ROI metrics. Allocated in minutes + monthly analytics.', color: '#8B5CF6', slug: 'saas'         },
+      { vertical: 'Wholesale',    label: 'Wholesale',    role: 'Order Intelligence',      what: 'Captures order details and inventory urgency. Knows wholesale pricing and SKU routing. Live in minutes + ROI tracking.', color: '#84CC16', slug: 'wholesale'    },
+      { vertical: 'Dental',       label: 'Dental',       role: 'Appointment Booking',     what: 'Captures new patient inquiries and books appointments. Knows insurance questions and common patient concerns. Live in minutes + monthly ROI.', color: '#EC4899', slug: 'dental'       },
     ],
     tech: ['Retell AI', 'Claude Sonnet (voice intelligence)', 'Twilio (phone number)', 'Cal.com (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
   },
@@ -358,7 +358,7 @@ export default async function AgentPage({ params }: { params: Promise<{ agent: s
             Ready to put {data.name} to work?
           </h2>
           <p style={{ margin: '0 0 36px', color: '#64748B', fontSize: '0.95rem', lineHeight: 1.65 }}>
-            30 minutes. We map your pipeline, show you exactly what {data.name} handles, and deploy within 24 hours.
+            30 minutes. We map your pipeline, show you exactly what {data.name} handles, and deploy within minutes of signup.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/book-demo" style={{ padding: '14px 32px', background: `linear-gradient(135deg, ${data.color} 0%, ${data.color}CC 100%)`, color: '#0A0A0A', borderRadius: 8, fontSize: '1rem', fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-display, Instrument Sans, sans-serif)' }}>
