@@ -41,9 +41,13 @@
       "itemListElement": [
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Legal Excellence AOS", "description": "24/7 Client Intake and Conflict Screening for law firms and legal consultants" } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Speed-to-Lead AOS", "description": "Instant Storm-Response and 24/7 lead intake for roofing contractors" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Emergency Response AOS", "description": "24/7 emergency call intake and dispatch for HVAC companies" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Emergency Recovery AOS", "description": "24/7 emergency call intake and dispatch for plumbing companies" } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Patient Revenue AOS", "description": "Planned 2026: no-show prevention and patient intake automation for dental practices (currently waitlist)" } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Pipeline Velocity AOS", "description": "Speed-to-lead response and 24/7 call intake for real estate agencies" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Custom AOS", "description": "Bespoke Agentic Operating Systems for HVAC companies, financial advisors, insurance agencies, med spas, chiropractic offices, mortgage brokers, veterinary practices, e-commerce brands, and other high-ticket businesses" } }
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Agency Revenue AOS", "description": "24/7 quote intake and renewal follow-up for insurance agencies" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Distribution Velocity AOS", "description": "24/7 order intake and fulfillment routing for wholesale distributors" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Custom AOS", "description": "Bespoke Agentic Operating Systems for financial advisors, med spas, chiropractic offices, mortgage brokers, veterinary practices, e-commerce brands, and other high-ticket businesses" } }
       ]
     }
   }
@@ -377,6 +381,8 @@
 
     .ic-legal      { --cr: 60,165,250; }
     .ic-roofing    { --cr: 245,158,11; }
+    .ic-hvac       { --cr: 255,101,51; }
+    .ic-plumbing   { --cr: 3,105,161; }
     .ic-saas       { --cr: 99,102,241; }
     .ic-dental     { --cr: 236,72,153; }
     .ic-realestate { --cr: 14,165,233; }
@@ -576,6 +582,8 @@
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Legal Firms</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Roofing Contractors</a>
+            <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">HVAC Companies</a>
+            <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Plumbing Companies</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Dental Practices</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Real Estate Agencies</a>
             <a href="#catalog" class="btn-ghost" style="font-size:0.83rem; padding:10px 20px;">Insurance Agencies</a>
@@ -713,12 +721,76 @@
             </div>
           </div>
 
-          <!-- 3 · DENTAL -->
+          <!-- 3 · HVAC -->
+          <div class="icard ic-hvac" role="button" tabindex="0" aria-label="Emergency Response AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_03 · HVAC</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="rgba(255,101,51,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="rgba(255,101,51,1)" stroke-width="1.5"/></svg>
+              </div>
+              <span class="card-category">HVAC Sector</span>
+              <span class="card-name">Emergency Response AOS</span>
+              <div class="card-metric"><div class="metric-val">&lt;60s</div><div class="metric-lbl">Emergency Response Time</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">Every after-hours call that hits voicemail is a job your competitor answers.</div>
+              <ul class="reveal-caps">
+                <li>24/7 emergency call intake &amp; dispatch triage</li>
+                <li>Service follow-up &amp; appointment confirmation</li>
+              </ul>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">AI Receptionist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Service Follow-up</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Appointment Confirmation</span><span class="badge-on">ACTIVE</span></div>
+              </div>
+              <a href="hvac-leads/" class="reveal-deploy">Deploy HVAC System <span class="deploy-arr">→</span></a>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:6px;">Starting at $400/mo</div>
+            </div>
+          </div>
+
+          <!-- 4 · PLUMBING -->
+          <div class="icard ic-plumbing" role="button" tabindex="0" aria-label="Emergency Recovery AOS">
+            <div class="card-grid"></div>
+            <div class="card-face">
+              <div class="face-top">
+                <span class="sys-tag">SYSTEM_04 · PLUMBING</span>
+                <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
+              </div>
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 4v6a4 4 0 004 4h8a4 4 0 014 4v6" stroke="rgba(3,105,161,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="4" cy="4" r="2" stroke="rgba(3,105,161,1)" stroke-width="1.5"/><circle cx="20" cy="20" r="2" stroke="rgba(3,105,161,1)" stroke-width="1.5"/></svg>
+              </div>
+              <span class="card-category">Plumbing Sector</span>
+              <span class="card-name">Emergency Recovery AOS</span>
+              <div class="card-metric"><div class="metric-val">&lt;60s</div><div class="metric-lbl">Emergency Response Time</div></div>
+              <div class="hover-hint">↑ hover to deploy</div>
+            </div>
+            <div class="card-reveal">
+              <div class="reveal-pain">Every emergency call you miss is a customer who called the next number on Google.</div>
+              <ul class="reveal-caps">
+                <li>24/7 emergency call intake &amp; dispatch triage</li>
+                <li>Service follow-up &amp; appointment confirmation</li>
+              </ul>
+              <div class="reveal-roster">
+                <div class="roster-row"><span class="roster-name">AI Receptionist</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Service Follow-up</span><span class="badge-on">ACTIVE</span></div>
+                <div class="roster-row"><span class="roster-name">Appointment Confirmation</span><span class="badge-on">ACTIVE</span></div>
+              </div>
+              <a href="plumbing-leads/" class="reveal-deploy">Deploy Plumbing System <span class="deploy-arr">→</span></a>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:6px;">Starting at $400/mo</div>
+            </div>
+          </div>
+
+          <!-- 5 · DENTAL -->
           <div class="icard ic-dental" role="button" tabindex="0" aria-label="Patient Revenue AOS">
             <div class="card-grid"></div>
             <div class="card-face">
               <div class="face-top">
-                <span class="sys-tag">SYSTEM_03 · DENTAL</span>
+                <span class="sys-tag">SYSTEM_05 · DENTAL</span>
                 <span class="status-micro"><span class="s-dot"></span>WAITLIST</span>
               </div>
               <div class="card-icon">
@@ -744,12 +816,12 @@
             </div>
           </div>
 
-          <!-- 5 · REAL ESTATE -->
+          <!-- 6 · REAL ESTATE -->
           <div class="icard ic-realestate" role="button" tabindex="0" aria-label="Pipeline Velocity AOS">
             <div class="card-grid"></div>
             <div class="card-face">
               <div class="face-top">
-                <span class="sys-tag">SYSTEM_04 · RE</span>
+                <span class="sys-tag">SYSTEM_06 · RE</span>
                 <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
               </div>
               <div class="card-icon">
@@ -776,12 +848,12 @@
             </div>
           </div>
 
-          <!-- 6 · INSURANCE -->
+          <!-- 7 · INSURANCE -->
           <div class="icard ic-insurance" role="button" tabindex="0" aria-label="Agency Revenue AOS">
             <div class="card-grid"></div>
             <div class="card-face">
               <div class="face-top">
-                <span class="sys-tag">SYSTEM_05 · INS</span>
+                <span class="sys-tag">SYSTEM_07 · INS</span>
                 <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
               </div>
               <div class="card-icon">
@@ -808,12 +880,12 @@
             </div>
           </div>
 
-          <!-- 7 · WHOLESALE -->
+          <!-- 8 · WHOLESALE -->
           <div class="icard ic-wholesale" role="button" tabindex="0" aria-label="Distribution Velocity AOS">
             <div class="card-grid"></div>
             <div class="card-face">
               <div class="face-top">
-                <span class="sys-tag">SYSTEM_06 · WHL</span>
+                <span class="sys-tag">SYSTEM_08 · WHL</span>
                 <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
               </div>
               <div class="card-icon">
@@ -840,12 +912,12 @@
             </div>
           </div>
 
-          <!-- 8 · CUSTOM -->
+          <!-- 9 · CUSTOM -->
           <div class="icard ic-custom" role="button" tabindex="0" aria-label="Custom AOS build">
             <div class="card-grid"></div>
             <div class="card-face">
               <div class="face-top">
-                <span class="sys-tag">SYSTEM_07 · CUSTOM</span>
+                <span class="sys-tag">SYSTEM_09 · CUSTOM</span>
                 <span class="status-micro"><span class="s-dot"></span>BUILD</span>
               </div>
               <div class="card-icon">
@@ -1076,6 +1148,8 @@
         <div style="display:flex; flex-direction:column; gap:10px;">
           <a href="legal-automation/"          class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Legal Excellence AOS</a>
           <a href="roofing-leads/"              class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Speed-to-Lead AOS</a>
+          <a href="hvac-leads/"                 class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Emergency Response AOS</a>
+          <a href="plumbing-leads/"             class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Emergency Recovery AOS</a>
           <a href="dental-leads/"               class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Patient Revenue AOS</a>
           <a href="real-estate-leads/"          class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Pipeline Velocity AOS</a>
           <a href="insurance-leads/"            class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Agency Revenue AOS</a>
