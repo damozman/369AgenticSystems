@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { dentalConfig } from '@/lib/verticals/dental'
+import { getVerticalConfig } from '@/lib/verticals'
 import { getDentrixContext, formatDentrixContext } from '@/lib/integrations/dentrix'
 
 const supabaseAdmin = createClient(
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
   ].join('')
 
   // ── Draft response with Claude ────────────────────────────────────────────
-  const config = dentalConfig
+  const config = getVerticalConfig(prospect?.client_industry)
 
   let rawDraft = ''
   try {

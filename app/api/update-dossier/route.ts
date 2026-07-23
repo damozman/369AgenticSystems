@@ -53,6 +53,10 @@ export async function POST(request: Request) {
     .from('system_audits')
     .insert({
       client_domain,
+      client_email:    client_email    ?? null,
+      client_name:     client_name     ?? null,
+      client_industry: client_industry ?? null,
+      revenue_leakage: revenue_leakage ?? null,
       security_score:  Number.isNaN(security_score as number) ? null : security_score,
       seo_visibility:  Number.isNaN(seo_visibility as number) ? null : seo_visibility,
       lead_velocity:   Number.isNaN(lead_velocity  as number) ? null : lead_velocity,

@@ -201,7 +201,7 @@ ${headerBadge('AUTONOMOUS DIAGNOSTIC ALERT')}
 </td></tr>
 
 <tr><td style="padding:0 36px 28px;">
-  <p style="margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">These vulnerabilities are currently active in your environment. Our autonomous patch system can seal the security gap, recover estimated revenue leakage, and boost your search presence — all without disrupting your operations.</p>
+  <p style="margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">These are live readings from your environment, not projections. We don't patch security vulnerabilities or rewrite meta tags — that's a different specialist's job. What we fix is the revenue leak: the calls your site's traffic already earns that go unanswered or unworked, because no one responds fast enough. That's the gap our autonomous receptionist and follow-up agents close.</p>
   <p style="margin:0;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">A full operational dossier for <strong style="color:#FFFFFF;">${v.client_domain}</strong> is landing in your inbox shortly. In the meantime, book a direct call with a specialist:</p>
 </td></tr>
 
@@ -366,11 +366,11 @@ export function followUpHtml(v: FollowUpVars): string {
 
   const bodyContent = isDay7
     ? `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
-      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We're closing out your audit file for <strong style="color:#FFFFFF;">${v.client_domain}</strong>. Our scan flagged a security score of <strong style="color:#EF4444;">${sec}/100</strong> and an estimated revenue leak of <strong style="color:#EF4444;">${rev}/mo</strong> — that gap stays open until someone closes it.</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We're closing out your audit file for <strong style="color:#FFFFFF;">${v.client_domain}</strong>. Our scan flagged a security score of <strong style="color:#EF4444;">${sec}/100</strong> — a separate issue, not something we fix — and an estimated revenue leak of <strong style="color:#EF4444;">${rev}/mo</strong> from missed and slow-answered calls. That's the gap we close, and it stays open until someone does.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">If the timing isn't right, no problem. When it is, we're ready to deploy. If you have questions, reply to this email directly — I read every one.</p>`
     : `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
       <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We sent your diagnostic results for <strong style="color:#FFFFFF;">${v.client_domain}</strong> 48 hours ago and wanted to make sure everything landed. Your scan came back with a security score of <strong style="color:#D4AF37;">${sec}/100</strong>, an SEO visibility of <strong style="color:#D4AF37;">${seo}/100</strong>, and an estimated revenue leak of <strong style="color:#D4AF37;">${rev}/mo</strong>.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">If you have questions about the numbers or want to walk through the dossier together, book a 30-minute call — we can review everything live and show you exactly how the Digital Employee would close those gaps.</p>`
+      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Security and SEO are separate issues — not something we fix. What we do fix: book a 30-minute call and we'll show you exactly how the Digital Employee catches the calls your traffic already earns, before they go to voicemail.</p>`
 
   return `<!DOCTYPE html>
 <html lang="en">
