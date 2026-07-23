@@ -15,7 +15,7 @@ export function DeploymentCards({ deployments }: { deployments: VerticalDeployme
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
       {deployments.map((dep) => (
-        <Link key={dep.vertical} href={`/${dep.slug}`} style={{ textDecoration: 'none' }}>
+        <Link key={dep.vertical} href={`/${dep.slug}/pricing`} style={{ textDecoration: 'none' }}>
           <div
             style={{
               padding: 28, borderRadius: 14,
