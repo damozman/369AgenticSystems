@@ -1,10 +1,8 @@
-import { Suspense } from 'react'
-import { VerticalPricing } from '@/components/verticals/VerticalPricing'
+import { redirect } from 'next/navigation'
 
+// Dental is waitlist-only — no live Stripe checkout should ever be reachable
+// for this vertical (no Retell template configured, provisioning would fail
+// after the customer has already been charged). Redirect to the waitlist.
 export default function Page() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: '#475569', fontFamily: 'monospace', fontSize: 12 }}>Loading pricing...</p></div>}>
-      <VerticalPricing vertical="dental" />
-    </Suspense>
-  )
+  redirect('/dental-leads/')
 }

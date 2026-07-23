@@ -60,7 +60,7 @@ const AGENTS: Record<AgentSlug, AgentData> = {
       { vertical: 'Wholesale',    label: 'Wholesale',    role: 'Order Intelligence',      what: 'Captures order details and inventory urgency. Knows wholesale pricing and SKU routing. Live in minutes + ROI tracking.', color: '#84CC16', slug: 'wholesale'    },
       { vertical: 'Dental',       label: 'Dental',       role: 'Appointment Booking',     what: 'Captures new patient inquiries and books appointments. Knows insurance questions and common patient concerns. Live in minutes + monthly ROI.', color: '#EC4899', slug: 'dental'       },
     ],
-    tech: ['Retell AI', 'Claude Sonnet (voice intelligence)', 'Twilio (phone number)', 'Cal.com (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
+    tech: ['Retell AI', 'Claude Sonnet (voice intelligence)', 'Cal.com (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
   },
 
   rex: {

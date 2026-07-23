@@ -1,10 +1,8 @@
-import { Suspense } from 'react'
-import { VerticalROICalculator } from '@/components/verticals/VerticalROICalculator'
+import { redirect } from 'next/navigation'
 
+// Dental is waitlist-only — this step of the self-serve funnel leads toward
+// checkout, which must not be reachable for this vertical. Redirect to the
+// waitlist page instead.
 export default function Page() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: '#475569', fontFamily: 'monospace', fontSize: 12 }}>Loading your analysis...</p></div>}>
-      <VerticalROICalculator vertical="dental" />
-    </Suspense>
-  )
+  redirect('/dental-leads/')
 }

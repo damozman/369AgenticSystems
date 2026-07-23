@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { Resend } from 'resend'
 import { provisionClient } from '@/lib/onboard-client'
 import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
 
 function getStripeClient(): Stripe {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -78,7 +82,27 @@ export async function POST(request: NextRequest) {
       stripeCustomerId,
     })
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e)
     console.error('[STRIPE WEBHOOK] provisionClient failed:', e)
+
+    // The customer's card has already been charged at this point (payment_status
+    // is 'paid' above) — a provisioning failure here means they paid for something
+    // that can't be delivered. A console log alone is easy to miss, so alert
+    // immediately rather than relying on someone noticing server logs.
+    if (process.env.RESEND_API_KEY) {
+      resend.emails.send({
+        from:    `369 Command Center <${process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'}>`,
+        to:      OWNER_EMAIL,
+        subject: `🚨 Paid signup failed to provision — ${businessName} (${vertical})`,
+        html:    `<p>A customer paid via Stripe but provisioning failed. This needs manual follow-up (refund or manual provisioning).</p>
+                  <p><strong>Business:</strong> ${businessName}<br>
+                  <strong>Vertical:</strong> ${vertical}<br>
+                  <strong>Email:</strong> ${email}<br>
+                  <strong>Stripe session:</strong> ${session.id}<br>
+                  <strong>Error:</strong> ${errorMessage}</p>`,
+      }).catch(alertErr => console.error('[STRIPE WEBHOOK] Failed to send provisioning-failure alert:', alertErr))
+    }
+
     return NextResponse.json({ error: 'Provisioning failed' }, { status: 500 })
   }
 
