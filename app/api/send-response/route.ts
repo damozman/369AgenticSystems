@@ -15,7 +15,8 @@ export async function POST(request: Request) {
   // Admin-only. Previously unauthenticated: anyone could POST a responseId and
   // approve+send a drafted email to a prospect through our Resend account. Only
   // the internal /workforce Command Center (PendingResponses) legitimately calls this.
-  const { data: { user } } = await createSessionClient().auth.getUser()
+  const sessionClient = await createSessionClient()
+  const { data: { user } } = await sessionClient.auth.getUser()
   if (!isAdminEmail(user?.email)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

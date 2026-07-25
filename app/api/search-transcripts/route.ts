@@ -63,7 +63,7 @@ function extractSnippet(transcript: string, query: string, contextLength = 150):
 export async function GET(request: NextRequest) {
   try {
     // ── Authenticate + resolve the caller's OWN domain from the session ───────
-    const sessionClient = createClient()
+    const sessionClient = await createClient()
     const { data: { user } } = await sessionClient.auth.getUser()
 
     if (!user?.email) {

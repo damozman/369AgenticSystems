@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   // Admin-only mutation. Previously unauthenticated: anyone on the internet could
   // POST an audit id and flip leak_detected / payload_status on any row. Only the
   // internal Command Center (DiagnosticDrawer) legitimately calls this.
-  const sessionClient = createClient()
+  const sessionClient = await createClient()
   const { data: { user } } = await sessionClient.auth.getUser()
 
   if (!isAdminEmail(user?.email)) {
