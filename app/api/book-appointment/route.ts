@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientBookingAlert } from '@/lib/email-sequences'
+import { denyIfBadSecret, internalHeaders, RETELL_SECRET_HEADER } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,12 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  // Called by Retell's agent tool ("book_appointment"). Guarded by a shared secret
+  // Retell sends as a custom header — dormant until RETELL_WEBHOOK_SECRET is set
+  // (and configured on the Retell tool), then required.
+  const denied = denyIfBadSecret(request, process.env.RETELL_WEBHOOK_SECRET, RETELL_SECRET_HEADER)
+  if (denied) return denied
+
   let raw: Record<string, unknown>
   try {
     raw = await request.json()
@@ -124,7 +131,7 @@ export async function POST(request: NextRequest) {
   if (appUrl) {
     await fetch(`${appUrl}/api/nova/booking-confirmation`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: internalHeaders(),
       body:    JSON.stringify({ booking_id: booking.id }),
     }).catch(err => console.error('[NOVA TRIGGER] Failed:', err))
   }

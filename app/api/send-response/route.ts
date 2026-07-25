@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createSessionClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { isAdminEmail } from '@/lib/admin'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +12,14 @@ const supabaseAdmin = createClient(
 const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
 
 export async function POST(request: Request) {
+  // Admin-only. Previously unauthenticated: anyone could POST a responseId and
+  // approve+send a drafted email to a prospect through our Resend account. Only
+  // the internal /workforce Command Center (PendingResponses) legitimately calls this.
+  const { data: { user } } = await createSessionClient().auth.getUser()
+  if (!isAdminEmail(user?.email)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   let body: { responseId: string; action: 'approve' | 'reject' }
   try {
     body = await request.json()

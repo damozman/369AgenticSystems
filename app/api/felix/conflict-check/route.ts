@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
+import { denyIfBadSecret, INTERNAL_SECRET_HEADER } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +53,11 @@ async function checkConflict(
 }
 
 export async function POST(request: NextRequest) {
+  // Internal-only route (fired server-to-server by capture-lead). Guarded by a
+  // shared secret — dormant until INTERNAL_API_SECRET is set, then required.
+  const denied = denyIfBadSecret(request, process.env.INTERNAL_API_SECRET, INTERNAL_SECRET_HEADER)
+  if (denied) return denied
+
   let body: Record<string, unknown>
   try {
     body = await request.json()

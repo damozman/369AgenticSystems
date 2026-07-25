@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { escapeHtml } from '@/lib/security/sanitize'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -94,7 +95,7 @@ export async function sendWelcomeEmail({
         // ${tier.toUpperCase()} PLAN CONFIRMED
       </p>
       <h1 style="margin:0 0 16px;font-size:26px;font-weight:700;color:#FFFFFF;line-height:1.2;">
-        Welcome, ${businessName}
+        Welcome, ${escapeHtml(businessName)}
       </h1>
       <p style="margin:0 0 24px;font-size:15px;color:#94A3B8;line-height:1.7;">
         ${vc.tagline} Your digital workforce is being configured now.
@@ -110,7 +111,7 @@ export async function sendWelcomeEmail({
           Complete Questionnaire (5 min)
         </a>
         <p style="margin:14px 0 0;font-size:12px;color:#64748B;">
-          Prefer to explore first? <a href="https://369agenticsystems.com/login" style="color:#D4AF37;">Access your dashboard</a> anytime — sign in with ${toEmail}.
+          Prefer to explore first? <a href="https://369agenticsystems.com/login" style="color:#D4AF37;">Access your dashboard</a> anytime — sign in with ${escapeHtml(toEmail)}.
         </p>
       </div>
 
@@ -134,7 +135,7 @@ export async function sendWelcomeEmail({
 
       <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
         <p style="margin:0;font-size:11px;color:#64748B;font-family:monospace;">
-          369 Agentic Systems &middot; ${clientDomain} &middot; ${tier} Plan
+          369 Agentic Systems &middot; ${escapeHtml(clientDomain)} &middot; ${escapeHtml(tier)} Plan
         </p>
       </div>
     </div>
@@ -173,7 +174,7 @@ export async function sendOwnerNotification({
       <p style="margin:0 0 8px;font-size:11px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.15em;">
         // NEW CLIENT SIGNED UP
       </p>
-      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#FFFFFF;">${businessName}</h1>
+      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#FFFFFF;">${escapeHtml(businessName)}</h1>
 
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
         ${[
@@ -186,8 +187,8 @@ export async function sendOwnerNotification({
           ...(monthlyRevenueLost ? [['Revenue at risk', `$${monthlyRevenueLost.toLocaleString()}/mo`]] : []),
         ].map(([k, v]) => `
           <tr>
-            <td style="padding:8px 0;color:#64748B;width:140px;">${k}</td>
-            <td style="padding:8px 0;color:#FFFFFF;font-weight:500;">${v}</td>
+            <td style="padding:8px 0;color:#64748B;width:140px;">${escapeHtml(k)}</td>
+            <td style="padding:8px 0;color:#FFFFFF;font-weight:500;">${escapeHtml(v)}</td>
           </tr>
         `).join('')}
       </table>
@@ -213,7 +214,7 @@ function alertShell(kicker: string, heading: string, rows: [string, string][], f
       <p style="margin:0 0 8px;font-size:11px;font-family:monospace;color:#D4AF37;text-transform:uppercase;letter-spacing:0.15em;">
         // ${kicker}
       </p>
-      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#FFFFFF;">${heading}</h1>
+      <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#FFFFFF;">${escapeHtml(heading)}</h1>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
         ${rows.map(([k, v]) => `
           <tr>
@@ -233,11 +234,13 @@ function alertShell(kicker: string, heading: string, rows: [string, string][], f
 }
 
 function telLink(phone: string): string {
-  return `<a href="tel:${phone}" style="color:#FFFFFF;text-decoration:underline;">${phone}</a>`
+  const safe = escapeHtml(phone)
+  return `<a href="tel:${safe}" style="color:#FFFFFF;text-decoration:underline;">${safe}</a>`
 }
 
 function mailtoLink(email: string): string {
-  return `<a href="mailto:${email}" style="color:#FFFFFF;text-decoration:underline;">${email}</a>`
+  const safe = escapeHtml(email)
+  return `<a href="mailto:${safe}" style="color:#FFFFFF;text-decoration:underline;">${safe}</a>`
 }
 
 // ── .ics calendar attachment for booking alerts ────────────────────────────────
@@ -334,13 +337,13 @@ export async function sendClientBookingAlert({
     'NEW APPOINTMENT BOOKED',
     callerName ?? 'New Appointment',
     [
-      ['Caller',   callerName ?? 'Not provided'],
+      ['Caller',   escapeHtml(callerName ?? 'Not provided')],
       ['Phone',    telLink(callerPhone)],
       ...(callerEmail   ? [['Email', mailtoLink(callerEmail)] as [string, string]] : []),
-      ['When',     `${appointmentDate} at ${appointmentTime}`],
-      ...(serviceType   ? [['Service', serviceType]   as [string, string]] : []),
-      ...(location      ? [['Location', location]     as [string, string]] : []),
-      ...(callerAddress ? [['Address', callerAddress] as [string, string]] : []),
+      ['When',     escapeHtml(`${appointmentDate} at ${appointmentTime}`)],
+      ...(serviceType   ? [['Service', escapeHtml(serviceType)]   as [string, string]] : []),
+      ...(location      ? [['Location', escapeHtml(location)]     as [string, string]] : []),
+      ...(callerAddress ? [['Address', escapeHtml(callerAddress)] as [string, string]] : []),
     ],
     'Your AI receptionist booked this automatically. Open the attached invite to add it to your calendar.'
   )
@@ -390,12 +393,12 @@ export async function sendClientLeadAlert({
     isUrgent ? 'URGENT LEAD CAPTURED' : 'NEW LEAD CAPTURED',
     callerName ?? 'New Lead',
     [
-      ['Caller',  callerName ?? 'Not provided'],
+      ['Caller',  escapeHtml(callerName ?? 'Not provided')],
       ['Phone',   telLink(callerPhone)],
       ...(callerEmail   ? [['Email', mailtoLink(callerEmail)] as [string, string]] : []),
-      ...(callerAddress ? [['Address', callerAddress]         as [string, string]] : []),
-      ...(issueDescription ? [['Issue', issueDescription]     as [string, string]] : []),
-      ...(urgency           ? [['Urgency', urgency]           as [string, string]] : []),
+      ...(callerAddress ? [['Address', escapeHtml(callerAddress)]         as [string, string]] : []),
+      ...(issueDescription ? [['Issue', escapeHtml(issueDescription)]     as [string, string]] : []),
+      ...(urgency           ? [['Urgency', escapeHtml(urgency)]           as [string, string]] : []),
     ],
     'No appointment was booked on this call yet — call them back directly or follow up from the dashboard.'
   )

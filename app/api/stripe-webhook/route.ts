@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { Resend } from 'resend'
 import { provisionClient } from '@/lib/onboard-client'
 import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
+import { escapeHtml } from '@/lib/security/sanitize'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
@@ -95,11 +96,11 @@ export async function POST(request: NextRequest) {
         to:      OWNER_EMAIL,
         subject: `🚨 Paid signup failed to provision — ${businessName} (${vertical})`,
         html:    `<p>A customer paid via Stripe but provisioning failed. This needs manual follow-up (refund or manual provisioning).</p>
-                  <p><strong>Business:</strong> ${businessName}<br>
-                  <strong>Vertical:</strong> ${vertical}<br>
-                  <strong>Email:</strong> ${email}<br>
-                  <strong>Stripe session:</strong> ${session.id}<br>
-                  <strong>Error:</strong> ${errorMessage}</p>`,
+                  <p><strong>Business:</strong> ${escapeHtml(businessName)}<br>
+                  <strong>Vertical:</strong> ${escapeHtml(vertical)}<br>
+                  <strong>Email:</strong> ${escapeHtml(email)}<br>
+                  <strong>Stripe session:</strong> ${escapeHtml(session.id)}<br>
+                  <strong>Error:</strong> ${escapeHtml(errorMessage)}</p>`,
       }).catch(alertErr => console.error('[STRIPE WEBHOOK] Failed to send provisioning-failure alert:', alertErr))
     }
 

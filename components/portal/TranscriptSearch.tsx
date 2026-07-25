@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Search, Play, Download } from 'lucide-react'
+import { escapeRegExp } from '@/lib/security/sanitize'
 
 interface SearchResult {
   id: string
@@ -61,7 +62,10 @@ export default function TranscriptSearch({ clientDomain, tier }: TranscriptSearc
   }
 
   const highlightSnippet = (snippet: string, searchTerm: string) => {
-    const regex = new RegExp(`(${searchTerm})`, 'gi')
+    // Escape the term before building the RegExp — an unescaped search string
+    // like "(a+)+" is a regex-injection / ReDoS vector against the searcher's
+    // own browser. Match it literally instead.
+    const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi')
     const parts = snippet.split(regex)
     return parts.map((part, i) =>
       regex.test(part) ? (

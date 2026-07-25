@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendNovaBookingEmail, sendNovaEstimateSMS, type NovaVertical } from '@/lib/nova-templates'
+import { denyIfBadSecret, INTERNAL_SECRET_HEADER } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,6 +17,11 @@ function formatDate(iso: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Internal-only route (fired server-to-server by book-appointment). Guarded by
+  // a shared secret — dormant until INTERNAL_API_SECRET is set, then required.
+  const denied = denyIfBadSecret(request, process.env.INTERNAL_API_SECRET, INTERNAL_SECRET_HEADER)
+  if (denied) return denied
+
   let body: Record<string, unknown>
   try {
     body = await request.json()
