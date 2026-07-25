@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { denyIfBadSecret, internalHeaders, RETELL_SECRET_HEADER } from '@/lib/security/route-guard'
+import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,10 +13,10 @@ const VALID_VERTICALS = [
 ]
 
 export async function POST(request: NextRequest) {
-  // Called by Retell's agent tool ("capture_lead"). Guarded by a shared secret
-  // Retell sends as a custom header — dormant until RETELL_WEBHOOK_SECRET is set
-  // (and configured on the Retell tool), then required.
-  const denied = denyIfBadSecret(request, process.env.RETELL_WEBHOOK_SECRET, RETELL_SECRET_HEADER)
+  // Called by Retell's agent tool ("capture_lead"). Secret via x-webhook-secret
+  // header or ?secret= on the tool URL — dormant until RETELL_WEBHOOK_SECRET is
+  // set (and configured on the Retell tool), then required.
+  const denied = denyIfBadRetellSecret(request)
   if (denied) return denied
 
   let raw: Record<string, unknown>

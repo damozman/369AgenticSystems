@@ -28,6 +28,29 @@ export function denyIfBadSecret(
 }
 
 /**
+ * Retell-facing guard. Accepts the shared secret from EITHER the x-webhook-secret
+ * header OR a `?secret=` query parameter — because Retell's webhook config offers
+ * no custom-header field (only a URL), so the webhook can only carry the secret in
+ * its URL, while custom tools can use the header. Same enforce-only-when-configured
+ * semantics: returns null (proceed) when RETELL_WEBHOOK_SECRET is unset.
+ *
+ * Note: the query-param form means the secret appears in request-log URLs. That's
+ * acceptable for a single-operator setup (logs aren't public and the secret is
+ * rotatable), and it's the only channel Retell's webhook exposes.
+ */
+export function denyIfBadRetellSecret(request: Request): NextResponse | null {
+  const expected = process.env.RETELL_WEBHOOK_SECRET
+  if (!expected) return null // dormant until configured
+  const fromHeader = request.headers.get(RETELL_SECRET_HEADER) ?? undefined
+  const fromQuery = new URL(request.url).searchParams.get('secret') ?? undefined
+  const provided = fromHeader ?? fromQuery
+  if (secretGate(expected, provided) === 'deny') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  return null
+}
+
+/**
  * Headers for a server-to-server call to one of our own internal routes. Attaches
  * the internal shared secret when configured, so a guarded callee accepts the call.
  * When the secret is unset, only Content-Type is sent (callee is also dormant).

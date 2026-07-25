@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientLeadAlert } from '@/lib/email-sequences'
-import { denyIfBadSecret, RETELL_SECRET_HEADER } from '@/lib/security/route-guard'
+import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,10 +37,10 @@ async function resolveClientDomain(agentId: string | undefined): Promise<string 
 }
 
 export async function POST(request: NextRequest) {
-  // Retell webhook. Guarded by a shared secret sent by Retell as a custom header —
-  // dormant until RETELL_WEBHOOK_SECRET is set (and configured on the Retell side),
-  // then required. Without it, anyone could POST fake calls/leads for any tenant.
-  const denied = denyIfBadSecret(request, process.env.RETELL_WEBHOOK_SECRET, RETELL_SECRET_HEADER)
+  // Retell webhook. Secret via ?secret= on the webhook URL (Retell's webhook config
+  // has no header field) — dormant until RETELL_WEBHOOK_SECRET is set, then required.
+  // Without it, anyone could POST fake calls/leads for any tenant.
+  const denied = denyIfBadRetellSecret(request)
   if (denied) return denied
 
   const receivedAt = new Date().toISOString()
