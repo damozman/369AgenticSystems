@@ -9,7 +9,7 @@ import { Activity, Users, Zap, MessageSquare } from 'lucide-react'
 export default async function DashboardPage() {
   noStore()
 
-  const supabase      = createClient()
+  const supabase      = await createClient()
   const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function QuestionnaireForm({ params }: { params: { domain: string } }) {
+export default function QuestionnaireForm({ params }: { params: Promise<{ domain: string }> }) {
   const router = useRouter()
-  const { domain } = params
+  // Next 15: params is a Promise; unwrap it in a client component with use().
+  const { domain } = use(params)
 
   const [formData, setFormData] = useState({
     respondent_role: '',

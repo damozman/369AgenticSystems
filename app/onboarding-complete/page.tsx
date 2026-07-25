@@ -49,9 +49,11 @@ async function getPhoneNumber(clientDomain: string): Promise<string | null> {
 export default async function OnboardingCompletePage({
   searchParams,
 }: {
-  searchParams: { session_id?: string }
+  searchParams: Promise<{ session_id?: string }>
 }) {
-  const info  = searchParams.session_id ? await getSessionInfo(searchParams.session_id) : null
+  // Next 15: searchParams is a Promise and must be awaited.
+  const { session_id } = await searchParams
+  const info  = session_id ? await getSessionInfo(session_id) : null
   const phone = info?.clientDomain ? await getPhoneNumber(info.clientDomain) : null
 
   return (
