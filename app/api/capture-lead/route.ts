@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { denyIfBadSecret, internalHeaders, RETELL_SECRET_HEADER } from '@/lib/security/route-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +13,12 @@ const VALID_VERTICALS = [
 ]
 
 export async function POST(request: NextRequest) {
+  // Called by Retell's agent tool ("capture_lead"). Guarded by a shared secret
+  // Retell sends as a custom header — dormant until RETELL_WEBHOOK_SECRET is set
+  // (and configured on the Retell tool), then required.
+  const denied = denyIfBadSecret(request, process.env.RETELL_WEBHOOK_SECRET, RETELL_SECRET_HEADER)
+  if (denied) return denied
+
   let raw: Record<string, unknown>
   try {
     raw = await request.json()
@@ -110,13 +117,13 @@ export async function POST(request: NextRequest) {
     await Promise.allSettled([
       fetch(`${appUrl}/api/rex/trigger`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders(),
         body:    JSON.stringify({ lead_id: lead.id }),
       }).catch(err => console.error('[REX TRIGGER] Failed:', err)),
 
       fetch(`${appUrl}/api/felix/conflict-check`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders(),
         body:    JSON.stringify({ lead_id: lead.id }),
       }).catch(err => console.error('[FELIX TRIGGER] Failed:', err)),
     ])

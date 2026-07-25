@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { csvField } from '@/lib/security/sanitize'
 
 export async function GET(_request: NextRequest) {
   const supabase = createClient()
@@ -38,18 +39,21 @@ export async function GET(_request: NextRequest) {
 
   const header = ['Date', 'Time', 'Caller Name', 'Caller Phone', 'Duration (s)', 'Outcome', 'Transcript']
 
+  // Every field goes through csvField, which neutralizes spreadsheet formula
+  // injection (a caller_name/transcript starting with = + - @ would otherwise
+  // execute when the export is opened in Excel/Sheets) and quotes/escapes CSV
+  // control chars. Caller name + transcript are attacker-influenceable via the call.
   const rows = (calls ?? []).map(c => {
     const dt = new Date(c.created_at)
     return [
       dt.toLocaleDateString('en-US'),
       dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-      c.caller_name ?? '',
-      c.caller_phone ?? '',
-      c.duration_seconds ?? '',
-      c.call_outcome ?? '',
-      // Wrap transcript in quotes, escape internal quotes
-      c.transcript ? `"${c.transcript.replace(/"/g, '""')}"` : '',
-    ].join(',')
+      c.caller_name,
+      c.caller_phone,
+      c.duration_seconds,
+      c.call_outcome,
+      c.transcript,
+    ].map(csvField).join(',')
   })
 
   const csv = [header.join(','), ...rows].join('\r\n')

@@ -1,19 +1,21 @@
 /**
  * Search call transcripts (Elite tier feature)
- * GET /api/search-transcripts?clientDomain=...&query=...&outcome=...&dateRange=...
+ * GET /api/search-transcripts?query=...&outcome=...&dateRange=...
+ *
+ * client_domain is derived from the authenticated session — NEVER from a query
+ * param. Accepting it as input let any logged-in user read any other Elite
+ * client's transcripts by passing their domain (IDOR / BOLA). Ownership is
+ * resolved the same way as /api/export-calls: look up the caller's own
+ * subscription by their session email, then scope the search to that domain.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase-server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Reads request.nextUrl.searchParams on every call — must never be statically
 // optimized, or Next.js throws "Dynamic server usage" instead of running the search.
 export const dynamic = 'force-dynamic'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 function getDateRangeFilter(dateRange: string): string {
   const now = new Date()
@@ -60,34 +62,52 @@ function extractSnippet(transcript: string, query: string, contextLength = 150):
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const clientDomain = searchParams.get('clientDomain')
-    const query = searchParams.get('query')
-    const outcome = searchParams.get('outcome') || 'all'
-    const dateRange = searchParams.get('dateRange') || 'all'
+    // ── Authenticate + resolve the caller's OWN domain from the session ───────
+    const sessionClient = createClient()
+    const { data: { user } } = await sessionClient.auth.getUser()
 
-    if (!clientDomain || !query) {
-      return NextResponse.json(
-        { error: 'Missing clientDomain or query' },
-        { status: 400 }
-      )
+    if (!user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify client tier is Elite
-    const { data: subscription, error: subError } = await supabase
-      .from('agent_subscriptions')
-      .select('tier')
-      .eq('client_domain', clientDomain)
-      .single()
+    const supabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    if (subError || !subscription || subscription.tier !== 'Elite') {
+    const { data: subscription } = await supabase
+      .from('agent_subscriptions')
+      .select('client_domain, tier')
+      .eq('user_email', user.email)
+      .maybeSingle()
+
+    if (!subscription) {
+      return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
+    }
+
+    // Elite-only — tier comes from the caller's OWN subscription, not a
+    // looked-up domain that could belong to anyone else.
+    if (subscription.tier !== 'Elite') {
       return NextResponse.json(
         { error: 'Transcript search available for Elite tier only' },
         { status: 403 }
       )
     }
 
-    // Build query
+    const clientDomain = subscription.client_domain
+
+    const searchParams = request.nextUrl.searchParams
+    const query = searchParams.get('query')
+    const outcome = searchParams.get('outcome') || 'all'
+    const dateRange = searchParams.get('dateRange') || 'all'
+
+    if (!query) {
+      return NextResponse.json({ error: 'Missing query' }, { status: 400 })
+    }
+
+    // Build query — always scoped to the authenticated caller's own domain.
+    // The % and _ LIKE wildcards in an attacker-supplied term are harmless here
+    // (bound parameter, single-tenant scope), but keep the term literal.
     let q = supabase
       .from('calls')
       .select('id, call_id, caller_name, caller_phone, duration_seconds, transcript, recording_url, call_outcome, created_at')
@@ -140,7 +160,7 @@ export async function GET(request: NextRequest) {
       snippet: extractSnippet(call.transcript || '', query),
     }))
 
-    console.log(`[SEARCH] Found ${results.length} results for "${query}" in ${clientDomain}`)
+    console.log(`[SEARCH] Found ${results.length} results for ${JSON.stringify(query)} in ${clientDomain}`)
 
     return NextResponse.json({
       success: true,

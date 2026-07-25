@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { escapeHtml } from '@/lib/security/sanitize'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,9 +52,9 @@ export async function POST(request: Request) {
               <p style="margin:0 0 4px;font-size:10px;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">// NEW FOUNDING OPERATOR APPLICATION</p>
               <h2 style="margin:0 0 20px;font-size:20px;color:#FFFFFF;font-family:sans-serif;">Early Access Signup</h2>
               <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:8px 0;font-size:11px;color:#475569;width:100px;">Name</td><td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${name || '—'}</td></tr>
-                <tr><td style="padding:8px 0;font-size:11px;color:#475569;">Business</td><td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${business || '—'}</td></tr>
-                <tr><td style="padding:8px 0;font-size:11px;color:#475569;">Email</td><td style="padding:8px 0;font-size:13px;color:#D4AF37;">${email}</td></tr>
+                <tr><td style="padding:8px 0;font-size:11px;color:#475569;width:100px;">Name</td><td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${escapeHtml(name) || '—'}</td></tr>
+                <tr><td style="padding:8px 0;font-size:11px;color:#475569;">Business</td><td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${escapeHtml(business) || '—'}</td></tr>
+                <tr><td style="padding:8px 0;font-size:11px;color:#475569;">Email</td><td style="padding:8px 0;font-size:13px;color:#D4AF37;">${escapeHtml(email)}</td></tr>
               </table>
               <p style="margin:20px 0 0;font-size:11px;color:#334155;">Follow up when you&apos;re ready to open a deployment slot.</p>
             </div>

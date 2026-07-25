@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { timingSafeEqualStr } from '@/lib/security/authz'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,8 +29,10 @@ async function verifySignature(request: Request, rawBody: string): Promise<boole
   const sigBytes = await crypto.subtle.sign('HMAC', key, Buffer.from(toSign))
   const computed = `v1,${Buffer.from(sigBytes).toString('base64')}`
 
-  // svix-signature may contain multiple space-separated signatures
-  return svixSignature.split(' ').some(s => s === computed)
+  // svix-signature may contain multiple space-separated signatures.
+  // Constant-time compare so a forged signature can't be recovered byte-by-byte
+  // via response-timing differences.
+  return svixSignature.split(' ').some(s => timingSafeEqualStr(s, computed))
 }
 
 export async function POST(request: Request) {
