@@ -24,9 +24,9 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    // No emailRedirectTo — Supabase sends an 8-digit code in the email body.
-    // Avoids PKCE magic-link flow which breaks when the link is opened in a
-    // different browser or email client's built-in WebView.
+    // No emailRedirectTo — Supabase emails a 6-digit code in the body (its
+    // default email-OTP length). Avoids the PKCE magic-link flow which breaks
+    // when the link is opened in a different browser or an email client's WebView.
     const { error } = await supabase.auth.signInWithOtp({ email })
 
     if (error) {
@@ -153,7 +153,7 @@ export default function LoginPage() {
                 Enter Access Code
               </h1>
               <p className="text-sm text-[#94a3b8] mt-1">
-                A 6-digit code was dispatched to{' '}
+                A one-time code was dispatched to{' '}
                 <span className="text-[#D4AF37]">{email}</span>
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || otp.length !== 8}
+                disabled={loading || otp.length < 6}
                 className="w-full py-3 rounded-lg font-semibold text-sm text-[#0D0D0D] bg-[#D4AF37] hover:bg-[#F0C94A] disabled:opacity-40 transition-all duration-200"
               >
                 {loading
