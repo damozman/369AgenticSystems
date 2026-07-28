@@ -405,7 +405,9 @@
       background: rgba(255,255,255,0.035);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 0 0 1px rgba(var(--cr), 0.1), 0 0 32px rgba(var(--cr), 0.05);
+      display: flex; flex-direction: column;
     }
+    .feature-cta { margin-top: auto; }
     .feature-category {
       display: block; text-align: center;
       font-family: 'Instrument Sans', sans-serif;
@@ -755,8 +757,10 @@
               <div class="feature-step"><span class="feature-step-num">2</span>5-minute business profile — tell us how you work</div>
               <div class="feature-step"><span class="feature-step-num">3</span>Monthly ROI report across your full agent roster</div>
             </div>
-            <a href="roofing-leads/" class="btn-gold" style="width:100%; justify-content:center; padding:14px 24px;">Deploy Roofing System →</a>
-            <div style="font-size:0.68rem; color:var(--text-muted); margin-top:8px; text-align:center;">Starting at $400/mo</div>
+            <div class="feature-cta">
+              <a href="roofing-leads/" class="btn-gold" style="width:100%; justify-content:center; padding:14px 24px;">Deploy Roofing System →</a>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:8px; text-align:center;">Starting at $400/mo</div>
+            </div>
           </div>
 
           <!-- FEATURED · HVAC -->
@@ -791,8 +795,10 @@
               <div class="feature-step"><span class="feature-step-num">2</span>5-minute business profile — tell us how you work</div>
               <div class="feature-step"><span class="feature-step-num">3</span>Monthly ROI report across your full agent roster</div>
             </div>
-            <a href="hvac-leads/" class="btn-gold" style="width:100%; justify-content:center; padding:14px 24px;">Deploy HVAC System →</a>
-            <div style="font-size:0.68rem; color:var(--text-muted); margin-top:8px; text-align:center;">Starting at $400/mo</div>
+            <div class="feature-cta">
+              <a href="hvac-leads/" class="btn-gold" style="width:100%; justify-content:center; padding:14px 24px;">Deploy HVAC System →</a>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:8px; text-align:center;">Starting at $400/mo</div>
+            </div>
           </div>
 
         </div><!-- /feature-row -->
