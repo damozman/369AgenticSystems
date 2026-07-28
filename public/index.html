@@ -406,19 +406,16 @@
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 0 0 1px rgba(var(--cr), 0.1), 0 0 32px rgba(var(--cr), 0.05);
     }
-    .feature-card .face-top {
-      display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 8px;
-      margin-bottom: 18px;
+    .feature-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
     }
-    .feature-card .face-top .status-micro { justify-self: end; }
-    .feature-card .face-top .sys-tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feature-header .card-icon { margin: 0; flex-shrink: 0; }
     .feature-category {
       font-family: 'Instrument Sans', sans-serif;
-      font-size: 1rem; font-weight: 800; letter-spacing: 0.12em;
-      text-transform: uppercase; color: rgba(var(--cr), 1);
+      font-size: 2rem; font-weight: 800; letter-spacing: 0.02em;
+      line-height: 1; text-transform: uppercase; color: var(--gold);
     }
-    .feature-card .card-icon { margin: 0 0 12px; }
-    .feature-card .card-name { text-align: left; font-size: 1.35rem; margin-bottom: 14px; }
+    .feature-card .card-name { display: block; text-align: center; font-size: 1.35rem; margin-bottom: 14px; }
     .feature-badge {
       font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
       color: rgba(var(--cr), 1);
@@ -732,11 +729,13 @@
             <div class="card-grid"></div>
             <div class="face-top">
               <span class="sys-tag">SYSTEM_01 · ROOFING</span>
-              <span class="feature-category">Roofing Sector</span>
               <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
             </div>
-            <div class="card-icon">
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9v11h14V9" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M13 17l2-4-4-1 2-4" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div class="feature-header">
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9v11h14V9" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/><path d="M13 17l2-4-4-1 2-4" stroke="rgba(245,158,11,1)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <span class="feature-category">Roofing Sector</span>
             </div>
             <span class="card-name">Speed-to-Lead AOS <span style="font-size:0.62rem; font-weight:700; color:#F59E0B; letter-spacing:0.02em;">🔥 Most Popular</span></span>
             <div class="feature-stats">
@@ -769,11 +768,13 @@
             <div class="card-grid"></div>
             <div class="face-top">
               <span class="sys-tag">SYSTEM_02 · HVAC</span>
-              <span class="feature-category">HVAC Sector</span>
               <span class="status-micro"><span class="s-dot"></span>ACTIVE</span>
             </div>
-            <div class="card-icon">
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="rgba(255,101,51,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="rgba(255,101,51,1)" stroke-width="1.5"/></svg>
+            <div class="feature-header">
+              <div class="card-icon">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="rgba(255,101,51,1)" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="rgba(255,101,51,1)" stroke-width="1.5"/></svg>
+              </div>
+              <span class="feature-category">HVAC Sector</span>
             </div>
             <span class="card-name">Emergency Response AOS <span class="feature-badge">⚡ Priority Focus</span></span>
             <div class="feature-stats">
