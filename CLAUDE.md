@@ -16,24 +16,24 @@ item is actually resolved, delete it from the list instead of marking it done.
    (`smtp.resend.com` / user `resend` / password = Resend API key / sender on the already-verified
    `alerts.369agenticsystems.com` domain, e.g. `auth@alerts.369agenticsystems.com`) — never
    confirmed done. **Fix this first** — it blocks any fresh login to `/admin` or `/dashboard`.
-2. **Ops-brief parsing test harness** (belongs on `feat/ops-brief-parsing-test` branch) —
-   code-complete, typechecks clean (`npx tsc --noEmit` passes), but never fully verified:
-   - Not committed yet — currently untracked working-tree files; move back to
-     `feat/ops-brief-parsing-test` before committing (they'd briefly ended up sitting alongside
-     the homepage branch's work).
-   - `supabase/migrations/2026-07-30-ops-brief-test-tables.sql` — never confirmed applied to the
-     live Supabase project.
-   - One test upload failed at the Claude column-mapping step: "credit balance too low." Check
-     console.anthropic.com → Plans & Billing for whichever workspace the `ANTHROPIC_API_KEY` in
-     `.env.local` actually belongs to — separate billing from any Claude.ai chat subscription.
-   - Never ran `npm run build` (only the typecheck).
-   - No successful end-to-end run yet (upload → Claude mapping → confirm → metrics).
-3. **PR #7** (`feat/homepage-roofing-hvac-priority`, Roofing/HVAC catalog restructure) — visually
+2. **PR #7** (`feat/homepage-roofing-hvac-priority`, Roofing/HVAC catalog restructure) — visually
    confirmed good by Chris 2026-08-02. Still open/unmerged — merge when ready.
-4. **External, not code-blocking:** a hosting-provider support ticket for
+3. **External, not code-blocking:** a hosting-provider support ticket for
    `369agenticsystems.com`'s mail server (PTR record + inbound reachability) is still needed —
    affects Chris's own inbox (`chris@369agenticsystems.com`), separate from the Supabase Auth
-   SMTP fix in item 1.
+   SMTP fix in item 1. Chris emailed the provider 2026-08-02 for an update; awaiting response.
+
+### Resolved since last update
+- **Ops-brief parsing test harness** (`feat/ops-brief-parsing-test`) — fully verified 2026-08-02:
+  migration confirmed already applied live (`ops_uploads`, `ops_column_mappings`,
+  `ops_metric_snapshots` all present, 0 rows), Anthropic API key confirmed working (billing issue
+  resolved), `npx tsc --noEmit` and `npm run build` both clean, and a full real
+  parse → Claude mapping → upload → metrics → confirm pipeline run end-to-end against live
+  Supabase + live Claude using `test-data/ops-brief/messy-warehouse-sample.csv` (test rows cleaned
+  up after verification). Claude correctly found the real header row past the title/generated/spacer
+  rows and correctly left unmapped inputs null rather than guessing; metrics computation correctly
+  returned "insufficient data" reasons for the 4 metrics this fixture doesn't have columns for.
+  Not yet tested: the actual HTTP routes + admin UI (blocked on item 1's login issue).
 
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
