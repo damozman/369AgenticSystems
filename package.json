@@ -20,7 +20,8 @@
     "react-dom": "^18",
     "resend": "^6.12.3",
     "retell-sdk": "^5.45.0",
-    "stripe": "^22.3.0"
+    "stripe": "^22.3.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/node": "^20",
