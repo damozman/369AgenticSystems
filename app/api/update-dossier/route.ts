@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { diagnosticAlertHtml, dossierHtml, callBriefHtml, followUpHtml } from '@/lib/email-templates'
+import { resendFrom } from '@/lib/email-from'
 
 // Service-role client — bypasses RLS for server-to-server webhook ingestion.
 const supabaseAdmin = createClient(
@@ -74,14 +75,13 @@ export async function POST(request: Request) {
   // ── Email Dispatch ─────────────────────────────────────────────────────────
   if (process.env.RESEND_API_KEY) {
     const resend    = new Resend(process.env.RESEND_API_KEY)
-    const baseFrom  = process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'
     const scanDate  = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
     // Email 1 — Diagnostic Alert → prospect, immediate
     // FROM: "369 System Scan" signals an automated discovery, not a sales pitch
     const sendAlert = client_email
       ? resend.emails.send({
-          from:    `369 System Scan <${baseFrom}>`,
+          from:    resendFrom('369 System Scan'),
           to:      client_email,
           replyTo: OWNER_EMAIL,
           subject: `⚡ Autonomous Scan Complete — ${client_domain}`,
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     // FROM: "369 Intelligence Division" frames the dossier as enterprise analysis
     const sendDossier = client_email && onboarding_dossier_text && onboarding_dossier_text.trim().length > 0
       ? resend.emails.send({
-          from:        `369 Intelligence Division <${baseFrom}>`,
+          from:        resendFrom('369 Intelligence Division'),
           to:          client_email,
           replyTo:     OWNER_EMAIL,
           subject:     `📋 Your Operational Dossier — ${client_domain}`,
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     // Internal pre-call intelligence file with metrics + AI-generated talking points
     const sendCallBrief = call_brief && call_brief.trim().length > 0
       ? resend.emails.send({
-          from:    `369 Command Center <${baseFrom}>`,
+          from:    resendFrom('369 Command Center'),
           to:      OWNER_EMAIL,
           subject: `🎯 Call Brief — ${client_name} / ${client_domain}`,
           html:    callBriefHtml({
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
     const day2At = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
     const sendDay2 = client_email
       ? resend.emails.send({
-          from:        `369 Agentic Systems <${baseFrom}>`,
+          from:        resendFrom('369 Agentic Systems'),
           to:          client_email,
           replyTo:     OWNER_EMAIL,
           subject:     `Quick check-in — ${client_domain}`,
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     const day7At = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     const sendDay7 = client_email
       ? resend.emails.send({
-          from:        `369 Agentic Systems <${baseFrom}>`,
+          from:        resendFrom('369 Agentic Systems'),
           to:          client_email,
           replyTo:     OWNER_EMAIL,
           subject:     `Last note on ${client_domain}`,

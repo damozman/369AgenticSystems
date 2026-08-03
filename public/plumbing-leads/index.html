@@ -598,10 +598,9 @@
                 <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar" style="background:linear-gradient(90deg,#0369A1,#0EA5E9);"></div></div>
               </div>
               <div id="success-stage" style="display:none;">
-                <span style="color:#27c93f;">[SUCCESS] Audit initiated for <span id="company-display-2"></span>. Two emails are on their way.</span><br><br>
-                <span style="color:var(--text-muted);">→ <strong style="color:#F0F0F0;">Email 1 (now):</strong> Your autonomous scan results — what we found.</span><br>
-                <span style="color:var(--text-muted);">→ <strong style="color:#F0F0F0;">Email 2 (in ~5 min):</strong> Your full Operational Dossier with ROI breakdown.</span><br>
-                <span style="color:var(--text-muted);">→ <strong style="color:#F0F0F0;">Chris reviews your audit</strong> and follows up within 24 hours.</span><br><br>
+                <span style="color:#27c93f;">[SUCCESS] Request received for <span id="company-display-2"></span>.</span><br><br>
+                <span style="color:var(--text-muted);">→ <strong style="color:#F0F0F0;">Your details are with Chris now.</strong></span><br>
+                <span style="color:var(--text-muted);">→ <strong style="color:#F0F0F0;">He reviews every request personally</strong> and follows up within 24 hours.</span><br><br>
                 <span style="color:var(--text-muted);">→ Skip the wait — <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37;text-decoration:none;border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now →</a></span> <span class="blink">█</span>
               </div>
             </div>
@@ -611,7 +610,7 @@
         <div style="display:flex;justify-content:center;gap:36px;margin-top:24px;flex-wrap:wrap;" role="list">
           <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.78rem;" role="listitem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>No spam, ever.</div>
           <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.78rem;" role="listitem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>100% confidential</div>
-          <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.78rem;" role="listitem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Results within minutes</div>
+          <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.78rem;" role="listitem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Reviewed personally, within 24 hours</div>
         </div>
       </div>
     </div>
@@ -670,7 +669,21 @@
     const urlInfo=document.getElementById('url-info');
     urlInput.addEventListener('input',()=>{const v=urlInput.value.trim().toLowerCase();urlInfo.style.display=(v===''||v==='none')?'block':'none';});
 
-    const WEBHOOK='https://api.gumloop.com/api/v1/start_pipeline?api_key=af3c78cbfa4c4ac8a43f4d6bc2adb93b&user_id=1WmwHubRAOeAT2yxspaWgCDQER83&saved_item_id=8R26m4MM2nrbq3RaWXP4X7';
+    /* First-party intake — was a direct browser->Gumloop POST, which exposed the API key
+       and lost leads silently (Gumloop answers 200 and may never process the run). */
+    const WEBHOOK='/api/intake';
+    /* Never show success for a submission that did not land. */
+    function showIntakeFailure(){
+      btnLbl.textContent='Submission failed — see below';btnLbl.closest('button').disabled=false;
+      let el=document.getElementById('intake-error');
+      if(!el){
+        el=document.createElement('div');el.id='intake-error';el.setAttribute('role','alert');
+        el.style.cssText='margin-top:18px;padding:16px 18px;border:1px solid rgba(248,113,113,0.45);background:rgba(248,113,113,0.08);border-radius:10px;color:#FCA5A5;font-size:0.86rem;line-height:1.65;';
+        el.innerHTML='We couldn\'t submit your request just now. Please call <a href="tel:8176350220" style="color:#FCA5A5;font-weight:700;">(817) 635-0220</a> — our AI receptionist answers 24/7 and will take your details — or email <a href="mailto:chris@369agenticsystems.com" style="color:#FCA5A5;font-weight:700;">chris@369agenticsystems.com</a>.';
+        form.appendChild(el);
+      }
+      el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'center'});
+    }
     form.addEventListener('submit',async e=>{
       e.preventDefault();if(!form.checkValidity()){form.reportValidity();return;}
       let urlVal=urlInput.value.trim();
@@ -687,7 +700,9 @@
       };
       btnLbl.textContent='[INFO] Transmitting to 369 Agentic Core...';
       btnLbl.closest('button').disabled=true;
-      try{await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}catch(err){console.error('[369AS] Webhook error:',err);}
+      let ok=false;
+      try{const res=await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});ok=res.ok;}catch(err){console.error('[369AS] Intake error:',err);}
+      if(!ok){showIntakeFailure();return;}
       form.style.display='none';success.style.display='block';
       const cd=document.getElementById('company-display');if(cd)cd.textContent=payload.client_company||'your company';
       const cd2=document.getElementById('company-display-2');if(cd2)cd2.textContent=payload.client_company||'your company';
