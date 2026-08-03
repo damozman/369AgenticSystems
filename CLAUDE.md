@@ -1,5 +1,40 @@
 # 369 Agentic Systems — Claude Code Guide
 
+## ⚠️ Session Handoff — Read This First
+**Protocol:** At the end of any session with open items left, update this section before
+finishing up. At the start of a new session, read this section first, before anything else.
+**Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
+item is actually resolved, delete it from the list instead of marking it done.
+
+**Last updated:** 2026-08-02
+
+### Open items
+1. **OTP login / Supabase Auth email is likely still broken.** Gmail SMTP creds were being
+   rejected (`535 5.7.8`), and separately the domain's hosting-provider mail server looked
+   unreachable inbound with a missing PTR record outbound. Recommended switching Supabase's
+   Auth SMTP (Project Settings → Authentication → SMTP Settings) to Resend
+   (`smtp.resend.com` / user `resend` / password = Resend API key / sender on the already-verified
+   `alerts.369agenticsystems.com` domain, e.g. `auth@alerts.369agenticsystems.com`) — never
+   confirmed done. **Fix this first** — it blocks any fresh login to `/admin` or `/dashboard`.
+2. **Ops-brief parsing test harness** (belongs on `feat/ops-brief-parsing-test` branch) —
+   code-complete, typechecks clean (`npx tsc --noEmit` passes), but never fully verified:
+   - Not committed yet — currently untracked working-tree files; move back to
+     `feat/ops-brief-parsing-test` before committing (they'd briefly ended up sitting alongside
+     the homepage branch's work).
+   - `supabase/migrations/2026-07-30-ops-brief-test-tables.sql` — never confirmed applied to the
+     live Supabase project.
+   - One test upload failed at the Claude column-mapping step: "credit balance too low." Check
+     console.anthropic.com → Plans & Billing for whichever workspace the `ANTHROPIC_API_KEY` in
+     `.env.local` actually belongs to — separate billing from any Claude.ai chat subscription.
+   - Never ran `npm run build` (only the typecheck).
+   - No successful end-to-end run yet (upload → Claude mapping → confirm → metrics).
+3. **PR #7** (`feat/homepage-roofing-hvac-priority`, Roofing/HVAC catalog restructure) — visually
+   confirmed good by Chris 2026-08-02. Still open/unmerged — merge when ready.
+4. **External, not code-blocking:** a hosting-provider support ticket for
+   `369agenticsystems.com`'s mail server (PTR record + inbound reachability) is still needed —
+   affects Chris's own inbox (`chris@369agenticsystems.com`), separate from the Supabase Auth
+   SMTP fix in item 1.
+
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
 9 verticals: roofing, hvac, plumbing, legal, real-estate, insurance, saas, dental, wholesale.
