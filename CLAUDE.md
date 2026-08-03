@@ -6,7 +6,7 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-03
 
 ### Open items
 1. **OTP login / Supabase Auth email is likely still broken.** Gmail SMTP creds were being
@@ -16,24 +16,14 @@ item is actually resolved, delete it from the list instead of marking it done.
    (`smtp.resend.com` / user `resend` / password = Resend API key / sender on the already-verified
    `alerts.369agenticsystems.com` domain, e.g. `auth@alerts.369agenticsystems.com`) — never
    confirmed done. **Fix this first** — it blocks any fresh login to `/admin` or `/dashboard`.
-2. **PR #7** (`feat/homepage-roofing-hvac-priority`, Roofing/HVAC catalog restructure) — visually
-   confirmed good by Chris 2026-08-02. Still open/unmerged — merge when ready.
-3. **External, not code-blocking:** a hosting-provider support ticket for
+   Also blocks testing the ops-brief harness's actual HTTP routes/admin UI (its underlying
+   parse→Claude-mapping→metrics pipeline was verified directly against live Supabase + Claude on
+   2026-08-02, but the `/api/admin/ops-brief/*` routes and `OpsUploadTool.tsx` UI need a real admin
+   login, which this blocks).
+2. **External, not code-blocking:** a hosting-provider support ticket for
    `369agenticsystems.com`'s mail server (PTR record + inbound reachability) is still needed —
    affects Chris's own inbox (`chris@369agenticsystems.com`), separate from the Supabase Auth
    SMTP fix in item 1. Chris emailed the provider 2026-08-02 for an update; awaiting response.
-
-### Resolved since last update
-- **Ops-brief parsing test harness** (`feat/ops-brief-parsing-test`) — fully verified 2026-08-02:
-  migration confirmed already applied live (`ops_uploads`, `ops_column_mappings`,
-  `ops_metric_snapshots` all present, 0 rows), Anthropic API key confirmed working (billing issue
-  resolved), `npx tsc --noEmit` and `npm run build` both clean, and a full real
-  parse → Claude mapping → upload → metrics → confirm pipeline run end-to-end against live
-  Supabase + live Claude using `test-data/ops-brief/messy-warehouse-sample.csv` (test rows cleaned
-  up after verification). Claude correctly found the real header row past the title/generated/spacer
-  rows and correctly left unmapped inputs null rather than guessing; metrics computation correctly
-  returned "insufficient data" reasons for the 4 metrics this fixture doesn't have columns for.
-  Not yet tested: the actual HTTP routes + admin UI (blocked on item 1's login issue).
 
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
