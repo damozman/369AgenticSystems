@@ -39,6 +39,7 @@ const VERTICAL_TAGLINES: Record<Vertical, string> = {
 function DentalWaitlist() {
   const [email, setEmail]       = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [failed, setFailed]       = useState(false)
   const [loading, setLoading]   = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -46,16 +47,19 @@ function DentalWaitlist() {
     if (!email || loading) return
     setLoading(true)
     try {
-      await fetch('/api/early-access', {
+      const res = await fetch('/api/early-access', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email, industry: 'dental', source: 'dental-waitlist' }),
       })
+      // Only confirm a signup that actually landed — this used to set submitted in a
+      // `finally`, so a failed request still told the visitor they were on the list.
+      setFailed(!res.ok)
+      setSubmitted(res.ok)
     } catch {
-      // fail silently
+      setFailed(true)
     } finally {
       setLoading(false)
-      setSubmitted(true)
     }
   }
 
@@ -108,6 +112,13 @@ function DentalWaitlist() {
             <p style={{ margin: '0 0 16px', fontFamily: 'monospace', fontSize: 9, color: '#EC4899', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
               // SECURE YOUR SPOT
             </p>
+            {failed && (
+              <p role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', border: '1px solid rgba(248,113,113,0.45)', background: 'rgba(248,113,113,0.08)', borderRadius: 8, fontSize: 12.5, color: '#FCA5A5', lineHeight: 1.6 }}>
+                {"That didn't go through. Please try again, or email "}
+                <a href="mailto:chris@369agenticsystems.com" style={{ color: '#FCA5A5', fontWeight: 700 }}>chris@369agenticsystems.com</a>
+                {" and we'll add you manually."}
+              </p>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="email"

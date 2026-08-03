@@ -670,7 +670,21 @@
     const urlInfo=document.getElementById('url-info');
     urlInput.addEventListener('input',()=>{const v=urlInput.value.trim().toLowerCase();urlInfo.style.display=(v===''||v==='none')?'block':'none';});
 
-    const WEBHOOK='https://api.gumloop.com/api/v1/start_pipeline?api_key=af3c78cbfa4c4ac8a43f4d6bc2adb93b&user_id=1WmwHubRAOeAT2yxspaWgCDQER83&saved_item_id=8R26m4MM2nrbq3RaWXP4X7';
+    /* First-party intake — was a direct browser->Gumloop POST, which exposed the API key
+       and lost leads silently (Gumloop answers 200 and may never process the run). */
+    const WEBHOOK='/api/intake';
+    /* Never show success for a submission that did not land. */
+    function showIntakeFailure(){
+      btnLbl.textContent='Submission failed — see below';btnLbl.closest('button').disabled=false;
+      let el=document.getElementById('intake-error');
+      if(!el){
+        el=document.createElement('div');el.id='intake-error';el.setAttribute('role','alert');
+        el.style.cssText='margin-top:18px;padding:16px 18px;border:1px solid rgba(248,113,113,0.45);background:rgba(248,113,113,0.08);border-radius:10px;color:#FCA5A5;font-size:0.86rem;line-height:1.65;';
+        el.innerHTML='We couldn\'t submit your request just now. Please call <a href="tel:8176350220" style="color:#FCA5A5;font-weight:700;">(817) 635-0220</a> — our AI receptionist answers 24/7 and will take your details — or email <a href="mailto:chris@369agenticsystems.com" style="color:#FCA5A5;font-weight:700;">chris@369agenticsystems.com</a>.';
+        form.appendChild(el);
+      }
+      el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'center'});
+    }
     form.addEventListener('submit',async e=>{
       e.preventDefault();if(!form.checkValidity()){form.reportValidity();return;}
       let urlVal=urlInput.value.trim();
@@ -687,7 +701,9 @@
       };
       btnLbl.textContent='[INFO] Transmitting to 369 Agentic Core...';
       btnLbl.closest('button').disabled=true;
-      try{await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}catch(err){console.error('[369AS] Webhook error:',err);}
+      let ok=false;
+      try{const res=await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});ok=res.ok;}catch(err){console.error('[369AS] Intake error:',err);}
+      if(!ok){showIntakeFailure();return;}
       form.style.display='none';success.style.display='block';
       const cd=document.getElementById('company-display');if(cd)cd.textContent=payload.client_company||'your company';
       const cd2=document.getElementById('company-display-2');if(cd2)cd2.textContent=payload.client_company||'your company';

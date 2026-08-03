@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { provisionClient } from '@/lib/onboard-client'
 import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
 import { escapeHtml } from '@/lib/security/sanitize'
+import { resendFrom } from '@/lib/email-from'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     // immediately rather than relying on someone noticing server logs.
     if (process.env.RESEND_API_KEY) {
       resend.emails.send({
-        from:    `369 Command Center <${process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'}>`,
+        from:    resendFrom('369 Command Center'),
         to:      OWNER_EMAIL,
         subject: `🚨 Paid signup failed to provision — ${businessName} (${vertical})`,
         html:    `<p>A customer paid via Stripe but provisioning failed. This needs manual follow-up (refund or manual provisioning).</p>

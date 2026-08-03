@@ -3,6 +3,7 @@ import { createClient as createSessionClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { isAdminEmail } from '@/lib/admin'
+import { resendFrom } from '@/lib/email-from'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,10 +62,9 @@ export async function POST(request: Request) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const baseFrom = process.env.RESEND_FROM_EMAIL ?? 'command@alerts.369agenticsystems.com'
 
   const { data: sent, error: sendError } = await resend.emails.send({
-    from:    `369 Agentic Systems <${baseFrom}>`,
+    from:    resendFrom('369 Agentic Systems'),
     to:      draft.prospect_email,
     replyTo: OWNER_EMAIL,
     subject: draft.draft_subject,

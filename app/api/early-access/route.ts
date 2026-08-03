@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { escapeHtml } from '@/lib/security/sanitize'
+import { resendFrom } from '@/lib/email-from'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,22 +27,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Email required' }, { status: 400 })
   }
 
-  // Save to Supabase — graceful fail so form always succeeds
-  await supabaseAdmin
+  // Save to Supabase. This used to swallow the error "so the form always succeeds" — which
+  // meant a failed insert still showed the applicant a confirmation and nobody was told.
+  // Report the failure instead so the caller can offer a real fallback.
+  const { error: dbError } = await supabaseAdmin
     .from('early_access_list')
     .insert({ name, email, business, created_at: new Date().toISOString() })
-    .then(({ error }) => {
-      if (error) console.warn('[EARLY ACCESS] Supabase insert failed:', error.message)
-      else       console.log(`[EARLY ACCESS] Saved — ${email}`)
-    })
+
+  if (dbError) {
+    console.error(`[EARLY ACCESS] ✗ NOT saved — ${email} — ${dbError.message}`)
+    return NextResponse.json({ error: 'Could not record signup' }, { status: 500 })
+  }
+  console.log(`[EARLY ACCESS] ✓ Saved — ${email}`)
 
   // Notify owner
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const from   = process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com'
 
     await resend.emails.send({
-      from:    `369 Command Center <${from}>`,
+      from:    resendFrom('369 Command Center'),
       to:      OWNER_EMAIL,
       subject: `🚀 New Founding Operator Application — ${business || email}`,
       html: `
