@@ -33,6 +33,21 @@ const supabaseAdmin = createClient(
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
 
+/**
+ * Optional second recipient for lead alerts, on a different mail provider.
+ *
+ * On 2026-08-03 the mailbox behind `OWNER_EMAIL` went offline — its MX host stopped
+ * answering on every port — and lead notifications, plus Supabase sign-in links, failed
+ * silently for days. A single mailbox is a single point of failure for the one signal
+ * that says "a prospect is waiting". Set this to an address on another provider and a
+ * repeat of that outage still reaches someone.
+ *
+ * Dormant when unset, so this ships without changing behaviour.
+ */
+const OWNER_EMAIL_CC = process.env.OWNER_EMAIL_CC?.trim()
+
+const ownerRecipients = OWNER_EMAIL_CC ? [OWNER_EMAIL, OWNER_EMAIL_CC] : [OWNER_EMAIL]
+
 // Maps the page's source_tag onto a clean vertical. Historic rows stored the raw tag
 // (e.g. "369AS_ROOFING_INTAKE") in client_industry, which made the column useless for
 // grouping — store the vertical instead.
@@ -128,7 +143,7 @@ export async function POST(request: Request) {
       const { error } = await resend.emails.send({
         from:    resendFrom('369 Command Center'),
         replyTo: email,
-        to:      OWNER_EMAIL,
+        to:      ownerRecipients,
         subject: `🔔 New ${vertical} lead — ${company || name || email}`,
         html: `
           <div style="background:#0A0A0A;padding:40px 24px;font-family:monospace;">
