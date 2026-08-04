@@ -10,7 +10,10 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { client_domain, ...formData } = body
+    // `schedule` is pulled out deliberately: formData is spread straight into
+    // client_questionnaires, and these columns live on client_schedules instead. Leaving it in
+    // the spread would fail the whole upsert on an unknown column.
+    const { client_domain, schedule, ...formData } = body
 
     if (!client_domain) {
       return NextResponse.json({ error: 'client_domain is required' }, { status: 400 })
@@ -42,6 +45,30 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[QUESTIONNAIRE] ✓ Saved for ${client_domain}`)
+
+    // Working hours drive the times Ava offers a caller. Non-fatal on purpose: the questionnaire
+    // itself is already saved, and a client with no schedule row falls back to default weekday
+    // hours rather than losing the ability to book at all. Logged loudly because silently
+    // serving defaults to someone who just typed their real hours is the kind of quiet
+    // wrongness that hides for weeks.
+    if (schedule) {
+      const { error: schedError } = await supabase
+        .from('client_schedules')
+        .upsert({
+          client_domain,
+          timezone:                schedule.timezone,
+          business_hours:          schedule.business_hours,
+          slot_duration_minutes:   schedule.slot_duration_minutes,
+          max_concurrent_per_slot: schedule.max_concurrent_per_slot,
+          updated_at:              new Date().toISOString(),
+        }, { onConflict: 'client_domain' })
+
+      if (schedError) {
+        console.error(`[QUESTIONNAIRE] ✗ Schedule save failed for ${client_domain}:`, schedError.message)
+      } else {
+        console.log(`[QUESTIONNAIRE] ✓ Schedule saved for ${client_domain}`)
+      }
+    }
 
     // Awaited, not fire-and-forget: on Vercel's serverless runtime a function
     // can freeze as soon as it returns a response, so an un-awaited call risks
