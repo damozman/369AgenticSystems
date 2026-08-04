@@ -6,52 +6,88 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-03 (end of session — Phase 0 truthfulness pass opened as PR #12)
+**Last updated:** 2026-08-04 (end of session — Retell call outage fixed, audit pipeline live)
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work — Chris has not approved the direction.**
 
 ### Recently closed — do NOT re-diagnose
-- **The mail outage is fixed.** It was never PTR or SMTP credentials. `369agenticsystems.com`'s
-  MX pointed at a host that had stopped answering on *every* port. Migrated to Namecheap Private
-  Email; DNS is managed at **Namecheap BasicDNS**, not Vercel, despite the site being hosted there.
-- **The funnel no longer loses leads** (PR #10). Static pages post to `/api/intake`, which writes
-  `system_audits` and emails the owner. Gumloop is cancelled and dies **2026-09-02**.
-- **The open relay is closed** (PR #11, merge `01f08e3`). `/api/update-dossier` was
-  unauthenticated and mailed any address in its payload; it is deleted and returns 404 in prod.
-- **Both shared-secret gates are armed**, re-verified live 2026-08-03: all six guarded routes
-  (`capture-lead`, `call-received`, `book-appointment`, `felix/conflict-check`, `rex/trigger`,
-  `nova/booking-confirmation`) return 401 to an unauthenticated POST.
+- **The Retell call outage is fixed (2026-08-04).** The demo line answered calls but recorded
+  **none for ten days** (2026-07-25 → 08-04). `+18176350220`'s inbound route was pinned to
+  agent **version 17**, whose `webhook_url` had no `?secret=`, so the armed gate on
+  `/api/call-received` 401'd every webhook. v18 was published and correct; the number never
+  followed it. Outbound calls used v18 and worked, which masked it. Repointed to v18
+  (rollback: `agent_version: 17, weight: 1`, same agent id). All four lost calls were owner
+  tests — no real prospects. Full chain re-verified: call → lead → booking, both FKs linked.
+- **The "we called your line" audit pipeline is LIVE** (PRs #14, #15 merged). Verified on a
+  real production call: `dial_no_answer` → *"We called your main line Tuesday at 2:01am. It
+  rang out — no answer, no voicemail."* No leak into `calls`.
+- **The mail outage is fixed.** Never PTR or SMTP credentials — the MX host had stopped
+  answering on every port. Now Namecheap Private Email; DNS at **Namecheap BasicDNS**, not
+  Vercel, despite the site being hosted there.
+- **The funnel no longer loses leads** (PR #10). Confirmed still healthy 2026-08-04:
+  a real submission wrote `empiretrak.com / roofing / intake_received` and emailed the owner.
+  Gumloop is cancelled and dies **2026-09-02**.
+- **The open relay is closed** (PR #11). `/api/update-dossier` deleted; returns 404 in prod.
+- **`INTERNAL_API_SECRET` rotation is cleared.** Rotated twice on 2026-08-04; booking,
+  lead capture and call recording all verified working afterwards. It broke nothing.
 
 ### Open items
-0. **PR #12 is open and needs a preview check before merging.** Phase 0 truthfulness pass,
-   branch `fix/truthfulness-pass`, commit `37390e9`. `tsc`/`build`/`test` are green but a
-   green build is not evidence. On the Vercel preview: load the roofing static page and
-   `/roofing`, enter identical inputs, confirm the two figures now agree (they do locally —
-   $97,425/mo); check all 9 static calculators at desktop and 390px so the new assumption
-   line renders without breaking the stat row; check the homepage vertical-card hover copy
-   and the `/roofing` comparison table footnote. The ROI model now lives in `lib/roi.ts` —
-   **any new revenue estimate must import `RECOVERY_RATE` from there**, and the 9 static
-   pages carry a mirrored copy with a comment pointing back to it.
-1. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links were bouncing because
-   of the mail outage above, which is now resolved, but nobody has logged in since. This is the
-   first thing to check because it gates item 2. If it still fails, the fallback is switching
-   Supabase Auth SMTP (Project Settings → Authentication → SMTP Settings) to Resend
-   (`smtp.resend.com`, user `resend`, password = Resend API key, sender on the already-verified
-   `alerts.369agenticsystems.com`).
-2. **Ops-brief HTTP routes + admin UI still untested.** The underlying
-   parse→Claude-mapping→metrics pipeline was verified against live Supabase + Claude on
-   2026-08-02, but `/api/admin/ops-brief/*` and `OpsUploadTool.tsx` need a real admin login.
-3. **Phase 2b — the "we called your line" audit.** The plan's highest-value item and still not
-   started. It replaces the deleted fabricated scores with a real recorded test call, and a bulk
-   run manufactures the proprietary statistic that replaces the borrowed ones removed in 0c.
-4. **Intake failure alerting is still missing** (00d partial). A failed insert returns 500, shows
-   the prospect a fallback, and logs to Vercel — but nothing tells the owner. Nine days of silent
-   failure was the original defect; that specific hole is still open. SMS was evaluated and
-   dropped (no Twilio credentials exist anywhere).
-5. **`lib/email-templates.ts` is now unreferenced dead code.** All four templates lost their only
+1. **PRs #12 and #13 are open, clean, and need a preview check before merging.** Both were
+   `MERGEABLE / CLEAN` at end of session and neither involves a Retell callback, so both are
+   genuinely preview-testable.
+   - **#12 Phase 0 truthfulness** (`fix/truthfulness-pass`): unified three contradictory ROI
+     models on `lib/roi.ts`, stripped **eight** borrowed statistics, and added a drift guard
+     (`lib/roi.test.ts`). Preview check: roofing static page vs `/roofing` with identical
+     inputs must agree ($97,425/mo locally); all 9 calculators at desktop and 390px.
+   - **#13 Intake failure alerting** (`fix/intake-failure-alerting`): a failed insert now
+     emails the owner the full payload. Preview check: force a DB failure, confirm the
+     prospect sees the fallback **and** the 🚨 email arrives.
+   - ⚠️ #12 also edits this file. Merging master into it may need a CLAUDE.md conflict resolved.
+2. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links bounced during the
+   mail outage, which is resolved, but nobody has logged in since. **This gates item 3.**
+   Fallback: switch Supabase Auth SMTP to Resend (`smtp.resend.com`, user `resend`, password =
+   Resend API key, sender on the verified `alerts.369agenticsystems.com`).
+3. **Ops-brief HTTP routes + admin UI still untested.** The parse→Claude→metrics pipeline was
+   verified live 2026-08-02, but `/api/admin/ops-brief/*` and `OpsUploadTool.tsx` need a real
+   admin login.
+4. **Phase 2b bulk runner — NOT built, and deliberately so.** It manufactures the proprietary
+   statistic that replaces the removed borrowed ones. Everything it needs is built and tested
+   (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum). **Blocked on a
+   decision only Chris can make:** cold-calling businesses that never made contact is a
+   different legal posture from calling a form submitter — Texas telemarketing registration
+   and do-not-call apply. Do not build this unprompted.
+5. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the outage class above. Not
+   yet on a cron. Cheap insurance against the same ten-day silence.
+6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Kept because plan Phase 2a earmarks them for
    reuse; `diagnosticAlertHtml` is thin enough now that it likely wants a rewrite instead.
+
+### The pattern that has now bitten twice
+**Arming a shared-secret gate silently breaks every producer that did not get the new
+secret**, and the breakage is silent by construction — the gate returns 401 and the producer
+does not care. This caused both the funnel outage and the ten-day call outage. **After arming
+any gate, enumerate the producers and verify each one still delivers.**
+
+### Verification scripts (all committed, all run against live systems)
+```
+node scripts/audit-retell-webhooks.mjs   every inbound route can deliver its webhook
+node scripts/verify-booking.mjs [hours]  call → lead → booking chain
+node scripts/verify-audit-call.mjs       audit calls resolved + no leak into `calls`
+node scripts/preflight-audit-call.mjs    config check before spending a call
+node scripts/place-audit-call.mjs        place one audit call (prompts, no args)
+node scripts/probe-audit-calls.mjs       audit_calls schema vs production
+```
+
+### Environment notes
+- Chris runs **PowerShell**. Never hand over bash syntax or `<angle-bracket>` placeholders —
+  `<` is a reserved operator and the line fails to parse. Script it with prompts instead.
+- **Retell webhooks always hit production**, never a preview — the URL is on the agent.
+  Anything touching a Retell callback must be merged and tested in prod.
+- Vercel previews are SSO-protected; `curl` gets `401 "Protected deployment"` until a
+  Protection Bypass for Automation token is passed.
+- `INTERNAL_API_SECRET` is marked **Sensitive** in Vercel — write-only, scoped to
+  **Production and Preview together**.
 
 ### Leave alone
 `369AgenticSystems.code-workspace` has a pre-existing uncommitted modification that predates
@@ -140,9 +176,9 @@ calls to it. `source_tag` (`369AS_{VERTICAL}_INTAKE`) is still sent and is mappe
 `lib/roi.ts` owns `RECOVERY_RATE = 0.30` — the single source of truth for every revenue
 estimate shown to a prospect. Import it; never re-declare it. The 9 static calculators carry
 a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
-Any figure derived from it must state the assumption on-screen.
+Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts` guards both.
 
-## Launch State (as of 2026-08-03)
+## Launch State (as of 2026-08-04)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
 - Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
 - SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
