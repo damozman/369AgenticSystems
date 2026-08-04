@@ -75,7 +75,8 @@ Deployed on Vercel, auto-deploys from `master`.
 - Full dashboard at `app/(portal)/dashboard/page.tsx`
 
 ### Agent System
-- 5 agents: Ava (live), Rex (deploying), Nova (deploying), Felix (legal only), Scout (saas only)
+- 5 agents: Ava (live), Rex (live), Nova (live), Felix (live, legal only), Scout (deploying, saas only)
+- Dental is the exception: Ava/Rex/Nova are FUTURE there, not live
 - Agent cards: `components/agents/AgentCard.tsx` (Client Component, links to `/agents/{slug}`)
 - Agent detail pages: `app/agents/[agent]/page.tsx` (Server Component) + `app/agents/[agent]/DeploymentCards.tsx` (Client Component for hover)
 - Agent team grid: `components/agents/AgentTeamGrid.tsx`
@@ -128,12 +129,14 @@ Never use `texasmediamasters@gmail.com`
 Single webhook URL for all verticals, differentiated by `source_tag` field.
 Format: `369AS_{VERTICAL}_INTAKE` (e.g. `369AS_ROOFING_INTAKE`)
 
-## Launch State (as of 2026-07-06)
+## Launch State (as of 2026-08-03)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
-- Legal: 4 agents (Ava, Rex, Nova, Felix)
-- SaaS: 4 agents (Ava, Rex, Nova, Scout)
-- All other verticals: 3 agents (Ava, Rex, Nova)
-- Launch day: Tuesday 2026-07-08
+- Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
+- SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
+- All other verticals: 3 agents (Ava, Rex, Nova) — all LIVE
+- Zero paying clients. No testimonials, logos, or plural-client claims are permissible anywhere.
+- Rex SMS follow-up and Nova review requests are NOT shipped — the "coming in phase 2"
+  notes on the agent pages are accurate, leave them.
 
 ## Common Tasks
 

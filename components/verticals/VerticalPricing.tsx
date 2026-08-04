@@ -88,7 +88,7 @@ const FAQ = [
   },
   {
     q: 'What if it doesn\'t work for me?',
-    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your first month. No questions asked. But most clients see ROI within week 1.',
+    a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your first month. No questions asked.',
   },
   {
     q: 'What are Crystal Clear and Custom Business Intelligence?',

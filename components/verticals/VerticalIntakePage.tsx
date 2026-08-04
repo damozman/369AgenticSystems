@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LiveDemoWidget } from '@/components/portal/LiveDemoWidget'
 import { AgentTeamGrid } from '@/components/agents/AgentTeamGrid'
+import { RECOVERY_RATE, RECOVERY_RATE_NOTE } from '@/lib/roi'
 
 // ── Vertical config ───────────────────────────────────────────────────────────
 
@@ -312,7 +313,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
     const jobVal = Number(form.jobValue)     || 0
     if (!calls || !jobVal || answer >= 100) return null
     const missedPerMonth = calls * 4.33 * ((100 - answer) / 100)
-    return Math.round(missedPerMonth * jobVal)
+    return Math.round(missedPerMonth * jobVal * RECOVERY_RATE)
   }, [form.callsPerWeek, form.answerRate, form.jobValue])
 
   const tickerVisible = liveLoss !== null && liveLoss > 0
@@ -388,7 +389,7 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr>
-                    {['', 'Monthly Cost', 'Available', 'Books Appts', 'Follows Up', 'Captures Data'].map((h, i) => (
+                    {['', 'Monthly Cost', 'Available', 'Books Appts', 'Automatic Follow-Up', 'Every Call Logged'].map((h, i) => (
                       <th key={i} style={{ padding: '8px 12px', textAlign: i === 0 ? 'left' : 'center', fontFamily: 'monospace', fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -427,6 +428,9 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
                 </tbody>
               </table>
             </div>
+            <p style={{ margin: '12px 0 0', fontSize: 11, color: '#475569', lineHeight: 1.6, textAlign: 'center' }}>
+              This compares what each option does on its own, not what a person is capable of. A great receptionist can follow up and log every call — they just have to remember to, on top of everything else.
+            </p>
           </div>
 
           {/* ── Form card ──────────────────────────────────────────────────── */}
@@ -516,14 +520,17 @@ export function VerticalIntakePage({ vertical, demoPhone }: Props) {
                     }}
                   >
                     <p style={{ margin: '0 0 4px', fontFamily: 'monospace', fontSize: 9, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-                      // ESTIMATED MONTHLY REVENUE WALKING OUT THE DOOR
+                      // ESTIMATED MONTHLY REVENUE WORTH RECOVERING
                     </p>
                     <p style={{ margin: '0 0 4px', fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 800, color: '#FCA5A5', lineHeight: 1, letterSpacing: '-0.02em' }}>
                       ${liveLoss!.toLocaleString()}
                       <span style={{ fontSize: 14, fontWeight: 400, color: '#F87171', marginLeft: 6, fontFamily: 'monospace' }}>/mo</span>
                     </p>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
-                      That's <span style={{ color: '#FCA5A5', fontWeight: 600 }}>${(liveLoss! * 12).toLocaleString()}/year</span> in {config.tickerLabel} going to competitors who pick up the phone.
+                    <p style={{ margin: '0 0 6px', fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+                      That's <span style={{ color: '#FCA5A5', fontWeight: 600 }}>${(liveLoss! * 12).toLocaleString()}/year</span> in {config.tickerLabel} going to whoever picks up first.
+                    </p>
+                    <p style={{ margin: 0, fontSize: 11, color: '#475569', lineHeight: 1.5 }}>
+                      {RECOVERY_RATE_NOTE}
                     </p>
                   </div>
                 )}

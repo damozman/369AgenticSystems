@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { RECOVERY_RATE } from '@/lib/roi'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,7 +43,6 @@ export async function GET(request: NextRequest) {
     dental:        200,
   }
 
-  const RECOVERY_RATE = 0.30
   let sent = 0
 
   for (const sub of subscriptions) {

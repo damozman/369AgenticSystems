@@ -240,8 +240,8 @@
 
       <div class="reveal d4" style="display:flex;gap:40px;flex-wrap:wrap;align-items:center;">
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem;font-weight:600;color:var(--blue-light);line-height:1;letter-spacing:-0.02em;">&lt;60s</div>
-          <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;">Emergency response</div>
+          <div class="font-display" style="font-size:2.2rem;font-weight:600;color:var(--blue-light);line-height:1;letter-spacing:-0.02em;">1st ring</div>
+          <div style="color:var(--text-muted);font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;">Every call answered, 24/7</div>
         </div>
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
@@ -337,7 +337,7 @@
             The Emergency Recovery AOS answers every inbound call — nights, weekends, holidays. It qualifies the emergency, routes to your on-call tech immediately, and follows up on every estimate. No human required.
           </p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--blue-light);margin-bottom:4px;letter-spacing:-0.02em;">&lt;60s</div><div style="color:var(--text-secondary);font-size:0.82rem;">Response time</div></div>
+            <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--blue-light);margin-bottom:4px;letter-spacing:-0.02em;">1st ring</div><div style="color:var(--text-secondary);font-size:0.82rem;">Every call answered, 24/7</div></div>
             <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--blue-light);margin-bottom:4px;letter-spacing:-0.02em;">24/7</div><div style="color:var(--text-secondary);font-size:0.82rem;">Emergency coverage</div></div>
             <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--blue-light);margin-bottom:4px;letter-spacing:-0.02em;">Every</div><div style="color:var(--text-secondary);font-size:0.82rem;">Call answered</div></div>
             <div class="glass" style="padding:20px;"><div class="font-display" style="font-size:1.6rem;font-weight:600;color:var(--blue-light);margin-bottom:4px;letter-spacing:-0.02em;">&lt;5min</div><div style="color:var(--text-secondary);font-size:0.82rem;">Deployment</div></div>
@@ -384,7 +384,7 @@
         <div class="glass bento-card reveal d2" style="padding:32px;position:relative;overflow:hidden;">
           <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:10px;">Emergency Calls Captured</div>
           <div class="font-display" style="font-size:4rem;font-weight:600;color:var(--blue-light);line-height:1;margin-bottom:10px;letter-spacing:-0.02em;">100%</div>
-          <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.55;">Every emergency call answered — nights, weekends, holidays — qualified and dispatched in under 60 seconds.</p>
+          <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.55;">Every emergency call answered on the first ring — nights, weekends, holidays — qualified and dispatched.</p>
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;">
             <span style="color:var(--text-muted);font-size:0.78rem;">Avg emergency job value</span>
             <span style="color:var(--blue-light);font-weight:600;font-family:'Instrument Sans',sans-serif;">$550</span>
@@ -429,7 +429,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">The Math</span>
         <h2 id="roi-heading" class="font-display" style="font-size:clamp(2rem,5vw,3.2rem);font-weight:600;margin-top:12px;margin-bottom:16px;letter-spacing:-0.02em;line-height:1.1;">Your Emergency Revenue Calculator</h2>
-        <p style="color:var(--text-secondary);font-size:0.975rem;max-width:460px;margin:0 auto;line-height:1.65;">Move the sliders. See exactly how much those missed emergency calls are costing you every week.</p>
+        <p style="color:var(--text-secondary);font-size:0.975rem;max-width:460px;margin:0 auto;line-height:1.65;">Move the sliders. Estimate how much those missed emergency calls are costing you every week.</p>
       </div>
 
       <div class="glass-strong roi-glow reveal d1" style="padding:52px 48px;">
@@ -455,13 +455,15 @@
         <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(3,105,161,0.4),transparent);margin-bottom:44px;" aria-hidden="true"></div>
 
         <div class="stat-row-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:center;margin-bottom:44px;">
-          <div><div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Weekly Loss</div><div id="weekly-cost" class="font-display" style="font-size:2rem;font-weight:600;color:var(--red-accent);">$2.2k</div></div>
+          <div><div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Weekly Recoverable</div><div id="weekly-cost" class="font-display" style="font-size:2rem;font-weight:600;color:var(--blue-light);">$660</div></div>
           <div style="border-left:1px solid var(--glass-border);border-right:1px solid var(--glass-border);">
-            <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Monthly Loss</div>
-            <div id="monthly-cost" class="font-display" style="font-size:2rem;font-weight:600;color:var(--red-accent);">$9.5k</div>
+            <div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Monthly Recoverable</div>
+            <div id="monthly-cost" class="font-display" style="font-size:2rem;font-weight:600;color:var(--blue-light);">$3k</div>
           </div>
-          <div><div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Annual Pipeline at Risk</div><div id="annual-recovery" class="font-display" style="font-size:2.5rem;font-weight:600;color:var(--blue-light);">$114k</div></div>
+          <div><div style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Annual Recoverable Revenue</div><div id="annual-recovery" class="font-display" style="font-size:2.5rem;font-weight:600;color:var(--blue-light);">$34k</div></div>
         </div>
+
+        <p style="text-align:center;color:var(--text-muted);font-size:0.76rem;line-height:1.6;margin:-28px auto 40px;max-width:520px;">Assumes 30% of missed emergency calls convert once answered — a conservative rate. Not every answered call becomes a job.</p>
 
         <div style="text-align:center;">
           <p style="color:var(--text-muted);font-size:0.83rem;margin-bottom:22px;">This revenue is within reach. The Emergency Recovery AOS captures it — starting within minutes of signup.</p>
@@ -659,7 +661,9 @@
     const mEl=document.getElementById('monthly-cost');
     const aEl=document.getElementById('annual-recovery');
     function fmt(n){if(n>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return'$'+Math.round(n/1000)+'k';return'$'+n.toLocaleString();}
-    function updateROI(){const leads=+leadsSlider.value;const value=+valueSlider.value;const weekly=leads*value;const monthly=Math.round(weekly*4.33);const annual=weekly*52;leadsDisp.textContent=leads+' call'+(leads===1?'':'s');valueDisp.textContent='$'+value.toLocaleString();wEl.textContent=fmt(weekly);mEl.textContent=fmt(monthly);aEl.textContent=fmt(annual);}
+    /* Must match RECOVERY_RATE in lib/roi.ts — full job value would claim a 100% close rate. */
+    const RECOVERY_RATE=0.30;
+    function updateROI(){const leads=+leadsSlider.value;const value=+valueSlider.value;const weekly=leads*value*RECOVERY_RATE;const monthly=Math.round(weekly*4.33);const annual=Math.round(weekly*52);leadsDisp.textContent=leads+' call'+(leads===1?'':'s');valueDisp.textContent='$'+value.toLocaleString();wEl.textContent=fmt(weekly);mEl.textContent=fmt(monthly);aEl.textContent=fmt(annual);}
     leadsSlider.addEventListener('input',updateROI);valueSlider.addEventListener('input',updateROI);updateROI();
 
     const form=document.getElementById('audit-form');
