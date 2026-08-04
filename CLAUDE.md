@@ -6,16 +6,47 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (ops-brief PRs #16/#17/#18 merged and live; no open PRs)
+**Last updated:** 2026-08-04 (booking availability shipped; ops-brief PRs merged; no open PRs)
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
+The booking work has its own approved plan at `~/.claude/plans/dynamic-frolicking-starlight.md`.
 
-### START HERE: nothing is half-finished, and there are no open PRs
+### START HERE: one thing needs a human, and it is a phone call
+Everything below is merged, deployed and verified as far as it can be verified without a
+handset. **Place one real call to the demo line (817) 635-0220**, ask to book, and confirm:
+1. Ava offers real times (not 10:00 AM / 2:00 PM), and
+2. booking one, then calling again, does **not** offer that same slot a second time.
+
 `master` is clean and deployed. The working tree is clean apart from the pre-existing
-`369AgenticSystems.code-workspace` modification, which is not ours. Pick from **Open items**.
+`369AgenticSystems.code-workspace` modification, which is not ours.
 
 ### Recently closed - do NOT re-diagnose
+- **Ava now books real appointments (2026-08-04, PR #19, merge `b8eda96`).** Ava was
+  **inventing times**: `/api/available-slots` hardcoded 10:00 AM and 2:00 PM, Mon-Fri, always
+  `America/Chicago`, and read neither a calendar nor the `bookings` table - so she could hand
+  the same Tuesday 10:00 AM to five callers. `appointment_time` is TEXT, so nothing could say
+  when an appointment *ended*, making overlap detection impossible.
+  - `client_schedules` (per-client timezone, weekday hours, job length, how many jobs run at
+    once, lead time, horizon - all defaulted), `bookings.starts_at`/`ends_at`, and `book_slot()`
+    which does the capacity check and insert in **one transaction** behind an advisory lock.
+  - `lib/availability.ts` is pure and `Intl`-only, no new dependency. 25 tests covering both
+    2026 DST transitions and the ambiguous repeated hour at fall-back.
+  - `/api/available-slots` is now a per-client **POST** behind the shared-secret gate (it needed
+    no secret before, because it returned nothing but invented dates). `/api/book-appointment`
+    returns **409 `slot_unavailable`** rather than silently double-booking.
+  - **Verified live:** migration applied, `scripts/probe-booking-availability.mjs` passed every
+    check against production including a real double-book attempt, overlap attempt and
+    back-to-back booking. Production returns real slots for the correct timezone. The full
+    Retell envelope (`{call:{call_id}}`) resolves call -> client -> schedule -> slots, HTTP 200.
+  - **Retell side is migrated:** all 11 LLMs, `Calendar_for_Demo` -> `check_availability`,
+    GET -> POST, secret added. Re-ran `recon.mjs`: 11/11, zero stragglers.
+  - **Agent-version trap checked explicitly.** `+18176350220` is pinned to agent **v18**; v18's
+    response engine references LLM `llm_a7acd10debcb797a013eb8378d20` **v18**; that LLM version
+    carries the new tool. The pin is not stale. This is the exact chain that broke for ten days.
+  - Watch item: `scripts/retell/update-availability-tool.mjs` reads the secret from a sibling
+    tool on the same LLM rather than local env, because the local env file has no
+    `RETELL_WEBHOOK_SECRET` at all while production does. Do not "fix" that by trusting env.
 - **The three ops-brief PRs are MERGED and live (2026-08-04).** #16 -> #17 -> #18, in that
   order; merge commit `56af461`. Verified on merged `master`: `tsc` clean, `npm test` 57/57,
   `next build` succeeds, Vercel production deploy green, homepage 200 and
@@ -71,35 +102,48 @@ alongside this. **Do not start Phase 1 design work - Chris has not approved the 
    parse -> map -> metrics chain have now been exercised through a real admin session, and
    the three fix PRs are merged. Next time an upload runs, confirm the relabelled stockout
    metric and a Y/N backorder column both read correctly on a *live* file.
-2. **The Cal.com claim below is the oldest unresolved truthfulness item.** Cheapest honest
-   fix is the copy change; the `.ics` attachment is the cheapest real build.
-3. **Phase 2b bulk runner - NOT built, deliberately.** It manufactures the proprietary
+2. **Place the real call** (see START HERE). Nothing else can substitute for it.
+3. **Phase 2 of the booking work: Google Calendar behind a provider seam.** Decision made and
+   researched 2026-08-04 - **Google first, Microsoft Graph second, never Apple/CalDAV.**
+   Google Calendar API is $0 at this volume and $0 to the client, who already has it. Cal.com
+   Platform was **rejected**: ~$299/mo plus per-booking overage, a fixed cost before the first
+   paying client. Apple has no public REST API or OAuth at all - CalDAV with a 16-character
+   app-specific password the client generates *by hand*, which cannot be automated and kills
+   "live within minutes of signup". iCloud-only owners get an `.ics` on Nova's existing email.
+   **Start the Google OAuth verification submission early** - the calendar scope is *sensitive*,
+   so data-access review takes up to 10 days. It is free, and it gates nothing else. Do not ship
+   on Testing mode: refresh tokens there have a limited lifetime and the integration would die
+   silently, which is the failure pattern that has already cost two outages.
+4. **Phase 2b bulk runner - NOT built, deliberately.** It manufactures the proprietary
    statistic that replaces the removed borrowed ones. Everything it needs is built and
    tested (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum).
    **Blocked on a decision only Chris can make:** cold-calling businesses that never made
    contact is a different legal posture from calling a form submitter - Texas telemarketing
    registration and do-not-call apply. Do not build this unprompted.
-4. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the ten-day-outage class.
+5. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the ten-day-outage class.
    Not yet on a cron. Cheap insurance.
-5. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
+6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Plan Phase 2a earmarks them for reuse.
-6. **Three other Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+7. **Three other Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone - the latter two run
    mid-call on live Retell traffic. Read the benchmark note below before changing any of them.
 
-### Open question raised 2026-08-04 (end of session) - discuss before building
-**Ava's agent page claims she "books directly on your Cal.com calendar". She does not.**
-Verified: `/api/book-appointment` inserts a `bookings` row, stamps the call, emails the owner,
-and fires `/api/nova/booking-confirmation`, which emails (and optionally SMSes) the caller.
-**No calendar write at any step** - zero references to `api.cal.com`, `CAL_API` or `CALCOM`
-anywhere. The only Cal.com in the project is the embed on `/book-demo`, which is Chris's own
-discovery-call page and unrelated.
+### Still inaccurate on the site - Cal.com copy (product decision now RESOLVED)
+**Ava's agent page still claims she "books directly on your Cal.com calendar".** She now books
+real appointments against real availability (above), but **no calendar write exists at any
+step**, and the connector will be **Google, not Cal.com** - so this copy is wrong today and
+will still be wrong after Phase 2 ships.
 
-Two decisions, do not conflate them: (1) **truthfulness** - either build it or fix the copy in
-`app/agents/[agent]/page.tsx`; a named-integration claim for something unbuilt is the same
-class as the borrowed statistics removed in PR #12. (2) **product** - whether to build real
-sync, and how; an `.ics` attachment on the confirmation email Nova already sends is by far the
-cheapest option and needs no per-client OAuth.
+Two lines need rewording once Google lands, and Chris deliberately chose 2026-08-04 to leave
+them until then:
+- `app/agents/[agent]/page.tsx:50` - "books directly on your Cal.com calendar"
+- `app/agents/[agent]/page.tsx:62` - the `Cal.com (booking)` entry in the tech list
+
+The **product** half is settled: Google first, Microsoft Graph second, never Apple/CalDAV
+(see Open item 3 for the cost and OAuth reasoning). The `.ics`-on-Nova's-email idea survives
+only as the fallback for iCloud-only owners - it was rejected as the *primary* answer because
+it records a booking without ever checking whether the time is free, which was Chris's own
+objection and the correct one.
 
 ### Two patterns that have each cost real time
 **Arming a shared-secret gate silently breaks every producer that did not get the new
@@ -123,6 +167,9 @@ node scripts/verify-audit-call.mjs       audit calls resolved + no leak into `ca
 node scripts/preflight-audit-call.mjs    config check before spending a call
 node scripts/place-audit-call.mjs        place one audit call (prompts, no args)
 node scripts/probe-audit-calls.mjs       audit_calls schema vs production
+node scripts/probe-booking-availability.mjs   booking schema + a REAL double-book attempt
+node --env-file=.env.local scripts/retell/recon.mjs                       every LLM's tool URLs
+node --env-file=.env.local scripts/retell/update-availability-tool.mjs    dry run; --apply to write
 ```
 
 ### Environment notes
