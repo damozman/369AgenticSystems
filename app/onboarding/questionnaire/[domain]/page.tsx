@@ -21,6 +21,25 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
     other_notes: '',
   })
 
+  // Kept separate from formData: these do not belong to client_questionnaires. They drive the
+  // times Ava is allowed to offer a caller, and are written to client_schedules instead.
+  const [schedule, setSchedule] = useState(() => ({
+    // Prefilled from the browser so most clients never touch it. Falls back to the same
+    // default the server uses if the browser refuses to say.
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Chicago',
+    open: '08:00',
+    close: '17:00',
+    days: ['mon', 'tue', 'wed', 'thu', 'fri'] as string[],
+    slot_duration_minutes: 60,
+    max_concurrent_per_slot: 1,
+  }))
+
+  const toggleDay = (day: string) =>
+    setSchedule(prev => ({
+      ...prev,
+      days: prev.days.includes(day) ? prev.days.filter(d => d !== day) : [...prev.days, day],
+    }))
+
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +64,20 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
         body: JSON.stringify({
           client_domain: domain,
           ...formData,
+          // One open/close pair applied to the days that are ticked. Per-day hours are what
+          // the column supports, but asking seven times is onboarding friction nobody needs
+          // yet — the shape below is the full one, so split shifts drop in later.
+          schedule: {
+            timezone: schedule.timezone,
+            business_hours: Object.fromEntries(
+              ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => [
+                day,
+                schedule.days.includes(day) ? { open: schedule.open, close: schedule.close } : null,
+              ]),
+            ),
+            slot_duration_minutes: Number(schedule.slot_duration_minutes),
+            max_concurrent_per_slot: Number(schedule.max_concurrent_per_slot),
+          },
         }),
       })
 
@@ -233,7 +266,92 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
           <option>Custom</option>
         </select>
 
-        <div className="section-label">Section 4: Help Us Sound Like You</div>
+        <div className="section-label">Section 4: When Can You Take Appointments?</div>
+        <p style={{ fontSize: '13px', color: '#94A3B8', marginTop: '-8px', marginBottom: '20px', lineHeight: 1.6 }}>
+          Your agent will only offer callers times inside these hours, and never offers a time
+          that is already booked.
+        </p>
+
+        <label>Days you take appointments</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px', marginBottom: '20px' }}>
+          {[['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun']].map(([key, label]) => {
+            const on = schedule.days.includes(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleDay(key)}
+                aria-pressed={on}
+                style={{
+                  width: 'auto', margin: 0, padding: '8px 14px', fontSize: '13px',
+                  background: on ? '#D4AF37' : '#1A1A2E',
+                  color: on ? '#0A0A0A' : '#CBD5E1',
+                  border: `1px solid ${on ? '#D4AF37' : 'rgba(148,163,184,0.2)'}`,
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ flex: 1 }}>
+            <label>Opens</label>
+            <input
+              type="time"
+              value={schedule.open}
+              onChange={e => setSchedule(p => ({ ...p, open: e.target.value }))}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label>Closes</label>
+            <input
+              type="time"
+              value={schedule.close}
+              onChange={e => setSchedule(p => ({ ...p, close: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <label>Your time zone</label>
+        <select
+          value={schedule.timezone}
+          onChange={e => setSchedule(p => ({ ...p, timezone: e.target.value }))}
+        >
+          {/* Detected from the browser above; listed so it can be corrected. */}
+          {Array.from(new Set([
+            schedule.timezone,
+            'America/New_York', 'America/Chicago', 'America/Denver',
+            'America/Phoenix', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu',
+          ])).map(tz => <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>)}
+        </select>
+
+        <label>How long does a typical appointment take?</label>
+        <select
+          value={schedule.slot_duration_minutes}
+          onChange={e => setSchedule(p => ({ ...p, slot_duration_minutes: Number(e.target.value) }))}
+        >
+          <option value={30}>30 minutes</option>
+          <option value={60}>1 hour</option>
+          <option value={90}>1.5 hours</option>
+          <option value={120}>2 hours</option>
+          <option value={240}>Half a day</option>
+        </select>
+
+        <label>How many appointments can you run at the same time?</label>
+        <input
+          type="number"
+          min={1}
+          max={50}
+          value={schedule.max_concurrent_per_slot}
+          onChange={e => setSchedule(p => ({ ...p, max_concurrent_per_slot: Number(e.target.value) }))}
+        />
+        <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
+          One truck or one crew? Leave this at 1. Three crews that can be out at once? Set it to 3.
+        </p>
+
+        <div className="section-label">Section 5: Help Us Sound Like You</div>
 
         <label>What objections do callers raise most?</label>
         <textarea

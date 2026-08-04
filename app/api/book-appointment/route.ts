@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientBookingAlert } from '@/lib/email-sequences'
+import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
+import { loadSchedule } from '@/lib/client-schedule'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -33,19 +35,25 @@ export async function POST(request: NextRequest) {
     appointment_time,
     service_type,
     location,
+    starts_at,
   } = source as {
     client_domain?:    string
     appointment_date?: string
     appointment_time?: string
     service_type?:     string
     location?:         string
+    // Supplied verbatim from available-slots' slot_details. Preferred over the prose fields,
+    // which have to be re-parsed and have already put one real booking a full year out.
+    starts_at?:        string
   }
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
 
-  if (!call_id || !appointment_date || !appointment_time) {
+  // Either the exact instant from available-slots, or the day-and-time pair Ava spoke. Demanding
+  // both would reject the more precise of the two.
+  if (!call_id || (!starts_at && (!appointment_date || !appointment_time))) {
     return NextResponse.json(
-      { error: 'Missing required fields: call_id, appointment_date, appointment_time' },
+      { error: 'Missing required fields: call_id, and either starts_at or both appointment_date and appointment_time' },
       { status: 400 }
     )
   }
@@ -68,23 +76,69 @@ export async function POST(request: NextRequest) {
   // Falls back to the demo line's client_domain if not supplied — matches call-received's convention.
   const resolvedClientDomain = client_domain ?? callRow?.client_domain ?? 'demo.369agenticsystems.com'
 
-  const { data: booking, error: bookingError } = await supabase
-    .from('bookings')
-    .insert({
-      call_id:          callRow?.id ?? null,
-      lead_id:          leadRow?.id ?? null,
-      client_domain:    resolvedClientDomain,
-      appointment_date,
-      appointment_time,
-      service_type:     service_type ?? null,
-      location:         location     ?? null,
-    })
-    .select()
-    .single()
+  const schedule = await loadSchedule(supabase, resolvedClientDomain)
+
+  // Prefer the exact instant available-slots handed out; fall back to parsing what Ava said.
+  const startsAt = starts_at
+    ? new Date(starts_at)
+    : resolveAppointmentStart(appointment_date ?? '', appointment_time ?? '', schedule.timezone)
+
+  // Refuse rather than guess. A booking silently landing at midnight, or a year out, is worse
+  // than one that visibly failed — Ava can ask the caller to repeat the time.
+  if (!startsAt || Number.isNaN(startsAt.getTime())) {
+    console.error(`[BOOKING] ✗  Unparseable time: date="${appointment_date}" time="${appointment_time}" starts_at="${starts_at}"`)
+    return NextResponse.json(
+      { error: `Could not understand the appointment time "${appointment_date} ${appointment_time}". Ask the caller to confirm the day and time.` },
+      { status: 400 },
+    )
+  }
+
+  const endsAt = new Date(startsAt.getTime() + schedule.slot_duration_minutes * 60_000)
+
+  // The dashboard and the owner's alert email both read the original text columns, so they stay
+  // populated. When only starts_at was supplied they are derived from it, in the client's own
+  // timezone — never left null, and never a UTC instant rendered as if it were local.
+  const inZone = (opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('en-US', { timeZone: schedule.timezone, ...opts }).format(startsAt)
+  const civil = civilDateInZone(startsAt, schedule.timezone)
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  const appointmentDateValue = appointment_date ?? `${civil.year}-${pad(civil.month)}-${pad(civil.day)}`
+  const appointmentTimeValue = appointment_time ?? inZone({ hour: 'numeric', minute: '2-digit', hour12: true })
+
+  // Atomic capacity check + insert. Two callers on two simultaneous calls can both be told
+  // 10:00 AM is free before either row lands, so the check has to happen where the insert does
+  // — the Supabase client cannot open a transaction.
+  const { data: bookedRows, error: bookingError } = await supabase.rpc('book_slot', {
+    p_client_domain:    resolvedClientDomain,
+    p_starts_at:        startsAt.toISOString(),
+    p_ends_at:          endsAt.toISOString(),
+    p_call_id:          callRow?.id ?? null,
+    p_lead_id:          leadRow?.id ?? null,
+    p_appointment_date: appointmentDateValue,
+    p_appointment_time: appointmentTimeValue,
+    p_service_type:     service_type ?? null,
+    p_location:         location     ?? null,
+  })
 
   if (bookingError) {
-    console.error('[BOOKING] ✗  Insert failed:', bookingError.message)
+    console.error('[BOOKING] ✗  book_slot failed:', bookingError.message)
     return NextResponse.json({ error: bookingError.message }, { status: 500 })
+  }
+
+  // Zero rows is unambiguous — book_slot raises on anything else — so it means the slot filled
+  // between being offered and being accepted. 409 so Ava offers another time instead of
+  // reporting success for an appointment that does not exist.
+  const booking = Array.isArray(bookedRows) ? bookedRows[0] : bookedRows
+  if (!booking) {
+    console.log(`[BOOKING] ⚠  Slot already taken: ${startsAt.toISOString()} — ${resolvedClientDomain}`)
+    return NextResponse.json(
+      {
+        error: 'slot_unavailable',
+        message: 'That time was just taken. Offer the caller another slot from check_availability.',
+      },
+      { status: 409 },
+    )
   }
 
   // Stamp the call as booked
@@ -95,7 +149,7 @@ export async function POST(request: NextRequest) {
       .eq('id', callRow.id)
   }
 
-  console.log(`[BOOKING] ✓  ${appointment_date} @ ${appointment_time} — ${resolvedClientDomain}`)
+  console.log(`[BOOKING] ✓  ${appointmentDateValue} @ ${appointmentTimeValue} — ${resolvedClientDomain}`)
 
   // Alert the client (business owner) directly — the dashboard's Appointments count is a
   // running total with nothing to signal "this one is new," so someone in the field would
@@ -114,8 +168,8 @@ export async function POST(request: NextRequest) {
         callerPhone:     leadRow?.caller_phone ?? 'unknown',
         callerEmail:     leadRow?.caller_email ?? undefined,
         callerAddress:   leadRow?.caller_address ?? undefined,
-        appointmentDate: appointment_date,
-        appointmentTime: appointment_time,
+        appointmentDate: appointmentDateValue,
+        appointmentTime: appointmentTimeValue,
         serviceType:     service_type ?? undefined,
         location:        location ?? undefined,
       })
