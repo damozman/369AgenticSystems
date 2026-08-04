@@ -91,8 +91,9 @@ before the first paying client, not after.
   - **Prompt 3,658 -> 1,506 chars.** The nine single-vertical demo agents run ~930 and the real
     client agent 1,373; the shared line carried ~4x that, mostly a "silently classify the caller
     into one of nine industries" step plus a 13-step procedure, re-processed every turn.
-  - `model_high_priority` false -> **true**. Model deliberately left on `claude-4.6-sonnet` -
-    a swap needs a benchmark, not a guess.
+  - `model_high_priority` was set true here and **reverted the same evening** - it quadrupled
+    latency. See the corrections section above. The model was later moved to `claude-4.5-haiku`
+    on measured evidence, which is the current state.
   - Greeting dropped "ABC Company" (read as a forgotten placeholder, and wrong for eight of the
     nine verticals). Provisioned client agents still get the real business name from
     `lib/retell-provisioning.ts:59`.
