@@ -58,10 +58,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Resolve Retell call_id string → Supabase UUID
+  // Resolve Retell call_id string → Supabase UUID. caller_phone/caller_name come along because
+  // the owner alert below needs a fallback: the agent often books BEFORE it captures the lead
+  // (measured at 27s and 41s ahead on the two real calls of 2026-08-04), so there is frequently
+  // no lead row yet at this point. call-received writes caller_phone from Retell's from_number
+  // at call start, so it is always populated by the time a booking can happen.
   const { data: callRow } = await supabase
     .from('calls')
-    .select('id, client_domain')
+    .select('id, client_domain, caller_phone, caller_name')
     .eq('call_id', call_id)
     .maybeSingle()
 
@@ -161,11 +165,15 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (ownerSub?.user_email) {
+    // Fall back to the call row when the lead hasn't been captured yet. An alert saying
+    // "Phone: unknown" is one the owner cannot act on — the whole point is to give them
+    // someone to ring back.
+    const callerPhone = leadRow?.caller_phone ?? callRow?.caller_phone ?? 'unknown'
     try {
       await sendClientBookingAlert({
         toEmail:         ownerSub.user_email,
-        callerName:      leadRow?.caller_name ?? undefined,
-        callerPhone:     leadRow?.caller_phone ?? 'unknown',
+        callerName:      leadRow?.caller_name ?? callRow?.caller_name ?? undefined,
+        callerPhone,
         callerEmail:     leadRow?.caller_email ?? undefined,
         callerAddress:   leadRow?.caller_address ?? undefined,
         appointmentDate: appointmentDateValue,
@@ -177,6 +185,11 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error('[BOOKING] Owner alert failed:', e)
     }
+  } else {
+    // Silent by construction otherwise: a booking lands, no one is told, and nothing in the
+    // logs says why. This is correct for the demo line (no owner to notify) and a real fault
+    // for a paying client, so it needs to be visible rather than inferred.
+    console.warn(`[BOOKING] ⚠  No agent_subscriptions row for ${resolvedClientDomain} — owner alert skipped`)
   }
 
   // Fire Nova (booking confirmation) — non-fatal, but awaited: an un-awaited fetch risks the
