@@ -56,16 +56,20 @@ ${rowsText}
 Identify the header row and propose the column mapping now.`
 
   const message = await anthropic.messages.create({
-    model: 'claude-opus-5',
-    // Thinking is ON BY DEFAULT on Opus 5, and max_tokens caps thinking AND the
-    // response text together — the old 1024 was sized for the JSON alone and
-    // would now truncate mid-answer. Kept adaptive rather than disabled: this
-    // reads JSON out of the response text, and Opus 5 with thinking disabled can
-    // leak <thinking> tags into that text and break the parse. Effort is left at
-    // its default (high); sweep down to medium if cost matters more than the
-    // header inference, which is the hard part of this call.
+    // Measured 2026-08-04 on the messy wholesale fixture: sonnet-4-6, haiku-4-5
+    // and opus-5 (at every effort level) all mapped 10/10 columns and found the
+    // same header row. Opus cost 2x Sonnet for an identical result — adaptive
+    // thinking judged the task simple enough not to think, so the premium bought
+    // nothing. Sonnet is kept over the cheaper Haiku as headroom for a genuinely
+    // nastier real export: the failure mode is not a crash, it is a wrong mapping
+    // silently producing wrong metrics a client sees.
+    //
+    // Cost is bounded by the caller, not by this line — the route reuses a saved
+    // mapping per client label, so this fires once per client, not per upload.
+    model: 'claude-sonnet-4-6',
+    // Generous ceiling, not a target: unused output tokens are not billed, and
+    // this removes truncation as a failure mode if the model or prompt changes.
     max_tokens: 8000,
-    thinking: { type: 'adaptive' },
     system,
     messages: [{ role: 'user', content: user }],
   })
