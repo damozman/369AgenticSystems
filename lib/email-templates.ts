@@ -1,9 +1,18 @@
+/**
+ * These templates were written for the Gumloop pipeline, which returned a
+ * `security_score` and `seo_visibility` per prospect. Those numbers did not
+ * discriminate between businesses — across all 19 `system_audits` rows the security
+ * score was 41 in 9 of them, with a national dental chain and a solo dentist scoring
+ * identically. The emails presented them as "live readings from your environment, not
+ * projections" while also conceding that security and SEO are "not something we fix".
+ *
+ * The scores are gone. What replaces them is Phase 2b: a real recorded test call to the
+ * prospect's published number, reported as fact. Until that exists these templates make
+ * no measurement claims at all.
+ */
 export interface DiagnosticAlertVars {
   client_name: string
   client_domain: string
-  security_score: number | null
-  seo_visibility: number | null
-  revenue_leakage?: string
   booking_link?: string
   scan_date: string
 }
@@ -18,9 +27,6 @@ export interface DossierVars {
 export interface FollowUpVars {
   client_name: string
   client_domain: string
-  security_score: number | null
-  seo_visibility: number | null
-  revenue_leakage?: string
   booking_link?: string
   day: 2 | 7
 }
@@ -29,9 +35,6 @@ export interface CallBriefVars {
   client_name: string
   client_domain: string
   client_industry?: string
-  security_score: number | null
-  seo_visibility: number | null
-  revenue_leakage?: string
   call_brief: string
   booking_link?: string
 }
@@ -137,18 +140,15 @@ function headerBadge(leftLabel: string): string {
 }
 
 export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
-  const sec  = v.security_score ?? '—'
-  const seo  = v.seo_visibility ?? '—'
-  const rev  = v.revenue_leakage ?? 'Calculating…'
   const book = v.booking_link ?? '#'
   const name = v.client_name || 'Business Owner'
-  const dossierCode = `ALERT-${name.replace(/\s+/g, '_').toUpperCase()}`
+  const dossierCode = `INTAKE-${name.replace(/\s+/g, '_').toUpperCase()}`
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diagnostic Alert — ${v.client_domain}</title>
+<title>Request Received — ${v.client_domain}</title>
 </head>
 <body style="margin:0;padding:0;background:#0A0A0A;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0A;">
@@ -157,58 +157,23 @@ export function diagnosticAlertHtml(v: DiagnosticAlertVars): string {
 
 <tr><td height="3" style="background:#D4AF37;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-${headerBadge('AUTONOMOUS DIAGNOSTIC ALERT')}
+${headerBadge('REQUEST RECEIVED')}
 
 <tr><td style="padding:24px 36px 20px;">
-  <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">System Scan Complete</h1>
+  <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We got your request</h1>
   <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain} &nbsp;·&nbsp; ${v.scan_date}</p>
 </td></tr>
 
-<tr><td style="padding:0 36px 24px;">
-  <p style="margin:0;font-size:14px;color:#94A3B8;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${name},<br><br>Our autonomous intelligence system has completed a full-spectrum audit of your digital infrastructure. The readings below represent live operational data captured from your environment.</p>
-</td></tr>
-
 <tr><td style="padding:0 36px 28px;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #EF4444;border-radius:6px;padding:16px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 8px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Security</p>
-    <p style="margin:0;font-size:30px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${sec}</p>
-    <p style="margin:6px 0 0;font-size:9px;font-family:monospace;color:#EF4444;">/100</p>
-  </td>
-
-  <td width="3%">&nbsp;</td>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:16px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 8px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">SEO Visibility</p>
-    <p style="margin:0;font-size:30px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${seo}</p>
-    <p style="margin:6px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/100</p>
-  </td>
-
-  <td width="3%">&nbsp;</td>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:16px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 8px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Revenue Leak</p>
-    <p style="margin:0;font-size:24px;font-weight:700;color:#D4AF37;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${rev}</p>
-    <p style="margin:6px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/mo est.</p>
-  </td>
-
-</tr></table>
-</td></tr>
-
-<tr><td style="padding:0 36px 24px;">
-  <table width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" style="background:#1E1E1E;font-size:0;line-height:0;">&nbsp;</td></tr></table>
-</td></tr>
-
-<tr><td style="padding:0 36px 28px;">
-  <p style="margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">These are live readings from your environment, not projections. We don't patch security vulnerabilities or rewrite meta tags — that's a different specialist's job. What we fix is the revenue leak: the calls your site's traffic already earns that go unanswered or unworked, because no one responds fast enough. That's the gap our autonomous receptionist and follow-up agents close.</p>
-  <p style="margin:0;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">A full operational dossier for <strong style="color:#FFFFFF;">${v.client_domain}</strong> is landing in your inbox shortly. In the meantime, book a direct call with a specialist:</p>
+  <p style="margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${name},<br><br>Thanks for reaching out about <strong style="color:#FFFFFF;">${v.client_domain}</strong>. Your details are in front of a real person, not a queue.</p>
+  <p style="margin:0 0 14px;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Here is the problem we solve, plainly: the calls your marketing already earns that ring out to voicemail. A voicemail is a callback you have to earn — most people just call the next name on the list. Our receptionist and follow-up agents answer on the first ring, around the clock, so that call becomes a booked job instead of a missed one.</p>
+  <p style="margin:0;font-size:14px;color:#CBD5E1;line-height:1.75;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">The fastest way to see whether that's worth anything to you is a short call:</p>
 </td></tr>
 
 <tr><td style="padding:0 36px 36px;text-align:center;">
-  <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${book}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="4%" stroke="f" fillcolor="#D4AF37"><w:anchorlock/><center style="color:#080808;font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">SCHEDULE DIAGNOSTIC CALL →</center></v:roundrect><![endif]-->
+  <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${book}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="4%" stroke="f" fillcolor="#D4AF37"><w:anchorlock/><center style="color:#080808;font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">BOOK A 30-MINUTE CALL →</center></v:roundrect><![endif]-->
   <!--[if !mso]><!-->
-  <a href="${book}" style="display:inline-block;background:#D4AF37;color:#080808;font-family:monospace;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:15px 32px;border-radius:4px;">SCHEDULE DIAGNOSTIC CALL →</a>
+  <a href="${book}" style="display:inline-block;background:#D4AF37;color:#080808;font-family:monospace;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:15px 32px;border-radius:4px;">BOOK A 30-MINUTE CALL →</a>
   <!--<![endif]-->
 </td></tr>
 
@@ -235,9 +200,6 @@ export function callBriefHtml(v: CallBriefVars): string {
   const name      = v.client_name || 'Business Owner'
   const firstName = name.split(' ')[0]
   const book      = v.booking_link ?? 'https://cal.com/369agentic/30min'
-  const sec       = v.security_score ?? '—'
-  const seo       = v.seo_visibility ?? '—'
-  const rev       = v.revenue_leakage ?? 'Calculating…'
   const industry  = v.client_industry ?? 'Business'
 
   const rawBrief = typeof v.call_brief === 'string' ? v.call_brief : String(v.call_brief || '')
@@ -274,35 +236,6 @@ ${headerBadge('CALL BRIEF — INTERNAL USE ONLY')}
       <p style="margin:0;font-size:12px;font-family:monospace;color:#475569;">${v.client_domain} &nbsp;·&nbsp; ${escapeHtml(industry)}</p>
     </td></tr>
   </table>
-</td></tr>
-
-<!-- Metric chips -->
-<tr><td style="padding:0 36px 24px;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #EF4444;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Security</p>
-    <p style="margin:0;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${sec}</p>
-    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#EF4444;">/100</p>
-  </td>
-
-  <td width="3%">&nbsp;</td>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">SEO Vis.</p>
-    <p style="margin:0;font-size:26px;font-weight:700;color:#FFFFFF;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${seo}</p>
-    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/100</p>
-  </td>
-
-  <td width="3%">&nbsp;</td>
-
-  <td style="width:31%;background:#141414;border:1px solid #222;border-top:2px solid #D4AF37;border-radius:6px;padding:14px 10px;text-align:center;vertical-align:top;">
-    <p style="margin:0 0 6px;font-size:9px;font-family:monospace;color:#94A3B8;text-transform:uppercase;letter-spacing:0.12em;">Rev. Leak</p>
-    <p style="margin:0;font-size:20px;font-weight:700;color:#D4AF37;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1;">${rev}</p>
-    <p style="margin:4px 0 0;font-size:9px;font-family:monospace;color:#D4AF37;">/mo est.</p>
-  </td>
-
-</tr></table>
 </td></tr>
 
 <!-- Divider -->
@@ -356,9 +289,6 @@ export function followUpHtml(v: FollowUpVars): string {
   const name      = v.client_name || 'Business Owner'
   const firstName = name.split(' ')[0]
   const book      = v.booking_link ?? 'https://cal.com/369agentic/30min'
-  const sec       = v.security_score ?? '—'
-  const seo       = v.seo_visibility ?? '—'
-  const rev       = v.revenue_leakage ?? 'an estimated amount'
 
   const isDay7 = v.day === 7
   const subjectLabel = isDay7 ? 'FINAL FOLLOW-UP' : 'DAY-2 CHECK-IN'
@@ -366,11 +296,11 @@ export function followUpHtml(v: FollowUpVars): string {
 
   const bodyContent = isDay7
     ? `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
-      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We're closing out your audit file for <strong style="color:#FFFFFF;">${v.client_domain}</strong>. Our scan flagged a security score of <strong style="color:#EF4444;">${sec}/100</strong> — a separate issue, not something we fix — and an estimated revenue leak of <strong style="color:#EF4444;">${rev}/mo</strong> from missed and slow-answered calls. That's the gap we close, and it stays open until someone does.</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We're closing out your file for <strong style="color:#FFFFFF;">${v.client_domain}</strong>. The gap we set out to talk about is the one every busy shop has: the calls that come in while you're on a roof, under a sink, or with a customer. Those don't wait, and they don't leave messages.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">If the timing isn't right, no problem. When it is, we're ready to deploy. If you have questions, reply to this email directly — I read every one.</p>`
     : `<p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Hi ${escapeHtml(firstName)},</p>
-      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We sent your diagnostic results for <strong style="color:#FFFFFF;">${v.client_domain}</strong> 48 hours ago and wanted to make sure everything landed. Your scan came back with a security score of <strong style="color:#D4AF37;">${sec}/100</strong>, an SEO visibility of <strong style="color:#D4AF37;">${seo}/100</strong>, and an estimated revenue leak of <strong style="color:#D4AF37;">${rev}/mo</strong>.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">Security and SEO are separate issues — not something we fix. What we do fix: book a 30-minute call and we'll show you exactly how the Digital Employee catches the calls your traffic already earns, before they go to voicemail.</p>`
+      <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">We got your request about <strong style="color:#FFFFFF;">${v.client_domain}</strong> 48 hours ago and wanted to make sure our reply landed — these things have a habit of ending up in a promotions tab.</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.8;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">The offer stands: book a 30-minute call and we'll show you exactly how the Digital Employee catches the calls your marketing already earns, before they go to voicemail.</p>`
 
   return `<!DOCTYPE html>
 <html lang="en">
