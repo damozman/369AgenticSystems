@@ -1,23 +1,29 @@
 /**
- * Places one audit call against a deployment. Written as a script because the equivalent
- * curl is a quoting minefield in PowerShell — `<` is a reserved operator and `curl` is an
- * alias for Invoke-WebRequest, which takes different flags entirely.
+ * Places one audit call. Run it with no arguments:
  *
- *   node scripts/place-audit-call.mjs --url <deployment> --phone +1XXXXXXXXXX
+ *   node scripts/place-audit-call.mjs
  *
- * Options:
- *   --url     deployment base URL (no trailing slash)
- *   --phone   number to dial — use YOUR OWN for the first test
- *   --name    optional business name recorded with the call
- *   --secret  INTERNAL_API_SECRET; falls back to the env var of that name
- *   --bypass  Vercel protection-bypass token, if the deployment is protected
+ * Anything it needs and cannot find in .env.local, it asks for at a prompt. That is
+ * deliberate: the equivalent curl is a quoting minefield in PowerShell, where `<` is a
+ * reserved redirection operator and `curl` aliases to Invoke-WebRequest with different
+ * flags. A command containing placeholder brackets fails to parse before it does anything.
+ * Prompts have no shell syntax to get wrong.
  *
- * Interprets every failure mode rather than dumping a status code, because the two that
- * matter look identical from outside: Vercel's own 401 for a protected deployment, and
- * our route's 401 for a bad secret.
+ * Preferred setup — add these to .env.local and it will not ask at all:
+ *
+ *   INTERNAL_API_SECRET=...              (from Vercel → Settings → Environment Variables)
+ *   VERCEL_AUTOMATION_BYPASS_SECRET=...  (from Vercel → Settings → Deployment Protection)
+ *   AUDIT_TEST_URL=https://...           (the deployment to call)
+ *
+ * That also keeps secrets out of your PowerShell history.
+ *
+ * Flags still work for scripted use: --url --phone --name --secret --bypass
  */
 
+import { createInterface } from 'node:readline/promises'
+import { stdin, stdout } from 'node:process'
 import nextEnv from '@next/env'
+
 nextEnv.loadEnvConfig(process.cwd())
 
 const args = {}
@@ -25,29 +31,43 @@ for (let i = 2; i < process.argv.length; i += 2) {
   args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1]
 }
 
-const url    = (args.url || '').replace(/\/$/, '')
-const phone  = args.phone
+const rl = createInterface({ input: stdin, output: stdout })
+
+/** Flag, then .env.local, then ask. Never silently proceeds without a required value. */
+async function need(flag, envName, prompt, { required = true } = {}) {
+  const fromFlag = args[flag]?.trim()
+  if (fromFlag) return fromFlag
+
+  const fromEnv = envName ? process.env[envName]?.trim() : undefined
+  if (fromEnv) {
+    console.log(`  using ${envName} from .env.local`)
+    return fromEnv
+  }
+
+  const answer = (await rl.question(`  ${prompt}: `)).trim()
+  if (!answer && required) {
+    console.error('\n✗ Required. Nothing was dialled.')
+    rl.close()
+    process.exit(1)
+  }
+  return answer
+}
+
+console.log('\nAudit call — press Enter to skip anything optional.\n')
+
+const url    = (await need('url', 'AUDIT_TEST_URL', 'Deployment URL')).replace(/\/$/, '')
+const phone  = await need('phone', null, 'Phone number to dial (your own, for a first test)')
+const secret = await need('secret', 'INTERNAL_API_SECRET', 'INTERNAL_API_SECRET')
+const bypass = await need('bypass', 'VERCEL_AUTOMATION_BYPASS_SECRET',
+  'Vercel protection-bypass token (Enter to skip)', { required: false })
 const name   = args.name || 'Audit test'
-const secret = args.secret || process.env.INTERNAL_API_SECRET
-const bypass = args.bypass || process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 
-if (!url || !phone) {
-  console.error('Usage: node scripts/place-audit-call.mjs --url <deployment> --phone +1XXXXXXXXXX')
-  process.exit(1)
-}
-if (!secret) {
-  console.error('✗ No INTERNAL_API_SECRET. Pass --secret or set it in .env.local.')
-  console.error('  It is not in .env.local locally — copy it from the Vercel dashboard.')
-  process.exit(1)
-}
+rl.close()
 
-const headers = {
-  'content-type': 'application/json',
-  'x-internal-secret': secret,
-}
+const headers = { 'content-type': 'application/json', 'x-internal-secret': secret }
 if (bypass) headers['x-vercel-protection-bypass'] = bypass
 
-console.log(`→ POST ${url}/api/audit/call`)
+console.log(`\n→ POST ${url}/api/audit/call`)
 console.log(`  dialing ${phone}${bypass ? '  (with protection bypass)' : ''}\n`)
 
 let res, body
@@ -63,24 +83,24 @@ try {
   process.exit(1)
 }
 
-// Vercel's protection 401 and our route's 401 are both 401. Tell them apart.
+// Vercel's protection 401 and our route's bad-secret 401 are both 401, and only one of
+// them means the request actually reached the app. Tell them apart.
 if (res.status === 401 && body.includes('Protected deployment')) {
   console.error('✗ 401 — blocked by Vercel Deployment Protection, not by our route.')
-  console.error('  The request never reached the app. Options:')
-  console.error('    · Vercel → Settings → Deployment Protection → generate a')
-  console.error('      Protection Bypass for Automation token, then pass --bypass <token>')
-  console.error('    · or set Vercel Authentication to "Disabled" for Preview')
-  console.error('    · or merge to master and test in production')
+  console.error('  The request never reached the app. Either:')
+  console.error('    · Vercel → Settings → Deployment Protection → Protection Bypass')
+  console.error('      for Automation → Add Secret, then re-run and paste it, or')
+  console.error('    · set Vercel Authentication to Disabled for Preview only.')
   process.exit(1)
 }
 
 const explain = {
-  401: 'the x-internal-secret header did not match INTERNAL_API_SECRET in that environment',
+  401: 'the secret did not match INTERNAL_API_SECRET in that environment',
   503: 'INTERNAL_API_SECRET is not set in that environment — the route fails closed by design',
   502: 'Retell rejected the call: check RETELL_AUDIT_AGENT_ID / RETELL_AUDIT_FROM_NUMBER',
   400: 'the number was rejected before dialling — it must be a US number',
   404: 'no such route — this deployment predates the audit branch',
-  500: 'the call was placed but the row was NOT recorded (check the logs for the call_id)',
+  500: 'the call was placed but the row was NOT recorded (the log line has the call_id)',
 }
 
 if (!res.ok) {
@@ -90,6 +110,6 @@ if (!res.ok) {
 }
 
 console.log(`✓ HTTP 200 — ${body}\n`)
-console.log('The call is dialling. Retell resolves it asynchronously, so wait for it to')
-console.log('ring out, then confirm what was recorded:\n')
+console.log('The call is dialling. Retell resolves it asynchronously, so let it ring out,')
+console.log('then confirm what was actually recorded:\n')
 console.log('  node scripts/verify-audit-call.mjs')
