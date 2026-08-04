@@ -6,24 +6,51 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-03 (end of session — open-relay fix merged)
+
+Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
+alongside this. **Do not start Phase 1 design work — Chris has not approved the direction.**
+
+### Recently closed — do NOT re-diagnose
+- **The mail outage is fixed.** It was never PTR or SMTP credentials. `369agenticsystems.com`'s
+  MX pointed at a host that had stopped answering on *every* port. Migrated to Namecheap Private
+  Email; DNS is managed at **Namecheap BasicDNS**, not Vercel, despite the site being hosted there.
+- **The funnel no longer loses leads** (PR #10). Static pages post to `/api/intake`, which writes
+  `system_audits` and emails the owner. Gumloop is cancelled and dies **2026-09-02**.
+- **The open relay is closed** (PR #11, merge `01f08e3`). `/api/update-dossier` was
+  unauthenticated and mailed any address in its payload; it is deleted and returns 404 in prod.
+- **Both shared-secret gates are armed**, re-verified live 2026-08-03: all six guarded routes
+  (`capture-lead`, `call-received`, `book-appointment`, `felix/conflict-check`, `rex/trigger`,
+  `nova/booking-confirmation`) return 401 to an unauthenticated POST.
 
 ### Open items
-1. **OTP login / Supabase Auth email is likely still broken.** Gmail SMTP creds were being
-   rejected (`535 5.7.8`), and separately the domain's hosting-provider mail server looked
-   unreachable inbound with a missing PTR record outbound. Recommended switching Supabase's
-   Auth SMTP (Project Settings → Authentication → SMTP Settings) to Resend
-   (`smtp.resend.com` / user `resend` / password = Resend API key / sender on the already-verified
-   `alerts.369agenticsystems.com` domain, e.g. `auth@alerts.369agenticsystems.com`) — never
-   confirmed done. **Fix this first** — it blocks any fresh login to `/admin` or `/dashboard`.
-   Also blocks testing the ops-brief harness's actual HTTP routes/admin UI (its underlying
-   parse→Claude-mapping→metrics pipeline was verified directly against live Supabase + Claude on
-   2026-08-02, but the `/api/admin/ops-brief/*` routes and `OpsUploadTool.tsx` UI need a real admin
-   login, which this blocks).
-2. **External, not code-blocking:** a hosting-provider support ticket for
-   `369agenticsystems.com`'s mail server (PTR record + inbound reachability) is still needed —
-   affects Chris's own inbox (`chris@369agenticsystems.com`), separate from the Supabase Auth
-   SMTP fix in item 1. Chris emailed the provider 2026-08-02 for an update; awaiting response.
+1. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links were bouncing because
+   of the mail outage above, which is now resolved, but nobody has logged in since. This is the
+   first thing to check because it gates item 2. If it still fails, the fallback is switching
+   Supabase Auth SMTP (Project Settings → Authentication → SMTP Settings) to Resend
+   (`smtp.resend.com`, user `resend`, password = Resend API key, sender on the already-verified
+   `alerts.369agenticsystems.com`).
+2. **Ops-brief HTTP routes + admin UI still untested.** The underlying
+   parse→Claude-mapping→metrics pipeline was verified against live Supabase + Claude on
+   2026-08-02, but `/api/admin/ops-brief/*` and `OpsUploadTool.tsx` need a real admin login.
+3. **Phase 0 truthfulness pass not started** (plan items 0a–0d): unify the ROI math on
+   `RECOVERY_RATE = 0.30`, remove claims zero paying clients cannot support, and flip Rex/Nova
+   from DEPLOYING to LIVE in four places. **0d also requires updating this file's own stale
+   "Launch State" block and agent-status notes** — Rex and Nova are live; CLAUDE.md is wrong.
+4. **Phase 2b — the "we called your line" audit.** The plan's highest-value item and still not
+   started. It replaces the deleted fabricated scores with a real recorded test call, and a bulk
+   run manufactures the proprietary statistic that replaces the borrowed ones removed in 0c.
+5. **Intake failure alerting is still missing** (00d partial). A failed insert returns 500, shows
+   the prospect a fallback, and logs to Vercel — but nothing tells the owner. Nine days of silent
+   failure was the original defect; that specific hole is still open. SMS was evaluated and
+   dropped (no Twilio credentials exist anywhere).
+6. **`lib/email-templates.ts` is now unreferenced dead code.** All four templates lost their only
+   caller when `/api/update-dossier` was deleted. Kept because plan Phase 2a earmarks them for
+   reuse; `diagnosticAlertHtml` is thin enough now that it likely wants a rewrite instead.
+
+### Leave alone
+`369AgenticSystems.code-workspace` has a pre-existing uncommitted modification that predates
+this work. It is not ours — do not stage or revert it.
 
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
