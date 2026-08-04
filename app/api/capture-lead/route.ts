@@ -140,11 +140,61 @@ export async function POST(request: NextRequest) {
 
   console.log(`[LEAD] ✓  Captured — ${caller_phone} @ ${resolvedClientDomain}`)
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+
+  /**
+   * Adopt a booking that was made before this lead existed.
+   *
+   * The agent does not reliably capture the lead first. On both real calls of 2026-08-04 it ran
+   * book_appointment 27s and 41s AHEAD of capture_lead, so /api/book-appointment found no lead and
+   * wrote `bookings.lead_id = null`. Nova then read that null, concluded there was no caller email,
+   * and recorded `skipped_no_email` — for two callers whose email address arrived moments later.
+   * Both bookings still read `confirmation_sent = false` today.
+   *
+   * Reordering the prompt would not fix this: the tool-call order is the model's to choose, and
+   * betting the confirmation on it is the same class of coupling that has already broken twice.
+   * Linking here — at the moment the missing half arrives — works whichever order they come in.
+   */
+  if (callRow?.id) {
+    const { data: orphan } = await supabase
+      .from('bookings')
+      .select('id, lead_id, confirmation_sent')
+      .eq('call_id', callRow.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (orphan) {
+      if (!orphan.lead_id) {
+        const { error: linkError } = await supabase
+          .from('bookings')
+          .update({ lead_id: lead.id })
+          .eq('id', orphan.id)
+
+        if (linkError) console.error('[LEAD] ✗  Could not link booking to lead:', linkError.message)
+        else console.log(`[LEAD] ✓  Linked booking ${orphan.id} → lead ${lead.id}`)
+      }
+
+      // Retry the confirmation now that there is an address to send it to. `confirmation_sent`
+      // only goes true on a real send, so a false here means nothing has reached the caller and
+      // re-firing cannot duplicate. capture_lead runs several times per call, which makes this a
+      // retry rather than a one-shot — the send stops re-attempting as soon as one succeeds.
+      if (!orphan.confirmation_sent && lead.caller_email && appUrl) {
+        await fetch(`${appUrl}/api/nova/booking-confirmation`, {
+          method:  'POST',
+          headers: internalHeaders(),
+          body:    JSON.stringify({ booking_id: orphan.id }),
+        })
+          .then(r => console.log(`[LEAD] ✓  Re-fired booking confirmation for ${orphan.id} (HTTP ${r.status})`))
+          .catch(err => console.error('[NOVA RETRIGGER] Failed:', err))
+      }
+    }
+  }
+
   // Fire Rex (follow-up) and Felix (conflict check, legal-only — gated inside its own route) — non-fatal.
   // Awaited (not fire-and-forget): on Vercel's serverless runtime, a function can freeze as soon as
   // it returns a response, so an un-awaited fetch risks never actually completing. Found via a real
   // call where Nova's equivalent trigger silently never fired in production.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
   if (appUrl) {
     await Promise.allSettled([
       fetch(`${appUrl}/api/rex/trigger`, {
