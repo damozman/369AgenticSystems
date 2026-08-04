@@ -6,25 +6,37 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (end of session - call outage fixed, audit pipeline live, ops-brief working)
+**Last updated:** 2026-08-04 (ops-brief PRs #16/#17/#18 merged and live; no open PRs)
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
 
-### START HERE: three PRs are open, verified, and waiting on a merge decision
-All three are green (`tsc`, `build`, `npm test` 57/57) and were exercised against real data.
-**Merge order matters: #17 before #18.** #16 is independent.
-
-| PR | Base | What | Verified how |
-|---|---|---|---|
-| #16 | `master` | Ops-brief errors name the actual failure | Would have identified the missing key immediately |
-| #17 | `master` | Backorder Y/N flags counted; "SKU Count" relabelled to lines | Real fixture: $10,128 across 5 lines, was `null` |
-| #18 | **#17** | Mapping-call hardening, stays on `claude-sonnet-4-6` | 4-model benchmark, all scored 10/10 |
-
-Nothing else is half-finished. The working tree is clean apart from the pre-existing
-`369AgenticSystems.code-workspace` modification, which is not ours.
+### START HERE: nothing is half-finished, and there are no open PRs
+`master` is clean and deployed. The working tree is clean apart from the pre-existing
+`369AgenticSystems.code-workspace` modification, which is not ours. Pick from **Open items**.
 
 ### Recently closed - do NOT re-diagnose
+- **The three ops-brief PRs are MERGED and live (2026-08-04).** #16 -> #17 -> #18, in that
+  order; merge commit `56af461`. Verified on merged `master`: `tsc` clean, `npm test` 57/57,
+  `next build` succeeds, Vercel production deploy green, homepage 200 and
+  `POST /api/admin/ops-brief/upload` still 401s unauthenticated.
+  - **#16** - ops-brief errors now name the actual failure (SDK error class + HTTP status +
+    truncated message), with a precise `ANTHROPIC_API_KEY is not set` branch. Admin-only
+    route; the key itself is never echoed.
+  - **#17** - `isBackordered()` widened from `/back/i` to handle Y/N flags, and it matches
+    explicit negatives *as negatives* rather than letting them fall through, so a later
+    pattern change cannot silently turn `N` into a backordered line. `stockout_risk_sku_count`
+    relabelled to "Lines At/Below Reorder Point" (no SKU column exists to deduplicate on); the
+    key is unchanged to avoid a migration. Also added `scripts/test-resolver.mjs`, which is
+    what made `lib/ops-brief-metrics.ts` testable at all - 7 tests, both cases found on the
+    real messy fixture, not by reading code.
+  - **#18** - stays on `claude-sonnet-4-6` with the benchmark reasoning written into the
+    comment. Two real hardening fixes: read the *first text block* rather than `content[0]`
+    (position 0 is a thinking block when thinking is on, which silently yields `''` and
+    surfaces as an unparseable-JSON error), and an explicit `stop_reason === 'refusal'` check.
+  - Watch item, not a bug: `isBackordered` treats a bare `'x'` as backordered, which is right
+    for checkbox-style exports but would misread a column where `x` means something else. The
+    metric's `reason` field would make that visible if it ever bites.
 - **The Retell call outage is fixed (2026-08-04).** The demo line answered calls but recorded
   **none for ten days** (2026-07-25 to 08-04). `+18176350220`'s inbound route was pinned to
   agent **version 17**, whose `webhook_url` had no `?secret=`, so the armed gate on
@@ -55,9 +67,12 @@ Nothing else is half-finished. The working tree is clean apart from the pre-exis
   capture and call recording all verified working afterwards. It broke nothing.
 
 ### Open items
-1. **Merge the three PRs above** after whatever review you want. Shortest path to a clean slate.
-2. **Ops-brief has nothing else blocking it.** The admin UI, the HTTP routes and the whole
-   parse -> map -> metrics chain have now been exercised through a real admin session.
+1. **Ops-brief has nothing blocking it.** The admin UI, the HTTP routes and the whole
+   parse -> map -> metrics chain have now been exercised through a real admin session, and
+   the three fix PRs are merged. Next time an upload runs, confirm the relabelled stockout
+   metric and a Y/N backorder column both read correctly on a *live* file.
+2. **The Cal.com claim below is the oldest unresolved truthfulness item.** Cheapest honest
+   fix is the copy change; the `.ics` attachment is the cheapest real build.
 3. **Phase 2b bulk runner - NOT built, deliberately.** It manufactures the proprietary
    statistic that replaces the removed borrowed ones. Everything it needs is built and
    tested (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum).
