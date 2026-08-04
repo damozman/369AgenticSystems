@@ -6,7 +6,7 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-03 (end of session — open-relay fix merged)
+**Last updated:** 2026-08-03 (end of session — Phase 0 truthfulness pass opened as PR #12)
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work — Chris has not approved the direction.**
@@ -24,6 +24,15 @@ alongside this. **Do not start Phase 1 design work — Chris has not approved th
   `nova/booking-confirmation`) return 401 to an unauthenticated POST.
 
 ### Open items
+0. **PR #12 is open and needs a preview check before merging.** Phase 0 truthfulness pass,
+   branch `fix/truthfulness-pass`, commit `37390e9`. `tsc`/`build`/`test` are green but a
+   green build is not evidence. On the Vercel preview: load the roofing static page and
+   `/roofing`, enter identical inputs, confirm the two figures now agree (they do locally —
+   $97,425/mo); check all 9 static calculators at desktop and 390px so the new assumption
+   line renders without breaking the stat row; check the homepage vertical-card hover copy
+   and the `/roofing` comparison table footnote. The ROI model now lives in `lib/roi.ts` —
+   **any new revenue estimate must import `RECOVERY_RATE` from there**, and the 9 static
+   pages carry a mirrored copy with a comment pointing back to it.
 1. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links were bouncing because
    of the mail outage above, which is now resolved, but nobody has logged in since. This is the
    first thing to check because it gates item 2. If it still fails, the fallback is switching
@@ -33,18 +42,14 @@ alongside this. **Do not start Phase 1 design work — Chris has not approved th
 2. **Ops-brief HTTP routes + admin UI still untested.** The underlying
    parse→Claude-mapping→metrics pipeline was verified against live Supabase + Claude on
    2026-08-02, but `/api/admin/ops-brief/*` and `OpsUploadTool.tsx` need a real admin login.
-3. **Phase 0 truthfulness pass not started** (plan items 0a–0d): unify the ROI math on
-   `RECOVERY_RATE = 0.30`, remove claims zero paying clients cannot support, and flip Rex/Nova
-   from DEPLOYING to LIVE in four places. **0d also requires updating this file's own stale
-   "Launch State" block and agent-status notes** — Rex and Nova are live; CLAUDE.md is wrong.
-4. **Phase 2b — the "we called your line" audit.** The plan's highest-value item and still not
+3. **Phase 2b — the "we called your line" audit.** The plan's highest-value item and still not
    started. It replaces the deleted fabricated scores with a real recorded test call, and a bulk
    run manufactures the proprietary statistic that replaces the borrowed ones removed in 0c.
-5. **Intake failure alerting is still missing** (00d partial). A failed insert returns 500, shows
+4. **Intake failure alerting is still missing** (00d partial). A failed insert returns 500, shows
    the prospect a fallback, and logs to Vercel — but nothing tells the owner. Nine days of silent
    failure was the original defect; that specific hole is still open. SMS was evaluated and
    dropped (no Twilio credentials exist anywhere).
-6. **`lib/email-templates.ts` is now unreferenced dead code.** All four templates lost their only
+5. **`lib/email-templates.ts` is now unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Kept because plan Phase 2a earmarks them for
    reuse; `diagnosticAlertHtml` is thin enough now that it likely wants a rewrite instead.
 
@@ -125,9 +130,17 @@ wholesale:    #84CC16
 All system/test emails → `chris@369agenticsystems.com`
 Never use `texasmediamasters@gmail.com`
 
-## Gumloop Webhook
-Single webhook URL for all verticals, differentiated by `source_tag` field.
-Format: `369AS_{VERTICAL}_INTAKE` (e.g. `369AS_ROOFING_INTAKE`)
+## Intake
+All 10 static pages post to first-party `POST /api/intake`, which writes `system_audits` and
+emails the owner. **Gumloop is gone** (cancelled, account dies 2026-09-02) — do not add new
+calls to it. `source_tag` (`369AS_{VERTICAL}_INTAKE`) is still sent and is mapped to a clean
+`client_industry` on the way into the database.
+
+## ROI math
+`lib/roi.ts` owns `RECOVERY_RATE = 0.30` — the single source of truth for every revenue
+estimate shown to a prospect. Import it; never re-declare it. The 9 static calculators carry
+a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
+Any figure derived from it must state the assumption on-screen.
 
 ## Launch State (as of 2026-08-03)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
