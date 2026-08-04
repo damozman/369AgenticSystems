@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientLeadAlert } from '@/lib/email-sequences'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
+import { describeAuditCall } from '@/lib/audit-call'
+import { AUDIT_CALL_PURPOSE } from '@/lib/audit-call-dial'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +36,59 @@ async function resolveClientDomain(agentId: string | undefined): Promise<string 
   }
 
   return data?.client_domain ?? null
+}
+
+/**
+ * Resolves an outbound audit call into an honest finding.
+ *
+ * All the judgement lives in `describeAuditCall` — this only persists what it returns.
+ * In particular it stores `reportable` as given: false means the call failed on our side
+ * and establishes nothing about the business, and those rows must stay out of any
+ * published percentage.
+ */
+async function handleAuditCallWebhook(
+  event: string,
+  callId: string,
+  call: Record<string, unknown>,
+): Promise<NextResponse> {
+  // Only the terminal event carries an outcome; ignore the rest without erroring, or
+  // Retell will retry a webhook that had nothing to do.
+  if (event !== 'call_ended') {
+    return NextResponse.json({ success: true, event, audit: true, ignored: true })
+  }
+
+  const result = describeAuditCall(
+    {
+      disconnection_reason: call.disconnection_reason as string | undefined,
+      start_timestamp:      call.start_timestamp      as number | undefined,
+      end_timestamp:        call.end_timestamp        as number | undefined,
+    },
+    { lineLabel: 'your main line' },
+  )
+
+  const { error } = await supabase
+    .from('audit_calls')
+    .update({
+      status:       'resolved',
+      reportable:   result.reportable,
+      outcome:      result.outcome ?? null,
+      unreportable: result.unreportable ?? null,
+      sentence:     result.sentence || null,
+      detail:       result.detail,
+      raw_reason:   (call.disconnection_reason as string | undefined) ?? null,
+      resolved_at:  new Date().toISOString(),
+    })
+    .eq('call_id', callId)
+
+  if (error) {
+    console.error(`[369 AUDIT] ✗  Could not resolve ${callId}: ${error.message}`)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  console.log(
+    `[369 AUDIT] ✓  ${callId} — ${result.reportable ? result.outcome : `excluded (${result.unreportable})`}`,
+  )
+  return NextResponse.json({ success: true, event, audit: true })
 }
 
 export async function POST(request: NextRequest) {
@@ -76,6 +131,17 @@ export async function POST(request: NextRequest) {
   if (!callId) {
     console.error('[RETELL] ✗  Missing call_id. call:', JSON.stringify(call))
     return NextResponse.json({ error: 'Missing call_id' }, { status: 400 })
+  }
+
+  // ── Outbound audit calls are ours, not a client's ─────────────────────────
+  // These are calls WE place at prospects for the "we called your line" audit. They
+  // share this webhook because they share the Retell account, but they must never reach
+  // the `calls` table: every dashboard metric, ROI figure and weekly digest reads from
+  // it, so filing an outbound call there would credit some client's agent with a call it
+  // never took. Diverted before any of the branches below can touch it.
+  const metadata = call.metadata as Record<string, unknown> | undefined
+  if (metadata?.purpose === AUDIT_CALL_PURPOSE) {
+    return handleAuditCallWebhook(event, callId, call)
   }
 
   // ── call_started ──────────────────────────────────────────────────────────

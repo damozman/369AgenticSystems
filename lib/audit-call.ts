@@ -20,6 +20,30 @@
  * are excluded from the denominator when the bulk run computes a statistic.
  */
 
+/**
+ * Tags a Retell call as one of ours rather than a client's.
+ *
+ * Lives in this SDK-free module so the webhook can check it without importing the Retell
+ * client, which throws at module load when `RETELL_API_KEY` is unset.
+ */
+export const AUDIT_CALL_PURPOSE = '369_audit'
+
+/**
+ * E.164 or nothing.
+ *
+ * A malformed number does not fail loudly at Retell — it comes back as
+ * `invalid_destination`, which this pipeline correctly refuses to report as a finding.
+ * The result is a call that costs money and establishes nothing, so reject it here where
+ * the error is still attributable to bad input rather than to the business.
+ */
+export function toE164(raw: string): string | null {
+  const digits = raw.replace(/[^\d+]/g, '')
+  if (/^\+1\d{10}$/.test(digits)) return digits
+  if (/^1\d{10}$/.test(digits))   return `+${digits}`
+  if (/^\d{10}$/.test(digits))    return `+1${digits}`
+  return null
+}
+
 /** What a single audit call established about the business we dialled. */
 export type AuditOutcome =
   | 'answered_human'    // a person picked up

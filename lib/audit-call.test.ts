@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  describeAuditCall, formatCallTime, tallyAuditCalls, unreachedShare,
+  describeAuditCall, formatCallTime, tallyAuditCalls, unreachedShare, toE164,
   type AuditCallResult,
 } from './audit-call.ts'
 
@@ -171,4 +171,23 @@ test('a run that is entirely our own failures yields no statistic at all', () =>
   const tally = tallyAuditCalls(results({ dial_failed: 200 }))
   assert.equal(tally.reportable, 0)
   assert.equal(unreachedShare(tally), null)
+})
+
+// ── Number validation ─────────────────────────────────────────────────────────
+
+test('US numbers in the shapes a scraped listing actually produces all normalise', () => {
+  for (const raw of [
+    '2145551234', '214-555-1234', '(214) 555-1234', '214.555.1234',
+    '+1 214 555 1234', '1-214-555-1234', ' (214) 555-1234 ',
+  ]) {
+    assert.equal(toE164(raw), '+12145551234', `failed on "${raw}"`)
+  }
+})
+
+test('anything not dialable is rejected before it costs a call', () => {
+  // Retell answers a malformed number with invalid_destination, which this pipeline
+  // correctly refuses to report — so it would be money spent to establish nothing.
+  for (const raw of ['', '555-1234', '12345', 'not a phone', '+44 20 7946 0958', '21455512345']) {
+    assert.equal(toE164(raw), null, `"${raw}" should not be dialable`)
+  }
 })
