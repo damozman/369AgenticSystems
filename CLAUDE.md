@@ -6,7 +6,8 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (late) - booking VERIFIED on real calls; demo line on `claude-4.5-haiku`
+**Last updated:** 2026-08-04 (latest) - three PRs open: #20 notification fix, #21 schedule
+verification, #22 webhook-audit cron. All three verified locally/against prod; none merged.
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
@@ -18,11 +19,16 @@ the stump-resistance ("are you an AI", "what does the company do") and was satis
 the roofing copy can roll out to the other nine pages when convenient.
 
 Still unexercised, and worth knowing before the first paying client:
-1. **The notification path** - see "Bookings are recorded but NOBODY IS TOLD" below. This is the
-   nearest real gap.
-2. **`lib/availability.ts` against a client with non-default hours.** Every real call so far used
-   `DEFAULT_SCHEDULE` (Mon-Fri 08:00-17:00 America/Chicago, 1 job at a time). Nothing has
-   exercised a real `client_schedules` row.
+1. **The notification path** - root cause now found and fixed in **PR #20**; see the section
+   below. What remains is one real call *after* merging it, to confirm a new booking comes out
+   with `lead_id` set and `confirmation_sent = true`. Retell only ever calls production, so a
+   preview cannot prove this.
+2. ~~`lib/availability.ts` against non-default hours.~~ **Done - PR #21.** A real
+   `client_schedules` row (weekends open, weekdays closed, America/New_York, 30-min slots,
+   capacity 2) passes 16/16 against production. Two constraints surfaced: `client_schedules`
+   is FK-constrained to `agent_subscriptions` (so **the demo line can never have custom hours**),
+   and `agent_subscriptions` needs `monthly_cost` NOT NULL plus `tier` matching a check
+   constraint (`'Elite'`).
 
 **Chris's position on the demo line (2026-08-04):** it does not need a calendar attached. The
 database check is the point, and refusing the already-taken 09:00 slot is exactly the behaviour
@@ -56,19 +62,30 @@ he wanted to see. Calendar sync matters for **provisioned clients**, not for thi
   class; the `caller_address` description now says to omit the parameter rather than send a
   placeholder. Both bad rows nulled.
 
-### Bookings are recorded but NOBODY IS TOLD (found 2026-08-04, not yet fixed)
-A booking currently produces a `bookings` row and nothing else. Verified on the two real calls:
-- **No calendar write anywhere.** This is the Phase 2 gap - see Open items and the Cal.com copy
-  note below.
-- **No owner alert.** `/api/book-appointment` gates the email on
-  `if (ownerSub?.user_email)`, and there is **no `agent_subscriptions` row for
-  `demo.369agenticsystems.com`** - so it silently skipped. Chris was never told a booking landed.
-- **`confirmation_sent` is `false`** on both rows; the caller confirmation did not complete.
+### Bookings tell nobody - ROOT CAUSE FOUND, fix in PR #20 (awaiting merge + a real call)
+The cause is **not** the missing subscription row. It is an ordering race, and it bites every
+client regardless of subscription. Measured against production:
 
-For the demo line that is arguably correct (nobody should show up, no confirmation wanted). The
-real problem is that **a paying client takes a different code path than anything tested so far**,
-because they *would* have a subscription row. Give a test domain a real inbox and place one call
-before the first paying client, not after.
+| call | book_appointment | capture_lead | gap |
+|---|---|---|---|
+| `3d947db9` | 22:20:58 | 22:21:25 | lead **27s late** |
+| `3f368a45` | 22:03:26 | 22:04:07 | lead **41s late** |
+
+Ava books *before* she captures the lead, so `/api/book-appointment` finds no lead and writes
+`bookings.lead_id = null` - permanently, because nothing ever went back to fix it. Then:
+- **Nova reads that null**, concludes there is no caller email, and records `skipped_no_email` -
+  for callers whose address (`damozman@yahoo.com`) landed seconds later. That is the real reason
+  `confirmation_sent` is `false`, not a Resend fault.
+- **The owner alert would have said `Phone: unknown`** - no name, no email. Unactionable.
+  `www.Northsideroofing.com`, the one domain that *has* a subscription row, is orphaned too, so
+  **the paying-client path was already broken in production**, not just the demo line.
+
+**Do not "fix" this by reordering the prompt.** Tool-call order is the model's to choose, and
+betting the confirmation on it is the same prompt/schema coupling that has broken things twice.
+PR #20 has the lead adopt the booking when it lands, so either arrival order works.
+
+Still true and still unexercised: **no calendar write anywhere** (Phase 2), and no booking has
+ever run for a client that *has* a subscription row and a real inbox.
 
 ### Three corrections from 2026-08-04 - read before repeating them
 1. **`model_high_priority` is NOT a latency lever - it made things 4x worse.** Enabling it took
@@ -189,8 +206,16 @@ before the first paying client, not after.
    the three fix PRs are merged. Next time an upload runs, confirm the relabelled stockout
    metric and a Y/N backorder column both read correctly on a *live* file.
 2. **Place the real call** (see START HERE). Nothing else can substitute for it.
-3. **Phase 2 of the booking work: Google Calendar behind a provider seam.** Decision made and
-   researched 2026-08-04 - **Google first, Microsoft Graph second, never Apple/CalDAV.**
+3. **Phase 2 of the booking work: Google Calendar behind a provider seam.**
+   **BLOCKER FOUND 2026-08-04: the site has no privacy policy and no terms page at all.**
+   (`app/legal` is the lawyer vertical, not legal documents - do not be fooled by the name.)
+   Google will not accept a sensitive-scope verification without a privacy policy URL on the
+   same domain, publicly reachable and linked from the homepage, that explicitly describes how
+   Google user data is used, stored and shared. **Nothing about the OAuth submission can start
+   until that page exists**, so it sits in front of the 10-day review clock. Write it before
+   touching the Google Cloud console.
+   Decision made and researched 2026-08-04 - **Google first, Microsoft Graph second,
+   never Apple/CalDAV.**
    Google Calendar API is $0 at this volume and $0 to the client, who already has it. Cal.com
    Platform was **rejected**: ~$299/mo plus per-booking overage, a fixed cost before the first
    paying client. Apple has no public REST API or OAuth at all - CalDAV with a 16-character
@@ -206,8 +231,9 @@ before the first paying client, not after.
    **Blocked on a decision only Chris can make:** cold-calling businesses that never made
    contact is a different legal posture from calling a form submitter - Texas telemarketing
    registration and do-not-call apply. Do not build this unprompted.
-5. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the ten-day-outage class.
-   Not yet on a cron. Cheap insurance.
+5. ~~Schedule `scripts/audit-retell-webhooks.mjs`.~~ **Done - PR #22**, daily Vercel cron at
+   12:00 UTC. Also compares the secret *value* against `RETELL_WEBHOOK_SECRET`, which catches a
+   rotation mismatch that a presence-check would pass. Alerts only on a problem.
 6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Plan Phase 2a earmarks them for reuse.
 7. **Three other Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
@@ -254,6 +280,11 @@ node scripts/preflight-audit-call.mjs    config check before spending a call
 node scripts/place-audit-call.mjs        place one audit call (prompts, no args)
 node scripts/probe-audit-calls.mjs       audit_calls schema vs production
 node scripts/probe-booking-availability.mjs   booking schema + a REAL double-book attempt
+node scripts/verify-booking-notifications.mjs [hours] [--repair]
+                                         orphaned bookings + unsent confirmations; --repair
+                                         links them (sends nothing - those dates are past)
+node --import ./scripts/test-resolver.mjs scripts/verify-client-schedule.mjs
+                                         a REAL client_schedules row, written then deleted
 node --env-file=.env.local scripts/retell/recon.mjs                       every LLM's tool URLs
 node --env-file=.env.local scripts/retell/update-availability-tool.mjs    dry run; --apply to write
 node --env-file=.env.local scripts/retell/update-demo-script.mjs          demo prompt; aborts on bad tool names
