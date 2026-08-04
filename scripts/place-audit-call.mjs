@@ -94,8 +94,26 @@ if (res.status === 401 && body.includes('Protected deployment')) {
   process.exit(1)
 }
 
+if (res.status === 401) {
+  // 401 vs 503 is diagnostic: the route fails closed with 503 when the variable is
+  // unset, so a 401 proves the deployment HAS a secret — it just isn't this one.
+  const { createHash } = await import('node:crypto')
+  const fp = createHash('sha256').update(secret).digest('hex').slice(0, 8)
+  console.error('✗ 401 — reached the app, but the secret did not match.\n')
+  console.error(`  Local secret: ${secret.length} chars, fingerprint ${fp}`)
+  if (/^["']|["']$/.test(secret)) console.error('  ⚠ It is wrapped in quotes — remove them.')
+  if (secret !== secret.trim())   console.error('  ⚠ It has leading/trailing whitespace.')
+  console.error('\n  This deployment returned 401 rather than 503, which means it DOES have')
+  console.error('  an INTERNAL_API_SECRET — just a different one. Almost always this:')
+  console.error('    1. Env var changes do NOT apply to an already-built deployment.')
+  console.error('       Changing it in Vercel requires a REDEPLOY to take effect.')
+  console.error('    2. Or the value you edited is scoped to Production, while the')
+  console.error('       Preview scope still holds an older value.')
+  console.error('\n  Check both, then use the newest deployment URL — not the old one.')
+  process.exit(1)
+}
+
 const explain = {
-  401: 'the secret did not match INTERNAL_API_SECRET in that environment',
   503: 'INTERNAL_API_SECRET is not set in that environment — the route fails closed by design',
   502: 'Retell rejected the call: check RETELL_AUDIT_AGENT_ID / RETELL_AUDIT_FROM_NUMBER',
   400: 'the number was rejected before dialling — it must be a US number',
