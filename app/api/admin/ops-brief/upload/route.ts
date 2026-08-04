@@ -121,8 +121,29 @@ export async function POST(request: Request) {
   try {
     proposal = await proposeColumnMapping(rawRows)
   } catch (err) {
-    console.error('[OPS-BRIEF] Claude mapping call failed', err)
-    return NextResponse.json({ error: 'Column-mapping request failed' }, { status: 502 })
+    // "Column-mapping request failed" told an operator nothing — the same
+    // silent-failure shape as the intake outage. Surface what actually broke.
+    // Safe to return: the SDK's error class and HTTP status say whether the key
+    // is missing, wrong, rate-limited, or the model id is bad. None of it echoes
+    // the key, and this route is admin-only.
+    const name   = err instanceof Error ? err.constructor.name : 'UnknownError'
+    const status = (err as { status?: number })?.status
+    const detail = err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200)
+
+    // A missing key is the one failure with a precise, actionable cause, and the
+    // SDK reports it as a plain Error at construction rather than an API status.
+    const missingKey = !process.env.ANTHROPIC_API_KEY
+
+    console.error(`[OPS-BRIEF] Claude mapping call failed — ${name} ${status ?? ''}: ${detail}`)
+
+    return NextResponse.json(
+      {
+        error: missingKey
+          ? 'ANTHROPIC_API_KEY is not set in this environment'
+          : `Column-mapping request failed — ${name}${status ? ` (${status})` : ''}: ${detail}`,
+      },
+      { status: 502 },
+    )
   }
 
   const dataRows = rawRows.slice(proposal.headerRowIndex + 1)
