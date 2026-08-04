@@ -72,6 +72,20 @@ Nothing else is half-finished. The working tree is clean apart from the pre-exis
    `felix/conflict-check`, `nova-templates`). Deliberately left alone - the latter two run
    mid-call on live Retell traffic. Read the benchmark note below before changing any of them.
 
+### Open question raised 2026-08-04 (end of session) - discuss before building
+**Ava's agent page claims she "books directly on your Cal.com calendar". She does not.**
+Verified: `/api/book-appointment` inserts a `bookings` row, stamps the call, emails the owner,
+and fires `/api/nova/booking-confirmation`, which emails (and optionally SMSes) the caller.
+**No calendar write at any step** - zero references to `api.cal.com`, `CAL_API` or `CALCOM`
+anywhere. The only Cal.com in the project is the embed on `/book-demo`, which is Chris's own
+discovery-call page and unrelated.
+
+Two decisions, do not conflate them: (1) **truthfulness** - either build it or fix the copy in
+`app/agents/[agent]/page.tsx`; a named-integration claim for something unbuilt is the same
+class as the borrowed statistics removed in PR #12. (2) **product** - whether to build real
+sync, and how; an `.ics` attachment on the confirmation email Nova already sends is by far the
+cheapest option and needs no per-client OAuth.
+
 ### Two patterns that have each cost real time
 **Arming a shared-secret gate silently breaks every producer that did not get the new
 secret**, and the breakage is silent by construction - the gate returns 401 and the producer
