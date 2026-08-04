@@ -56,13 +56,35 @@ ${rowsText}
 Identify the header row and propose the column mapping now.`
 
   const message = await anthropic.messages.create({
+    // Measured 2026-08-04 on the messy wholesale fixture: sonnet-4-6, haiku-4-5
+    // and opus-5 (at every effort level) all mapped 10/10 columns and found the
+    // same header row. Opus cost 2x Sonnet for an identical result — adaptive
+    // thinking judged the task simple enough not to think, so the premium bought
+    // nothing. Sonnet is kept over the cheaper Haiku as headroom for a genuinely
+    // nastier real export: the failure mode is not a crash, it is a wrong mapping
+    // silently producing wrong metrics a client sees.
+    //
+    // Cost is bounded by the caller, not by this line — the route reuses a saved
+    // mapping per client label, so this fires once per client, not per upload.
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    // Generous ceiling, not a target: unused output tokens are not billed, and
+    // this removes truncation as a failure mode if the model or prompt changes.
+    max_tokens: 8000,
     system,
     messages: [{ role: 'user', content: user }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  // Opus 5's classifiers can decline a request — HTTP 200 with an empty or
+  // partial content array. Without this the caller sees an unparseable-JSON
+  // error instead of the actual cause.
+  if (message.stop_reason === 'refusal') {
+    throw new Error('Claude declined the column-mapping request (stop_reason: refusal)')
+  }
+
+  // NOT content[0] — with thinking on, the first block is a thinking block.
+  // Indexing position 0 silently yields '' and the JSON parse fails downstream.
+  const textBlock = message.content.find(b => b.type === 'text')
+  const text = textBlock?.type === 'text' ? textBlock.text : ''
   const parsed = parseJsonResponse(text)
 
   const mapping = {} as Record<OpsBriefInput, MappingEntry>
