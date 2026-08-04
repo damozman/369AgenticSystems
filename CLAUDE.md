@@ -6,22 +6,79 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (booking availability shipped; ops-brief PRs merged; no open PRs)
+**Last updated:** 2026-08-04 (late) - booking VERIFIED on real calls; demo line on `claude-4.5-haiku`
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
 The booking work has its own approved plan at `~/.claude/plans/dynamic-frolicking-starlight.md`.
 
-### START HERE: one thing needs a human, and it is a phone call
-Everything below is merged, deployed and verified as far as it can be verified without a
-handset. **Place one real call to the demo line (817) 635-0220**, ask to book, and confirm:
-1. Ava offers real times (not 10:00 AM / 2:00 PM),
-2. booking one, then calling again, does **not** offer that same slot a second time, and
-3. she feels quicker than before, and greets you with *"Thanks for calling, this is Ava"*
-   (no company name) - the demo script was rewritten the same day, see below.
+### START HERE: the booking chain is PROVEN on real calls. Two things are still untested.
+Chris placed several real calls on 2026-08-04. **Do not re-verify the booking chain** - see
+"Proven live" below. What has *not* been exercised:
+1. **A genuine stump attempt.** The roofing page now dares callers to try
+   (`Go ahead — try to stump her.`), and the prompt has a block for it, but nobody has actually
+   pushed on her. A smaller model is where that would show first. Test before rolling the copy
+   out to the other nine pages.
+2. **`lib/availability.ts` against a client with non-default hours.** Every real call so far has
+   used `DEFAULT_SCHEDULE` (Mon-Fri 08:00-17:00 America/Chicago, 1 job at a time). Nothing has
+   exercised a real `client_schedules` row.
 
 `master` is clean and deployed. The working tree is clean apart from the pre-existing
 `369AgenticSystems.code-workspace` modification, which is not ours.
+
+### Proven live on real calls (2026-08-04 evening) - do NOT re-verify
+- **The whole booking chain works, including double-booking prevention.** Call 1 booked Wed
+  Aug 5 09:00. Call 2, seventeen minutes later, was offered **"8:00 AM or 10:00 AM"** - 9:00 was
+  correctly withheld. Database confirms `2026-08-05T14:00:00Z` then `15:00Z` (09:00 and 10:00
+  CDT). Ava drove `check_availability` -> `book_appointment` unaided and captured `service_type`.
+  This is the behaviour the engine exists for and a probe script can only simulate it.
+- **The demo line runs `claude-4.5-haiku`, chosen by measurement.** Like-for-like long calls:
+
+  | model | first reply | p50 | worst turn |
+  |---|---|---|---|
+  | `claude-4.6-sonnet` (12 turns) | 5137ms | 3102ms | 4128ms |
+  | `claude-4.6-sonnet` (18 turns) | 9536ms | 2082ms | 3972ms |
+  | **`claude-4.5-haiku` (11 turns)** | **1877ms** | **1230ms** | **2346ms** |
+
+  Haiku's worst turn beats Sonnet's median, with no spikes. No quality regression across a full
+  booking. Revert is one field: `bench-demo-model.mjs --set claude-4.6-sonnet`.
+- **Tool-call markup was reaching the `leads` table (commit `0599223`).** Two leads landed with
+  `caller_address` set to a fragment of the model's own call syntax. Cause: the demo prompt
+  stopped asking for an address while the tool schema still offered the slot, so the model filled
+  it with adjacent text. Happened on **two different models** - not a model quirk. Fixed in three
+  layers: `/api/capture-lead` drops markup-shaped values on every text field;
+  `lib/security/lead-sanitize.test.ts` pins both verbatim payloads plus other variants of the
+  class; the `caller_address` description now says to omit the parameter rather than send a
+  placeholder. Both bad rows nulled.
+
+### Bookings are recorded but NOBODY IS TOLD (found 2026-08-04, not yet fixed)
+A booking currently produces a `bookings` row and nothing else. Verified on the two real calls:
+- **No calendar write anywhere.** This is the Phase 2 gap - see Open items and the Cal.com copy
+  note below.
+- **No owner alert.** `/api/book-appointment` gates the email on
+  `if (ownerSub?.user_email)`, and there is **no `agent_subscriptions` row for
+  `demo.369agenticsystems.com`** - so it silently skipped. Chris was never told a booking landed.
+- **`confirmation_sent` is `false`** on both rows; the caller confirmation did not complete.
+
+For the demo line that is arguably correct (nobody should show up, no confirmation wanted). The
+real problem is that **a paying client takes a different code path than anything tested so far**,
+because they *would* have a subscription row. Give a test domain a real inbox and place one call
+before the first paying client, not after.
+
+### Three corrections from 2026-08-04 - read before repeating them
+1. **`model_high_priority` is NOT a latency lever - it made things 4x worse.** Enabling it took
+   LLM p50 from 2323ms to 9635ms, with every turn flat within 9ms. A near-constant latency is a
+   queue or timeout, not compute; real compute varies. It is reverted and must stay `false`.
+2. **A slow *first reply* is older than any of today's work.** The 07:13 baseline, on the old
+   prompt and old config, opens at 9536ms then settles to ~1.7s. First replies ranged 2207ms to
+   9910ms on identical config. It was wrongly blamed on `high_priority`, which actually caused a
+   different fault (all turns slow, not just the first).
+3. **Retell's transcript splits an agent turn whenever ASR hears anything - it is NOT a record of
+   what the caller heard.** A "chopped sentence" in `transcript_object` was diagnosed as an
+   interruption bug; Chris was on the call and confirmed she spoke straight through.
+   `interruption_sensitivity` was changed 0.9 -> 0.5 on that false premise. Harmless, left at
+   0.5, but it fixed nothing. **Do not diagnose call quality from the transcript when a human
+   heard the call.**
 
 ### Recently closed - do NOT re-diagnose
 - **The demo line's script was rewritten for speed (2026-08-04, commit `9f3e168`).** Chris
