@@ -15,13 +15,36 @@ The booking work has its own approved plan at `~/.claude/plans/dynamic-frolickin
 ### START HERE: one thing needs a human, and it is a phone call
 Everything below is merged, deployed and verified as far as it can be verified without a
 handset. **Place one real call to the demo line (817) 635-0220**, ask to book, and confirm:
-1. Ava offers real times (not 10:00 AM / 2:00 PM), and
-2. booking one, then calling again, does **not** offer that same slot a second time.
+1. Ava offers real times (not 10:00 AM / 2:00 PM),
+2. booking one, then calling again, does **not** offer that same slot a second time, and
+3. she feels quicker than before, and greets you with *"Thanks for calling, this is Ava"*
+   (no company name) - the demo script was rewritten the same day, see below.
 
 `master` is clean and deployed. The working tree is clean apart from the pre-existing
 `369AgenticSystems.code-workspace` modification, which is not ours.
 
 ### Recently closed - do NOT re-diagnose
+- **The demo line's script was rewritten for speed (2026-08-04, commit `9f3e168`).** Chris
+  reported lag on (817) 635-0220. Root cause was not the model:
+  - **The prompt called a tool that has never existed.** It said `get_available_slots`; the
+    LLM's tools are `end_call`, `check_availability`, `capture_lead`, `book_appointment` (and
+    before the migration, `Calendar_for_Demo`). The model had to notice and recover every
+    scheduling call. `scripts/retell/update-demo-script.mjs` now **aborts** if the prompt names
+    a tool the LLM lacks - trading one wrong name for another is the bug being fixed.
+  - **Prompt 3,658 -> 1,506 chars.** The nine single-vertical demo agents run ~930 and the real
+    client agent 1,373; the shared line carried ~4x that, mostly a "silently classify the caller
+    into one of nine industries" step plus a 13-step procedure, re-processed every turn.
+  - `model_high_priority` false -> **true**. Model deliberately left on `claude-4.6-sonnet` -
+    a swap needs a benchmark, not a guess.
+  - Greeting dropped "ABC Company" (read as a forgotten placeholder, and wrong for eight of the
+    nine verticals). Provisioned client agents still get the real business name from
+    `lib/retell-provisioning.ts:59`.
+  - **It stays multi-vertical on purpose.** All nine landing pages publish this one number
+    (checked across `public/` and `app/`), so narrowing to one or two verticals would hand most
+    callers a mismatched agent. The fix was to stop making the model *classify* before
+    responding, not to remove the breadth.
+  - Only the shared `369 Demo Agent` LLM changed. The nine vertical demo agents have no phone
+    number. Rollback values are in the script's header comment.
 - **Ava now books real appointments (2026-08-04, PR #19, merge `b8eda96`).** Ava was
   **inventing times**: `/api/available-slots` hardcoded 10:00 AM and 2:00 PM, Mon-Fri, always
   `America/Chicago`, and read neither a calendar nor the `bookings` table - so she could hand
@@ -170,6 +193,7 @@ node scripts/probe-audit-calls.mjs       audit_calls schema vs production
 node scripts/probe-booking-availability.mjs   booking schema + a REAL double-book attempt
 node --env-file=.env.local scripts/retell/recon.mjs                       every LLM's tool URLs
 node --env-file=.env.local scripts/retell/update-availability-tool.mjs    dry run; --apply to write
+node --env-file=.env.local scripts/retell/update-demo-script.mjs          demo prompt; aborts on bad tool names
 ```
 
 ### Environment notes
