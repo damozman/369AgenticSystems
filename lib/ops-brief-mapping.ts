@@ -56,13 +56,31 @@ ${rowsText}
 Identify the header row and propose the column mapping now.`
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    model: 'claude-opus-5',
+    // Thinking is ON BY DEFAULT on Opus 5, and max_tokens caps thinking AND the
+    // response text together — the old 1024 was sized for the JSON alone and
+    // would now truncate mid-answer. Kept adaptive rather than disabled: this
+    // reads JSON out of the response text, and Opus 5 with thinking disabled can
+    // leak <thinking> tags into that text and break the parse. Effort is left at
+    // its default (high); sweep down to medium if cost matters more than the
+    // header inference, which is the hard part of this call.
+    max_tokens: 8000,
+    thinking: { type: 'adaptive' },
     system,
     messages: [{ role: 'user', content: user }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  // Opus 5's classifiers can decline a request — HTTP 200 with an empty or
+  // partial content array. Without this the caller sees an unparseable-JSON
+  // error instead of the actual cause.
+  if (message.stop_reason === 'refusal') {
+    throw new Error('Claude declined the column-mapping request (stop_reason: refusal)')
+  }
+
+  // NOT content[0] — with thinking on, the first block is a thinking block.
+  // Indexing position 0 silently yields '' and the JSON parse fails downstream.
+  const textBlock = message.content.find(b => b.type === 'text')
+  const text = textBlock?.type === 'text' ? textBlock.text : ''
   const parsed = parseJsonResponse(text)
 
   const mapping = {} as Record<OpsBriefInput, MappingEntry>
