@@ -12,16 +12,21 @@ Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATU
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
 The booking work has its own approved plan at `~/.claude/plans/dynamic-frolicking-starlight.md`.
 
-### START HERE: the booking chain is PROVEN on real calls. Two things are still untested.
-Chris placed several real calls on 2026-08-04. **Do not re-verify the booking chain** - see
-"Proven live" below. What has *not* been exercised:
-1. **A genuine stump attempt.** The roofing page now dares callers to try
-   (`Go ahead — try to stump her.`), and the prompt has a block for it, but nobody has actually
-   pushed on her. A smaller model is where that would show first. Test before rolling the copy
-   out to the other nine pages.
-2. **`lib/availability.ts` against a client with non-default hours.** Every real call so far has
-   used `DEFAULT_SCHEDULE` (Mon-Fri 08:00-17:00 America/Chicago, 1 job at a time). Nothing has
+### START HERE: the booking chain is PROVEN on real calls. Do NOT re-verify it.
+Chris placed several real calls on 2026-08-04 - see "Proven live" below. He also spot-checked
+the stump-resistance ("are you an AI", "what does the company do") and was satisfied on both, so
+the roofing copy can roll out to the other nine pages when convenient.
+
+Still unexercised, and worth knowing before the first paying client:
+1. **The notification path** - see "Bookings are recorded but NOBODY IS TOLD" below. This is the
+   nearest real gap.
+2. **`lib/availability.ts` against a client with non-default hours.** Every real call so far used
+   `DEFAULT_SCHEDULE` (Mon-Fri 08:00-17:00 America/Chicago, 1 job at a time). Nothing has
    exercised a real `client_schedules` row.
+
+**Chris's position on the demo line (2026-08-04):** it does not need a calendar attached. The
+database check is the point, and refusing the already-taken 09:00 slot is exactly the behaviour
+he wanted to see. Calendar sync matters for **provisioned clients**, not for this number.
 
 `master` is clean and deployed. The working tree is clean apart from the pre-existing
 `369AgenticSystems.code-workspace` modification, which is not ours.
