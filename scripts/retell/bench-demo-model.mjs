@@ -38,14 +38,18 @@ if (!apiKey) { console.error('✗ RETELL_API_KEY not set'); process.exit(1) }
 const client = new Retell({ apiKey })
 const DEMO_LLM = 'llm_a7acd10debcb797a013eb8378d20'
 
-// Retell's menu, from the SDK's own type definitions — not from memory.
+// The server's allowed list, taken from a 400 it returned — NOT from the SDK's type
+// definitions, which advertise a gpt-realtime family this engine rejects outright. Types lag
+// or lead the API; the server is the source of truth.
 const MODELS = [
-  'claude-4.5-haiku', 'claude-4.5-sonnet', 'claude-4.6-sonnet', 'claude-5-sonnet',
-  'gemini-3.0-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash',
-  'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
+  'gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
   'gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-5.1', 'gpt-5.2',
-  'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5',
-  'gpt-realtime', 'gpt-realtime-1.5', 'gpt-realtime-2', 'gpt-realtime-mini',
+  'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5', 'gpt-5.6-terra', 'gpt-5.6-luna',
+  'claude-4.0-sonnet', 'claude-4.5-sonnet', 'claude-4.6-sonnet', 'claude-5-sonnet',
+  'claude-4.5-haiku',
+  'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite',
+  'gemini-3.0-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
 ]
 
 const arg = (flag) => {
