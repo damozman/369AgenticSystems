@@ -18,18 +18,33 @@
  * LLM is not proof the live phone number uses it — a number pinned to a stale agent version is
  * exactly what caused the ten-day call outage.
  *
- * Requires BOTH env vars in .env.local: RETELL_API_KEY, RETELL_WEBHOOK_SECRET.
+ * Requires RETELL_API_KEY in .env.local. RETELL_WEBHOOK_SECRET is optional — see below.
  */
 import { Retell } from 'retell-sdk'
 
 const APPLY  = process.argv.includes('--apply')
 const apiKey = process.env.RETELL_API_KEY
-const secret = process.env.RETELL_WEBHOOK_SECRET
 
 if (!apiKey) { console.error('✗ RETELL_API_KEY not set in .env.local'); process.exit(1) }
-if (!secret) { console.error('✗ RETELL_WEBHOOK_SECRET not set in .env.local'); process.exit(1) }
 
 const client = new Retell({ apiKey })
+
+/**
+ * The secret to stamp on the availability tool.
+ *
+ * Preferring the value already on this LLM's *other* guarded tools over the local env var is
+ * deliberate. Those URLs are what production is validating against right now; .env.local can be
+ * stale, and a mismatched secret would 401 every availability call — silently, because the gate
+ * returns 401 and Retell does not care. That is precisely how the funnel outage and the ten-day
+ * call outage both happened. Falling back to the env var only when no sibling tool carries one.
+ */
+function secretForLlm(tools) {
+  for (const t of tools) {
+    const found = typeof t?.url === 'string' ? /[?&]secret=([^&]+)/.exec(t.url) : null
+    if (found) return decodeURIComponent(found[1])
+  }
+  return process.env.RETELL_WEBHOOK_SECRET ?? null
+}
 
 const SLOTS_PATH = '/api/available-slots'
 const NEW_NAME   = 'check_availability'
@@ -43,13 +58,14 @@ const NEW_DESCRIPTION =
 /** Identify the availability tool by the route it points at, not by its name — the name is what changes. */
 const isAvailabilityTool = t => t?.type === 'custom' && typeof t.url === 'string' && t.url.includes(SLOTS_PATH)
 
-function withSecret(url) {
+function withSecret(url, secret) {
   if (/[?&]secret=/.test(url)) return url
+  if (!secret) return url
   return `${url}${url.includes('?') ? '&' : '?'}secret=${encodeURIComponent(secret)}`
 }
 
-function migrate(tool) {
-  const url = withSecret(tool.url)
+function migrate(tool, secret) {
+  const url = withSecret(tool.url, secret)
   const alreadyDone = tool.name === NEW_NAME && tool.method === 'POST' && url === tool.url
   if (alreadyDone) return null
 
@@ -97,10 +113,17 @@ for (const llmId of llmIds) {
     continue
   }
 
+  const secret = secretForLlm(tools)
+  if (!secret) {
+    console.log(`LLM ${llmId}  — ⚠️  no secret found on any tool and RETELL_WEBHOOK_SECRET unset; would leave the gate open. Skipped.`)
+    failed++
+    continue
+  }
+
   let changed = false
   const nextTools = tools.map(t => {
     if (!isAvailabilityTool(t)) return t
-    const next = migrate(t)
+    const next = migrate(t, secret)
     if (!next) { console.log(`LLM ${llmId}  tool "${t.name}" — already migrated, skipped`); skipped++; return t }
     changed = true
     planned++
