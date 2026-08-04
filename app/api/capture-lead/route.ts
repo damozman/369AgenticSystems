@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
 
   const {
     client_domain,
-    caller_phone,
-    caller_name,
-    caller_address,
-    caller_email,
-    issue_description,
+    caller_phone:      raw_caller_phone,
+    caller_name:       raw_caller_name,
+    caller_address:    raw_caller_address,
+    caller_email:      raw_caller_email,
+    issue_description: raw_issue_description,
     urgency,
     vertical,
   } = source as {
@@ -50,6 +50,38 @@ export async function POST(request: NextRequest) {
     urgency?:           string
     vertical?:          string
   }
+
+  /**
+   * Tool-call markup leaking into a field value.
+   *
+   * Observed live on 2026-08-04: two leads landed with `caller_address` set to
+   * `</antml_parameter>\n<parameter name="caller_phone">817-729-1944`. When the prompt stops
+   * asking for a value but the tool schema still offers the slot, the model can spill its own
+   * call delimiters into it. It happened on two different models, so this is not a quirk of one
+   * of them — it is what an unfillable parameter looks like when it reaches the database.
+   *
+   * Dropping the field is the right call: a null address is honest, a fragment of markup is
+   * corruption that a human then has to recognise as garbage. This guards every text field, not
+   * just the one that failed, because the same shape can hit any of them.
+   */
+  const TOOL_MARKUP = /<\/?\s*(antml|parameter|invoke|function|tool)[\s:_>=]|<\/[a-z_]+>/i
+
+  const clean = (value: unknown, field: string): string | undefined => {
+    if (typeof value !== 'string') return undefined
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+    if (TOOL_MARKUP.test(trimmed)) {
+      console.error(`[LEAD] ✗  Dropped ${field} — tool-call markup, not a value: ${trimmed.slice(0, 80)}`)
+      return undefined
+    }
+    return trimmed
+  }
+
+  const caller_phone      = clean(raw_caller_phone,      'caller_phone')
+  const caller_name       = clean(raw_caller_name,       'caller_name')
+  const caller_address    = clean(raw_caller_address,    'caller_address')
+  const caller_email      = clean(raw_caller_email,      'caller_email')
+  const issue_description = clean(raw_issue_description, 'issue_description')
 
   const resolvedVertical = vertical && VALID_VERTICALS.includes(vertical) ? vertical : null
 
