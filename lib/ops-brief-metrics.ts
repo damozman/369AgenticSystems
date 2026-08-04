@@ -8,6 +8,26 @@ export interface MetricResult {
 
 export type MetricsReport = Record<OpsBriefMetric, MetricResult>
 
+/**
+ * Is this line backordered?
+ *
+ * The schema promises "a flag or status text", and real exports use both. The
+ * original check was `/back/i`, which only ever matched status text — a `B/O?`
+ * column of Y/N, one of the most common shapes in a distribution export, matched
+ * nothing and the metric reported "insufficient data" about a file that had the
+ * data sitting right there.
+ *
+ * Explicit negatives are matched as negatives rather than left to fall through,
+ * so a future pattern change can't silently turn "N" into a backordered line.
+ */
+function isBackordered(raw: string): boolean {
+  const v = (raw ?? '').trim().toLowerCase()
+  if (!v) return false
+  if (['n', 'no', 'false', '0', '-', 'none', 'na', 'n/a'].includes(v)) return false
+  if (['y', 'yes', 'true', '1', 'x'].includes(v)) return true
+  return /back|b\/o/i.test(v)
+}
+
 function findColumnIndex(headers: string[], columnName: string | null): number {
   if (!columnName) return -1
   const target = columnName.trim().toLowerCase()
@@ -92,6 +112,12 @@ function computeOne(
     }
 
     case 'stockout_risk_sku_count': {
+      // Counts LINES at or below their reorder point, not distinct SKUs — the
+      // input schema carries no SKU identifier, so deduplication is impossible.
+      // It was previously labelled "SKU Count", which over-reported whenever one
+      // SKU appeared on several orders: a 20-line file with 5 at-risk SKUs read
+      // as 12. The key is left alone to avoid a migration; the label is honest.
+      // `<=` is deliberate: hitting the reorder point is the trigger to reorder.
       const stock = columnValues(headers, dataRows, mapping.current_stock.column)
       const reorder = columnValues(headers, dataRows, mapping.reorder_point.column)
       let count = 0
@@ -130,7 +156,7 @@ function computeOne(
       let matched = 0
       const len = Math.min(status.length, qty.length, price.length)
       for (let i = 0; i < len; i++) {
-        if (!/back/i.test(status[i])) continue
+        if (!isBackordered(status[i])) continue
         const q = toNumber(qty[i])
         const p = toNumber(price[i])
         if (q === null || p === null) continue
