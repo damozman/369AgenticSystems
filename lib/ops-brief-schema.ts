@@ -56,7 +56,7 @@ export interface OpsBriefMetricDef {
 export const WHOLESALE_METRICS: OpsBriefMetricDef[] = [
   { key: 'order_fill_rate', label: 'Order Fill Rate', unit: '%', requires: ['order_status'] },
   { key: 'inventory_turns_annualized', label: 'Inventory Turns (Annualized)', unit: 'ratio', requires: ['units_sold_or_cogs', 'avg_inventory_on_hand'] },
-  { key: 'stockout_risk_sku_count', label: 'Stockout Risk (SKU Count)', unit: 'SKUs', requires: ['current_stock', 'reorder_point'] },
+  { key: 'stockout_risk_sku_count', label: 'Stockout Risk (Lines At/Below Reorder Point)', unit: 'lines', requires: ['current_stock', 'reorder_point'] },
   { key: 'avg_order_cycle_time_days', label: 'Avg. Order Cycle Time', unit: 'days', requires: ['order_date', 'ship_date'] },
   { key: 'backorder_value', label: 'Backorder Value', unit: '$', requires: ['backorder_status', 'backorder_quantity', 'unit_price'] },
 ]
