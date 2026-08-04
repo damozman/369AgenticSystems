@@ -21,8 +21,9 @@ import { resendFrom } from '@/lib/email-from'
  * or whatever replaces it — is down, the lead is still captured and the owner is still
  * notified. Enrichment degrades; capture does not.
  *
- * Note this route emails the OWNER ONLY. `/api/update-dossier` mails the address in its
- * payload, which makes it usable as an open spam relay; keeping submitter mail out of
+ * Note this route emails the OWNER ONLY. Its predecessor `/api/update-dossier` mailed the
+ * address in its payload with no authentication, which made it usable as an open spam
+ * relay from the 369 domain; that route has been deleted. Keeping submitter mail out of
  * here means an attacker posting junk can only reach the owner's own inbox.
  */
 
@@ -174,7 +175,11 @@ export async function POST(request: Request) {
   }
 
   // ── Optional enrichment hand-off. Dormant until GUMLOOP_WEBHOOK_URL is set, so this
-  // ships without changing behaviour and without the API key living in public HTML. ──
+  // ships without changing behaviour and without the API key living in public HTML.
+  //
+  // There is no callback receiver any more — `/api/update-dossier` was deleted as an
+  // unauthenticated open relay — so enrichment is currently fire-and-forget. Whatever
+  // replaces it needs its own authenticated callback route. ──
   const enrichUrl = process.env.GUMLOOP_WEBHOOK_URL
   if (enrichUrl) {
     try {

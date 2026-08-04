@@ -44,7 +44,7 @@ CREATE TABLE specialists (
 
 
 -- ── dossier_logs ─────────────────────────────────────────────────────────────
--- Populated by /api/update-dossier (Gumloop webhook receiver)
+-- Populated by /api/intake (first-party form capture; superseded the deleted /api/update-dossier)
 CREATE TABLE dossier_logs (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id     UUID        REFERENCES clients(id) ON DELETE CASCADE,
@@ -106,7 +106,7 @@ CREATE POLICY "business_memory: own client"
     SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
   ));
 
--- Service-role key (used by /api/update-dossier) bypasses RLS automatically.
+-- Service-role key (used by /api/intake) bypasses RLS automatically.
 -- No additional policies are needed for server-side writes.
 
 
@@ -292,7 +292,7 @@ CREATE POLICY "client_questionnaires: owner insert"          ON client_questionn
 
 
 -- ── system_audits ─────────────────────────────────────────────────────────────
--- Populated by /api/update-dossier (Gumloop webhook receiver).
+-- Populated by /api/intake (first-party form capture; superseded the deleted /api/update-dossier).
 -- Rows have no user_id — this is an admin-wide view; all authenticated portal
 -- users can read all audits.  The server component uses the service-role client
 -- as a belt-and-suspenders guard, but the policy below is the canonical fix.
@@ -316,7 +316,7 @@ CREATE POLICY "system_audits: authenticated read"
   TO authenticated
   USING (true);
 
--- Service-role INSERT from /api/update-dossier bypasses RLS — no policy needed.
+-- Service-role INSERT from /api/intake bypasses RLS — no policy needed.
 
 
 -- ── Rex + Nova + Felix Agent Tables ──────────────────────────────────────────

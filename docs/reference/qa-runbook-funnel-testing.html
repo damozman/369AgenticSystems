@@ -405,6 +405,15 @@
         Automated review is done — build, type-check, console errors, mobile overflow, and a full pass checking every "Live" and "Deploying" claim against the code that's supposed to back it. What's left is the part only a human going through it as a real prospect can catch: does it <em>feel</em> right, does an email actually land, does a call actually sound good.
       </p>
       <span class="status-line"><span class="dot"></span> Rollout paused — no launch date set, testing in progress</span>
+      <p class="note" style="border-left:3px solid #EF4444;padding-left:14px;margin-top:20px;">
+        <strong>Stale as of 2026-08-03 — Funnel A steps 3 and 4 no longer describe the system.</strong>
+        The static pages no longer post to Gumloop; they post to <code>/api/intake</code>, which
+        writes the <code>system_audits</code> row and emails the owner only. The Gumloop account is
+        cancelled (dies 2026-09-02) and its receiver <code>/api/update-dossier</code> has been
+        deleted — it was unauthenticated and would mail any address in its payload. The three
+        prospect-facing emails described in step 4 are not currently sent by anything. Everything
+        else in this runbook still applies.
+      </p>
     </header>
 
     <!-- ═══ FUNNEL A ═══ -->
