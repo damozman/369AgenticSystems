@@ -17,6 +17,10 @@ import { resendFrom } from '@/lib/email-from'
  * row is committed.** The page relies on that to decide whether to show the success
  * screen or a fallback with a phone number, so a soft failure here means a lost lead.
  *
+ * A failed insert also emails the owner the full payload (see `alertOwner`). A 500 that
+ * only reaches Vercel's logs is what made the original outage last nine days — the
+ * pipeline breaking was survivable, nobody being told was not.
+ *
  * Enrichment (the AI "dossier") is explicitly best-effort and downstream. If Gumloop —
  * or whatever replaces it — is down, the lead is still captured and the owner is still
  * notified. Enrichment degrades; capture does not.
@@ -83,6 +87,95 @@ function domainFrom(websiteContent: string): string {
   }
 }
 
+interface Lead {
+  name: string; company: string; email: string
+  website: string; area: string; pain: string
+  vertical: string; receivedAt: string
+}
+
+/**
+ * Emails the owner about an inbound lead, in one of two modes.
+ *
+ * Pass `dbFailure` and it becomes a failure alert instead of a notification. That
+ * distinction is the whole point of this function: when the insert fails there is no row,
+ * no retry and no second chance, so this email is the only surviving copy of the lead and
+ * has to carry the full payload in a form the owner can act on by hand.
+ *
+ * Nine days of submissions were lost in 2026-07 because a failure on this path was visible
+ * only in Vercel logs that nobody was reading. A 500 that reaches no human is the same as
+ * a silent success — the defect was never the pipeline, it was the silence.
+ *
+ * `system_audits` has no column for company / pain / service area either, so the full
+ * payload rides in this email in both modes until a proper intake table exists.
+ *
+ * Never throws: the caller's response must not depend on the mail provider.
+ */
+async function alertOwner(lead: Lead, dbFailure?: string): Promise<void> {
+  const failed = dbFailure !== undefined
+  const tag    = failed ? '✗ INTAKE FAILURE' : '⚠ Owner notify'
+
+  if (!process.env.RESEND_API_KEY) {
+    console.error(`[369 INTAKE] ${tag} — RESEND_API_KEY unset, owner NOT alerted`)
+    return
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const accent = failed ? '#F87171' : '#D4AF37'
+
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:8px 0;font-size:11px;color:#475569;width:120px;">${label}</td>` +
+    `<td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${escapeHtml(value) || '—'}</td></tr>`
+
+  const banner = failed
+    ? `<div style="margin:0 0 20px;padding:14px 16px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:6px;">
+         <p style="margin:0 0 6px;font-size:13px;color:#FCA5A5;font-family:sans-serif;font-weight:600;">This lead was NOT saved to the database.</p>
+         <p style="margin:0 0 6px;font-size:12px;color:#94A3B8;font-family:sans-serif;line-height:1.6;">This email is the only copy. Contact them directly and re-enter the record by hand — nothing will retry this.</p>
+         <p style="margin:0;font-size:11px;color:#64748B;">Supabase said: ${escapeHtml(dbFailure!)}</p>
+       </div>`
+    : ''
+
+  try {
+    const { error } = await resend.emails.send({
+      from:    resendFrom('369 Command Center'),
+      replyTo: lead.email,
+      to:      ownerRecipients,
+      subject: failed
+        ? `🚨 INTAKE FAILED — lead not saved — ${lead.company || lead.name || lead.email}`
+        : `🔔 New ${lead.vertical} lead — ${lead.company || lead.name || lead.email}`,
+      html: `
+        <div style="background:#0A0A0A;padding:40px 24px;font-family:monospace;">
+          <div style="max-width:560px;margin:0 auto;background:#0F0F0F;border:1px solid #1E1E1E;border-radius:8px;overflow:hidden;">
+            <div style="height:3px;background:${accent};"></div>
+            <div style="padding:28px;">
+              <p style="margin:0 0 4px;font-size:10px;color:${accent};text-transform:uppercase;letter-spacing:0.2em;">// ${failed ? 'INTAKE FAILURE' : 'NEW INBOUND LEAD'}</p>
+              <h2 style="margin:0 0 20px;font-size:20px;color:#FFFFFF;font-family:sans-serif;">${escapeHtml(lead.vertical)} intake</h2>
+              ${banner}
+              <table style="width:100%;border-collapse:collapse;">
+                ${row('Name', lead.name)}
+                ${row('Company', lead.company)}
+                ${row('Email', lead.email)}
+                ${row('Website', lead.website)}
+                ${row('Service area', lead.area)}
+                ${row('Pain point', lead.pain)}
+              </table>
+              <p style="margin:20px 0 0;font-size:11px;color:#334155;">${failed ? 'Submitted' : 'Captured'} ${escapeHtml(lead.receivedAt)}. Reply to this email to reach them directly.</p>
+            </div>
+          </div>
+        </div>`,
+    })
+    // A failed alert about a failed capture means the lead is gone with nobody told —
+    // log it at error level so it is at least findable, and distinguishable from the
+    // routine notify warning.
+    if (error) {
+      if (failed) console.error(`[369 INTAKE] ✗✗ LEAD LOST — alert email also failed — ${lead.email} — ${error.message}`)
+      else        console.warn(`[369 INTAKE] ⚠ Owner notify failed — ${error.message}`)
+    }
+  } catch (err) {
+    if (failed) console.error(`[369 INTAKE] ✗✗ LEAD LOST — alert email threw — ${lead.email} —`, err)
+    else        console.warn('[369 INTAKE] ⚠ Owner notify threw:', err)
+  }
+}
+
 export async function POST(request: Request) {
   let body: Record<string, unknown>
   try {
@@ -122,57 +215,22 @@ export async function POST(request: Request) {
       created_at:      receivedAt,
     })
 
+  const lead = { name, company, email, website, area, pain, vertical, receivedAt }
+
   if (dbError) {
-    // Report the failure so the page can show a real fallback instead of a fake success.
+    // The lead is not in the database and will not be retried — the page shows a fallback
+    // and the prospect walks. The email below is the only remaining copy of it, so unlike
+    // the success-path notification this one is not decorative: it IS the capture.
     console.error(`[369 INTAKE] ✗ Lead NOT captured — ${email} — ${dbError.message}`)
+    await alertOwner(lead, dbError.message)
+    // Report the failure so the page can show a real fallback instead of a fake success.
     return NextResponse.json({ error: 'Could not record submission' }, { status: 500 })
   }
 
   console.log(`[369 INTAKE] ✓ Lead captured — ${vertical} — ${email} — ${domain}`)
 
-  // ── Notify the owner. Best-effort: a mail failure must not lose a captured lead. ──
-  // `system_audits` has no column for company / pain / service area, so the full
-  // payload rides in this email until a proper intake table exists.
-  if (process.env.RESEND_API_KEY) {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-
-    const row = (label: string, value: string) =>
-      `<tr><td style="padding:8px 0;font-size:11px;color:#475569;width:120px;">${label}</td>` +
-      `<td style="padding:8px 0;font-size:13px;color:#FFFFFF;">${escapeHtml(value) || '—'}</td></tr>`
-
-    try {
-      const { error } = await resend.emails.send({
-        from:    resendFrom('369 Command Center'),
-        replyTo: email,
-        to:      ownerRecipients,
-        subject: `🔔 New ${vertical} lead — ${company || name || email}`,
-        html: `
-          <div style="background:#0A0A0A;padding:40px 24px;font-family:monospace;">
-            <div style="max-width:560px;margin:0 auto;background:#0F0F0F;border:1px solid #1E1E1E;border-radius:8px;overflow:hidden;">
-              <div style="height:3px;background:#D4AF37;"></div>
-              <div style="padding:28px;">
-                <p style="margin:0 0 4px;font-size:10px;color:#D4AF37;text-transform:uppercase;letter-spacing:0.2em;">// NEW INBOUND LEAD</p>
-                <h2 style="margin:0 0 20px;font-size:20px;color:#FFFFFF;font-family:sans-serif;">${escapeHtml(vertical)} intake</h2>
-                <table style="width:100%;border-collapse:collapse;">
-                  ${row('Name', name)}
-                  ${row('Company', company)}
-                  ${row('Email', email)}
-                  ${row('Website', website)}
-                  ${row('Service area', area)}
-                  ${row('Pain point', pain)}
-                </table>
-                <p style="margin:20px 0 0;font-size:11px;color:#334155;">Captured ${escapeHtml(receivedAt)}. Reply to this email to reach them directly.</p>
-              </div>
-            </div>
-          </div>`,
-      })
-      if (error) console.warn(`[369 INTAKE] ⚠ Owner notify failed — ${error.message}`)
-    } catch (err) {
-      console.warn('[369 INTAKE] ⚠ Owner notify threw:', err)
-    }
-  } else {
-    console.warn('[369 INTAKE] ⚠ RESEND_API_KEY unset — owner not notified')
-  }
+  // Best-effort: a mail failure must not lose a captured lead.
+  await alertOwner(lead)
 
   // ── Optional enrichment hand-off. Dormant until GUMLOOP_WEBHOOK_URL is set, so this
   // ships without changing behaviour and without the API key living in public HTML.
