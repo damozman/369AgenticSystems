@@ -6,7 +6,7 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (end of session — Retell call outage fixed, audit pipeline live)
+**Last updated:** 2026-08-04 (end of session — call outage fixed, audit pipeline live, PRs #12+#13 merged)
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work — Chris has not approved the direction.**
@@ -29,37 +29,36 @@ alongside this. **Do not start Phase 1 design work — Chris has not approved th
   a real submission wrote `empiretrak.com / roofing / intake_received` and emailed the owner.
   Gumloop is cancelled and dies **2026-09-02**.
 - **The open relay is closed** (PR #11). `/api/update-dossier` deleted; returns 404 in prod.
+- **Phase 0 truthfulness pass is MERGED and live** (PR #12). Three contradictory ROI models
+  unified on `lib/roi.ts`; **eight** borrowed statistics removed. Verified in production
+  2026-08-04: all 9 static pages serve `RECOVERY_RATE = 0.30` plus a visible assumption line,
+  and **no removed claim survives anywhere**. `lib/roi.test.ts` guards against drift — it
+  caught a real miss (`app/roofing/roi-calculator/page.tsx`) on its first run.
+- **Intake failure alerting is MERGED and live** (PR #13). Verified both paths on real
+  deployments: success → row + 🔔 email; a failed insert → 500, no row, and a 🚨 "INTAKE
+  FAILED — lead not saved" email in the owner's inbox. The failure path can only be exercised
+  by pointing the route at a missing table on a throwaway branch — no user input can trip a
+  constraint, and revoking permissions would break the production DB previews share.
 - **`INTERNAL_API_SECRET` rotation is cleared.** Rotated twice on 2026-08-04; booking,
   lead capture and call recording all verified working afterwards. It broke nothing.
 
 ### Open items
-1. **PRs #12 and #13 are open, clean, and need a preview check before merging.** Both were
-   `MERGEABLE / CLEAN` at end of session and neither involves a Retell callback, so both are
-   genuinely preview-testable.
-   - **#12 Phase 0 truthfulness** (`fix/truthfulness-pass`): unified three contradictory ROI
-     models on `lib/roi.ts`, stripped **eight** borrowed statistics, and added a drift guard
-     (`lib/roi.test.ts`). Preview check: roofing static page vs `/roofing` with identical
-     inputs must agree ($97,425/mo locally); all 9 calculators at desktop and 390px.
-   - **#13 Intake failure alerting** (`fix/intake-failure-alerting`): a failed insert now
-     emails the owner the full payload. Preview check: force a DB failure, confirm the
-     prospect sees the fallback **and** the 🚨 email arrives.
-   - ⚠️ #12 also edits this file. Merging master into it may need a CLAUDE.md conflict resolved.
-2. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links bounced during the
-   mail outage, which is resolved, but nobody has logged in since. **This gates item 3.**
+1. **Re-test OTP login — probably fixed, never confirmed.** Sign-in links bounced during the
+   mail outage, which is resolved, but nobody has logged in since. **This gates item 2.**
    Fallback: switch Supabase Auth SMTP to Resend (`smtp.resend.com`, user `resend`, password =
    Resend API key, sender on the verified `alerts.369agenticsystems.com`).
-3. **Ops-brief HTTP routes + admin UI still untested.** The parse→Claude→metrics pipeline was
+2. **Ops-brief HTTP routes + admin UI still untested.** The parse→Claude→metrics pipeline was
    verified live 2026-08-02, but `/api/admin/ops-brief/*` and `OpsUploadTool.tsx` need a real
    admin login.
-4. **Phase 2b bulk runner — NOT built, and deliberately so.** It manufactures the proprietary
+3. **Phase 2b bulk runner — NOT built, and deliberately so.** It manufactures the proprietary
    statistic that replaces the removed borrowed ones. Everything it needs is built and tested
    (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum). **Blocked on a
    decision only Chris can make:** cold-calling businesses that never made contact is a
    different legal posture from calling a form submitter — Texas telemarketing registration
    and do-not-call apply. Do not build this unprompted.
-5. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the outage class above. Not
+4. **Schedule `scripts/audit-retell-webhooks.mjs`.** It detects the outage class above. Not
    yet on a cron. Cheap insurance against the same ten-day silence.
-6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
+5. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Kept because plan Phase 2a earmarks them for
    reuse; `diagnosticAlertHtml` is thin enough now that it likely wants a rewrite instead.
 
