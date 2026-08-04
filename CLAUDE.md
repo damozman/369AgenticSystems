@@ -6,8 +6,7 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (latest) - three PRs open: #20 notification fix, #21 schedule
-verification, #22 webhook-audit cron. All three verified locally/against prod; none merged.
+**Last updated:** 2026-08-04 (latest) - booking notifications FIXED and PROVEN on a real call.
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
@@ -15,14 +14,15 @@ The booking work has its own approved plan at `~/.claude/plans/dynamic-frolickin
 
 ### START HERE: the booking chain is PROVEN on real calls. Do NOT re-verify it.
 Chris placed several real calls on 2026-08-04 - see "Proven live" below. He also spot-checked
-the stump-resistance ("are you an AI", "what does the company do") and was satisfied on both, so
-the roofing copy can roll out to the other nine pages when convenient.
+the stump-resistance ("are you an AI", "what does the company do") and was satisfied on both.
+The "try to stump her" copy has since gone out to the remaining seven demo CTAs (**PR #25**);
+dental and saas were skipped deliberately - dental has no live agent to call, and saas has no
+demo CTA, only the number inside a JS error fallback.
 
 Still unexercised, and worth knowing before the first paying client:
-1. **The notification path** - root cause now found and fixed in **PR #20**; see the section
-   below. What remains is one real call *after* merging it, to confirm a new booking comes out
-   with `lead_id` set and `confirmation_sent = true`. Retell only ever calls production, so a
-   preview cannot prove this.
+1. ~~The notification path.~~ **Done and proven on a real call - see the section below.** The
+   only piece left is the **owner alert**, which needs an `agent_subscriptions` row the demo
+   domain does not have. Give a test domain a real inbox and call once before the first client.
 2. ~~`lib/availability.ts` against non-default hours.~~ **Done - PR #21.** A real
    `client_schedules` row (weekends open, weekdays closed, America/New_York, 30-min slots,
    capacity 2) passes 16/16 against production. Two constraints surfaced: `client_schedules`
@@ -62,7 +62,27 @@ he wanted to see. Calendar sync matters for **provisioned clients**, not for thi
   class; the `caller_address` description now says to omit the parameter rather than send a
   placeholder. Both bad rows nulled.
 
-### Bookings tell nobody - ROOT CAUSE FOUND, fix in PR #20 (awaiting merge + a real call)
+### Booking notifications - FIXED AND PROVEN ON A REAL CALL (PR #20, merged). Do NOT re-verify.
+Chris placed a real call at 23:23 UTC on 2026-08-04 and the fix fired, **with the race actually
+occurring** - so this is proof, not a lucky ordering. The two `nova_deliveries` rows on booking
+`20fca086` are the evidence:
+
+| time (UTC) | what happened |
+|---|---|
+| 23:23:48 | booking created - no lead existed yet |
+| 23:23:49 | Nova fires, records `skipped_no_email` - **the old broken behaviour** |
+| 23:24:11 | lead lands, **22.6s after the booking** |
+| 23:24:17 | backfill links the lead and re-fires Nova -> `sent` to the caller |
+
+`confirmation_sent = true`, `starts_at` correct (16:00Z = 11:00 AM CDT), `service_type` captured.
+The four historical orphans were repaired in production; the verifier now reports **0 orphaned**.
+
+**The one path still unexercised** is the owner alert, because it needs an `agent_subscriptions`
+row and the demo domain has none (correctly - nobody should be alerted about a demo booking).
+Give a test domain a real inbox and place one call before the first paying client.
+
+<details><summary>Original diagnosis, kept because the reasoning still matters</summary>
+
 The cause is **not** the missing subscription row. It is an ordering race, and it bites every
 client regardless of subscription. Measured against production:
 
@@ -86,6 +106,7 @@ PR #20 has the lead adopt the booking when it lands, so either arrival order wor
 
 Still true and still unexercised: **no calendar write anywhere** (Phase 2), and no booking has
 ever run for a client that *has* a subscription row and a real inbox.
+</details>
 
 ### Three corrections from 2026-08-04 - read before repeating them
 1. **`model_high_priority` is NOT a latency lever - it made things 4x worse.** Enabling it took
