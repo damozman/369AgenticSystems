@@ -3,7 +3,7 @@ import { VerticalROICalculator } from '@/components/verticals/VerticalROICalcula
 
 export const metadata = {
   title: 'Roofing ROI Calculator | 369 Agentic Systems',
-  description: 'See exactly how much revenue you\'re losing to missed calls — and how much you can recover.',
+  description: 'Estimate how much revenue you\'re losing to missed calls — and how much you can recover.',
 }
 
 export default function RoofingROIPage() {

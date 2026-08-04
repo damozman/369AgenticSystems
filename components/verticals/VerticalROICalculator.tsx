@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TIERS as TIER_CONFIGS, SETUP_FEE } from '@/lib/tier-config'
+import { RECOVERY_RATE } from '@/lib/roi'
 
 // ── Derive display-ready tiers from the single source of truth ────────────────
 
@@ -25,7 +26,6 @@ const TIERS = TIER_CONFIGS.map((tier, i) => ({
   services:     tier.features.filter(f => !f.isSection).map(f => f.label),
   includedFree: getIncludedFree(i),
 }))
-const RECOVERY_RATE = 0.30 // conservative 30% of missed calls convert
 
 const ROI_COPY: Record<string, string> = {
   roofing:       'Here\'s What You\'re Leaving Behind',
@@ -122,7 +122,7 @@ export function VerticalROICalculator({ vertical }: Props) {
 
     const missedPerMonth   = data.callsPerWeek * 4.33 * ((100 - data.answerRate) / 100)
     const monthlyLost      = Math.round(missedPerMonth * data.jobValue)
-    const monthlyRecoverable = Math.round(missedPerMonth * 0.30 * data.jobValue)
+    const monthlyRecoverable = Math.round(missedPerMonth * RECOVERY_RATE * data.jobValue)
     const annualLost       = monthlyLost * 12
     const recommended      = TIERS[1] // Pro is default recommendation
     const breakEvenDays    = monthlyRecoverable > 0

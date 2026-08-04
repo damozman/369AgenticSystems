@@ -116,7 +116,8 @@ Deployed on Vercel, auto-deploys from `master`.
 - Full dashboard at `app/(portal)/dashboard/page.tsx`
 
 ### Agent System
-- 5 agents: Ava (live), Rex (deploying), Nova (deploying), Felix (legal only), Scout (saas only)
+- 5 agents: Ava (live), Rex (live), Nova (live), Felix (live, legal only), Scout (deploying, saas only)
+- Dental is the exception: Ava/Rex/Nova are FUTURE there, not live
 - Agent cards: `components/agents/AgentCard.tsx` (Client Component, links to `/agents/{slug}`)
 - Agent detail pages: `app/agents/[agent]/page.tsx` (Server Component) + `app/agents/[agent]/DeploymentCards.tsx` (Client Component for hover)
 - Agent team grid: `components/agents/AgentTeamGrid.tsx`
@@ -165,16 +166,26 @@ wholesale:    #84CC16
 All system/test emails → `chris@369agenticsystems.com`
 Never use `texasmediamasters@gmail.com`
 
-## Gumloop Webhook
-Single webhook URL for all verticals, differentiated by `source_tag` field.
-Format: `369AS_{VERTICAL}_INTAKE` (e.g. `369AS_ROOFING_INTAKE`)
+## Intake
+All 10 static pages post to first-party `POST /api/intake`, which writes `system_audits` and
+emails the owner. **Gumloop is gone** (cancelled, account dies 2026-09-02) — do not add new
+calls to it. `source_tag` (`369AS_{VERTICAL}_INTAKE`) is still sent and is mapped to a clean
+`client_industry` on the way into the database.
 
-## Launch State (as of 2026-07-06)
+## ROI math
+`lib/roi.ts` owns `RECOVERY_RATE = 0.30` — the single source of truth for every revenue
+estimate shown to a prospect. Import it; never re-declare it. The 9 static calculators carry
+a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
+Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts` guards both.
+
+## Launch State (as of 2026-08-04)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
-- Legal: 4 agents (Ava, Rex, Nova, Felix)
-- SaaS: 4 agents (Ava, Rex, Nova, Scout)
-- All other verticals: 3 agents (Ava, Rex, Nova)
-- Launch day: Tuesday 2026-07-08
+- Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
+- SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
+- All other verticals: 3 agents (Ava, Rex, Nova) — all LIVE
+- Zero paying clients. No testimonials, logos, or plural-client claims are permissible anywhere.
+- Rex SMS follow-up and Nova review requests are NOT shipped — the "coming in phase 2"
+  notes on the agent pages are accurate, leave them.
 
 ## Common Tasks
 

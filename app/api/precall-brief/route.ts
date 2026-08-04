@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
           <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:20px;">
             <p style="color:#D4AF37;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;margin:0 0 12px;">Objection Handlers</p>
             <div style="font-size:13px;line-height:1.8;color:#94A3B8;">
-              <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"Too expensive"</strong> — "You're losing $X/month in missed calls. We're $400/mo. Most clients break even in the first week."</p>
+              <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"Too expensive"</strong> — "You're losing $X/month in missed calls. We're $400/mo. One job you'd otherwise have missed covers it."</p>
               <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"I want to think about it"</strong> — "What specifically would make you confident moving forward today?"</p>
               <p style="margin:0 0 8px;"><strong style="color:#F0F0F0;">"Need to talk to my partner"</strong> — "I'll send a one-pager you can both review. Can we schedule a 15-min follow-up for Thursday?"</p>
               <p style="margin:0;"><strong style="color:#F0F0F0;">"What if it doesn't work?"</strong> — "30-day results guarantee — if you don't capture at least one lead you would have missed, we refund your first month."</p>

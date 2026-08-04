@@ -580,7 +580,7 @@
               </div>
               <div>
                 <p style="font-weight:600; margin-bottom:4px;">Missed Lead Response</p>
-                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">Leads go cold in 5 minutes. Your team responds in 5 hours.</p>
+                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">A caller with a legal problem is calling several firms. Yours answers after the voicemail beep.</p>
               </div>
             </div>
 
@@ -752,7 +752,7 @@
         <div class="gold-line"></div>
         <span class="section-label">The Math</span>
         <h2 class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em;">Your Revenue Recovery</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:440px; margin:0 auto; line-height:1.65;">Drag the sliders. See exactly what inefficiency costs you — and what you win back.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:440px; margin:0 auto; line-height:1.65;">Drag the sliders. Estimate what inefficiency costs you — and what you win back.</p>
       </div>
 
       <div class="glass-strong roi-glow reveal d1" style="padding:52px 48px;">
@@ -790,18 +790,20 @@
         <!-- Results -->
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Drain</div>
-            <div id="weekly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$6,000</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
+            <div id="weekly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--gold);">$2k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Leak</div>
-            <div id="monthly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$26k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
+            <div id="monthly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--gold);">$8k</div>
           </div>
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recovery</div>
-            <div id="annual-recovery" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--gold);">$312k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Billings</div>
+            <div id="annual-recovery" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--gold);">$94k</div>
           </div>
         </div>
+
+        <p style="text-align:center; color:var(--text-muted); font-size:0.76rem; line-height:1.6; margin:-28px auto 40px; max-width:520px;">Assumes 30% of reclaimed admin time converts to billable work — a conservative rate. Freed time is not automatically billable time.</p>
 
         <!-- CTA -->
         <div style="text-align:center;">
@@ -1079,12 +1081,16 @@
       return '$' + n.toLocaleString();
     }
 
+    /* Must match RECOVERY_RATE in lib/roi.ts. Reclaimed admin time does not
+       convert one-for-one into billable hours. */
+    const RECOVERY_RATE = 0.30;
+
     function updateROI() {
       const h = +hSlider.value;
       const r = +rSlider.value;
-      const weekly  = h * r;
+      const weekly  = h * r * RECOVERY_RATE;
       const monthly = Math.round(weekly * 4.33);
-      const annual  = weekly * 52;
+      const annual  = Math.round(weekly * 52);
 
       hDisplay.textContent = h + ' hrs';
       rDisplay.textContent = '$' + r + '/hr';

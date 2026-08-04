@@ -580,8 +580,8 @@
       <!-- hero stats -->
       <div class="reveal d4" style="display:flex; gap:40px; flex-wrap:wrap; align-items:center;">
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--purple); line-height:1;">&lt;60s</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">response time</div>
+          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--purple); line-height:1;">1st ring</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Every call answered, 24/7</div>
         </div>
         <div class="stat-divider" style="height:40px;"></div>
         <div class="stat-block">
@@ -670,8 +670,8 @@
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--purple); margin-bottom:4px;">&lt;60s</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Response time</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--purple); margin-bottom:4px;">1st ring</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Every call answered, 24/7</div>
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--purple); margin-bottom:4px;">24/7</div>
@@ -783,7 +783,7 @@
         <div class="purple-line"></div>
         <span class="section-label">The Math</span>
         <h2 class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em;">Your Missed Demo Revenue Calculator</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. See exactly how much a slow response to demo requests and inbound calls is costing you — per week, per month, per year.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. Estimate how much a slow response to demo requests and inbound calls is costing you — per week, per month, per year.</p>
       </div>
 
       <div class="glass-strong roi-glow reveal d1" style="padding:52px 48px;">
@@ -821,18 +821,20 @@
         <!-- Results -->
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Loss</div>
-            <div id="budget-freed" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$12k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
+            <div id="budget-freed" class="font-display" style="font-size:2rem; font-weight:600; color:var(--purple);">$4k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Loss</div>
-            <div id="traffic-value" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$52k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
+            <div id="traffic-value" class="font-display" style="font-size:2rem; font-weight:600; color:var(--purple);">$16k</div>
           </div>
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Pipeline at Risk</div>
-            <div id="annual-impact" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--purple);">$624k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Pipeline</div>
+            <div id="annual-impact" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--purple);">$187k</div>
           </div>
         </div>
+
+        <p style="text-align:center; color:var(--text-muted); font-size:0.76rem; line-height:1.6; margin:-28px auto 40px; max-width:520px;">Assumes 30% of missed demo calls convert once answered — a conservative rate. Not every answered call becomes a deal.</p>
 
         <!-- CTA -->
         <div style="text-align:center;">
@@ -1121,12 +1123,15 @@
       return '$' + n.toLocaleString();
     }
 
+    /* Must match RECOVERY_RATE in lib/roi.ts — full deal value would claim a 100% close rate. */
+    const RECOVERY_RATE = 0.30;
+
     function updateROI() {
       const calls = +budgetSlider.value;
       const value = +trafficSlider.value;
-      const weekly  = calls * value;
+      const weekly  = calls * value * RECOVERY_RATE;
       const monthly = Math.round(weekly * 4.33);
-      const annual  = weekly * 52;
+      const annual  = Math.round(weekly * 52);
 
       budgetDisplay.textContent  = calls + ' call' + (calls === 1 ? '' : 's');
       trafficDisplay.textContent = '$' + value.toLocaleString();

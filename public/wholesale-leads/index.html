@@ -273,8 +273,8 @@
 
       <div class="reveal d4" style="display:flex; gap:40px; flex-wrap:wrap; align-items:center;">
         <div class="stat-block">
-          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">&lt;60s</div>
-          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Response time</div>
+          <div class="font-display" style="font-size:2.2rem; font-weight:600; color:var(--lime); line-height:1; letter-spacing:-0.02em;">1st ring</div>
+          <div style="color:var(--text-muted); font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px;">Every call answered, 24/7</div>
         </div>
         <div class="stat-divider" style="height:40px;" aria-hidden="true"></div>
         <div class="stat-block">
@@ -382,8 +382,8 @@
               <div style="color:var(--text-secondary); font-size:0.82rem;">Call answering</div>
             </div>
             <div class="glass" style="padding:20px;">
-              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">&lt;60s</div>
-              <div style="color:var(--text-secondary); font-size:0.82rem;">Response time</div>
+              <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">1st ring</div>
+              <div style="color:var(--text-secondary); font-size:0.82rem;">Every call answered, 24/7</div>
             </div>
             <div class="glass" style="padding:20px;">
               <div class="font-display" style="font-size:1.6rem; font-weight:600; color:var(--lime); margin-bottom:4px; letter-spacing:-0.02em;">&lt;5min</div>
@@ -439,8 +439,8 @@
         <!-- KPI card -->
         <div class="glass bento-card reveal d2" style="padding:32px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, rgba(132,204,22,0.04) 0%, transparent 60%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
-          <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:10px;">Avg Response Time</div>
-          <div class="font-display" style="font-size:4rem; font-weight:600; color:var(--lime); line-height:1; margin-bottom:10px; letter-spacing:-0.02em;">&lt;60s</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:10px;">Every Call Answered</div>
+          <div class="font-display" style="font-size:4rem; font-weight:600; color:var(--lime); line-height:1; margin-bottom:10px; letter-spacing:-0.02em;">1st ring</div>
           <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.55;">From inbound call to logged, qualified order — fully automated, around the clock.</p>
           <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center;">
             <span style="color:var(--text-muted); font-size:0.78rem;">Avg wholesale order value</span>
@@ -502,7 +502,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">The Math</span>
         <h2 id="roi-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">Your Missed Order Calculator</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. See exactly how much order revenue is slipping through unanswered calls every single month.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. Estimate how much order revenue is slipping through unanswered calls every single month.</p>
       </div>
 
       <div class="glass-strong roi-glow reveal d1" style="padding:52px 48px;">
@@ -533,18 +533,20 @@
 
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Order Risk</div>
-            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$41k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
+            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$12k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly at Risk</div>
-            <div id="quarterly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$178k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
+            <div id="quarterly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$53k</div>
           </div>
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Revenue at Risk</div>
-            <div id="annual-loss" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--lime);">$2.1M</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Revenue</div>
+            <div id="annual-loss" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--lime);">$640k</div>
           </div>
         </div>
+
+        <p style="text-align:center; color:var(--text-muted); font-size:0.76rem; line-height:1.6; margin:-28px auto 40px; max-width:520px;">Assumes 30% of missed calls convert once answered — a conservative rate. Not every answered call becomes an order.</p>
 
         <div style="text-align:center;">
           <p style="color:var(--text-muted); font-size:0.83rem; margin-bottom:22px;">These are orders your pipeline already earned — they just need a line that always gets answered.</p>
@@ -794,12 +796,15 @@
       if (n >= 1_000)     return '$' + Math.round(n/1_000) + 'k';
       return '$' + n.toLocaleString();
     }
+    /* Must match RECOVERY_RATE in lib/roi.ts — full order value would claim a 100% close rate. */
+    const RECOVERY_RATE = 0.30;
+
     function updateROI() {
       const missedCalls = +ordersSlider.value;
       const orderValue  = +orderValueSlider.value;
-      const weekly  = missedCalls * orderValue;
+      const weekly  = missedCalls * orderValue * RECOVERY_RATE;
       const monthly = Math.round(weekly * 4.33);
-      const annual  = weekly * 52;
+      const annual  = Math.round(weekly * 52);
       ordersDisp.textContent     = missedCalls + ' / wk';
       orderValueDisp.textContent = '$' + orderValue.toLocaleString();
       mlEl.textContent = fmt(weekly);

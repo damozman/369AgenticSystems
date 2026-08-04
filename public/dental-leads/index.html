@@ -326,7 +326,7 @@
               </div>
               <div>
                 <p style="font-weight:600; margin-bottom:4px;">No-Show Epidemic</p>
-                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">A single hygiene appointment no-show costs $200–$400. Multiply by 8–12 per week across a busy practice and you're losing $100k+ per year to empty chairs that could've been prevented with a single automated text.</p>
+                <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.55;">Every no-show is a chair sitting empty at your own appointment value, and a busy practice absorbs several a week without ever adding them up. Most were preventable with a single automated text.</p>
               </div>
             </div>
 
@@ -476,7 +476,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">The Math</span>
         <h2 id="roi-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">Your Missed Revenue Calculator</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. See exactly how much no-shows and dormant patients are costing your practice every single month.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Move the sliders. Estimate how much no-shows and dormant patients are costing your practice every single month.</p>
       </div>
 
       <div class="glass-strong roi-glow reveal d1" style="padding:52px 48px;">
@@ -507,18 +507,20 @@
 
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Loss</div>
-            <div id="weekly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$6.8k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
+            <div id="weekly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--rose);">$2k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Loss</div>
-            <div id="monthly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--red-accent);">$29k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
+            <div id="monthly-cost" class="font-display" style="font-size:2rem; font-weight:600; color:var(--rose);">$9k</div>
           </div>
           <div>
-            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Revenue at Risk</div>
-            <div id="annual-recovery" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--rose);">$354k</div>
+            <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Revenue</div>
+            <div id="annual-recovery" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--rose);">$106k</div>
           </div>
         </div>
+
+        <p style="text-align:center; color:var(--text-muted); font-size:0.76rem; line-height:1.6; margin:-28px auto 40px; max-width:520px;">Assumes 30% of no-shows are recovered by automated reminders and rebooking — a conservative rate.</p>
 
         <div style="text-align:center;">
           <p style="color:var(--text-muted); font-size:0.83rem; margin-bottom:22px;">This revenue is already yours — it just needs a system that doesn't let it walk out the door.</p>
@@ -742,12 +744,16 @@
       if (n >= 1_000)     return '$' + Math.round(n/1_000) + 'k';
       return '$' + n.toLocaleString();
     }
+    /* Must match RECOVERY_RATE in lib/roi.ts. Reminders and rebooking recover a
+       share of no-shows, not all of them. */
+    const RECOVERY_RATE = 0.30;
+
     function updateROI() {
       const noshows = +noshowsSlider.value;
       const val     = +apptvalSlider.value;
-      const weekly  = noshows * val;
+      const weekly  = noshows * val * RECOVERY_RATE;
       const monthly = Math.round(weekly * 4.33);
-      const annual  = weekly * 52;
+      const annual  = Math.round(weekly * 52);
       noshowsDisp.textContent = noshows + ' / week';
       apptvalDisp.textContent = '$' + val.toLocaleString();
       wEl.textContent = fmt(weekly);
