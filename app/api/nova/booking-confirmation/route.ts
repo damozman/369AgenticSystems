@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { formatAppointment } from '@/lib/appointment-format'
+import { loadSchedule } from '@/lib/client-schedule'
 import { sendNovaBookingEmail, sendNovaEstimateSMS, type NovaVertical } from '@/lib/nova-templates'
 import { denyIfBadSecret, INTERNAL_SECRET_HEADER } from '@/lib/security/route-guard'
 
@@ -9,12 +11,6 @@ const supabase = createClient(
 )
 
 const NOVA_VERTICALS: NovaVertical[] = ['roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental']
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago',
-  })
-}
 
 export async function POST(request: NextRequest) {
   // Internal-only route (fired server-to-server by book-appointment). Guarded by
@@ -36,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, lead_id, client_domain, appointment_date, appointment_time, service_type, location')
+    .select('id, lead_id, client_domain, starts_at, appointment_date, appointment_time, service_type, location')
     .eq('id', booking_id)
     .maybeSingle()
 
@@ -81,33 +77,81 @@ export async function POST(request: NextRequest) {
 
   const vertical: NovaVertical = isSupported ? (rawVertical as NovaVertical) : 'roofing'
 
+  // No address to send to. Recorded, not claimed — /api/capture-lead re-fires this route the
+  // moment an email arrives, and claiming here would suppress that retry forever.
+  if (!lead?.caller_email) {
+    await supabase.from('nova_deliveries').insert({
+      booking_id, lead_id: booking.lead_id, client_domain: booking.client_domain,
+      vertical, delivery_type: 'booking_confirmation_email',
+      content: null, sent_to_email: null, sent_to_phone: lead?.caller_phone ?? null,
+      status: 'skipped_no_email',
+    })
+    return NextResponse.json({ success: true, status: 'skipped_no_email' })
+  }
+
+  /**
+   * Claim the booking before sending — one UPDATE that is also the lock.
+   *
+   * This route has two callers (book-appointment, and capture-lead once a lead lands) and
+   * capture_lead itself fires several times per call. Every one of them checked
+   * `confirmation_sent` and then sent, which is a check-then-act race across processes: on the
+   * first real Northside booking two of them both read false and the caller got the same
+   * confirmation email twice, 862ms apart.
+   *
+   * Postgres makes the conditional UPDATE atomic, so exactly one caller can flip false -> true
+   * and the losers get zero rows back. `.or(...)` rather than `.eq('confirmation_sent', false)`
+   * because older rows carry null, and `null = false` is null in SQL — those rows would never
+   * match and would send on every single attempt.
+   */
+  const { data: claimed } = await supabase
+    .from('bookings')
+    .update({ confirmation_sent: true, confirmation_sent_at: new Date().toISOString() })
+    .eq('id', booking_id)
+    .or('confirmation_sent.is.null,confirmation_sent.eq.false')
+    .select('id')
+
+  if (!claimed || claimed.length === 0) {
+    console.log(`[NOVA] ·  Confirmation for ${booking_id} already claimed — not sending a duplicate`)
+    return NextResponse.json({ success: true, status: 'already_sent' })
+  }
+
+  // The client's own timezone. A booking is a wall-clock promise to a human, and telling a
+  // caller in Phoenix an hour that only makes sense in Chicago is the same class of error as
+  // the date bug above.
+  const schedule = await loadSchedule(supabase, booking.client_domain)
+  const when = formatAppointment(booking, schedule.timezone)
+
   let status = 'sent'
   let content = ''
 
-  if (lead?.caller_email) {
-    const emailInput = {
+  try {
+    await sendNovaBookingEmail({
       vertical,
       toEmail:          lead.caller_email,
       callerName:       lead.caller_name ?? undefined,
       serviceType:      booking.service_type ?? undefined,
-      appointmentDate:  formatDate(String(booking.appointment_date)),
-      appointmentTime:  booking.appointment_time,
+      appointmentDate:  when.date,
+      appointmentTime:  when.time,
       location:         booking.location ?? undefined,
       clientDomain:     booking.client_domain,
-    }
-    try {
-      await sendNovaBookingEmail(emailInput)
-      content = `Booking confirmation sent for ${emailInput.appointmentDate} ${emailInput.appointmentTime}`
-    } catch (e) {
-      console.error('[NOVA] Email generation/send failed:', e)
-      status = 'error'
-    }
-  } else {
-    status = 'skipped_no_email'
+    })
+    content = `Booking confirmation sent for ${when.date} ${when.time}`
+  } catch (e) {
+    console.error('[NOVA] Email generation/send failed:', e)
+    status = 'error'
+
+    // Release the claim. `confirmation_sent` must mean "the caller has this in writing" and
+    // nothing else — it used to be set unconditionally, which hid real delivery failures behind
+    // a database that claimed success. Releasing also lets capture-lead's retry pick it up.
+    await supabase
+      .from('bookings')
+      .update({ confirmation_sent: false, confirmation_sent_at: null })
+      .eq('id', booking_id)
   }
 
-  if (lead?.caller_phone) {
-    await sendNovaEstimateSMS(lead.caller_phone, `Your ${vertical} appointment is confirmed for ${booking.appointment_time}.`)
+  // Inside the claim, so a duplicate invocation cannot text the caller twice either.
+  if (status === 'sent' && lead.caller_phone) {
+    await sendNovaEstimateSMS(lead.caller_phone, `Your ${vertical} appointment is confirmed for ${when.date} at ${when.time}.`)
   }
 
   await supabase.from('nova_deliveries').insert({
@@ -117,22 +161,10 @@ export async function POST(request: NextRequest) {
     vertical,
     delivery_type: 'booking_confirmation_email',
     content,
-    sent_to_email: lead?.caller_email ?? null,
-    sent_to_phone: lead?.caller_phone ?? null,
+    sent_to_email: lead.caller_email,
+    sent_to_phone: lead.caller_phone ?? null,
     status,
   })
-
-  // Only mark as sent if the email actually went out — this used to be
-  // unconditional `true`, hiding real delivery failures (e.g. the Resend
-  // unverified-domain bug) behind a database that claimed success.
-  const wasSent = status === 'sent'
-  await supabase
-    .from('bookings')
-    .update({
-      confirmation_sent:    wasSent,
-      confirmation_sent_at: wasSent ? new Date().toISOString() : null,
-    })
-    .eq('id', booking_id)
 
   if (booking.lead_id) {
     await supabase

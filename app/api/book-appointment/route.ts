@@ -157,6 +157,39 @@ export async function POST(request: NextRequest) {
   console.log(`[BOOKING] ✓  ${appointmentDateValue} @ ${appointmentTimeValue} — ${resolvedClientDomain}`)
 
   /**
+   * Look again for the lead, now that the slot is safely held.
+   *
+   * `leadRow` was read before book_slot() ran, and on a real call the lead can land in the
+   * milliseconds between the two — measured at 512ms on the first Northside booking. Everything
+   * below this line wants a name: the calendar event's title, and the owner's alert email, which
+   * otherwise says "New appointment booked — +18176892123" and gives the owner a number instead
+   * of a customer.
+   *
+   * Cheap (one indexed lookup) and it benefits every client, whether or not a calendar is
+   * connected — which is why it sits here rather than inside the provider block.
+   */
+  let effectiveLead = leadRow
+  if (!effectiveLead && callRow?.id) {
+    const { data: lateLeads } = await supabase
+      .from('leads')
+      .select('id, caller_name, caller_phone, caller_email, caller_address')
+      .eq('call_id', callRow.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    effectiveLead = lateLeads?.[0] ?? null
+    if (effectiveLead) {
+      // Guarded: capture-lead may have won the race and linked it already.
+      await supabase
+        .from('bookings')
+        .update({ lead_id: effectiveLead.id })
+        .eq('id', booking.id)
+        .is('lead_id', null)
+      console.log(`[BOOKING] ✓  Lead ${effectiveLead.id} landed during the booking — adopted`)
+    }
+  }
+
+  /**
    * Write the event to the owner's calendar.
    *
    * Deliberately non-fatal, and deliberately the opposite of how /api/available-slots treats the
@@ -182,10 +215,10 @@ export async function POST(request: NextRequest) {
         timeZone:      schedule.timezone,
         serviceType:   service_type,
         location,
-        callerName:    leadRow?.caller_name  ?? callRow?.caller_name,
-        callerPhone:   leadRow?.caller_phone ?? callRow?.caller_phone,
-        callerEmail:   leadRow?.caller_email,
-        callerAddress: leadRow?.caller_address,
+        callerName:    effectiveLead?.caller_name  ?? callRow?.caller_name,
+        callerPhone:   effectiveLead?.caller_phone ?? callRow?.caller_phone,
+        callerEmail:   effectiveLead?.caller_email,
+        callerAddress: effectiveLead?.caller_address,
       }))
 
       await supabase
@@ -214,7 +247,7 @@ export async function POST(request: NextRequest) {
        * in an order you do not control, **each one must adopt the other**. Patching only from
        * capture-lead is one-sided, and one-sided adoption always leaves a window.
        */
-      if (!leadRow && callRow?.id) {
+      if (!effectiveLead && callRow?.id) {
         const { data: lateLeads } = await supabase
           .from('leads')
           .select('id, caller_name, caller_phone, caller_email, caller_address')
@@ -264,14 +297,14 @@ export async function POST(request: NextRequest) {
     // Fall back to the call row when the lead hasn't been captured yet. An alert saying
     // "Phone: unknown" is one the owner cannot act on — the whole point is to give them
     // someone to ring back.
-    const callerPhone = leadRow?.caller_phone ?? callRow?.caller_phone ?? 'unknown'
+    const callerPhone = effectiveLead?.caller_phone ?? callRow?.caller_phone ?? 'unknown'
     try {
       await sendClientBookingAlert({
         toEmail:         ownerSub.user_email,
-        callerName:      leadRow?.caller_name ?? callRow?.caller_name ?? undefined,
+        callerName:      effectiveLead?.caller_name ?? callRow?.caller_name ?? undefined,
         callerPhone,
-        callerEmail:     leadRow?.caller_email ?? undefined,
-        callerAddress:   leadRow?.caller_address ?? undefined,
+        callerEmail:     effectiveLead?.caller_email ?? undefined,
+        callerAddress:   effectiveLead?.caller_address ?? undefined,
         appointmentDate: appointmentDateValue,
         appointmentTime: appointmentTimeValue,
         serviceType:     service_type ?? undefined,
