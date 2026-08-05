@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Zap } from 'lucide-react'
 import ClientDashboardView from '@/components/portal/ClientDashboardView'
+import { loadConnectionAnyStatus } from '@/lib/calendar'
 
 const AGENT_LABELS: Record<string, { label: string; description: string; color: string }> = {
   receptionist: { label: '24/7 AI Receptionist', description: 'Answers calls, captures leads, and books appointments', color: '#D4AF37' },
@@ -28,8 +29,17 @@ const UPGRADE_PATHS: Record<string, { tier: string; agents: string[]; price: num
   Elite:   null,
 }
 
-export default async function ClientDashboardPage() {
+export default async function ClientDashboardPage({
+  searchParams,
+}: {
+  // Read on the server rather than with useSearchParams in the card, which would need a Suspense
+  // boundary and can bail the route out of static rendering in ways that only show up at build.
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   noStore()
+
+  const params = await searchParams
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? null
 
   const supabase      = await createClient()
   const supabaseAdmin = createAdminClient(
@@ -143,6 +153,10 @@ export default async function ClientDashboardPage() {
       .maybeSingle(),
   ])
 
+  // Any status, not just active: a revoked connection is precisely what the dashboard has to
+  // show, because with fail-closed reads it means Ava has stopped booking for this client.
+  const calendarConnection = await loadConnectionAnyStatus(supabaseAdmin, clientDomain)
+
   // Compute weekly deltas and highlights from the 30-day window
   const calls30d     = calls30dData ?? []
   const sevenDaysAgo = Date.now() - 7  * 24 * 60 * 60 * 1000
@@ -222,6 +236,18 @@ export default async function ClientDashboardPage() {
   return (
     <ClientDashboardView
       questionnaireCompleted={questionnaireCompleted}
+      calendar={{
+        connection: calendarConnection
+          ? {
+              status:       calendarConnection.status,
+              accountEmail: calendarConnection.account_email,
+              lastOkAt:     calendarConnection.last_ok_at,
+              lastError:    calendarConnection.last_error,
+            }
+          : null,
+        errorCode:     first(params.calendar_error),
+        justConnected: first(params.calendar) === 'connected',
+      }}
       stats={{
         totalCalls:  tc,
         bookedCalls: bookedCalls ?? 0,
