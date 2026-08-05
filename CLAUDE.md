@@ -6,7 +6,8 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (latest) - booking notifications FIXED and PROVEN on a real call.
+**Last updated:** 2026-08-04 (session end) - booking notifications FIXED and PROVEN on a real
+call. **PRs #24 and #25 are open and need Chris** - see Open item 0 first.
 
 Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
 alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
@@ -19,16 +20,10 @@ The "try to stump her" copy has since gone out to the remaining seven demo CTAs 
 dental and saas were skipped deliberately - dental has no live agent to call, and saas has no
 demo CTA, only the number inside a JS error fallback.
 
-Still unexercised, and worth knowing before the first paying client:
-1. ~~The notification path.~~ **Done and proven on a real call - see the section below.** The
-   only piece left is the **owner alert**, which needs an `agent_subscriptions` row the demo
-   domain does not have. Give a test domain a real inbox and call once before the first client.
-2. ~~`lib/availability.ts` against non-default hours.~~ **Done - PR #21.** A real
-   `client_schedules` row (weekends open, weekdays closed, America/New_York, 30-min slots,
-   capacity 2) passes 16/16 against production. Two constraints surfaced: `client_schedules`
-   is FK-constrained to `agent_subscriptions` (so **the demo line can never have custom hours**),
-   and `agent_subscriptions` needs `monthly_cost` NOT NULL plus `tier` matching a check
-   constraint (`'Elite'`).
+**One thing in the booking chain is still unexercised: the owner alert.** It needs an
+`agent_subscriptions` row and the demo domain has none, so no booking has ever notified an owner.
+Give a test domain a real inbox and place one call before the first paying client - see Open
+item 2. Everything else in the chain is proven on real calls.
 
 **Chris's position on the demo line (2026-08-04):** it does not need a calendar attached. The
 database check is the point, and refusing the already-taken 09:00 slot is exactly the behaviour
@@ -36,6 +31,27 @@ he wanted to see. Calendar sync matters for **provisioned clients**, not for thi
 
 `master` is clean and deployed. The working tree is clean apart from the pre-existing
 `369AgenticSystems.code-workspace` modification, which is not ours.
+
+### What the 2026-08-04 late session did (PRs #20-#26)
+Merged and live: **#20** the booking-notification fix (proven on a real call, below), **#21** a
+live `client_schedules` verification, **#22** the webhook-audit cron, **#23**/**#26** handoff docs.
+**Still open and waiting on Chris: #24 (privacy + terms) and #25 (copy rollout)** - see Open
+item 0, which is where the next session should start.
+
+Two new verification scripts, both run against production:
+`verify-booking-notifications.mjs` (orphaned bookings + unsent confirmations, `--repair` links
+them and sends nothing) and `verify-client-schedule.mjs` (writes a real schedule row, checks the
+engine honours it, deletes it by primary key). Four historical orphans were repaired in
+production; the verifier reports **0 orphaned**.
+
+Three findings worth not rediscovering:
+- **`client_schedules.client_domain` is FK-constrained to `agent_subscriptions`** - a client must
+  be subscribed before they can have hours, and **the demo line can never carry custom hours.**
+- **`agent_subscriptions` needs `monthly_cost` NOT NULL and `tier` matching a check constraint**
+  (`'Elite'` is the only value in production). Provisioning has to satisfy both.
+- **Resend reports failures by RETURNING `{ error }`, it does not throw.** A `try/catch` alone
+  silently swallows a rejected send. Found while testing #22's alert path; check the returned
+  error anywhere email matters.
 
 ### Proven live on real calls (2026-08-04 evening) - do NOT re-verify
 - **The whole booking chain works, including double-booking prevention.** Call 1 booked Wed
@@ -222,46 +238,71 @@ ever run for a client that *has* a subscription row and a real inbox.
   capture and call recording all verified working afterwards. It broke nothing.
 
 ### Open items
+0. **TWO PRs ARE OPEN AND WAITING ON CHRIS. Start here.**
+   - **#24 - privacy policy + terms.** The site had neither. **This blocks the Google OAuth
+     submission**, which cannot begin until the page is live. Chris has NOT read it yet and it
+     is **not lawyer-reviewed** - flag that before merging, especially the liability cap and the
+     Tarrant County governing-law clause. Two things to know once it merges: `/privacy` must not
+     move or go behind middleware (Google's console entry points at that exact URL), and its
+     Google section is written as *"not yet available"* on purpose - **flip it to present tense
+     as part of shipping the calendar integration, never before.**
+   - **#25 - "try to stump her" copy** on the remaining seven demo CTAs. Low risk; just needs a
+     read. Dental and saas were skipped deliberately (see START HERE for why).
 1. **Ops-brief has nothing blocking it.** The admin UI, the HTTP routes and the whole
    parse -> map -> metrics chain have now been exercised through a real admin session, and
    the three fix PRs are merged. Next time an upload runs, confirm the relabelled stockout
    metric and a Y/N backorder column both read correctly on a *live* file.
-2. **Place the real call** (see START HERE). Nothing else can substitute for it.
+2. **The owner alert is the last unexercised booking path.** Everything else in the chain is
+   proven on real calls. `/api/book-appointment` only emails when an `agent_subscriptions` row
+   exists for the domain, and the demo line has none - so no booking has ever notified an owner.
+   Give a test domain a real inbox, place one call, confirm the mail arrives. Do this **before**
+   the first paying client, not after. Note a paying client also needs `monthly_cost` NOT NULL
+   and `tier = 'Elite'` (check constraint) - see PR #21's findings.
+   Unverified from the 2026-08-04 call: whether Nova's confirmation actually **arrived** at
+   `damozman@yahoo.com`. Resend accepted it (`status = 'sent'`), which is one step short of
+   delivery, and Resend-accepted-but-undelivered has bitten this project before.
 3. **Phase 2 of the booking work: Google Calendar behind a provider seam.**
-   **BLOCKER FOUND 2026-08-04: the site has no privacy policy and no terms page at all.**
-   (`app/legal` is the lawyer vertical, not legal documents - do not be fooled by the name.)
+   **Gated on PR #24 merging.** The site had no privacy policy and no terms page at all
+   (`app/legal` is the lawyer vertical, not legal documents - do not be fooled by the name), and
    Google will not accept a sensitive-scope verification without a privacy policy URL on the
    same domain, publicly reachable and linked from the homepage, that explicitly describes how
-   Google user data is used, stored and shared. **Nothing about the OAuth submission can start
-   until that page exists**, so it sits in front of the 10-day review clock. Write it before
-   touching the Google Cloud console.
+   Google user data is used, stored and shared. #24 writes both pages and links them from the
+   homepage footer; **nothing about the OAuth submission can start until it is merged and live.**
+   Once it is: verify `https://369agenticsystems.com/privacy` returns 200 unauthenticated, then
+   start the submission. The scope is *sensitive*, so data-access review takes up to 10 days, it
+   is free, and it gates nothing else - **start it early, it is the only clock running on
+   someone else's schedule.** Do not ship on Testing mode: refresh tokens there expire and the
+   integration dies silently, which is the failure pattern that has already cost two outages.
    Decision made and researched 2026-08-04 - **Google first, Microsoft Graph second,
    never Apple/CalDAV.**
    Google Calendar API is $0 at this volume and $0 to the client, who already has it. Cal.com
    Platform was **rejected**: ~$299/mo plus per-booking overage, a fixed cost before the first
    paying client. Apple has no public REST API or OAuth at all - CalDAV with a 16-character
    app-specific password the client generates *by hand*, which cannot be automated and kills
-   "live within minutes of signup". iCloud-only owners get an `.ics` on Nova's existing email.
-   **Start the Google OAuth verification submission early** - the calendar scope is *sensitive*,
-   so data-access review takes up to 10 days. It is free, and it gates nothing else. Do not ship
-   on Testing mode: refresh tokens there have a limited lifetime and the integration would die
-   silently, which is the failure pattern that has already cost two outages.
+   "live within minutes of signup". iCloud-only owners get an `.ics` on Nova's existing email -
+   note `sendClientBookingAlert` already builds and attaches one, so that fallback is part-built.
 4. **Phase 2b bulk runner - NOT built, deliberately.** It manufactures the proprietary
    statistic that replaces the removed borrowed ones. Everything it needs is built and
    tested (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum).
    **Blocked on a decision only Chris can make:** cold-calling businesses that never made
    contact is a different legal posture from calling a form submitter - Texas telemarketing
    registration and do-not-call apply. Do not build this unprompted.
-5. ~~Schedule `scripts/audit-retell-webhooks.mjs`.~~ **Done - PR #22**, daily Vercel cron at
-   12:00 UTC. Also compares the secret *value* against `RETELL_WEBHOOK_SECRET`, which catches a
-   rotation mismatch that a presence-check would pass. Alerts only on a problem.
+5. **Watch item: `/api/cron/webhook-audit` has never actually fired on schedule.** Merged and
+   deployed (PR #22, daily at 12:00 UTC), and exercised by hand both ways - real config passes
+   2/2, a forced secret mismatch correctly flags both routes broken. But Vercel has not run it
+   yet. It alerts **only on a problem**, so silence is the expected healthy state and also what
+   a broken cron looks like. After the first scheduled run, confirm in Vercel's cron logs that
+   it executed at all. Requires `CRON_SECRET` + `RETELL_API_KEY` (both already set).
 6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted. Plan Phase 2a earmarks them for reuse.
 7. **Three other Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone - the latter two run
    mid-call on live Retell traffic. Read the benchmark note below before changing any of them.
 
-### Still inaccurate on the site - Cal.com copy (product decision now RESOLVED)
+### Still inaccurate on the site - Cal.com copy (RESOLVED, and re-confirmed by Chris 2026-08-04)
+**Chris's instruction, verbatim: "Once we integrate fully into Google, we'll go back and correct
+all of the copy for Cal.com."** Do not touch these two lines before the Google integration ships.
+
 **Ava's agent page still claims she "books directly on your Cal.com calendar".** She now books
 real appointments against real availability (above), but **no calendar write exists at any
 step**, and the connector will be **Google, not Cal.com** - so this copy is wrong today and
