@@ -118,10 +118,20 @@ if (connections.length === 0) {
       connection.scopes?.includes('https://www.googleapis.com/auth/calendar.events'),
       (connection.scopes ?? []).join(' ') || 'none recorded')
 
-    if (!decrypts || !hasClient) {
-      note('Skipping the live calls — cannot build a request without a usable token.')
+    // A live access token needs no client credentials — those are only for the refresh. So a
+    // machine holding CALENDAR_TOKEN_KEY alone can still verify the whole round trip, as long as
+    // the stored token has not expired yet. Demanding the client secret here made this script
+    // unrunnable anywhere except a box with full production credentials, which is most of the
+    // reason a verification script goes unused.
+    const tokenLive = connection.access_token_expires_at
+      && new Date(connection.access_token_expires_at).getTime() > Date.now()
+
+    if (!decrypts || (!hasClient && !tokenLive)) {
+      note('Skipping the live calls — no usable token, and no client credentials to refresh with.')
+      if (!hasClient) note(`The stored access token expired at ${connection.access_token_expires_at}.`)
       continue
     }
+    if (!hasClient) note('Using the stored access token directly — no refresh possible on this machine.')
 
     const provider = buildProvider(db, connection)
 

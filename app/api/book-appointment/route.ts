@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientBookingAlert } from '@/lib/email-sequences'
 import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
-import { buildBookingEvent, getProviderForClient } from '@/lib/calendar'
+import { buildBookingEvent, buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
@@ -157,6 +157,39 @@ export async function POST(request: NextRequest) {
   console.log(`[BOOKING] ✓  ${appointmentDateValue} @ ${appointmentTimeValue} — ${resolvedClientDomain}`)
 
   /**
+   * Look again for the lead, now that the slot is safely held.
+   *
+   * `leadRow` was read before book_slot() ran, and on a real call the lead can land in the
+   * milliseconds between the two — measured at 512ms on the first Northside booking. Everything
+   * below this line wants a name: the calendar event's title, and the owner's alert email, which
+   * otherwise says "New appointment booked — +18176892123" and gives the owner a number instead
+   * of a customer.
+   *
+   * Cheap (one indexed lookup) and it benefits every client, whether or not a calendar is
+   * connected — which is why it sits here rather than inside the provider block.
+   */
+  let effectiveLead = leadRow
+  if (!effectiveLead && callRow?.id) {
+    const { data: lateLeads } = await supabase
+      .from('leads')
+      .select('id, caller_name, caller_phone, caller_email, caller_address')
+      .eq('call_id', callRow.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    effectiveLead = lateLeads?.[0] ?? null
+    if (effectiveLead) {
+      // Guarded: capture-lead may have won the race and linked it already.
+      await supabase
+        .from('bookings')
+        .update({ lead_id: effectiveLead.id })
+        .eq('id', booking.id)
+        .is('lead_id', null)
+      console.log(`[BOOKING] ✓  Lead ${effectiveLead.id} landed during the booking — adopted`)
+    }
+  }
+
+  /**
    * Write the event to the owner's calendar.
    *
    * Deliberately non-fatal, and deliberately the opposite of how /api/available-slots treats the
@@ -170,7 +203,8 @@ export async function POST(request: NextRequest) {
    * .ics attachment on the owner's alert email remains the backstop meanwhile.
    *
    * The event is usually created with no caller name: Ava books 27–41s before she captures the
-   * lead. /api/capture-lead patches it when the lead lands.
+   * lead. /api/capture-lead patches it when the lead lands — and this route re-checks afterwards,
+   * because one-sided adoption is not enough. See the second block below.
    */
   const provider = await getProviderForClient(supabase, resolvedClientDomain)
   if (provider) {
@@ -181,10 +215,10 @@ export async function POST(request: NextRequest) {
         timeZone:      schedule.timezone,
         serviceType:   service_type,
         location,
-        callerName:    leadRow?.caller_name  ?? callRow?.caller_name,
-        callerPhone:   leadRow?.caller_phone ?? callRow?.caller_phone,
-        callerEmail:   leadRow?.caller_email,
-        callerAddress: leadRow?.caller_address,
+        callerName:    effectiveLead?.caller_name  ?? callRow?.caller_name,
+        callerPhone:   effectiveLead?.caller_phone ?? callRow?.caller_phone,
+        callerEmail:   effectiveLead?.caller_email,
+        callerAddress: effectiveLead?.caller_address,
       }))
 
       await supabase
@@ -197,6 +231,50 @@ export async function POST(request: NextRequest) {
         .eq('id', booking.id)
 
       console.log(`[BOOKING] ✓  Calendar event ${eventId} — ${resolvedClientDomain}`)
+
+      /**
+       * Adopt a lead that landed while we were talking to Google.
+       *
+       * There is a window between this row being inserted and `calendar_event_id` being written
+       * — the round trip to Google — during which /api/capture-lead sees a booking with no event
+       * id and correctly skips its patch. Measured on the first real call of 2026-08-05: the
+       * lead landed 512ms after the booking row and the event id was written at 585ms, so the
+       * lead arrived **73ms too early** and the event kept the caller's phone number as its title
+       * instead of their name.
+       *
+       * The fix is the same principle as the booking-notification race and it is worth stating
+       * plainly, because getting it half-right is what produced this bug: when two things arrive
+       * in an order you do not control, **each one must adopt the other**. Patching only from
+       * capture-lead is one-sided, and one-sided adoption always leaves a window.
+       */
+      if (!effectiveLead && callRow?.id) {
+        const { data: lateLeads } = await supabase
+          .from('leads')
+          .select('id, caller_name, caller_phone, caller_email, caller_address')
+          .eq('call_id', callRow.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        const lateLead = lateLeads?.[0]
+        if (lateLead) {
+          // Only when still null — capture-lead may have won the race and linked it already.
+          await supabase
+            .from('bookings')
+            .update({ lead_id: lateLead.id })
+            .eq('id', booking.id)
+            .is('lead_id', null)
+
+          await provider.updateEvent(eventId, buildBookingEventPatch({
+            serviceType:   service_type,
+            location,
+            callerName:    lateLead.caller_name,
+            callerPhone:   lateLead.caller_phone,
+            callerEmail:   lateLead.caller_email,
+            callerAddress: lateLead.caller_address,
+          }))
+          console.log(`[BOOKING] ✓  Adopted lead ${lateLead.id} that landed mid-write — event renamed`)
+        }
+      }
     } catch (e) {
       console.error('[BOOKING] Calendar write failed (booking stands):', (e as Error).message)
       await supabase
@@ -219,14 +297,14 @@ export async function POST(request: NextRequest) {
     // Fall back to the call row when the lead hasn't been captured yet. An alert saying
     // "Phone: unknown" is one the owner cannot act on — the whole point is to give them
     // someone to ring back.
-    const callerPhone = leadRow?.caller_phone ?? callRow?.caller_phone ?? 'unknown'
+    const callerPhone = effectiveLead?.caller_phone ?? callRow?.caller_phone ?? 'unknown'
     try {
       await sendClientBookingAlert({
         toEmail:         ownerSub.user_email,
-        callerName:      leadRow?.caller_name ?? callRow?.caller_name ?? undefined,
+        callerName:      effectiveLead?.caller_name ?? callRow?.caller_name ?? undefined,
         callerPhone,
-        callerEmail:     leadRow?.caller_email ?? undefined,
-        callerAddress:   leadRow?.caller_address ?? undefined,
+        callerEmail:     effectiveLead?.caller_email ?? undefined,
+        callerAddress:   effectiveLead?.caller_address ?? undefined,
         appointmentDate: appointmentDateValue,
         appointmentTime: appointmentTimeValue,
         serviceType:     service_type ?? undefined,
