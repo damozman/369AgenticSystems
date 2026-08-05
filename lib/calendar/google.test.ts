@@ -64,8 +64,9 @@ test('freeBusy busy intervals map straight onto BusyInterval', () => {
 })
 
 test('freeBusy reads the response whatever key Google returns it under', async () => {
-  // Asked for 'primary', answered under the account's real address. An exact-key lookup would
-  // find nothing, read as "completely free", and double-book the owner.
+  // Live, `primary` comes back as `"primary"` (verified 2026-08-05) — but a key that failed to
+  // match would return undefined, read as "no busy times", and double-book the owner. The cost
+  // of being wrong is severe enough to not depend on the key at all.
   const doFetch = fakeFetch([{
     status: 200,
     body: { calendars: { 'owner@example.com': { busy: [{ start: '2026-08-10T14:00:00Z', end: '2026-08-10T15:00:00Z' }] } } },

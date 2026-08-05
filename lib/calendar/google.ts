@@ -277,10 +277,14 @@ export class GoogleCalendarProvider implements CalendarProvider {
       },
     })
 
-    // Google keys the response by the calendar id that was asked for. Reading the first value
-    // rather than indexing by `this.calendarId` because Google normalises some ids (notably
-    // 'primary' → the account's address) and an exact-key lookup then silently returns nothing —
-    // which would read as "completely free" and double-book the owner.
+    // Read the first value rather than indexing by `this.calendarId`.
+    //
+    // Verified against the live API on 2026-08-05: asking for `primary` returns the key
+    // `"primary"` verbatim, so an exact-key lookup would work for that case. This stays
+    // defensive anyway, because the failure mode is severe and asymmetric — a key that does not
+    // match returns undefined, which reads as "no busy times", which is "completely free", which
+    // double-books the owner. There is exactly one calendar in the request, so taking the first
+    // value cannot pick the wrong one.
     const entry = Object.values(body?.calendars ?? {})[0]
 
     // A per-calendar error means we did not get an answer for this calendar. Treating a missing
@@ -301,11 +305,16 @@ export class GoogleCalendarProvider implements CalendarProvider {
   /**
    * A one-shot connectivity check, used at the end of the OAuth callback.
    *
-   * Two jobs. It proves the brand-new grant can actually read the calendar *before* the
-   * dashboard tells the owner they are connected — the alternative is reporting success and
-   * discovering at the next phone call that the account had no calendar access. And it returns
-   * the key Google answered under, which for `primary` is the account's own address, giving the
-   * connected-account email without asking for a profile or email scope we do not otherwise need.
+   * It proves the brand-new grant can actually read the calendar *before* the dashboard tells
+   * the owner they are connected — the alternative is reporting success and discovering at the
+   * next phone call that the account had no calendar access.
+   *
+   * It also returns the key Google answered under, on the chance that it is an address. It
+   * usually is not: verified live on 2026-08-05, asking for `primary` returns `"primary"`, so
+   * `account_email` stays null and the dashboard says "Google account" rather than naming it.
+   * Getting the real address would mean requesting `openid email` purely to label a card, and
+   * widening the consent screen for cosmetics is a bad trade — especially once a scope change
+   * costs a re-consent from every connected client.
    */
   async probe(): Promise<{ calendarKey: string | null }> {
     const now = new Date()
