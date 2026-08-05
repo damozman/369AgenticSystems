@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { openSlots, formatSlot } from '@/lib/availability'
+import { openSlots, formatSlot, type BusyInterval } from '@/lib/availability'
+import { getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
 
@@ -75,7 +76,34 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const slots = openSlots(schedule, busy ?? [], { limit: 4, perDay: 2 })
+  // The owner's own calendar, when they have connected one. Without this the bookings table is
+  // the only thing consulted, so Ava will happily offer 10:00 AM while the owner sits in a
+  // dentist's chair — not a double booking in this database, and completely wrong in the world.
+  //
+  // `null` means no calendar connected, which is where every client starts and behaves exactly
+  // as this route did before.
+  const externalBusy: BusyInterval[] = []
+  const provider = await getProviderForClient(supabase, clientDomain)
+  if (provider) {
+    try {
+      externalBusy.push(...await provider.busy({ from: new Date(), to: horizonEnd }))
+    } catch (e) {
+      // Fail closed, for the same reason the unreadable-bookings branch above does: an
+      // unanswerable calendar is precisely the case where Ava would double-book. Taking a
+      // message is the honest answer, and the reconciler cron is what tells the owner their
+      // connection needs attention.
+      console.error(`[SLOTS] Calendar unreachable for ${clientDomain}:`, (e as Error).message)
+      return NextResponse.json(
+        {
+          error:   'calendar_unavailable',
+          message: 'The calendar could not be checked. Apologise, take the caller\'s name and number, and tell them someone will call straight back to confirm a time.',
+        },
+        { status: 503 },
+      )
+    }
+  }
+
+  const slots = openSlots(schedule, [...(busy ?? []), ...externalBusy], { limit: 4, perDay: 2 })
 
   // Genuinely full. Saying so is the honest answer — the old route could never produce it.
   if (slots.length === 0) {

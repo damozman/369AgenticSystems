@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
   if (callRow?.id) {
     const { data: orphan } = await supabase
       .from('bookings')
-      .select('id, lead_id, confirmation_sent')
+      .select('id, lead_id, confirmation_sent, calendar_event_id, service_type, location')
       .eq('call_id', callRow.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -179,6 +180,36 @@ export async function POST(request: NextRequest) {
       // only goes true on a real send, so a false here means nothing has reached the caller and
       // re-firing cannot duplicate. capture_lead runs several times per call, which makes this a
       // retry rather than a one-shot — the send stops re-attempting as soon as one succeeds.
+      /**
+       * Put the caller's name on the calendar event.
+       *
+       * Same race, same fix as the lead link above. The event was created seconds before this
+       * lead existed, so it currently reads "Appointment — (817) 555-0123" on the owner's
+       * calendar; now that there is a name, an email and possibly a job address, it can say who
+       * is actually coming.
+       *
+       * Non-fatal, and it never touches the times — see buildBookingEventPatch. capture_lead
+       * runs several times per call, so a failure here is retried naturally by the next one.
+       */
+      if (orphan.calendar_event_id) {
+        try {
+          const provider = await getProviderForClient(supabase, resolvedClientDomain)
+          if (provider) {
+            await provider.updateEvent(orphan.calendar_event_id, buildBookingEventPatch({
+              serviceType:   orphan.service_type,
+              location:      orphan.location,
+              callerName:    lead.caller_name,
+              callerPhone:   lead.caller_phone,
+              callerEmail:   lead.caller_email,
+              callerAddress: lead.caller_address,
+            }))
+            console.log(`[LEAD] ✓  Updated calendar event ${orphan.calendar_event_id} with caller details`)
+          }
+        } catch (e) {
+          console.error('[LEAD] Calendar event update failed:', (e as Error).message)
+        }
+      }
+
       if (!orphan.confirmation_sent && lead.caller_email && appUrl) {
         await fetch(`${appUrl}/api/nova/booking-confirmation`, {
           method:  'POST',

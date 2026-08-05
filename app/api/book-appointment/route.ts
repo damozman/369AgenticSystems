@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendClientBookingAlert } from '@/lib/email-sequences'
 import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
+import { buildBookingEvent, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
@@ -154,6 +155,56 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`[BOOKING] ✓  ${appointmentDateValue} @ ${appointmentTimeValue} — ${resolvedClientDomain}`)
+
+  /**
+   * Write the event to the owner's calendar.
+   *
+   * Deliberately non-fatal, and deliberately the opposite of how /api/available-slots treats the
+   * same provider. The read fails closed because offering an unverifiable time causes the exact
+   * harm this integration exists to prevent. The write fails open because by this point
+   * `book_slot()` has already held the slot atomically and the caller is on the phone — failing
+   * a booking that really happened, to report a Google outage, would be strictly worse for
+   * everyone.
+   *
+   * `calendar_sync_status` carries the difference so /api/cron/calendar-sync can retry, and the
+   * .ics attachment on the owner's alert email remains the backstop meanwhile.
+   *
+   * The event is usually created with no caller name: Ava books 27–41s before she captures the
+   * lead. /api/capture-lead patches it when the lead lands.
+   */
+  const provider = await getProviderForClient(supabase, resolvedClientDomain)
+  if (provider) {
+    try {
+      const { id: eventId } = await provider.createEvent(buildBookingEvent({
+        startsAt,
+        endsAt,
+        timeZone:      schedule.timezone,
+        serviceType:   service_type,
+        location,
+        callerName:    leadRow?.caller_name  ?? callRow?.caller_name,
+        callerPhone:   leadRow?.caller_phone ?? callRow?.caller_phone,
+        callerEmail:   leadRow?.caller_email,
+        callerAddress: leadRow?.caller_address,
+      }))
+
+      await supabase
+        .from('bookings')
+        .update({
+          calendar_event_id:    eventId,
+          calendar_sync_status: 'synced',
+          calendar_synced_at:   new Date().toISOString(),
+        })
+        .eq('id', booking.id)
+
+      console.log(`[BOOKING] ✓  Calendar event ${eventId} — ${resolvedClientDomain}`)
+    } catch (e) {
+      console.error('[BOOKING] Calendar write failed (booking stands):', (e as Error).message)
+      await supabase
+        .from('bookings')
+        .update({ calendar_sync_status: 'pending' })
+        .eq('id', booking.id)
+    }
+  }
 
   // Alert the client (business owner) directly — the dashboard's Appointments count is a
   // running total with nothing to signal "this one is new," so someone in the field would

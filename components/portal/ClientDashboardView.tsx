@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Phone, CalendarCheck, Users, X, Sun, Moon, CheckCircle, Zap, ArrowRight, Clock, Copy, Check } from 'lucide-react'
+import CalendarConnectionCard, { type CalendarConnectionState } from './CalendarConnectionCard'
 import { LiveCallToast } from './LiveCallToast'
 import { PeakHoursBar } from './PeakHoursBar'
 import TranscriptSearch from './TranscriptSearch'
@@ -46,9 +47,16 @@ type SentimentStats = {
   negative: number
 }
 
+type CalendarProps = {
+  connection:    CalendarConnectionState
+  errorCode:     string | null
+  justConnected: boolean
+}
+
 type Props = {
   stats: { totalCalls: number; bookedCalls: number; totalLeads: number; answerRate: number | null }
   questionnaireCompleted: boolean
+  calendar:         CalendarProps
   recentCalls:      Call[]
   activeAgents:     ActiveAgent[]
   upgrade:          UpgradePath
@@ -160,10 +168,10 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 function OnboardingChecklist({
-  totalCalls, totalLeads, bookedCalls, thisWeekCalls, questionnaireCompleted, clientDomain,
+  totalCalls, totalLeads, bookedCalls, thisWeekCalls, questionnaireCompleted, calendarConnected, clientDomain,
 }: {
   totalCalls: number; totalLeads: number; bookedCalls: number; thisWeekCalls: number
-  questionnaireCompleted: boolean; clientDomain: string
+  questionnaireCompleted: boolean; calendarConnected: boolean; clientDomain: string
 }) {
   const steps: { label: string; done: boolean; href?: string }[] = [
     { label: 'Account provisioned',        done: true },
@@ -172,6 +180,9 @@ function OnboardingChecklist({
       done:  questionnaireCompleted,
       href:  questionnaireCompleted ? undefined : `https://369agenticsystems.com/onboarding/questionnaire/${clientDomain}`,
     },
+    // Not strictly required to take calls, but without it Ava books blind against her own
+    // record and can offer a time the owner is already busy.
+    { label: 'Connect your calendar',      done: calendarConnected },
     { label: 'First call received',        done: totalCalls > 0 },
     { label: 'First lead captured',        done: totalLeads > 0 || bookedCalls > 0 },
     { label: '5+ calls in a week',         done: thisWeekCalls >= 5 },
@@ -322,7 +333,7 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ClientDashboardView({
-  stats, questionnaireCompleted, recentCalls, activeAgents, upgrade, subscription,
+  stats, questionnaireCompleted, calendar, recentCalls, activeAgents, upgrade, subscription,
   notifications, lastCallAt, weeklyStats, dailyCounts, hourlyBreakdown, callerStats, sentimentStats,
 }: Props) {
   const [isDark, setIsDark]             = useState(false)
@@ -398,7 +409,15 @@ export default function ClientDashboardView({
         bookedCalls={stats.bookedCalls}
         thisWeekCalls={weeklyStats.thisWeekCalls}
         questionnaireCompleted={questionnaireCompleted}
+        calendarConnected={calendar.connection?.status === 'active'}
         clientDomain={subscription.client_domain}
+      />
+
+      {/* ── Google Calendar ────────────────────────────────────────── */}
+      <CalendarConnectionCard
+        connection={calendar.connection}
+        errorCode={calendar.errorCode}
+        justConnected={calendar.justConnected}
       />
 
       {/* ── Stat cards ─────────────────────────────────────────────── */}
