@@ -271,12 +271,23 @@ test('exchangeCode returns tokens with expiry slack', async () => {
     doFetch,
   )
 
+  const after = Date.now()
+
   assert.equal(tokens.accessToken, 'at')
   assert.equal(tokens.refreshToken, 'rt')
   assert.deepEqual(tokens.scopes, GOOGLE_SCOPES)
+
   // 60s short of the stated hour, so a token cannot expire between the check and the request.
-  const lifetimeMs = tokens.expiresAt.getTime() - before
-  assert.ok(lifetimeMs <= 3540_000 && lifetimeMs > 3500_000, `expected ~3540s of life, got ${lifetimeMs}ms`)
+  //
+  // Bounded against BOTH clock readings rather than one. The first version compared only against
+  // `before` and asserted the result was <= 3540_000 — but expiresAt is computed from Date.now()
+  // *inside* the call, so the difference is always >= 3540_000 and busts the bound as soon as a
+  // single millisecond elapses. It passed only when the call took literally no time, which made
+  // it fail about one run in three.
+  assert.ok(
+    tokens.expiresAt.getTime() >= before + 3540_000 && tokens.expiresAt.getTime() <= after + 3540_000,
+    `expiry should sit 3540s after a clock reading taken during the call; got ${tokens.expiresAt.getTime() - before}ms after "before"`,
+  )
 })
 
 test('invalid_grant is an auth failure, so nothing retries it', async () => {

@@ -111,6 +111,59 @@ export async function POST(request: NextRequest) {
   const appointmentDateValue = appointment_date ?? `${civil.year}-${pad(civil.month)}-${pad(civil.day)}`
   const appointmentTimeValue = appointment_time ?? inZone({ hour: 'numeric', minute: '2-digit', hour12: true })
 
+  /**
+   * Is this time free on the owner's own calendar?
+   *
+   * `book_slot()` below is atomic and correct, but it only knows about rows in `bookings`. It
+   * cannot see the owner's dentist appointment, and nothing else on this path could either —
+   * /api/available-slots consults the calendar when it *offers* times, and this route accepted
+   * whatever came back without re-asking.
+   *
+   * That gap is reachable on any call where the caller names their own time instead of picking
+   * one that was offered. Observed verbatim on 2026-08-06: "Actually, it needs to be on Friday
+   * between nine and twelve" — Ava answered "Friday works, we have 9:00 AM available" and booked
+   * it. On the demo line that was harmless; on a connected client it books straight over the
+   * owner's morning.
+   *
+   * Fails closed, for the same reason the read path does and the same reason Chris chose it:
+   * a time we cannot verify is exactly the time we must not promise. The 409 below is the
+   * existing "someone just took it" path, which Ava already knows how to recover from by
+   * offering another slot.
+   */
+  const provider = await getProviderForClient(supabase, resolvedClientDomain)
+  if (provider) {
+    try {
+      const busy = await provider.busy({ from: startsAt, to: endsAt })
+      // Half-open [start, end): an appointment ending at 10:00 does not collide with one
+      // starting at 10:00 — same rule filterAvailable uses, so the two cannot disagree.
+      const collides = busy.some(b => {
+        const bStart = new Date(b.starts_at as string).getTime()
+        const bEnd   = b.ends_at ? new Date(b.ends_at as string).getTime() : bStart + schedule.slot_duration_minutes * 60_000
+        return bStart < endsAt.getTime() && startsAt.getTime() < bEnd
+      })
+
+      if (collides) {
+        console.log(`[BOOKING] ⚠  ${startsAt.toISOString()} is busy on the owner's calendar — refused (${resolvedClientDomain})`)
+        return NextResponse.json(
+          {
+            error:   'slot_unavailable',
+            message: 'That time is no longer free. Call check_availability and offer the caller one of the times it returns.',
+          },
+          { status: 409 },
+        )
+      }
+    } catch (e) {
+      console.error(`[BOOKING] ✗  Calendar unreadable at booking time (${resolvedClientDomain}):`, (e as Error).message)
+      return NextResponse.json(
+        {
+          error:   'calendar_unavailable',
+          message: 'The calendar could not be checked. Apologise, take the caller\'s name and number, and tell them someone will call straight back to confirm.',
+        },
+        { status: 503 },
+      )
+    }
+  }
+
   // Atomic capacity check + insert. Two callers on two simultaneous calls can both be told
   // 10:00 AM is free before either row lands, so the check has to happen where the insert does
   // — the Supabase client cannot open a transaction.
@@ -206,7 +259,6 @@ export async function POST(request: NextRequest) {
    * lead. /api/capture-lead patches it when the lead lands — and this route re-checks afterwards,
    * because one-sided adoption is not enough. See the second block below.
    */
-  const provider = await getProviderForClient(supabase, resolvedClientDomain)
   if (provider) {
     try {
       const { id: eventId } = await provider.createEvent(buildBookingEvent({
