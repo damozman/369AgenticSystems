@@ -93,10 +93,10 @@ export default function PrivacyPolicy() {
 
       <Section title="Google user data" id="google">
         <P>
-          Calendar connection is <strong>not yet available</strong>. When it launches, connecting
-          a Google Calendar will be optional and initiated only by the business owner. This
-          section describes exactly what that integration will and will not do, and it applies
-          only to clients who choose to connect an account.
+          Connecting a Google Calendar is <strong>optional</strong> and is initiated only by the
+          business owner, from their own dashboard. This section applies solely to clients who
+          have chosen to connect an account; if you have not connected one, we hold no Google
+          user data about you at all.
         </P>
         <UL>
           <LI>
@@ -105,14 +105,21 @@ export default function PrivacyPolicy() {
             Drive, Contacts, or any other Google service.
           </LI>
           <LI>
-            <strong>What we do with it.</strong> Read your existing events so the AI receptionist
-            does not offer a caller a time you are already booked, and write a calendar event when
-            a caller books an appointment. That is the entire purpose.
+            <strong>What we do with it.</strong> Ask Google which times you are busy, so the AI
+            receptionist does not offer a caller a time you already have something booked — and
+            write a calendar event when a caller books an appointment. That is the entire purpose.
           </LI>
           <LI>
-            <strong>What we store.</strong> An access token so we can keep the calendar in sync,
-            and the start and end times of the appointments we create. We do not copy your
-            calendar into our database, and we do not read the contents of unrelated events.
+            <strong>We do not read your events.</strong> The busy-times permission returns time
+            ranges and nothing else: no titles, no guests, no descriptions, no locations. This is
+            not a promise about how we behave — it is the only thing Google gives us. It is why we
+            request that permission rather than the broader &ldquo;read your calendar&rdquo; one.
+          </LI>
+          <LI>
+            <strong>What we store.</strong> Two access credentials from Google, both encrypted at
+            rest, so the connection keeps working without asking you to sign in again; and, for
+            each appointment we create, its start and end time and the identifier of the event we
+            created. We do not copy your calendar into our database.
           </LI>
           <LI>
             <strong>What we never do.</strong> We do not sell Google user data, transfer it to
@@ -121,12 +128,14 @@ export default function PrivacyPolicy() {
             problem, or where the law requires it.
           </LI>
           <LI>
-            <strong>Disconnecting.</strong> You can revoke our access at any time from your{' '}
+            <strong>Disconnecting.</strong> Two ways, and either is enough. Use{' '}
+            <strong>Disconnect</strong> on your dashboard, which deletes our stored credentials
+            immediately and stops all calendar access. Or revoke us from your{' '}
             <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">
               Google account permissions page
-            </a>{' '}
-            or by asking us. Revoking it deletes the stored token and stops all calendar access
-            immediately.
+            </a>
+            , which cuts off access at Google&rsquo;s end at once; the next time our system finds
+            the access revoked it discards the stored credentials too. You can also simply ask us.
           </LI>
         </UL>
         <P>

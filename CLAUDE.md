@@ -6,332 +6,138 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-04 (session end) - booking notifications FIXED and PROVEN on a real
-call. **PRs #24 and #25 are open and need Chris** - see Open item 0 first.
+**Last updated:** 2026-08-06 (session end). **Phase 2 — Google Calendar — is SHIPPED and PROVEN
+on a real call.** `master` is clean and deployed; PRs #28, #29, #30 all merged. The only
+uncommitted file is the pre-existing `369AgenticSystems.code-workspace` change, which is not ours.
 
-Working plan lives at `~/.claude/plans/steady-questing-flask.md`. Read its STATUS table
-alongside this. **Do not start Phase 1 design work - Chris has not approved the direction.**
-The booking work has its own approved plan at `~/.claude/plans/dynamic-frolicking-starlight.md`.
+### START HERE: the calendar chain is proven. Do NOT re-verify it.
+On a real call to **Northside** at 2026-08-06 00:25 UTC, with two blocks sitting on the owner's
+Google Calendar:
 
-### START HERE: the booking chain is PROVEN on real calls. Do NOT re-verify it.
-Chris placed several real calls on 2026-08-04 - see "Proven live" below. He also spot-checked
-the stump-resistance ("are you an AI", "what does the company do") and was satisfied on both.
-The "try to stump her" copy has since gone out to the remaining seven demo CTAs (**PR #25**);
-dental and saas were skipped deliberately - dental has no live agent to call, and saas has no
-demo CTA, only the number inside a JS error fallback.
-
-**One thing in the booking chain is still unexercised: the owner alert.** It needs an
-`agent_subscriptions` row and the demo domain has none, so no booking has ever notified an owner.
-Give a test domain a real inbox and place one call before the first paying client - see Open
-item 2. Everything else in the chain is proven on real calls.
-
-**Chris's position on the demo line (2026-08-04):** it does not need a calendar attached. The
-database check is the point, and refusing the already-taken 09:00 slot is exactly the behaviour
-he wanted to see. Calendar sync matters for **provisioned clients**, not for this number.
-
-`master` is clean and deployed. The working tree is clean apart from the pre-existing
-`369AgenticSystems.code-workspace` modification, which is not ours.
-
-### What the 2026-08-04 late session did (PRs #20-#26)
-Merged and live: **#20** the booking-notification fix (proven on a real call, below), **#21** a
-live `client_schedules` verification, **#22** the webhook-audit cron, **#23**/**#26** handoff docs.
-**Still open and waiting on Chris: #24 (privacy + terms) and #25 (copy rollout)** - see Open
-item 0, which is where the next session should start.
-
-Two new verification scripts, both run against production:
-`verify-booking-notifications.mjs` (orphaned bookings + unsent confirmations, `--repair` links
-them and sends nothing) and `verify-client-schedule.mjs` (writes a real schedule row, checks the
-engine honours it, deletes it by primary key). Four historical orphans were repaired in
-production; the verifier reports **0 orphaned**.
-
-Three findings worth not rediscovering:
-- **`client_schedules.client_domain` is FK-constrained to `agent_subscriptions`** - a client must
-  be subscribed before they can have hours, and **the demo line can never carry custom hours.**
-- **`agent_subscriptions` needs `monthly_cost` NOT NULL and `tier` matching a check constraint**
-  (`'Elite'` is the only value in production). Provisioning has to satisfy both.
-- **Resend reports failures by RETURNING `{ error }`, it does not throw.** A `try/catch` alone
-  silently swallows a rejected send. Found while testing #22's alert path; check the returned
-  error anywhere email matters.
-
-### Proven live on real calls (2026-08-04 evening) - do NOT re-verify
-- **The whole booking chain works, including double-booking prevention.** Call 1 booked Wed
-  Aug 5 09:00. Call 2, seventeen minutes later, was offered **"8:00 AM or 10:00 AM"** - 9:00 was
-  correctly withheld. Database confirms `2026-08-05T14:00:00Z` then `15:00Z` (09:00 and 10:00
-  CDT). Ava drove `check_availability` -> `book_appointment` unaided and captured `service_type`.
-  This is the behaviour the engine exists for and a probe script can only simulate it.
-- **The demo line runs `claude-4.5-haiku`, chosen by measurement.** Like-for-like long calls:
-
-  | model | first reply | p50 | worst turn |
-  |---|---|---|---|
-  | `claude-4.6-sonnet` (12 turns) | 5137ms | 3102ms | 4128ms |
-  | `claude-4.6-sonnet` (18 turns) | 9536ms | 2082ms | 3972ms |
-  | **`claude-4.5-haiku` (11 turns)** | **1877ms** | **1230ms** | **2346ms** |
-
-  Haiku's worst turn beats Sonnet's median, with no spikes. No quality regression across a full
-  booking. Revert is one field: `bench-demo-model.mjs --set claude-4.6-sonnet`.
-- **Tool-call markup was reaching the `leads` table (commit `0599223`).** Two leads landed with
-  `caller_address` set to a fragment of the model's own call syntax. Cause: the demo prompt
-  stopped asking for an address while the tool schema still offered the slot, so the model filled
-  it with adjacent text. Happened on **two different models** - not a model quirk. Fixed in three
-  layers: `/api/capture-lead` drops markup-shaped values on every text field;
-  `lib/security/lead-sanitize.test.ts` pins both verbatim payloads plus other variants of the
-  class; the `caller_address` description now says to omit the parameter rather than send a
-  placeholder. Both bad rows nulled.
-
-### Booking notifications - FIXED AND PROVEN ON A REAL CALL (PR #20, merged). Do NOT re-verify.
-Chris placed a real call at 23:23 UTC on 2026-08-04 and the fix fired, **with the race actually
-occurring** - so this is proof, not a lucky ordering. The two `nova_deliveries` rows on booking
-`20fca086` are the evidence:
-
-| time (UTC) | what happened |
+| Friday Aug 7 | state |
 |---|---|
-| 23:23:48 | booking created - no lead existed yet |
-| 23:23:49 | Nova fires, records `skipped_no_email` - **the old broken behaviour** |
-| 23:24:11 | lead lands, **22.6s after the booking** |
-| 23:24:17 | backfill links the lead and re-fires Nova -> `sent` to the caller |
+| 9:00–10:00 AM | blocked by the owner in Google |
+| 10:00–11:00 AM | **free** |
+| 11:00–12:00 PM | blocked by the owner in Google |
 
-`confirmation_sent = true`, `starts_at` correct (16:00Z = 11:00 AM CDT), `service_type` captured.
-The four historical orphans were repaired in production; the verifier now reports **0 orphaned**.
+The caller asked for *"Friday between nine and twelve."* Ava offered **"8:00 AM or 10:00 AM"** and
+booked 10:00 — she threaded the single free hour. Nothing in our database knew about either
+block. Everything downstream was correct on the same call: event titled
+`Roof inspection — Victoria Gray` with the job address as its location, **exactly one** caller
+confirmation stating the right day, owner alert delivered, lead linked, `confirmation_sent` true.
 
-**The one path still unexercised** is the owner alert, because it needs an `agent_subscriptions`
-row and the demo domain has none (correctly - nobody should be alerted about a demo booking).
-Give a test domain a real inbox and place one call before the first paying client.
+**Open item 2 from the previous handoff (the owner alert) is CLOSED** — it fired and arrived.
 
-<details><summary>Original diagnosis, kept because the reasoning still matters</summary>
+### Also proven, unattended
+- **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with
+  nobody watching, found an access token that had already expired, refreshed it via the refresh
+  token, and recorded success without alerting anyone. That retires the old "crons have never
+  been observed firing" watch item, and it proves the OAuth refresh path — the exact thing
+  Google's *Testing* publishing status would have destroyed after 7 days.
+- **All 9 vertical templates + Northside now run `claude-4.5-haiku`.** The 2026-08-04 benchmark
+  had only ever been applied to the shared demo LLM. Like-for-like on the same agent and number:
 
-The cause is **not** the missing subscription row. It is an ordering race, and it bites every
-client regardless of subscription. Measured against production:
+  | | p50 | max | opening turns |
+  |---|---|---|---|
+  | `claude-4.6-sonnet` | 2399ms | 10098ms | 9714, 9676, 9511, 10098, 9962 |
+  | **`claude-4.5-haiku`** | **964ms** | **1843ms** | 1274 |
 
-| call | book_appointment | capture_lead | gap |
-|---|---|---|---|
-| `3d947db9` | 22:20:58 | 22:21:25 | lead **27s late** |
-| `3f368a45` | 22:03:26 | 22:04:07 | lead **41s late** |
+  Revert: `node --env-file=.env.local scripts/retell/set-client-model.mjs --model claude-4.6-sonnet --apply`
 
-Ava books *before* she captures the lead, so `/api/book-appointment` finds no lead and writes
-`bookings.lead_id = null` - permanently, because nothing ever went back to fix it. Then:
-- **Nova reads that null**, concludes there is no caller email, and records `skipped_no_email` -
-  for callers whose address (`damozman@yahoo.com`) landed seconds later. That is the real reason
-  `confirmation_sent` is `false`, not a Resend fault.
-- **The owner alert would have said `Phone: unknown`** - no name, no email. Unactionable.
-  `www.Northsideroofing.com`, the one domain that *has* a subscription row, is orphaned too, so
-  **the paying-client path was already broken in production**, not just the demo line.
+### How the calendar integration is built
+- `lib/calendar/` is a provider seam. **`google.ts` is the only file that knows Google exists**
+  — Microsoft Graph is meant to be a new file, not a rewrite. Never Apple/CalDAV (no OAuth, needs
+  a hand-typed app password, kills "live within minutes").
+- **`lib/availability.ts` was not touched.** A Google freeBusy response reduces to its existing
+  `BusyInterval` shape, so calendar busy times concatenate with rows from `bookings`.
+- **Reads fail CLOSED, writes fail OPEN.** Both `/api/available-slots` (offering) and
+  `/api/book-appointment` (accepting) refuse rather than offer a time they cannot verify. The
+  event *write* after a successful booking is non-fatal — the slot is already atomically held and
+  the caller is on the phone — and marks `calendar_sync_status='pending'` for the cron to retry.
+- **`getProviderForClient()` returning `null` is the normal case** and must stay first-class.
+  Every client without a connected calendar behaves exactly as before the feature existed.
+- Tokens are AES-256-GCM encrypted under **`CALENDAR_TOKEN_KEY`**. Lose or rotate it and every
+  connected client must reconnect by hand. It is in Vercel; keep a durable copy elsewhere.
 
-**Do not "fix" this by reordering the prompt.** Tool-call order is the model's to choose, and
-betting the confirmation on it is the same prompt/schema coupling that has broken things twice.
-PR #20 has the lead adopt the booking when it lands, so either arrival order works.
+### Facts that will waste your time if you don't know them
+- **There is exactly ONE `agent_subscriptions` row:** `damozman@yahoo.com` →
+  `www.Northsideroofing.com`. Connecting a calendar resolves the client from that table, so you
+  must be logged in as **damozman@yahoo.com**. `chris@369agenticsystems.com` has no row and the
+  connect flow dead-ends at the login page.
+- **Two phone numbers, easily confused.** Northside is **+1 (817) 612-6757**; the shared demo line
+  is **+1 (817) 635-0220**. A test on the demo line proves nothing about calendars —
+  `demo.369agenticsystems.com` has no subscription row, and `calendar_connections` is FK'd to
+  `agent_subscriptions`, so **the demo line can never hold a calendar connection.** One test
+  session was lost to exactly this.
+- **A client's Google Calendar timezone is not necessarily the business timezone.** Chris's was
+  set to UTC, which rendered a correct 9:00 AM Central booking as 2pm and looked like a bug for
+  half an hour. The stored instant was right the whole time. Expect this on real onboarding.
+- **Google returns `"primary"` verbatim** from freeBusy — it does *not* normalise it to the
+  account address. So `account_email` stays null and the dashboard says "Google account". Getting
+  the real address would mean requesting `openid email` purely to label a card, and a scope change
+  later costs a re-consent from every connected client. Deliberately not done.
+- `node --env-file=.env.local` is how the Retell scripts get their key; `verify-calendar-sync.mjs`
+  needs `CALENDAR_TOKEN_KEY` and will happily run on a live access token without the Google client
+  credentials.
 
-Still true and still unexercised: **no calendar write anywhere** (Phase 2), and no booking has
-ever run for a client that *has* a subscription row and a real inbox.
-</details>
+### Google OAuth status
+Consent screen is **published to Production** (not Testing — that issues 7-day refresh tokens and
+would kill every connection silently). Scopes are exactly `calendar.freebusy` + `calendar.events`.
+Domain ownership is verified via a TXT record that sits **alongside** the Private Email SPF record
+— do not edit that one. `/privacy` and `/terms` must stay at those exact paths and outside
+middleware; Google's console points at them.
 
-### Three corrections from 2026-08-04 - read before repeating them
-1. **`model_high_priority` is NOT a latency lever - it made things 4x worse.** Enabling it took
-   LLM p50 from 2323ms to 9635ms, with every turn flat within 9ms. A near-constant latency is a
-   queue or timeout, not compute; real compute varies. It is reverted and must stay `false`.
-2. **A slow *first reply* is older than any of today's work.** The 07:13 baseline, on the old
-   prompt and old config, opens at 9536ms then settles to ~1.7s. First replies ranged 2207ms to
-   9910ms on identical config. It was wrongly blamed on `high_priority`, which actually caused a
-   different fault (all turns slow, not just the first).
-3. **Retell's transcript splits an agent turn whenever ASR hears anything - it is NOT a record of
-   what the caller heard.** A "chopped sentence" in `transcript_object` was diagnosed as an
-   interruption bug; Chris was on the call and confirmed she spoke straight through.
-   `interruption_sensitivity` was changed 0.9 -> 0.5 on that false premise. Harmless, left at
-   0.5, but it fixed nothing. **Do not diagnose call quality from the transcript when a human
-   heard the call.**
-
-### Recently closed - do NOT re-diagnose
-- **The demo line's script was rewritten for speed (2026-08-04, commit `9f3e168`).** Chris
-  reported lag on (817) 635-0220. Root cause was not the model:
-  - **The prompt called a tool that has never existed.** It said `get_available_slots`; the
-    LLM's tools are `end_call`, `check_availability`, `capture_lead`, `book_appointment` (and
-    before the migration, `Calendar_for_Demo`). The model had to notice and recover every
-    scheduling call. `scripts/retell/update-demo-script.mjs` now **aborts** if the prompt names
-    a tool the LLM lacks - trading one wrong name for another is the bug being fixed.
-  - **Prompt 3,658 -> 1,506 chars.** The nine single-vertical demo agents run ~930 and the real
-    client agent 1,373; the shared line carried ~4x that, mostly a "silently classify the caller
-    into one of nine industries" step plus a 13-step procedure, re-processed every turn.
-  - `model_high_priority` was set true here and **reverted the same evening** - it quadrupled
-    latency. See the corrections section above. The model was later moved to `claude-4.5-haiku`
-    on measured evidence, which is the current state.
-  - Greeting dropped "ABC Company" (read as a forgotten placeholder, and wrong for eight of the
-    nine verticals). Provisioned client agents still get the real business name from
-    `lib/retell-provisioning.ts:59`.
-  - **It stays multi-vertical on purpose.** All nine landing pages publish this one number
-    (checked across `public/` and `app/`), so narrowing to one or two verticals would hand most
-    callers a mismatched agent. The fix was to stop making the model *classify* before
-    responding, not to remove the breadth.
-  - Only the shared `369 Demo Agent` LLM changed. The nine vertical demo agents have no phone
-    number. Rollback values are in the script's header comment.
-- **Ava now books real appointments (2026-08-04, PR #19, merge `b8eda96`).** Ava was
-  **inventing times**: `/api/available-slots` hardcoded 10:00 AM and 2:00 PM, Mon-Fri, always
-  `America/Chicago`, and read neither a calendar nor the `bookings` table - so she could hand
-  the same Tuesday 10:00 AM to five callers. `appointment_time` is TEXT, so nothing could say
-  when an appointment *ended*, making overlap detection impossible.
-  - `client_schedules` (per-client timezone, weekday hours, job length, how many jobs run at
-    once, lead time, horizon - all defaulted), `bookings.starts_at`/`ends_at`, and `book_slot()`
-    which does the capacity check and insert in **one transaction** behind an advisory lock.
-  - `lib/availability.ts` is pure and `Intl`-only, no new dependency. 25 tests covering both
-    2026 DST transitions and the ambiguous repeated hour at fall-back.
-  - `/api/available-slots` is now a per-client **POST** behind the shared-secret gate (it needed
-    no secret before, because it returned nothing but invented dates). `/api/book-appointment`
-    returns **409 `slot_unavailable`** rather than silently double-booking.
-  - **Verified live:** migration applied, `scripts/probe-booking-availability.mjs` passed every
-    check against production including a real double-book attempt, overlap attempt and
-    back-to-back booking. Production returns real slots for the correct timezone. The full
-    Retell envelope (`{call:{call_id}}`) resolves call -> client -> schedule -> slots, HTTP 200.
-  - **Retell side is migrated:** all 11 LLMs, `Calendar_for_Demo` -> `check_availability`,
-    GET -> POST, secret added. Re-ran `recon.mjs`: 11/11, zero stragglers.
-  - **Agent-version trap checked explicitly.** `+18176350220` is pinned to agent **v18**; v18's
-    response engine references LLM `llm_a7acd10debcb797a013eb8378d20` **v18**; that LLM version
-    carries the new tool. The pin is not stale. This is the exact chain that broke for ten days.
-  - Watch item: `scripts/retell/update-availability-tool.mjs` reads the secret from a sibling
-    tool on the same LLM rather than local env, because the local env file has no
-    `RETELL_WEBHOOK_SECRET` at all while production does. Do not "fix" that by trusting env.
-- **The three ops-brief PRs are MERGED and live (2026-08-04).** #16 -> #17 -> #18, in that
-  order; merge commit `56af461`. Verified on merged `master`: `tsc` clean, `npm test` 57/57,
-  `next build` succeeds, Vercel production deploy green, homepage 200 and
-  `POST /api/admin/ops-brief/upload` still 401s unauthenticated.
-  - **#16** - ops-brief errors now name the actual failure (SDK error class + HTTP status +
-    truncated message), with a precise `ANTHROPIC_API_KEY is not set` branch. Admin-only
-    route; the key itself is never echoed.
-  - **#17** - `isBackordered()` widened from `/back/i` to handle Y/N flags, and it matches
-    explicit negatives *as negatives* rather than letting them fall through, so a later
-    pattern change cannot silently turn `N` into a backordered line. `stockout_risk_sku_count`
-    relabelled to "Lines At/Below Reorder Point" (no SKU column exists to deduplicate on); the
-    key is unchanged to avoid a migration. Also added `scripts/test-resolver.mjs`, which is
-    what made `lib/ops-brief-metrics.ts` testable at all - 7 tests, both cases found on the
-    real messy fixture, not by reading code.
-  - **#18** - stays on `claude-sonnet-4-6` with the benchmark reasoning written into the
-    comment. Two real hardening fixes: read the *first text block* rather than `content[0]`
-    (position 0 is a thinking block when thinking is on, which silently yields `''` and
-    surfaces as an unparseable-JSON error), and an explicit `stop_reason === 'refusal'` check.
-  - Watch item, not a bug: `isBackordered` treats a bare `'x'` as backordered, which is right
-    for checkbox-style exports but would misread a column where `x` means something else. The
-    metric's `reason` field would make that visible if it ever bites.
-- **The Retell call outage is fixed (2026-08-04).** The demo line answered calls but recorded
-  **none for ten days** (2026-07-25 to 08-04). `+18176350220`'s inbound route was pinned to
-  agent **version 17**, whose `webhook_url` had no `?secret=`, so the armed gate on
-  `/api/call-received` 401'd every webhook. v18 was published and correct; the number never
-  followed it. Outbound calls used v18 and worked, which masked it. Repointed to v18
-  (rollback: `agent_version: 17, weight: 1`, same agent id). All four lost calls were owner
-  tests. Full chain re-verified after the fix: call -> lead -> booking, both FKs linked.
-- **The "we called your line" audit pipeline is LIVE** (PRs #14, #15). Verified on a real
-  production call: `dial_no_answer` -> *"We called your main line Tuesday at 2:01am. It rang
-  out - no answer, no voicemail."* No leak into `calls`.
-- **Phase 0 truthfulness pass is MERGED and live** (PR #12). Three contradictory ROI models
-  unified on `lib/roi.ts`; **eight** borrowed statistics removed. Verified in production: all
-  9 static pages serve `RECOVERY_RATE = 0.30` plus a visible assumption line, and no removed
-  claim survives anywhere. `lib/roi.test.ts` guards against drift.
-- **Intake failure alerting is MERGED and live** (PR #13). Both paths verified on real
-  deployments: success -> row + notification email; failed insert -> 500, no row, and an
-  "INTAKE FAILED" alert in the owner's inbox.
-- **The ops-brief harness works end to end.** Root cause of the "Column-mapping request
-  failed" 502 was a missing `ANTHROPIC_API_KEY` in Vercel - **not** a code bug. On the messy
-  fixture Claude found the header row past two junk preamble lines and mapped **10/10**
-  cryptic columns (`Stat`, `ROP`, `B/O?`, `Price Ea`).
-- **The mail outage is fixed.** Never PTR or SMTP credentials - the MX host had stopped
-  answering on every port. Now Namecheap Private Email; DNS at **Namecheap BasicDNS**.
-- **The funnel no longer loses leads** (PR #10), reconfirmed 2026-08-04. Gumloop dies 2026-09-02.
-- **The open relay is closed** (PR #11). `/api/update-dossier` deleted; 404 in prod.
-- **OTP login works** - confirmed by a real login 2026-08-04. It was the mail outage all along.
-- **`INTERNAL_API_SECRET` rotation is cleared.** Rotated twice on 2026-08-04; booking, lead
-  capture and call recording all verified working afterwards. It broke nothing.
+**Verification has NOT been submitted.** Until it clears, anyone connecting sees the "Google
+hasn't verified this app" interstitial and must click Advanced → Continue, and there is a 100-user
+cap. See Open item 0.
 
 ### Open items
-0. **TWO PRs ARE OPEN AND WAITING ON CHRIS. Start here.**
-   - **#24 - privacy policy + terms.** The site had neither. **This blocks the Google OAuth
-     submission**, which cannot begin until the page is live. Chris has NOT read it yet and it
-     is **not lawyer-reviewed** - flag that before merging, especially the liability cap and the
-     Tarrant County governing-law clause. Two things to know once it merges: `/privacy` must not
-     move or go behind middleware (Google's console entry points at that exact URL), and its
-     Google section is written as *"not yet available"* on purpose - **flip it to present tense
-     as part of shipping the calendar integration, never before.**
-   - **#25 - "try to stump her" copy** on the remaining seven demo CTAs. Low risk; just needs a
-     read. Dental and saas were skipped deliberately (see START HERE for why).
-1. **Ops-brief has nothing blocking it.** The admin UI, the HTTP routes and the whole
-   parse -> map -> metrics chain have now been exercised through a real admin session, and
-   the three fix PRs are merged. Next time an upload runs, confirm the relabelled stockout
-   metric and a Y/N backorder column both read correctly on a *live* file.
-2. **The owner alert is the last unexercised booking path.** Everything else in the chain is
-   proven on real calls. `/api/book-appointment` only emails when an `agent_subscriptions` row
-   exists for the domain, and the demo line has none - so no booking has ever notified an owner.
-   Give a test domain a real inbox, place one call, confirm the mail arrives. Do this **before**
-   the first paying client, not after. Note a paying client also needs `monthly_cost` NOT NULL
-   and `tier = 'Elite'` (check constraint) - see PR #21's findings.
-   Unverified from the 2026-08-04 call: whether Nova's confirmation actually **arrived** at
-   `damozman@yahoo.com`. Resend accepted it (`status = 'sent'`), which is one step short of
-   delivery, and Resend-accepted-but-undelivered has bitten this project before.
-3. **Phase 2 of the booking work: Google Calendar behind a provider seam.**
-   **Gated on PR #24 merging.** The site had no privacy policy and no terms page at all
-   (`app/legal` is the lawyer vertical, not legal documents - do not be fooled by the name), and
-   Google will not accept a sensitive-scope verification without a privacy policy URL on the
-   same domain, publicly reachable and linked from the homepage, that explicitly describes how
-   Google user data is used, stored and shared. #24 writes both pages and links them from the
-   homepage footer; **nothing about the OAuth submission can start until it is merged and live.**
-   Once it is: verify `https://369agenticsystems.com/privacy` returns 200 unauthenticated, then
-   start the submission. The scope is *sensitive*, so data-access review takes up to 10 days, it
-   is free, and it gates nothing else - **start it early, it is the only clock running on
-   someone else's schedule.** Do not ship on Testing mode: refresh tokens there expire and the
-   integration dies silently, which is the failure pattern that has already cost two outages.
-   Decision made and researched 2026-08-04 - **Google first, Microsoft Graph second,
-   never Apple/CalDAV.**
-   Google Calendar API is $0 at this volume and $0 to the client, who already has it. Cal.com
-   Platform was **rejected**: ~$299/mo plus per-booking overage, a fixed cost before the first
-   paying client. Apple has no public REST API or OAuth at all - CalDAV with a 16-character
-   app-specific password the client generates *by hand*, which cannot be automated and kills
-   "live within minutes of signup". iCloud-only owners get an `.ics` on Nova's existing email -
-   note `sendClientBookingAlert` already builds and attaches one, so that fallback is part-built.
-4. **Phase 2b bulk runner - NOT built, deliberately.** It manufactures the proprietary
-   statistic that replaces the removed borrowed ones. Everything it needs is built and
-   tested (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum).
-   **Blocked on a decision only Chris can make:** cold-calling businesses that never made
-   contact is a different legal posture from calling a form submitter - Texas telemarketing
-   registration and do-not-call apply. Do not build this unprompted.
-5. **Watch item: `/api/cron/webhook-audit` has never actually fired on schedule.** Merged and
-   deployed (PR #22, daily at 12:00 UTC), and exercised by hand both ways - real config passes
-   2/2, a forced secret mismatch correctly flags both routes broken. But Vercel has not run it
-   yet. It alerts **only on a problem**, so silence is the expected healthy state and also what
-   a broken cron looks like. After the first scheduled run, confirm in Vercel's cron logs that
-   it executed at all. Requires `CRON_SECRET` + `RETELL_API_KEY` (both already set).
-6. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
-   caller when `/api/update-dossier` was deleted. Plan Phase 2a earmarks them for reuse.
-7. **Three other Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
-   `felix/conflict-check`, `nova-templates`). Deliberately left alone - the latter two run
-   mid-call on live Retell traffic. Read the benchmark note below before changing any of them.
+0. **Submit for Google verification.** Everything that was blocking it now exists. The submission
+   needs a **demo video showing the end-to-end OAuth consent and the app using the scopes**, which
+   is why it could not be done earlier. Justification to use, which is true of the code: *we
+   request `calendar.freebusy` rather than `calendar.readonly` specifically so we never receive
+   event titles, attendees or descriptions — we only need to know whether a time is occupied.*
+   Review takes up to 10 days on Google's schedule and gates nothing else.
+1. **`RETELL_TEMPLATE_AGENT_DENTAL` is a 404.** The local `.env.local` value
+   (`agent_c15e912987197748ba3b54bdbc3`) does not exist in Retell, so dental provisioning would
+   throw on a real signup. Harmless today (every dental agent is FUTURE, nobody can sign up), and
+   the Vercel value may differ — check there before assuming it is broken in production.
+2. **Phase 2b bulk runner — NOT built, deliberately.** It manufactures the proprietary statistic
+   that replaces the removed borrowed ones, and everything it needs is built and tested
+   (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum). **Blocked on a
+   decision only Chris can make:** cold-calling businesses that never made contact is a different
+   legal posture from calling a form submitter — Texas telemarketing registration and do-not-call
+   apply. Do not build this unprompted.
+3. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
+   caller when `/api/update-dossier` was deleted.
+4. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+   `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
+   on live Retell traffic. Measure before changing any of them.
 
-### Still inaccurate on the site - Cal.com copy (RESOLVED, and re-confirmed by Chris 2026-08-04)
-**Chris's instruction, verbatim: "Once we integrate fully into Google, we'll go back and correct
-all of the copy for Cal.com."** Do not touch these two lines before the Google integration ships.
-
-**Ava's agent page still claims she "books directly on your Cal.com calendar".** She now books
-real appointments against real availability (above), but **no calendar write exists at any
-step**, and the connector will be **Google, not Cal.com** - so this copy is wrong today and
-will still be wrong after Phase 2 ships.
-
-Two lines need rewording once Google lands, and Chris deliberately chose 2026-08-04 to leave
-them until then:
-- `app/agents/[agent]/page.tsx:50` - "books directly on your Cal.com calendar"
-- `app/agents/[agent]/page.tsx:62` - the `Cal.com (booking)` entry in the tech list
-
-The **product** half is settled: Google first, Microsoft Graph second, never Apple/CalDAV
-(see Open item 3 for the cost and OAuth reasoning). The `.ics`-on-Nova's-email idea survives
-only as the fallback for iCloud-only owners - it was rejected as the *primary* answer because
-it records a booking without ever checking whether the time is free, which was Chris's own
-objection and the correct one.
-
-### Two patterns that have each cost real time
-**Arming a shared-secret gate silently breaks every producer that did not get the new
-secret**, and the breakage is silent by construction - the gate returns 401 and the producer
-does not care. This caused both the funnel outage and the ten-day call outage. After arming
-any gate, enumerate the producers and verify each one still delivers.
-
-**Measure before recommending.** A four-minute benchmark settled a model-choice question that
-would otherwise have been argued from plausible reasoning. `sonnet-4-6`, `haiku-4-5` and
-`opus-5` at every effort level all mapped **10/10** on the ops-brief fixture; Opus cost 2x for
-an identical answer. Do not upgrade a model on the theory that a task is "reasoning-heavy" -
-run the comparison first. Note also that the ops-brief Claude call fires **once per client
-label**, not per upload - the route reuses a saved mapping - so cost is bounded by client
-count, not usage volume.
+### Lessons that each cost real time — the first two on the same day
+- **One-sided adoption always leaves a window.** When two things arrive in an order you do not
+  control, *each* must adopt the other. The booking-notification fix made `capture-lead` adopt the
+  booking and stopped there; the leftover 73ms window — between the booking row existing and its
+  `calendar_event_id` being written — hit on the very first real call and put a phone number on a
+  customer's calendar event instead of their name. **Do not "fix" ordering by reordering the
+  prompt**: tool-call order is the model's to choose.
+- **Verify through the consumer's view, not the producer's.** An LLM that reports the new model
+  while the agent still resolves to an older version is what made the demo line answer calls and
+  record none for ten days. `set-client-model.mjs` re-reads through each agent's own
+  `response_engine` for this reason.
+- **A bare Postgres `timestamp` has no timezone, and `new Date()` will read it as the server's.**
+  Vercel runs UTC. This told a real customer their appointment was on Wednesday when it was
+  Thursday. `starts_at` (timestamptz) is the truth; the prose columns are for display only.
+- **Arming a shared-secret gate silently breaks every producer that did not get the new secret**,
+  and the breakage is silent by construction. This caused both the funnel outage and the ten-day
+  call outage. After arming any gate, enumerate the producers and verify each one still delivers.
+- **Measure before recommending.** A four-minute benchmark settled a model-choice question that
+  would otherwise have been argued from plausible reasoning. Do not upgrade a model on the theory
+  that a task is "reasoning-heavy" — run the comparison first.
+- **Retell's transcript splits an agent turn whenever ASR hears anything.** It is not a record of
+  what the caller heard. Never diagnose call quality from a transcript when a human heard the call.
+- **A test that reads the clock twice must be bounded against both readings.** One asserting a
+  token lifetime against only the *earlier* reading failed about one run in three.
 
 ### Verification scripts (all committed, all run against live systems)
 ```
@@ -343,31 +149,33 @@ node scripts/place-audit-call.mjs        place one audit call (prompts, no args)
 node scripts/probe-audit-calls.mjs       audit_calls schema vs production
 node scripts/probe-booking-availability.mjs   booking schema + a REAL double-book attempt
 node scripts/verify-booking-notifications.mjs [hours] [--repair]
-                                         orphaned bookings + unsent confirmations; --repair
-                                         links them (sends nothing - those dates are past)
+                                         orphaned bookings + unsent confirmations
 node --import ./scripts/test-resolver.mjs scripts/verify-client-schedule.mjs
                                          a REAL client_schedules row, written then deleted
-node --env-file=.env.local scripts/retell/recon.mjs                       every LLM's tool URLs
-node --env-file=.env.local scripts/retell/update-availability-tool.mjs    dry run; --apply to write
-node --env-file=.env.local scripts/retell/update-demo-script.mjs          demo prompt; aborts on bad tool names
+node --import ./scripts/test-resolver.mjs scripts/verify-calendar-sync.mjs
+                                         schema + a REAL freeBusy read and create/patch/delete
+node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
+node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
+node --env-file=.env.local scripts/retell/update-availability-tool.mjs dry run; --apply to write
+node --env-file=.env.local scripts/retell/update-demo-script.mjs       aborts on bad tool names
 ```
 
 ### Environment notes
-- Chris runs **PowerShell**. Never hand over bash syntax or angle-bracket placeholders -
+- Chris runs **PowerShell**. Never hand over bash syntax or angle-bracket placeholders —
   `<` is a reserved operator and the line fails to parse before running. Script it with
   prompts instead.
-- **Retell webhooks always hit production**, never a preview - the URL is on the agent.
-  Anything touching a Retell callback must be merged and tested in prod.
+- **Retell webhooks always hit production**, never a preview — the URL is on the agent.
 - Vercel previews are SSO-protected; `curl` gets `401 "Protected deployment"` without a
   Protection Bypass for Automation token.
-- Vercel **bakes env vars in at build time** - changing one requires a redeploy. This cost
-  time twice in one session.
-- `npm test` uses `scripts/test-resolver.mjs` so Node can resolve the `@/` alias. Without it,
-  any `lib` module importing `@/lib/...` is untestable.
+- Vercel **bakes env vars in at build time** — changing one requires a redeploy.
+- `npm test` uses `scripts/test-resolver.mjs` so Node can resolve the `@/` alias. It also means
+  **TypeScript parameter properties (`constructor(private readonly x)`) will not run** — Node's
+  type-stripping rejects them outright. Write the fields out longhand.
+- A hook blocks writing to `.env*` files. Pass secrets inline (`VAR=value node ...`) instead.
 
 ### Leave alone
 `369AgenticSystems.code-workspace` has a pre-existing uncommitted modification that predates
-this work. It is not ours - do not stage or revert it.
+this work. It is not ours — do not stage or revert it.
 
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
@@ -390,6 +198,16 @@ Deployed on Vercel, auto-deploys from `master`.
 - Auth: Supabase OTP, middleware guards `/dashboard`
 - Two themes: admin (dark) vs client (light). Admin dark theme must NOT carry over to client view.
 - Full dashboard at `app/(portal)/dashboard/page.tsx`
+
+### Booking + calendar
+- `lib/availability.ts` — pure slot arithmetic, `Intl` only, no date library. Not to be edited
+  for calendar work; a freeBusy response reduces to the `BusyInterval` shape it already takes.
+- `lib/calendar/` — the provider seam. `google.ts` is the **only** file that knows Google exists.
+- `book_slot()` (Postgres) does the capacity check and insert in one transaction behind an
+  advisory lock. It knows about `bookings` rows only — it cannot see the owner's calendar, which
+  is why both `/api/available-slots` and `/api/book-appointment` consult the provider separately.
+- Per-client hours live in `client_schedules`, FK'd to `agent_subscriptions` — so a client must
+  be subscribed before they can have custom hours or a calendar.
 
 ### Agent System
 - 5 agents: Ava (live), Rex (live), Nova (live), Felix (live, legal only), Scout (deploying, saas only)
@@ -454,7 +272,7 @@ estimate shown to a prospect. Import it; never re-declare it. The 9 static calcu
 a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
 Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts` guards both.
 
-## Launch State (as of 2026-08-04)
+## Launch State (as of 2026-08-06)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
 - Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
 - SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
@@ -462,6 +280,12 @@ Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts
 - Zero paying clients. No testimonials, logos, or plural-client claims are permissible anywhere.
 - Rex SMS follow-up and Nova review requests are NOT shipped — the "coming in phase 2"
   notes on the agent pages are accurate, leave them.
+- **Google Calendar booking IS shipped and proven on a real call.** Ava's page and `/privacy`
+  now describe it in the present tense, which is accurate as of 2026-08-06. The Cal.com claims
+  that used to sit there are gone — but `/book-demo` still embeds a genuine Cal.com widget for
+  Chris's own discovery calls, and that one is correct. Do not "clean it up".
+- Every client agent runs `claude-4.5-haiku`, chosen by measurement. Ava's tech list says
+  "Claude" without a model name on purpose — naming one goes stale the moment it changes.
 
 ## Common Tasks
 

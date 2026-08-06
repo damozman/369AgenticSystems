@@ -47,7 +47,7 @@ const AGENTS: Record<AgentSlug, AgentData> = {
       { step: 'Inbound call arrives',     detail: 'Your business number rings. Ava answers within 2–3 rings, 24 hours a day, 365 days a year. There is no voicemail.' },
       { step: 'Caller qualified',          detail: 'Ava identifies the nature of the call using a system prompt tuned for your vertical — storm damage vs. new roof, emergency vs. scheduled service, statute of limitations urgency. She uses the language of your industry.' },
       { step: 'Lead data captured',        detail: 'Caller name, phone number, address, issue description, and urgency are extracted and written to your dashboard in real time. You see the lead the moment the call ends.' },
-      { step: 'Booking or escalation',     detail: 'If the caller is ready to schedule, Ava books directly on your Cal.com calendar and sends a confirmation. If it\'s an emergency, she escalates to your on-call team immediately.' },
+      { step: 'Booking or escalation',     detail: 'If the caller is ready to schedule, Ava checks your Google Calendar before offering a time — so she never books over something you already have — then writes the appointment straight onto it and sends a confirmation. If it\'s an emergency, she escalates to your on-call team immediately.' },
     ],
     deployments: [
       { vertical: 'Roofing',      label: 'Roofing',      role: 'Storm Call Capture',      what: 'Knows storm seasons, insurance claim language, and cash buyer vs. adjuster. Unique phone allocated in minutes. Monthly ROI email included.', color: '#FF4500', slug: 'roofing'      },
@@ -59,7 +59,9 @@ const AGENTS: Record<AgentSlug, AgentData> = {
       { vertical: 'Wholesale',    label: 'Wholesale',    role: 'Order Intelligence',      what: 'Captures order details and inventory urgency. Knows wholesale pricing and SKU routing. Live in minutes + ROI tracking.', color: '#84CC16', slug: 'wholesale'    },
       { vertical: 'Dental',       label: 'Dental',       role: 'Appointment Booking',     what: 'Captures new patient inquiries and books appointments. Knows insurance questions and common patient concerns. Live in minutes + monthly ROI.', color: '#EC4899', slug: 'dental'       },
     ],
-    tech: ['Retell AI', 'Claude Sonnet (voice intelligence)', 'Cal.com (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
+    // "Claude" without a model name, matching every other agent below. Naming one goes stale the
+    // moment the model changes — this said "Claude Sonnet" while Ava was already running Haiku.
+    tech: ['Retell AI', 'Claude (voice intelligence)', 'Google Calendar (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
   },
 
   rex: {
