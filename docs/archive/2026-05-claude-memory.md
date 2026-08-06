@@ -1,3 +1,23 @@
+> # ⚠️ ARCHIVED — a snapshot of 2026-05-24. Do not act on anything below.
+>
+> This was the working memory file before `CLAUDE.md` took over that job. It is kept for
+> history only. **`CLAUDE.md` in the repo root is the live guide** — read that instead.
+>
+> Several things below were true in May and are actively wrong now. The dangerous one:
+>
+> - **`/api/update-dossier` no longer exists.** It was deleted because it was an
+>   unauthenticated open relay that would mail any address (PR #11). It 404s in production.
+>   Do not "restore" it.
+> - **Gumloop is cancelled** and the account dies 2026-09-02. All nine static pages post to
+>   the first-party `POST /api/intake` instead. Every remaining mention of Gumloop in the
+>   codebase is a past-tense comment explaining what replaced it.
+> - **There are nine verticals, not eight**, and the "launch by EOW 2026-05-30" sprint is
+>   long finished.
+> - The "Blockers" entries in the session log are what blocked work *on the day of that
+>   session*. They are not a current to-do list.
+
+---
+
 # 369 Agentic Systems — Claude Memory File
 **Master Context for Claude VS Sessions**
 **Last Updated:** 2026-05-23

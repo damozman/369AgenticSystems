@@ -261,9 +261,12 @@ All system/test emails → `chris@369agenticsystems.com`
 Never use `texasmediamasters@gmail.com`
 
 ## Intake
-All 10 static pages post to first-party `POST /api/intake`, which writes `system_audits` and
-emails the owner. **Gumloop is gone** (cancelled, account dies 2026-09-02) — do not add new
-calls to it. `source_tag` (`369AS_{VERTICAL}_INTAKE`) is still sent and is mapped to a clean
+All 9 static pages that carry a form post to first-party `POST /api/intake`, which writes
+`system_audits` and emails the owner. `dental-leads` is the tenth page and has no intake form at
+all — correct, because every dental agent is FUTURE. **Gumloop is gone** (cancelled, account dies
+2026-09-02) — do not add new calls to it, and note that every remaining mention of it in the
+codebase is a past-tense comment explaining what replaced it, not a live integration.
+`source_tag` (`369AS_{VERTICAL}_INTAKE`) is still sent and is mapped to a clean
 `client_industry` on the way into the database.
 
 ## ROI math
