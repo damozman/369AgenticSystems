@@ -79,6 +79,18 @@ export async function loadConnectionAnyStatus(
   return (data as CalendarConnection | null) ?? null
 }
 
+/**
+ * The connection is dead. Mark it, and **discard the credentials**.
+ *
+ * The privacy policy tells clients that revoking our access "deletes the stored tokens and stops
+ * all calendar access immediately". Disconnecting from the dashboard deletes the whole row, so
+ * that half was already true — but revoking at Google only ever reached us as an `invalid_grant`
+ * on the next call, and this function used to leave the encrypted tokens sitting in the table.
+ *
+ * They are useless once revoked, so keeping them bought nothing and made a published promise
+ * inaccurate. The row itself stays, because the dashboard needs something to render "reconnect"
+ * against — but it keeps no credential.
+ */
 export async function markRevoked(
   supabase: SupabaseClient,
   clientDomain: string,
@@ -86,7 +98,14 @@ export async function markRevoked(
 ): Promise<void> {
   await supabase
     .from('calendar_connections')
-    .update({ status: 'revoked', last_error: reason.slice(0, 500), updated_at: new Date().toISOString() })
+    .update({
+      status:                  'revoked',
+      access_token_enc:        null,
+      refresh_token_enc:       null,
+      access_token_expires_at: null,
+      last_error:              reason.slice(0, 500),
+      updated_at:              new Date().toISOString(),
+    })
     .eq('client_domain', clientDomain)
 
   // Loud on purpose. With fail-closed reads this is not a degraded feature, it is Ava no longer
