@@ -66,9 +66,13 @@ export async function POST(request: Request) {
    *
    * `system_audits` also carries `security_score`, `seo_visibility` and `revenue_leakage`, and
    * this prompt used to feed all three to the model. **They are invented numbers.** The Gumloop
-   * prompt that produced them never measured anything — it instructed the model to guess, which
-   * is why five rows for one real dental practice read 45/55 and 41/54 with no scan behind them.
-   * See docs/reference/gumloop-prompts-archive.md, which calls this out as the smoking gun.
+   * prompt that produced them never measured anything — it instructed the model to estimate, and
+   * the model duly returned `security_score` 41 for all 19 rows that had one. See
+   * docs/reference/gumloop-prompts-archive.md, which calls this out as the smoking gun.
+   *
+   * Those columns were nulled across all 22 rows on 2026-08-10, and `leak_detected` set false,
+   * so this lookup now returns nothing for them either way. The select is narrowed regardless:
+   * a column that must never reach a prospect should not be fetched into a prompt at all.
    *
    * Handing invented figures to an LLM that is drafting a reply to the business they describe is
    * how a fabricated statistic ends up in front of a customer in our own words. Nothing here is
