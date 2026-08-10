@@ -53,10 +53,25 @@ type CalendarProps = {
   justConnected: boolean
 }
 
+/**
+ * Minutes used against the tier's allowance for the current period.
+ *
+ * Deliberately carries no money. Nothing bills on these minutes yet — /api/cron/usage-rollup
+ * records what a period would have cost and charges nothing — and showing a client a dollar
+ * figure we are not charging is worse than showing them nothing. The cost line arrives in the
+ * same release as the billing.
+ */
+type UsageProps = {
+  billedMinutes:   number
+  includedMinutes: number
+  periodEnd:       string | null
+}
+
 type Props = {
   stats: { totalCalls: number; bookedCalls: number; totalLeads: number; answerRate: number | null }
   questionnaireCompleted: boolean
   calendar:         CalendarProps
+  usage:            UsageProps | null
   recentCalls:      Call[]
   activeAgents:     ActiveAgent[]
   upgrade:          UpgradePath
@@ -163,6 +178,57 @@ function Sparkline({ data }: { data: number[] }) {
           <span key={i} className="text-[9px] text-[var(--text-muted)]">{l}</span>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Minutes used against the allowance, for the current period.
+ *
+ * **No dollar figure, deliberately.** Nothing bills on these minutes yet, and a cost shown to a
+ * client we are not charging is worse than showing nothing — it either alarms them about a bill
+ * that will not arrive, or teaches them to ignore the number before it means anything. The money
+ * line ships in the same release as the billing.
+ *
+ * Over the allowance is shown plainly rather than in red. Today it is information, not a problem:
+ * we keep answering every call either way, and that is the product.
+ */
+function UsageCard({ usage }: { usage: UsageProps | null }) {
+  if (!usage) return null
+
+  const { billedMinutes, includedMinutes, periodEnd } = usage
+  const pct = includedMinutes > 0 ? Math.min(100, Math.round((billedMinutes / includedMinutes) * 100)) : 0
+  const over = billedMinutes > includedMinutes
+
+  const resetsOn = periodEnd
+    ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(periodEnd))
+    : null
+
+  return (
+    <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)] p-4 mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Clock size={15} style={{ color: '#D4AF37' }} />
+          <span className="text-sm font-semibold text-[var(--text-primary)]">Call minutes this period</span>
+        </div>
+        <span className="text-sm font-bold text-[var(--text-primary)] tabular-nums">
+          {billedMinutes.toLocaleString()} <span className="text-[var(--text-muted)] font-medium">of {includedMinutes.toLocaleString()}</span>
+        </span>
+      </div>
+
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(148,163,184,0.18)' }}>
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${Math.max(2, pct)}%`, background: over ? '#D4AF37' : '#4ADE80' }}
+        />
+      </div>
+
+      <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-relaxed">
+        {over
+          ? `You're ${(billedMinutes - includedMinutes).toLocaleString()} minutes past your plan's allowance. Every call is still answered — nothing changes.`
+          : 'Every call is answered whether or not you reach this number.'}
+        {resetsOn ? ` Resets ${resetsOn}.` : ''}
+      </p>
     </div>
   )
 }
@@ -333,7 +399,7 @@ function ReceptionistStatus({ lastCallAt }: { lastCallAt: string | null }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ClientDashboardView({
-  stats, questionnaireCompleted, calendar, recentCalls, activeAgents, upgrade, subscription,
+  stats, questionnaireCompleted, calendar, usage, recentCalls, activeAgents, upgrade, subscription,
   notifications, lastCallAt, weeklyStats, dailyCounts, hourlyBreakdown, callerStats, sentimentStats,
 }: Props) {
   const [isDark, setIsDark]             = useState(false)
@@ -419,6 +485,9 @@ export default function ClientDashboardView({
         errorCode={calendar.errorCode}
         justConnected={calendar.justConnected}
       />
+
+      {/* ── Minutes this period ────────────────────────────────────── */}
+      <UsageCard usage={usage} />
 
       {/* ── Stat cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mb-4">

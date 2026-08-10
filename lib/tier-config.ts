@@ -164,3 +164,41 @@ export const PRICE_BY_TIER: Record<TierName, number> = {
   Pro:     600,
   Elite:   750,
 }
+
+/**
+ * Included call minutes per month, and the overage rate beyond them.
+ *
+ * ⚠️ **These are not advertised anywhere yet, and must not be until billing is live.**
+ *
+ * Flat pricing makes the heaviest user the worst-margin user with no lever, which is what these
+ * fix. But nothing bills on them today: /api/cron/usage-rollup records what a period *would* have
+ * cost as a `'shadow'` row and charges nothing. Adding "300 included minutes" or
+ * "$0.35/min overage" to the `features` lists above publishes a promise the system cannot yet
+ * measure or honour — and this exact file was the site of that mistake once already
+ * (pricing-tier overclaim, 2026-07-11). The copy ships in the same commit as the billing, and not
+ * one release earlier.
+ *
+ * Allowances are sized on ~2 minutes per call over 30 days: 300 ≈ 10 calls/day, 600 ≈ 20,
+ * 1,000 ≈ 33.
+ */
+export const TIER_MINUTES: Record<TierName, number> = {
+  Starter: 300,
+  Pro:     600,
+  Elite:   1000,
+}
+
+/**
+ * Overage in **integer cents per minute** — deliberately not dollars.
+ *
+ * `0.35 * 3` is `1.0499999999999998` in floating point. Money that passes through a float is
+ * money that eventually bills a cent wrong, and it will be wrong in our favour about half the
+ * time, which is the half that costs a customer.
+ *
+ * Rates descend by tier so upgrading is cheaper than overspending, and the floor covers Retell's
+ * ~15–25¢/min plus the LLM plus margin.
+ */
+export const OVERAGE_RATE_CENTS: Record<TierName, number> = {
+  Starter: 35,
+  Pro:     30,
+  Elite:   25,
+}

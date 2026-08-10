@@ -39,6 +39,15 @@ export interface ProvisionClientInput {
   setupPaid?:          boolean
   preferredAreaCode?:  string
   stripeCustomerId?:   string
+  /**
+   * The Stripe *subscription* id, not the customer.
+   *
+   * This is the billing-period anchor. Without it a client can never be metered for overage —
+   * lib/billing-period.ts:billablePeriodFor returns null rather than inventing a period — so it
+   * has to be captured from the first signup onward. Backfilling anchors after the fact means
+   * guessing when someone's month starts, which is not a guess to make about money.
+   */
+  stripeSubscriptionId?: string
 }
 
 export async function provisionClient(input: ProvisionClientInput) {
@@ -48,6 +57,7 @@ export async function provisionClient(input: ProvisionClientInput) {
     setupPaid = false,
     preferredAreaCode,
     stripeCustomerId,
+    stripeSubscriptionId,
   } = input
 
   const activeAgents = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
@@ -109,6 +119,12 @@ export async function provisionClient(input: ProvisionClientInput) {
   // Store Stripe customer ID so the dashboard can link to the Billing Portal
   if (stripeCustomerId) {
     subscriptionData.stripe_customer_id = stripeCustomerId
+  }
+
+  // Store the subscription ID — the billing-period anchor for usage metering. See the field's
+  // comment on ProvisionClientInput for why this cannot be backfilled later.
+  if (stripeSubscriptionId) {
+    subscriptionData.stripe_subscription_id = stripeSubscriptionId
   }
 
   // Store owner phone for Elite tier (live call transfer)
