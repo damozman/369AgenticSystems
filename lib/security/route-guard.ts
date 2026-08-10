@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
-import { secretGate } from './authz'
+import { secretGate, secretGateEither } from './authz'
 
 // Header names for the two server-side trust boundaries.
 //  - RETELL: routes hit by Retell's infrastructure (webhook + agent tool calls)
 //  - INTERNAL: server-to-server fan-out between our own API routes
 export const RETELL_SECRET_HEADER = 'x-webhook-secret'
 export const INTERNAL_SECRET_HEADER = 'x-internal-secret'
+//  - EMAIL_INGEST: whatever inbound-mail service posts parsed messages to /api/email-ingest
+export const EMAIL_INGEST_SECRET_HEADER = 'x-email-secret'
 
 /**
  * Returns a 401 NextResponse when a shared secret is configured AND the incoming
@@ -28,26 +30,48 @@ export function denyIfBadSecret(
 }
 
 /**
- * Retell-facing guard. Accepts the shared secret from EITHER the x-webhook-secret
- * header OR a `?secret=` query parameter — because Retell's webhook config offers
- * no custom-header field (only a URL), so the webhook can only carry the secret in
- * its URL, while custom tools can use the header. Same enforce-only-when-configured
- * semantics: returns null (proceed) when RETELL_WEBHOOK_SECRET is unset.
+ * Accepts the shared secret from EITHER a header OR a `?secret=` query parameter.
  *
- * Note: the query-param form means the secret appears in request-log URLs. That's
- * acceptable for a single-operator setup (logs aren't public and the secret is
- * rotatable), and it's the only channel Retell's webhook exposes.
+ * Both channels exist because several third-party senders offer no custom-header field, only a
+ * URL — Retell's webhook config and SendGrid's Inbound Parse are both like this. The header is
+ * preferred where the sender supports it (Retell's custom tools do).
+ *
+ * Same enforce-only-when-configured semantics as denyIfBadSecret: returns null (proceed) when
+ * the env var is unset, so adding this guard changes nothing until the operator sets it.
+ *
+ * Note: the query-param form means the secret appears in request-log URLs. That's acceptable for
+ * a single-operator setup — logs aren't public and the secret is rotatable — and for these
+ * senders it is the only channel on offer.
  */
-export function denyIfBadRetellSecret(request: Request): NextResponse | null {
-  const expected = process.env.RETELL_WEBHOOK_SECRET
-  if (!expected) return null // dormant until configured
-  const fromHeader = request.headers.get(RETELL_SECRET_HEADER) ?? undefined
-  const fromQuery = new URL(request.url).searchParams.get('secret') ?? undefined
-  const provided = fromHeader ?? fromQuery
-  if (secretGate(expected, provided) === 'deny') {
+export function denyIfBadSecretHeaderOrQuery(
+  request: Request,
+  expected: string | undefined,
+  headerName: string,
+): NextResponse | null {
+  // The decision lives in authz.ts so it can be unit-tested — this file imports next/server,
+  // which the bare node test runner cannot resolve. See secretGateEither for why the two
+  // channels are resolved to one value before gating rather than checked in sequence.
+  const fromHeader = request.headers.get(headerName)
+  const fromQuery = new URL(request.url).searchParams.get('secret')
+  if (secretGateEither(expected, fromHeader, fromQuery) === 'deny') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   return null
+}
+
+/** Retell-facing guard. See denyIfBadSecretHeaderOrQuery for why both channels are accepted. */
+export function denyIfBadRetellSecret(request: Request): NextResponse | null {
+  return denyIfBadSecretHeaderOrQuery(request, process.env.RETELL_WEBHOOK_SECRET, RETELL_SECRET_HEADER)
+}
+
+/**
+ * Inbound-email guard, for whatever service is pointed at /api/email-ingest.
+ *
+ * `respond.369agenticsystems.com` still has a live MX record pointing at mx.sendgrid.net, so the
+ * plumbing for an inbound sender exists even though nothing has ever delivered through it.
+ */
+export function denyIfBadEmailIngestSecret(request: Request): NextResponse | null {
+  return denyIfBadSecretHeaderOrQuery(request, process.env.EMAIL_INGEST_SECRET, EMAIL_INGEST_SECRET_HEADER)
 }
 
 /**
