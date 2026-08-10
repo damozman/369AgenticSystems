@@ -4,6 +4,9 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Zap } from 'lucide-react'
 import ClientDashboardView from '@/components/portal/ClientDashboardView'
 import { loadConnectionAnyStatus } from '@/lib/calendar'
+import { displayPeriodFor } from '@/lib/billing-period'
+import { summarise } from '@/lib/usage'
+import type { TierName } from '@/lib/tier-config'
 
 const AGENT_LABELS: Record<string, { label: string; description: string; color: string }> = {
   receptionist: { label: '24/7 AI Receptionist', description: 'Answers calls, captures leads, and books appointments', color: '#D4AF37' },
@@ -233,9 +236,42 @@ export default async function ClientDashboardPage({
 
   const questionnaireCompleted = !!questionnaireRow?.completed_at
 
+  /**
+   * Minutes used in the current period.
+   *
+   * `displayPeriodFor` rather than `billablePeriodFor`: a client with no Stripe subscription
+   * anchor still deserves an honest count of their own usage, they just cannot be billed for it.
+   * Display and billing are different questions and the two functions keep them apart.
+   *
+   * Computed live from `calls` rather than read from `usage_periods`, because the current period
+   * has not closed — the rollup only writes a row once a period is final, and a number that keeps
+   * moving is exactly what an invoice must never be.
+   */
+  const usagePeriod = displayPeriodFor(
+    {
+      clientDomain:         clientDomain,
+      stripeSubscriptionId: subscription.stripe_subscription_id ?? null,
+      currentPeriodStart:   subscription.created_at ?? null,
+    },
+  )
+
+  const { data: periodCalls } = await supabaseAdmin
+    .from('calls')
+    .select('duration_seconds')
+    .eq('client_domain', clientDomain)
+    .gte('created_at', usagePeriod.start.toISOString())
+    .lt('created_at', usagePeriod.end.toISOString())
+
+  const usageSummary = summarise(subscription.tier as TierName, periodCalls ?? [])
+
   return (
     <ClientDashboardView
       questionnaireCompleted={questionnaireCompleted}
+      usage={{
+        billedMinutes:   usageSummary.billedMinutes,
+        includedMinutes: usageSummary.includedMinutes,
+        periodEnd:       usagePeriod.end.toISOString(),
+      }}
       calendar={{
         connection: calendarConnection
           ? {

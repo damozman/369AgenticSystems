@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
   const email    = session.customer_details?.email
   const ownerName = session.customer_details?.name ?? undefined
   const stripeCustomerId = typeof session.customer === 'string' ? session.customer : undefined
+  // The subscription id, which is the billing-period anchor for usage metering. Present on
+  // subscription-mode checkouts; absent on one-off payments, and absent is handled — a client
+  // without an anchor simply is not meterable (lib/billing-period.ts:billablePeriodFor).
+  const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : undefined
 
   const businessName = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.businessName)
   const clientDomain = customFieldValue(session.custom_fields, STRIPE_CUSTOM_FIELD_KEYS.clientDomain)
@@ -82,6 +86,7 @@ export async function POST(request: NextRequest) {
       setupPaid: true,
       preferredAreaCode: areaCode,
       stripeCustomerId,
+      stripeSubscriptionId,
     })
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e)
