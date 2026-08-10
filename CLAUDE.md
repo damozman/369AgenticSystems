@@ -6,9 +6,17 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-06 (session end). **Phase 2 — Google Calendar — is SHIPPED and PROVEN
-on a real call.** `master` is clean and deployed; PRs #28, #29, #30 all merged. The only
-uncommitted file is the pre-existing `369AgenticSystems.code-workspace` change, which is not ours.
+**Last updated:** 2026-08-10 (session end). **Google Calendar is SHIPPED and PROVEN on a real
+call. Usage metering Phase A is shipped and measuring.** `master` is clean and deployed; PRs #28
+through #35 all merged. The only uncommitted file is the pre-existing
+`369AgenticSystems.code-workspace` change, which is not ours.
+
+### Two dates to check, both concrete
+- **2026-08-14** — Northside's first billing period closes and `/api/cron/usage-rollup` writes the
+  first `usage_periods` row. Until then the shadow ledger is legitimately empty; that is not a
+  fault.
+- **Google verification** — not submitted yet. Everything blocking it exists; it needs a demo
+  video. See Open item 0. Up to 10 days on Google's schedule once sent.
 
 ### START HERE: the calendar chain is proven. Do NOT re-verify it.
 On a real call to **Northside** at 2026-08-06 00:25 UTC, with two blocks sitting on the owner's
@@ -26,7 +34,9 @@ block. Everything downstream was correct on the same call: event titled
 `Roof inspection — Victoria Gray` with the job address as its location, **exactly one** caller
 confirmation stating the right day, owner alert delivered, lead linked, `confirmation_sent` true.
 
-**Open item 2 from the previous handoff (the owner alert) is CLOSED** — it fired and arrived.
+**The owner-alert path is CLOSED** — it was the last unexercised step in the booking chain, and
+it fired and arrived on that call. It had never fired before because the demo line has no
+`agent_subscriptions` row and therefore no owner to notify.
 
 ### Also proven, unattended
 - **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with
@@ -43,6 +53,35 @@ confirmation stating the right day, owner alert delivered, lead linked, `confirm
   | **`claude-4.5-haiku`** | **964ms** | **1843ms** | 1274 |
 
   Revert: `node --env-file=.env.local scripts/retell/set-client-model.mjs --model claude-4.6-sonnet --apply`
+
+### Usage metering — Phase A only. It measures. It bills NOTHING.
+Shipped 2026-08-10 (PR #35). Flat tiers made the heaviest user the worst-margin user with no
+lever; included-minutes-plus-overage fixes that. **The meter exists; the billing does not, and the
+pricing page does not mention minutes.**
+
+- `lib/usage.ts` — per-call rounding **up to the whole minute, individually, then summed**
+  (Retell/Twilio/Smith.ai convention). A 0-second or unknown-duration call bills **zero**.
+  **Money is integer cents everywhere** — `0.35 * 3` is `1.0499999999999998`, so `OVERAGE_RATE_CENTS`
+  is 35/30/25, never 0.35/0.30/0.25.
+- `lib/billing-period.ts` — `billablePeriodFor()` returns **null** without a Stripe subscription
+  anchor, so the demo line is unbillable *structurally*, not by a caller remembering to check.
+  `displayPeriodFor()` falls back to the calendar month, because showing usage and invoicing are
+  different questions.
+- `/api/cron/usage-rollup` (11:00 UTC daily) writes one `usage_periods` row per **closed** period
+  with status `'shadow'` and charges nothing. It never writes for an open period — a number that
+  keeps moving is what an invoice must never be.
+- **`TIER_MINUTES` / `OVERAGE_RATE_CENTS` must NOT be advertised** until billing is live. The
+  strategy-doc diff that proposed this feature put "300 included minutes" straight onto the
+  pricing page with no meter behind it. This file has already shipped that mistake once
+  (pricing-tier overclaim, 2026-07-11). **The copy flips in the same commit as the billing.**
+
+**The gate for Phase B is a clean reconciliation, not a date.** Run
+`scripts/verify-usage.mjs` after a period closes; it compares our minutes against Retell's own
+call records. Only when the shadow ledger agrees over a full period does billing go on.
+
+**Northside will read `skipped`, not a dollar figure** — its subscription predates
+`stripe_subscription_id` capture, so it has no anchor and never will retroactively. The first
+client to sign up after 2026-08-10 is the first with a real one. That is correct, not a bug.
 
 ### How the calendar integration is built
 - `lib/calendar/` is a provider seam. **`google.ts` is the only file that knows Google exists**
@@ -98,19 +137,29 @@ cap. See Open item 0.
    request `calendar.freebusy` rather than `calendar.readonly` specifically so we never receive
    event titles, attendees or descriptions — we only need to know whether a time is occupied.*
    Review takes up to 10 days on Google's schedule and gates nothing else.
-1. **`RETELL_TEMPLATE_AGENT_DENTAL` is a 404.** The local `.env.local` value
+   **The recording order matters:** disconnect the calendar first so there is a fresh consent to
+   film, log in as `damozman@yahoo.com`, and call **Northside** on +1 (817) 612-6757 — a demo-line
+   call proves nothing, and one session was already lost to that.
+1. **Usage metering Phase B — billing — NOT built, deliberately.** Phase A measures; nothing
+   charges. Phase B is `stripe.invoiceItems.create` on period close (idempotent on
+   `usage_periods.stripe_invoice_item_id` — a cron that runs twice must not bill twice), the
+   crossing-the-line email guarded by `alerted_at`, and the pricing copy. **Gated on
+   `scripts/verify-usage.mjs` reconciling clean over a full closed period, not on a date.**
+   Invoice items attach to the next subscription invoice automatically, so this needs no
+   metered-price migration and no restructuring of a live subscription.
+2. **`RETELL_TEMPLATE_AGENT_DENTAL` is a 404.** The local `.env.local` value
    (`agent_c15e912987197748ba3b54bdbc3`) does not exist in Retell, so dental provisioning would
    throw on a real signup. Harmless today (every dental agent is FUTURE, nobody can sign up), and
    the Vercel value may differ — check there before assuming it is broken in production.
-2. **Phase 2b bulk runner — NOT built, deliberately.** It manufactures the proprietary statistic
+3. **Phase 2b bulk runner — NOT built, deliberately.** It manufactures the proprietary statistic
    that replaces the removed borrowed ones, and everything it needs is built and tested
    (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum). **Blocked on a
    decision only Chris can make:** cold-calling businesses that never made contact is a different
    legal posture from calling a form submitter — Texas telemarketing registration and do-not-call
    apply. Do not build this unprompted.
-3. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
+4. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
    caller when `/api/update-dossier` was deleted.
-4. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+5. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
@@ -138,6 +187,19 @@ cap. See Open item 0.
   what the caller heard. Never diagnose call quality from a transcript when a human heard the call.
 - **A test that reads the clock twice must be bounded against both readings.** One asserting a
   token lifetime against only the *earlier* reading failed about one run in three.
+- **A copied value can only be checked against its source.** `calls.duration_seconds` is copied
+  from Retell's payload, so every number the meter derives is downstream of that copy — and when
+  the copy is wrong, *nothing inside our own database can tell*, because our sums agree with our
+  rows and our rows are simply short of the truth. `verify-usage.mjs` compares against Retell on
+  its first run and found a call recorded as `null` that Retell said lasted 234 seconds: a missed
+  `call_ended` webhook, silently under-billing. Reconcile against the source, not the mirror.
+- **`.limit(5)` is not a count.** Two numbers reported to Chris were wrong because a probe query
+  capped at five rows was read as the total — the real figure was 19, and the repo's own
+  `gumloop-prompts-archive.md` had already written it down. Read what the repo says before
+  trusting a query you just wrote.
+- **Advertise a promise only when the system can keep it.** The usage-pricing proposal put
+  "300 included minutes" on the pricing page in the same diff that had no meter behind it. Copy
+  and capability ship together or not at all.
 
 ### Verification scripts (all committed, all run against live systems)
 ```
@@ -154,6 +216,9 @@ node --import ./scripts/test-resolver.mjs scripts/verify-client-schedule.mjs
                                          a REAL client_schedules row, written then deleted
 node --import ./scripts/test-resolver.mjs scripts/verify-calendar-sync.mjs
                                          schema + a REAL freeBusy read and create/patch/delete
+node --import ./scripts/test-resolver.mjs scripts/verify-usage.mjs [--repair]
+                                         meter vs RETELL's own call records; --repair backfills
+                                         durations lost to missed call_ended webhooks
 node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
 node --env-file=.env.local scripts/retell/update-availability-tool.mjs dry run; --apply to write
@@ -275,7 +340,7 @@ estimate shown to a prospect. Import it; never re-declare it. The 9 static calcu
 a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
 Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts` guards both.
 
-## Launch State (as of 2026-08-06)
+## Launch State (as of 2026-08-10)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
 - Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
 - SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
@@ -284,11 +349,20 @@ Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts
 - Rex SMS follow-up and Nova review requests are NOT shipped — the "coming in phase 2"
   notes on the agent pages are accurate, leave them.
 - **Google Calendar booking IS shipped and proven on a real call.** Ava's page and `/privacy`
-  now describe it in the present tense, which is accurate as of 2026-08-06. The Cal.com claims
-  that used to sit there are gone — but `/book-demo` still embeds a genuine Cal.com widget for
-  Chris's own discovery calls, and that one is correct. Do not "clean it up".
+  now describe it in the present tense, corrected 2026-08-10 (PR #31). The Cal.com claims that
+  used to sit there are gone, as is "Claude Sonnet" from Ava's tech list — but `/book-demo` still
+  embeds a genuine Cal.com widget for Chris's own discovery calls, and that one is correct. Do not
+  "clean it up".
 - Every client agent runs `claude-4.5-haiku`, chosen by measurement. Ava's tech list says
   "Claude" without a model name on purpose — naming one goes stale the moment it changes.
+- **Pricing is still flat: $400 / $600 / $750, no minute limits advertised anywhere.** Usage
+  metering measures in the background but bills nothing, and `TIER_MINUTES` / `OVERAGE_RATE_CENTS`
+  are internal constants. Do not put minutes or overage on the pricing page until billing ships.
+- The `system_audits` invented metrics — `security_score`, `seo_visibility`, `lead_velocity`,
+  `roi_multiplier`, `revenue_leakage` — were **nulled across all 22 rows on 2026-08-10** and
+  `leak_detected` set false. They were never measured; the Gumloop prompt instructed the model to
+  estimate them. The admin dashboard's leak counter reading 0 is the honest number. Nothing
+  customer-facing reads them any more, and `/api/email-ingest` no longer fetches them at all.
 
 ## Common Tasks
 
