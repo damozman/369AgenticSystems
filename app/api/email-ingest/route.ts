@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { getVerticalConfig } from '@/lib/verticals'
 import { getDentrixContext, formatDentrixContext } from '@/lib/integrations/dentrix'
+import { denyIfBadEmailIngestSecret } from '@/lib/security/route-guard'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,6 +20,21 @@ function parseFrom(from: string): { email: string; name: string } {
 }
 
 export async function POST(request: Request) {
+  /**
+   * Guarded. This was one of the last unauthenticated routes: anyone who knew the URL could POST
+   * a form body and spend an Anthropic call plus a database row, as often as they liked.
+   *
+   * Arming a gate is normally the dangerous move here — it silently breaks every producer that
+   * did not get the new secret, which caused both the funnel outage and the ten-day call outage.
+   * It is safe in this one case because there are no producers: `pending_responses` has never
+   * held a single row, so nothing has ever successfully delivered to this route.
+   *
+   * `?secret=` as well as the header, because SendGrid's Inbound Parse config offers only a URL —
+   * same constraint, and the same solution, as the Retell webhook.
+   */
+  const denied = denyIfBadEmailIngestSecret(request)
+  if (denied) return denied
+
   const receivedAt = new Date().toISOString()
   console.log(`[EMAIL INGEST] ▶  Incoming email — ${receivedAt}`)
 
@@ -45,11 +61,27 @@ export async function POST(request: Request) {
 
   console.log(`[EMAIL INGEST] ✉  From: ${fromEmail} | Subject: ${subject}`)
 
-  // ── Look up prospect context + Dentrix patient data in parallel ──────────
+  /**
+   * What we actually know about this person.
+   *
+   * `system_audits` also carries `security_score`, `seo_visibility` and `revenue_leakage`, and
+   * this prompt used to feed all three to the model. **They are invented numbers.** The Gumloop
+   * prompt that produced them never measured anything — it instructed the model to guess, which
+   * is why five rows for one real dental practice read 45/55 and 41/54 with no scan behind them.
+   * See docs/reference/gumloop-prompts-archive.md, which calls this out as the smoking gun.
+   *
+   * Handing invented figures to an LLM that is drafting a reply to the business they describe is
+   * how a fabricated statistic ends up in front of a customer in our own words. Nothing here is
+   * worth that, so only the fields a human actually typed are passed on.
+   *
+   * The old context also asserted "Previously audited — they've seen our report", which was
+   * false for every row: `/api/intake` records a form submission, not an audit, and no report is
+   * sent. A model told the prospect has seen a report will write as though they have.
+   */
   const [{ data: prospect }, dentrixCtx] = await Promise.all([
     supabaseAdmin
       .from('system_audits')
-      .select('client_domain, client_name, client_industry, security_score, seo_visibility, revenue_leakage')
+      .select('client_domain, client_name, client_industry, created_at')
       .eq('client_email', fromEmail)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -61,18 +93,21 @@ export async function POST(request: Request) {
 
   const prospectContext = [
     prospect
-      ? `PROSPECT CONTEXT (from prior audit):
+      ? `PROSPECT CONTEXT (from their own enquiry form — every field below was typed by them):
 - Name: ${prospect.client_name || fromName}
 - Domain: ${prospect.client_domain}
-- Industry: ${prospect.client_industry || 'dental'}
-- Security Score: ${prospect.security_score ?? 'N/A'}/100
-- SEO Visibility: ${prospect.seo_visibility ?? 'N/A'}/100
-- Revenue Leakage: ${prospect.revenue_leakage || 'Unknown'}
-- Status: Previously audited — they've seen our report`
+- Industry: ${prospect.client_industry || 'unknown'}
+- They contacted us on: ${new Date(prospect.created_at as string).toISOString().slice(0, 10)}
+
+We have NOT run any scan, audit or report on this business. Do not reference scores, findings,
+vulnerabilities or results of any kind, and do not imply we have already sent them anything.`
       : `PROSPECT CONTEXT:
 - Name: ${fromName}
 - Email: ${fromEmail}
-- Status: First contact — no prior audit on file`,
+- Status: First contact — nothing on file for this address
+
+We have NOT run any scan, audit or report on this business. Do not reference scores, findings,
+vulnerabilities or results of any kind.`,
     dentrixSection ? `\n${dentrixSection}` : '',
   ].join('')
 
