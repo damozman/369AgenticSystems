@@ -307,10 +307,6 @@ node --env-file=.env.local scripts/retell/update-demo-script.mjs       aborts on
   type-stripping rejects them outright. Write the fields out longhand.
 - A hook blocks writing to `.env*` files. Pass secrets inline (`VAR=value node ...`) instead.
 
-### Leave alone
-`369AgenticSystems.code-workspace` has a pre-existing uncommitted modification that predates
-this work. It is not ours — do not stage or revert it.
-
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
 9 verticals: roofing, hvac, plumbing, legal, real-estate, insurance, saas, dental, wholesale.
