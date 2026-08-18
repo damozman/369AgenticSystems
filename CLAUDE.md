@@ -263,6 +263,18 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    the gate on every SMS track and it is pure calendar time.
 2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
    weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
+   **This depends on the zero-dollar checkout fix (2026-08-18).** Stripe sends
+   `payment_status: 'no_payment_required'`, *not* `'paid'`, whenever a coupon zeroes the amount
+   due. The webhook gated on `'paid'` alone, so before that fix a 100%-off checkout returned
+   HTTP 200, appeared as a successful delivery in Stripe's dashboard, and provisioned **nothing** —
+   no `agent_subscriptions` row, and therefore nothing for inventory, schedule or calendar to
+   attach to. The advice above is only true with that fix in place; verify with
+   `scripts/verify-zero-dollar-checkout.mjs` before booking her time.
+   **Her `client_schedules` row must be written explicitly, at onboarding.** There is no row by
+   default and `DEFAULT_SCHEDULE` (`lib/client-schedule.ts`) closes Saturday and Sunday and caps
+   the horizon at 14 days. A party-rental business is almost entirely weekends and books months
+   ahead, so on defaults Ava refuses every Saturday and anything past a fortnight — and it reads as
+   a bug in the booking engine, not as configuration.
 3. **Trust Hub automation.** Secondary Profile + brand + campaign via API at signup. **Blocked on a
    data gap:** the questionnaire collects pain points and job values, not legal business name, EIN,
    address or authorized rep. Signup has to ask, and clients have to be willing to hand over an EIN.
@@ -283,6 +295,15 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    on live Retell traffic. Measure before changing any of them.
 
 ### Lessons that each cost real time
+- **A webhook that returns 200 is not a webhook that did anything.** The Stripe gate answered
+  `{received: true}` for every `payment_status` it did not recognise, so a zero-dollar checkout
+  provisioned nothing while **Stripe's own dashboard showed the delivery as successful**. The
+  producer's view of a webhook is "did it get a 2xx", which is not the same question as "did the
+  work happen" — the same shape as the dental funnel money-risk fix, where a customer could be
+  charged and never provisioned. Two rules came out of it: a handler that declines to act must
+  **say so out loud** (log + owner alert), and a status set you match on must have an explicit
+  else-branch rather than a silent default. Found by reading the gate before onboarding a real
+  pilot through it, not by an alert — because there was no alert.
 - **One-sided adoption always leaves a window.** When two things arrive in an order you do not
   control, *each* must adopt the other. The leftover 73ms window between a booking row existing and
   its `calendar_event_id` being written hit on the very first real call and put a phone number on a
@@ -341,6 +362,13 @@ node --import ./scripts/test-resolver.mjs scripts/verify-billing.mjs
                                          dry-runs the REAL decideBilling; touches Stripe not at all
 node --import ./scripts/test-resolver.mjs scripts/verify-inventory.mjs
                                          schema + a REAL double-book race against one item
+node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs
+                                         preflight for a 100%-off checkout; dry run, --apply to
+                                         create the coupon. Completing the checkout BUYS a Retell
+                                         number and writes to PRODUCTION Supabase.
+node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs
+                                         releases that number + agent + LLM and deletes the rows;
+                                         dry run, --apply to delete. Refuses to touch Northside.
 node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
 node --env-file=.env.local scripts/retell/set-ai-disclosure.mjs        dry run; --apply to write

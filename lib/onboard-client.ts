@@ -109,6 +109,12 @@ export async function provisionClient(input: ProvisionClientInput) {
     activated_at:   new Date().toISOString(),
     retell_agent_id: retellAgentId,
     retell_phone_number: retellPhoneNumber,
+    // The customer-facing name every client-branded message renders from
+    // (lib/client-identity.ts). Collected at checkout and passed to Retell for the agent,
+    // but it was not persisted here — so a Stripe-provisioned client had no business_name
+    // and Rex's templates fell back to a generic phrase. The legal entity name never
+    // appears here; see CLAUDE.md on 3SIX9 MEDIA MASTERS LLC.
+    business_name: businessName,
   }
 
   // Store preferred area code if provided

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
 import { provisionClient } from '@/lib/onboard-client'
-import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
+import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue, decideProvisioning } from '@/lib/stripe-config'
 import { escapeHtml } from '@/lib/security/sanitize'
 import { resendFrom } from '@/lib/email-from'
 
@@ -11,6 +11,22 @@ const OWNER_EMAIL = process.env.OWNER_EMAIL ?? 'chris@369agenticsystems.com'
 
 function getStripeClient(): Stripe {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
+}
+
+// Awaited, not fire-and-forget: this runs on Vercel, where the function can be frozen the
+// moment the response is returned, and an alert about a silent failure that itself fails
+// silently is worse than no alert at all. A send that throws must never mask the original
+// problem, so it degrades to a log.
+async function alertOwner(subject: string, html: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[STRIPE WEBHOOK] RESEND_API_KEY not configured — owner alert not sent:', subject)
+    return
+  }
+  try {
+    await resend.emails.send({ from: resendFrom('369 Command Center'), to: OWNER_EMAIL, subject, html })
+  } catch (alertErr) {
+    console.error('[STRIPE WEBHOOK] Failed to send owner alert:', subject, alertErr)
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -37,8 +53,22 @@ export async function POST(request: NextRequest) {
 
   const session = event.data.object as Stripe.Checkout.Session
 
-  if (session.payment_status !== 'paid') {
-    return NextResponse.json({ received: true })
+  // A completed checkout that provisions nothing must never look like success. This used to
+  // return a bare 200 for anything other than 'paid', so a zero-dollar signup — what a
+  // 100%-off coupon produces — was reported as a successful delivery in Stripe's dashboard
+  // while no client was ever created. See lib/stripe-config.ts:decideProvisioning.
+  const decision = decideProvisioning(session.payment_status)
+  if (!decision.provision) {
+    console.error('[STRIPE WEBHOOK] Refusing to provision session', session.id, '—', decision.reason)
+    await alertOwner(
+      `⚠️ Checkout completed but did NOT provision — ${session.customer_details?.email ?? session.id}`,
+      `<p>A Stripe checkout completed and <strong>no client was provisioned</strong>. Nobody has an agent or a phone number as a result of this session.</p>
+       <p><strong>Reason:</strong> ${escapeHtml(decision.reason)}</p>
+       <p><strong>Stripe session:</strong> ${escapeHtml(session.id)}<br>
+       <strong>Email:</strong> ${escapeHtml(session.customer_details?.email ?? 'unknown')}<br>
+       <strong>Payment status:</strong> ${escapeHtml(String(session.payment_status))}</p>`
+    )
+    return NextResponse.json({ received: true, provisioned: false })
   }
 
   const vertical = session.client_reference_id
@@ -92,23 +122,19 @@ export async function POST(request: NextRequest) {
     const errorMessage = e instanceof Error ? e.message : String(e)
     console.error('[STRIPE WEBHOOK] provisionClient failed:', e)
 
-    // The customer's card has already been charged at this point (payment_status
-    // is 'paid' above) — a provisioning failure here means they paid for something
-    // that can't be delivered. A console log alone is easy to miss, so alert
-    // immediately rather than relying on someone noticing server logs.
-    if (process.env.RESEND_API_KEY) {
-      resend.emails.send({
-        from:    resendFrom('369 Command Center'),
-        to:      OWNER_EMAIL,
-        subject: `🚨 Paid signup failed to provision — ${businessName} (${vertical})`,
-        html:    `<p>A customer paid via Stripe but provisioning failed. This needs manual follow-up (refund or manual provisioning).</p>
-                  <p><strong>Business:</strong> ${escapeHtml(businessName)}<br>
-                  <strong>Vertical:</strong> ${escapeHtml(vertical)}<br>
-                  <strong>Email:</strong> ${escapeHtml(email)}<br>
-                  <strong>Stripe session:</strong> ${escapeHtml(session.id)}<br>
-                  <strong>Error:</strong> ${escapeHtml(errorMessage)}</p>`,
-      }).catch(alertErr => console.error('[STRIPE WEBHOOK] Failed to send provisioning-failure alert:', alertErr))
-    }
+    // The checkout has already completed at this point — a provisioning failure here means
+    // someone signed up for something that can't be delivered. A console log alone is easy
+    // to miss, so alert immediately rather than relying on someone noticing server logs.
+    await alertOwner(
+      `🚨 Signup failed to provision — ${businessName} (${vertical})`,
+      `<p>A Stripe checkout completed but provisioning failed. This needs manual follow-up (refund or manual provisioning).</p>
+       <p><strong>Business:</strong> ${escapeHtml(businessName)}<br>
+       <strong>Vertical:</strong> ${escapeHtml(vertical)}<br>
+       <strong>Email:</strong> ${escapeHtml(email)}<br>
+       <strong>Stripe session:</strong> ${escapeHtml(session.id)}<br>
+       <strong>Payment status:</strong> ${escapeHtml(String(session.payment_status))}<br>
+       <strong>Error:</strong> ${escapeHtml(errorMessage)}</p>`
+    )
 
     return NextResponse.json({ error: 'Provisioning failed' }, { status: 500 })
   }
