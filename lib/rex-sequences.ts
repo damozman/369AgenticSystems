@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { sendSms } from '@/lib/twilio-sms'
+import type { SmsConsent } from '@/lib/sms-consent'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -148,62 +149,90 @@ export const sendRexStep0Email = (input: RexSequenceEmailInput) => sendStepEmail
 export const sendRexStep1Email = (input: RexSequenceEmailInput) => sendStepEmail(1, input)
 export const sendRexStep2Email = (input: RexSequenceEmailInput) => sendStepEmail(2, input)
 
-// ── SMS (stubbed — no Twilio yet) ─────────────────────────────────────────────
-// Strings only; not sent anywhere until Twilio is wired in (see build brief for the swap).
-
+// ── SMS ───────────────────────────────────────────────────────────────────────
+/**
+ * Rex follow-up SMS, per vertical.
+ *
+ * `{business}` is the CLIENT's business, not ours. These used to read "This is 369 Roofing",
+ * which was wrong in three ways: the recipient called Northside Roofing and has never heard of
+ * 369; under the A2P 10DLC ISV model the registered Brand *is* the client's business, so a
+ * message identifying as us mismatches the brand it is sent under; and it quietly undoes the
+ * white-label premise the whole product rests on.
+ *
+ * Step 0 carries the opt-out sentence because carriers require it on the first message of a
+ * conversation. It is not optional decoration — messages without it get filtered, and the
+ * campaign gets flagged.
+ */
 export const REX_SMS_TEMPLATES: Record<RexVertical, { step0: string; step1: string; step2: string }> = {
   roofing: {
-    step0: "This is 369 Roofing — we've got your info and a specialist will reach out shortly to schedule your inspection.",
+    step0: "This is {business} — we've got your info and a specialist will reach out shortly to schedule your inspection. Reply STOP to opt out.",
     step1: "Just checking in — roof damage tends to get worse over time. Want us to get your inspection on the books?",
     step2: "Last check-in from us — reply YES if you'd still like your roof inspection scheduled.",
   },
   hvac: {
-    step0: "This is 369 HVAC — we've got your info and a technician will reach out shortly to schedule service.",
+    step0: "This is {business} — we've got your info and a technician will reach out shortly to schedule service. Reply STOP to opt out.",
     step1: "Just checking in on your HVAC issue — want us to get a technician out to you?",
     step2: "Last check-in from us — reply YES if you'd still like your service call scheduled.",
   },
   plumbing: {
-    step0: "This is 369 Plumbing — we've got your info and a plumber will reach out shortly to schedule service.",
+    step0: "This is {business} — we've got your info and a plumber will reach out shortly to schedule service. Reply STOP to opt out.",
     step1: "Just checking in on your plumbing issue — want us to get a plumber out to you?",
     step2: "Last check-in from us — reply YES if you'd still like your service call scheduled.",
   },
   legal: {
-    step0: "This is 369 Legal — we've got your inquiry and someone will reach out shortly to discuss your case.",
+    step0: "This is {business} — we've got your inquiry and someone will reach out shortly to discuss your case. Reply STOP to opt out.",
     step1: "Legal timing matters — deadlines can affect your options. Want to talk about your case?",
     step2: "Last check-in from us — reply YES if you'd still like to discuss your legal matter today.",
   },
   'real-estate': {
-    step0: "This is 369 Real Estate — we've got your inquiry and a specialist will reach out to discuss your goals.",
+    step0: "This is {business} — we've got your inquiry and a specialist will reach out to discuss your goals. Reply STOP to opt out.",
     step1: "Great opportunities move fast — want us to help you find the right property or buyer?",
     step2: "Last check-in from us — reply YES if you'd like to explore your real estate options today.",
   },
   insurance: {
-    step0: "This is 369 Insurance — we've got your inquiry and someone will reach out shortly with a quote.",
+    step0: "This is {business} — we've got your inquiry and someone will reach out shortly with a quote. Reply STOP to opt out.",
     step1: "Protect yourself now — want us to review your coverage options?",
     step2: "Last check-in from us — reply YES if you'd like to lock in your quote today.",
   },
   saas: {
-    step0: "This is 369 SaaS — we've got your inquiry and someone will reach out shortly to show you how we help.",
+    step0: "This is {business} — we've got your inquiry and someone will reach out shortly to show you how we help. Reply STOP to opt out.",
     step1: "Every day you wait is lost ROI — want to chat about getting started?",
     step2: "Last check-in from us — reply YES and let's get you up and running this week.",
   },
   wholesale: {
-    step0: "This is 369 Wholesale — we've got your order inquiry and will reach out to confirm availability.",
+    step0: "This is {business} — we've got your order inquiry and will reach out to confirm availability. Reply STOP to opt out.",
     step1: "Inventory moves fast — want us to hold your order before stock runs out?",
     step2: "Last check-in from us — reply YES if you'd like us to lock in your order today.",
   },
   dental: {
-    step0: "This is 369 Dental — we've got your appointment request and will reach out to confirm your time.",
+    step0: "This is {business} — we've got your appointment request and will reach out to confirm your time. Reply STOP to opt out.",
     step1: "Your health matters — do not put off dental care. Want to lock in your appointment?",
     step2: "Last check-in from us — reply YES and let's get you scheduled today.",
   },
 }
 
 /**
- * Send SMS via Twilio (or stub if not configured)
- * Used for Pro/Elite follow-up sequences
+ * Fill in the business name.
+ *
+ * Falls back to a neutral phrase rather than leaving a literal "{business}" in a customer's
+ * inbox, or — worse — naming us instead of them. A missing business name is a data problem to
+ * fix, not a reason to send something incoherent.
  */
-export async function sendSMS(to: string, body: string, trackingId?: string): Promise<boolean> {
-  const result = await sendSms({ toPhone: to, message: body, trackingId })
+export function renderRexSms(
+  vertical: RexVertical,
+  step: 'step0' | 'step1' | 'step2',
+  businessName: string | null | undefined,
+): string {
+  const name = (businessName ?? '').trim() || 'the team you contacted'
+  return REX_SMS_TEMPLATES[vertical][step].replace(/\{business\}/g, name)
+}
+
+export async function sendSMS(
+  to: string,
+  body: string,
+  consent: SmsConsent,
+  trackingId?: string,
+): Promise<boolean> {
+  const result = await sendSms({ toPhone: to, message: body, consent, trackingId })
   return result.success
 }

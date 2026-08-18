@@ -1,7 +1,10 @@
 /**
- * Twilio SMS integration for Pro/Elite follow-up sequences
- * Sends SMS messages using Twilio API
+ * Twilio SMS integration for Pro/Elite follow-up sequences.
+ *
+ * Nothing leaves this file without recorded consent — see `SendSmsInput.consent`.
  */
+
+import type { SmsConsent } from '@/lib/sms-consent'
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || ''
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || ''
@@ -15,13 +18,25 @@ export interface SendSmsInput {
   toPhone:   string
   message:   string
   trackingId?: string  // call_id or lead_id for auditing
+  /**
+   * Proof this recipient agreed to be texted. **Required, and not defaultable.**
+   *
+   * A2P 10DLC campaigns are rejected on proof of opt-in more than on anything else, and "they
+   * called us" is not consent. Making this a required argument means the compiler asks the
+   * question at every call site — which is stronger than a runtime check someone has to remember,
+   * and the repo's own lesson is that one-sided adoption always leaves a window.
+   *
+   * Build it with `consentForLead()`; use `noConsent()` only where there is genuinely no lead, and
+   * expect the send to be refused.
+   */
+  consent:   SmsConsent
 }
 
 /**
  * Send an SMS via Twilio
  */
 export async function sendSms(input: SendSmsInput): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { toPhone, message, trackingId } = input
+  const { toPhone, message, trackingId, consent } = input
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
     console.error('[SMS] Twilio not configured')
@@ -30,6 +45,13 @@ export async function sendSms(input: SendSmsInput): Promise<{ success: boolean; 
 
   if (!toPhone || !message) {
     return { success: false, error: 'Missing toPhone or message' }
+  }
+
+  // The gate. Every path into Twilio passes through here, which is the whole point of putting it
+  // in this function rather than in the three routes that call it.
+  if (!consent?.granted) {
+    console.warn(`[SMS] Refused — ${consent?.reason ?? 'no consent object supplied'}${trackingId ? ` [${trackingId}]` : ''}`)
+    return { success: false, error: `No consent to text this recipient: ${consent?.reason ?? 'none supplied'}` }
   }
 
   try {
