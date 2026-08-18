@@ -4,6 +4,7 @@ import { sendClientBookingAlert } from '@/lib/email-sequences'
 import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
 import { buildBookingEvent, buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
+import { describeChoices, loadInventory, matchItem } from '@/lib/inventory'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -37,12 +38,19 @@ export async function POST(request: NextRequest) {
     service_type,
     location,
     starts_at,
+    item,
   } = source as {
     client_domain?:    string
     appointment_date?: string
     appointment_time?: string
     service_type?:     string
     location?:         string
+    /**
+     * Which rental unit, for clients that stock things rather than sell time. Absent for every
+     * existing client — roofing, legal, plumbing all book people-time, and a booking with no item
+     * consumes general capacity exactly as it always has.
+     */
+    item?:             string
     // Supplied verbatim from available-slots' slot_details. Preferred over the prose fields,
     // which have to be re-parsed and have already put one real booking a full year out.
     starts_at?:        string
@@ -164,6 +172,62 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  /**
+   * Which unit, for clients that stock things.
+   *
+   * Resolved here rather than inside book_slot() so a caller who said something we do not stock
+   * gets a sentence Ava can actually say, instead of a raised exception. book_slot still raises on
+   * an unknown key, which keeps "zero rows" meaning exactly one thing — the slot filled up.
+   */
+  let itemKey: string | null = null
+  const { items: inventory, error: inventoryError } = await loadInventory(supabase, resolvedClientDomain)
+
+  // Fail closed, like the calendar branch above: "we could not read the inventory" and "there is
+  // no inventory" are different answers, and only one of them is safe to book against.
+  if (inventoryError) {
+    return NextResponse.json(
+      {
+        error:   'inventory_unavailable',
+        message: 'The equipment list could not be checked. Apologise, take the caller\'s name and number, and tell them someone will call straight back to confirm.',
+      },
+      { status: 503 },
+    )
+  }
+
+  if (item && inventory.length > 0) {
+    const match = matchItem(inventory, item)
+
+    if (match.kind === 'ambiguous') {
+      // Never guess between equals — "castle" fits two units and picking one sends the wrong van.
+      return NextResponse.json(
+        {
+          error:   'item_ambiguous',
+          message: `Ask which one they mean: ${describeChoices(match.candidates)}.`,
+          options: match.candidates.map(c => c.label),
+        },
+        { status: 409 },
+      )
+    }
+
+    if (match.kind === 'none') {
+      return NextResponse.json(
+        {
+          error:   'item_unknown',
+          message: `That is not something this business stocks. What they do have is ${describeChoices(inventory)}.`,
+          options: inventory.map(c => c.label),
+        },
+        { status: 409 },
+      )
+    }
+
+    itemKey = match.item.item_key
+  } else if (!item && inventory.length > 0) {
+    // A rental client whose agent booked without naming a unit. Allowed — they may genuinely do
+    // consultations too — and it consumes general capacity, which under-books rather than sending
+    // two callers the same bounce house. Logged because it usually means the prompt drifted.
+    console.warn(`[BOOKING] ⚠  ${resolvedClientDomain} stocks ${inventory.length} item(s) but none was named — booking against general capacity`)
+  }
+
   // Atomic capacity check + insert. Two callers on two simultaneous calls can both be told
   // 10:00 AM is free before either row lands, so the check has to happen where the insert does
   // — the Supabase client cannot open a transaction.
@@ -177,6 +241,7 @@ export async function POST(request: NextRequest) {
     p_appointment_time: appointmentTimeValue,
     p_service_type:     service_type ?? null,
     p_location:         location     ?? null,
+    p_item_key:         itemKey,
   })
 
   if (bookingError) {

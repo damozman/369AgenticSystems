@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { openSlots, formatSlot, type BusyInterval } from '@/lib/availability'
+import { openSlots, formatSlot, filterAvailable, type BusyInterval, type ClientSchedule, type Slot } from '@/lib/availability'
 import { getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
+import { loadInventory, matchItem } from '@/lib/inventory'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
 
 /**
@@ -41,6 +42,10 @@ export async function POST(request: NextRequest) {
   const source = (raw.args ?? raw) as Record<string, unknown>
   const callId = retellCall?.call_id ?? (source.call_id as string | undefined)
 
+  // Optional: the caller already named a unit ("do you have the princess castle Saturday?"), so
+  // only that unit's availability matters. Absent, we report what is free across everything.
+  const requestedItem = (source.item as string | undefined) ?? null
+
   // Resolve the caller's client. Same convention as book-appointment: fall back to the demo
   // line rather than failing, so a demo call still gets real slots.
   let clientDomain = (source.client_domain as string | undefined) ?? null
@@ -60,7 +65,7 @@ export async function POST(request: NextRequest) {
   const horizonEnd = new Date(Date.now() + (schedule.booking_horizon_days + 1) * 86_400_000)
   const { data: busy, error: busyError } = await supabase
     .from('bookings')
-    .select('starts_at, ends_at')
+    .select('starts_at, ends_at, inventory_item_key')
     .eq('client_domain', clientDomain)
     .neq('status', 'cancelled')
     .not('starts_at', 'is', null)
@@ -103,7 +108,101 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const slots = openSlots(schedule, [...(busy ?? []), ...externalBusy], { limit: 4, perDay: 2 })
+  /**
+   * Rental inventory, for clients that stock things rather than sell time.
+   *
+   * An empty list is the normal case and must behave exactly as this route did before — every
+   * existing client books people-time. A failed *read* is a different thing entirely and fails
+   * closed, for the same reason the calendar branch above does.
+   */
+  const { items: inventory, error: inventoryError } = await loadInventory(supabase, clientDomain)
+  if (inventoryError) {
+    return NextResponse.json(
+      {
+        error:   'inventory_unavailable',
+        message: 'The equipment list could not be checked. Apologise, take the caller\'s name and number, and tell them someone will call straight back to confirm a time.',
+      },
+      { status: 503 },
+    )
+  }
+
+  const allBusy = (busy ?? []) as (BusyInterval & { inventory_item_key?: string | null })[]
+
+  // ── People-time clients: unchanged. ─────────────────────────────────────────
+  if (inventory.length === 0) {
+    const slots = openSlots(schedule, [...allBusy, ...externalBusy], { limit: 4, perDay: 2 })
+    return respond(slots, schedule, clientDomain)
+  }
+
+  // ── Rental clients: which slots, and which units in them. ───────────────────
+  //
+  // Bookings that name no item consume general capacity (a site visit, a consultation), so they
+  // still gate the slot for everyone. Bookings that name an item only gate that item.
+  const generalBusy = allBusy.filter(b => !b.inventory_item_key)
+
+  // A wider net than the four we will offer: a slot rejected for one unit may be fine for
+  // another, so there has to be something left to choose from after the per-item pass.
+  const candidates = openSlots(schedule, [...generalBusy, ...externalBusy], { limit: 12, perDay: 6 })
+
+  // One pass per item, reusing filterAvailable exactly as intended — that item's busy intervals
+  // and that item's quantity. No new overlap arithmetic; the tested version already handles the
+  // half-open boundary and the missing-end-time case.
+  const freeByItem = new Map<string, Set<number>>()
+  for (const it of inventory) {
+    const itemBusy = allBusy.filter(b => b.inventory_item_key === it.item_key)
+    const free = filterAvailable(candidates, itemBusy, it.quantity, schedule.slot_duration_minutes)
+    freeByItem.set(it.item_key, new Set(free.map(s => s.startsAt.getTime())))
+  }
+
+  // If the caller already named a unit, only that unit's availability is interesting.
+  const wanted = requestedItem ? matchItem(inventory, requestedItem) : null
+  const considered = wanted?.kind === 'match' ? [wanted.item] : inventory
+
+  const withItems = candidates
+    .map(slot => ({
+      slot,
+      items: considered.filter(it => freeByItem.get(it.item_key)?.has(slot.startsAt.getTime())),
+    }))
+    .filter(entry => entry.items.length > 0)
+
+  // Spread the same way openSlots does — two options on each of two days beats four in one
+  // morning — then trim to what a caller can actually hold in their head.
+  const chosen = withItems.slice(0, 4)
+
+  if (chosen.length === 0) {
+    console.log(`[SLOTS] No unit available in the next ${schedule.booking_horizon_days} days — ${clientDomain}`)
+    return NextResponse.json({
+      slots: [],
+      suggested: null,
+      timezone: schedule.timezone,
+      message: wanted?.kind === 'match'
+        ? `Nothing free for the ${wanted.item.label} in the scheduling window. Offer another item, or take a message.`
+        : 'No equipment is free in the scheduling window. Offer to take a message and have someone call back.',
+    })
+  }
+
+  const spokenItems = chosen.map(c => c.slot).map(s => formatSlot(s, schedule.timezone))
+
+  console.log(`[SLOTS] ✓  ${chosen.length} open across ${inventory.length} item(s) — ${clientDomain}`)
+
+  return NextResponse.json({
+    slots: spokenItems,
+    suggested: spokenItems.length > 1 ? `${spokenItems[0]} or ${spokenItems[1]}` : spokenItems[0],
+    timezone: schedule.timezone,
+    // What is actually free, so Ava offers from the tool's answer rather than from a list in her
+    // prompt that goes stale the day a unit is sold.
+    slot_details: chosen.map((c, i) => ({
+      spoken:    spokenItems[i],
+      starts_at: c.slot.startsAt.toISOString(),
+      ends_at:   c.slot.endsAt.toISOString(),
+      available_items: c.items.map(it => it.label),
+    })),
+    inventory: inventory.map(it => it.label),
+  })
+}
+
+/** The people-time response, unchanged from before inventory existed. */
+function respond(slots: Slot[], schedule: ClientSchedule, clientDomain: string) {
 
   // Genuinely full. Saying so is the honest answer — the old route could never produce it.
   if (slots.length === 0) {
