@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendRexStep1Email, sendRexStep2Email, sendSMS, REX_SMS_TEMPLATES, type RexVertical } from '@/lib/rex-sequences'
+import { sendRexStep1Email, sendRexStep2Email, sendSMS, renderRexSms, type RexVertical } from '@/lib/rex-sequences'
+import { consentForLead } from '@/lib/sms-consent'
+import { businessNameFor } from '@/lib/client-identity'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +56,14 @@ export async function GET(request: NextRequest) {
         emailSent = true
       } catch (e) { console.error('[REX] Step 1 email failed:', e) }
     }
-    const smsSent = lead.caller_phone ? await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step1) : false
+    const smsSent = lead.caller_phone
+      ? await sendSMS(
+          lead.caller_phone,
+          renderRexSms(vertical, 'step1', await businessNameFor(supabase, seq.client_domain)),
+          await consentForLead(supabase, seq.lead_id),
+          seq.lead_id,
+        )
+      : false
 
     // Only advance (and stamp step_1_sent_at, which step 2's timing depends on)
     // if something actually went out, or there was no contact info to try in
@@ -102,7 +111,14 @@ export async function GET(request: NextRequest) {
         emailSent = true
       } catch (e) { console.error('[REX] Step 2 email failed:', e) }
     }
-    const smsSent = lead.caller_phone ? await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step2) : false
+    const smsSent = lead.caller_phone
+      ? await sendSMS(
+          lead.caller_phone,
+          renderRexSms(vertical, 'step2', await businessNameFor(supabase, seq.client_domain)),
+          await consentForLead(supabase, seq.lead_id),
+          seq.lead_id,
+        )
+      : false
 
     const hadContactInfo = !!lead.caller_email || !!lead.caller_phone
     if (!hadContactInfo || emailSent || smsSent) {

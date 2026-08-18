@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     issue_description: raw_issue_description,
     urgency,
     vertical,
+    sms_consent,
   } = source as {
     client_domain?:     string
     caller_phone?:      string
@@ -50,6 +51,14 @@ export async function POST(request: NextRequest) {
     issue_description?: string
     urgency?:           string
     vertical?:          string
+    /**
+     * Did the caller agree, out loud, to be texted?
+     *
+     * A2P 10DLC campaigns are rejected on proof of opt-in more than on anything else, and a
+     * consumer calling a business is not consent to send them messages. Ava asks; this records
+     * the answer. Absent means no — silence is never consent.
+     */
+    sms_consent?:       boolean | string
   }
 
   /**
@@ -118,6 +127,25 @@ export async function POST(request: NextRequest) {
     ? await supabase.from('leads').select('*').eq('call_id', callRow.id).maybeSingle()
     : { data: null }
 
+  /**
+   * SMS consent, and the exact sentence behind it.
+   *
+   * Only ever written when the caller said yes — `capture_lead` fires several times per call, and
+   * an absent flag on a later invocation must not erase a yes given on an earlier one. Consent is
+   * also never revoked here: that is what STOP is for, on the inbound path.
+   *
+   * The timestamp is not decoration. "When did they agree?" is the first question asked after a
+   * complaint, and a flag with no time is the record that proves we were not keeping records.
+   */
+  const grantedConsent = sms_consent === true || sms_consent === 'true'
+  const consentPatch = grantedConsent
+    ? {
+        sms_consent:        true,
+        sms_consent_at:     existingLead?.sms_consent_at ?? new Date().toISOString(),
+        sms_consent_source: 'Verbal opt-in on the recorded call, captured by the receptionist agent.',
+      }
+    : {}
+
   const { data: lead, error: leadError } = await supabase
     .from('leads')
     .upsert({
@@ -130,6 +158,7 @@ export async function POST(request: NextRequest) {
       issue_description: issue_description ?? existingLead?.issue_description ?? null,
       urgency:           urgency           ?? existingLead?.urgency           ?? 'normal',
       vertical:          resolvedVertical  ?? existingLead?.vertical          ?? null,
+      ...consentPatch,
     }, { onConflict: 'call_id' })
     .select()
     .single()

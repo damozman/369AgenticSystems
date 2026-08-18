@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendRexStep0Email, sendSMS, REX_SMS_TEMPLATES, type RexVertical } from '@/lib/rex-sequences'
+import { sendRexStep0Email, sendSMS, renderRexSms, type RexVertical } from '@/lib/rex-sequences'
+import { consentForLead } from '@/lib/sms-consent'
+import { businessNameFor } from '@/lib/client-identity'
 import { denyIfBadSecret, INTERNAL_SECRET_HEADER } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -142,9 +144,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Consent is looked up, never assumed. sendSms refuses without it, so this is the honest
+  // answer to "why did no text go out" rather than a silent no-op.
   let smsSent = false
   if (lead.caller_phone) {
-    smsSent = await sendSMS(lead.caller_phone, REX_SMS_TEMPLATES[vertical].step0)
+    const [consent, businessName] = await Promise.all([
+      consentForLead(supabase, lead_id),
+      businessNameFor(supabase, lead.client_domain),
+    ])
+    smsSent = await sendSMS(
+      lead.caller_phone,
+      renderRexSms(vertical, 'step0', businessName),
+      consent,
+      lead_id,
+    )
   }
 
   const { error: seqError } = await supabase.from('follow_up_sequences').insert({

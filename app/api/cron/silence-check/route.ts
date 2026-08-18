@@ -28,7 +28,11 @@ export async function GET(request: NextRequest) {
   // Fetch all active subscriptions
   const { data: subscriptions, error: subError } = await supabase
     .from('agent_subscriptions')
-    .select('client_domain, user_email, client_name:company_name')
+    // `company_name` does not exist on this table and never did. Selecting it made PostgREST
+    // return an error, which sent this whole cron down the `if (subError)` branch below — so
+    // silence-check ran every weekday and alerted nobody, for as long as that line has been
+    // there. Found 2026-08-16 by probing production rather than reading the schema file.
+    .select('client_domain, user_email, business_name')
     .not('activated_at', 'is', null)
 
   if (subError || !subscriptions?.length) {
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Zero calls in 24 hours on a weekday — send alert
     console.log(`[SILENCE CHECK] Zero calls for ${sub.client_domain} — sending alert`)
 
-    const clientName = (sub as Record<string, unknown>).client_name as string | null ?? sub.user_email
+    const clientName = (sub as Record<string, unknown>).business_name as string | null ?? sub.user_email
 
     const { error } = await resend.emails.send({
       from:    process.env.RESEND_FROM_EMAIL ?? 'alerts@alerts.369agenticsystems.com',
