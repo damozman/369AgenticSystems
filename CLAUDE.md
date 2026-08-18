@@ -6,136 +6,205 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-15 (session end). PRs #28–#35 are merged. **PR #36 (docs) is OPEN and
-SUPERSEDED by this handoff — close it rather than merging it.** Phase B billing and the badge fix
-are **uncommitted** on `feat/usage-billing-phase-b` (branched off `master`, tsc clean, 192/192).
-The `369AgenticSystems.code-workspace` change is pre-existing and not ours.
+**Last updated:** 2026-08-18. `master` is clean; PRs #37–#40 merged. **AI disclosure and SMS
+consent are APPLIED and verified on all 11 live agents.** Both 2026-08-16 migrations are applied to
+production. The dental template-id typo is fixed in `.env.local` and Vercel.
 
-### 🔴 DO THIS FIRST: Ava does not disclose she is AI
-**Texas TRAIGA has been in force since 2026-01-01.** It requires an AI system interacting with
-consumers to give *"a clear and conspicuous disclosure in plain language… before or at the time of
-interaction"* — explicitly **"regardless of whether it would be obvious to a reasonable
-consumer."** It binds anyone doing business in Texas or serving Texas residents. Verified live on
-2026-08-15:
+### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
+Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
+top-ten Texas roofing company, and **owner of an entertainment business** — mobile casino, DJ,
+bounce houses — that wants to scale. First chamber event **~mid-September 2026**. She also knows
+dumpster-rental and real-estate people; his brother-in-law sells CRM systems but not AI.
 
-| | `begin_message` | Disclosure |
+**This is distribution finally arriving.** Nine verticals have been live with zero paying clients
+and 18 minutes of real traffic in a month — product surface was never the constraint.
+**Do NOT add vertical pages.** The page follows the customer.
+
+**The pilot is her entertainment business**, because she owns it and there is no sale to make.
+She has no `agent_subscriptions` row yet, and inventory, schedule and calendar are all FK'd to it —
+**that row comes first or nothing attaches.** Onboard her through a real Stripe checkout with a
+100%-off coupon rather than a hand-inserted row: it exercises the production path and produces a
+genuine `stripe_subscription_id`, the billing anchor Northside can never have.
+
+**Two config defaults will silently break her pilot.** `business_hours` defaults Saturday and
+Sunday to **closed** and `booking_horizon_days` to **14**. A party-rental business is almost
+entirely weekends and books months ahead. On defaults Ava refuses every Saturday and anything past
+a fortnight, and it looks like a bug in the booking engine.
+
+### Twilio / A2P 10DLC — state as of 2026-08-18
+- **Account is upgraded to pay-as-you-go with ISV Reseller identity, and the Primary Compliance
+  Profile is APPROVED.** Profile SID `BU2afbc3170beb09be1b43a857121049d2`.
+- **The legal entity is `3SIX9 MEDIA MASTERS LLC`** (Fort Worth) — *not* "369 Agentic Systems",
+  which is a trading name. This is exactly why `agent_subscriptions.business_name` holds the
+  customer-facing name while the legal name lives only on the 10DLC form. **Ava must never say the
+  LLC name aloud.**
+- **Register brands DIRECTLY with Twilio, never through a reseller.** Twilio's own docs: under the
+  reseller model you *lose ownership of those Brands and Campaigns*. Retell's managed SMS is less
+  work and costs precisely that. Chris chose ownership on 2026-08-18, knowing it means building the
+  Trust Hub automation ourselves.
+- **Northside must NOT get a Secondary Profile.** It is a test-only client, not a distinct legal
+  entity; TCR vets against real business registries and a rejection attaches to the *Primary*
+  Profile's trust score. **Register a brand for 3SIX9 MEDIA MASTERS LLC first** — a real entity
+  Chris controls — to walk the whole path once before a client depends on it.
+- **Costs per client:** ~**$19 one-time** ($4 low-volume-standard brand + $15 campaign vetting) and
+  ~**$8–15/month** (campaign $1.50–10, number $1.15, messages ~$0.011 each). Take **low-volume
+  standard**, not standard ($44) — that tier is for senders pushing 6,000+ segments a day.
+- Fees scale **linearly per client**: ten clients is ~$100/month before a single message.
+
+### Two numbers per client, deliberately. Do NOT "fix" this.
+- **Number A — Retell, voice.** The client forwards their published line to it; Ava answers. They
+  flip that forwarding on and off as they like.
+- **Number B — Twilio, SMS.** Owned by us, which is *required* rather than preferred: A2P
+  registration only works on a number in our own Twilio account.
+- **Consolidating to one number was investigated on 2026-08-18 and rejected.** Retell's number
+  import **requires `termination_uri`** — it *is* elastic SIP trunking, not a simple account link
+  (verified in the SDK types and Retell's own custom-telephony docs; the only alternative, "dial to
+  SIP URI", means building the telephony yourself). That would put a SIP trunk between every caller
+  and Ava, and Retell's community reports a Twilio trunk "connects about 50% of the time".
+  Consolidation saves **$2/month per client**. The voice path is proven, measured at 964ms p50, and
+  is the product. Not worth it.
+- If ever revisited: buy **one** number, trunk it, point it at a throwaway agent, call it twenty
+  times, and decide on data rather than a forum post. **Never migrate a live client's number** — it
+  is on their trucks, their yard sign and their Google listing.
+- **Number B still needs voice forwarding to Number A.** A customer who saves the texting number
+  and later calls it gets dead air today. Cheap to configure at provisioning; not yet done.
+
+### What "SMS is live" actually means — sharpened 2026-08-18
+Three things. Shipping the first two without the third is the version that costs a customer.
+1. **Inbound texts reach Ava.** She answers, books and captures exactly as she does on a call.
+   **Most texts should never reach the owner** — a lead texting "yes, Thursday works" is Ava's job,
+   and forwarding it to a roofer on a ladder sells him back the problem he paid to be rid of.
+2. **The conversation is stored.** If a Retell chat agent owns it, transcripts arrive in the same
+   webhook shape calls already use and the dashboard works for free; building our own inbound route
+   means building threading and display too. **This is now the strongest argument for the spike.**
+3. **"Can you just call me?" escalates.** A lead asking for a human and getting silence is worse
+   than never texting them, and it lands on the best leads — the ones ready to buy. Reuse what
+   exists: set `leads.urgency` high and fire the proven owner-alert path. **Ava must not promise a
+   call she cannot guarantee** — *"I'll flag this for the team now, what's the best time to reach
+   you?"* captures the callback window without writing a cheque a roofer has to cash.
+
+### The Retell spike, still unrun
+Retell shipped SMS + chat agents in June 2026. **Chat agents run on the web channel with no A2P
+registration**, so conversation design and tool wiring can be proven while the paperwork clears.
+The question to answer: can a chat agent call the *existing* custom tools — `/api/available-slots`,
+`/api/book-appointment`, `/api/capture-lead`? If yes, Retell owns the conversation, we own the
+deterministic tools (exactly how booking already works), and transcripts come free. If no, build
+our own inbound route.
+
+**Whichever wins, one client gets one SMS identity.** Do not let it split across vendors.
+
+### Per-item inventory — SHIPPED 2026-08-16
+`client_schedules.max_concurrent_per_slot` answers "how many jobs at once" (a roofer with three
+crews takes three) and is untouched. `client_inventory` + `bookings.inventory_item_key` answer
+*which unit* — the princess castle, this skid steer, that dumpster.
+
+- **The load-bearing property: a booking with no item behaves exactly as before.** Every existing
+  client books people-time. `verify-inventory.mjs` asserts it directly, because a regression there
+  breaks every roofer, attorney and plumber at once and no item test would notice.
+- `book_slot()` was **DROPPED and recreated** with a tenth argument. Appending a defaulted parameter
+  creates an *overload*, and every existing 9-arg call would go ambiguous — "function is not
+  unique", and every booking fails.
+- **`lib/availability.ts` was not touched.** `filterAvailable` is already parameterised on capacity,
+  so the route runs one pass per item with that item's busy intervals and quantity.
+- Matching **refuses rather than guesses**: "castle" fits both Princess Castle and Castle Combo, and
+  picking one sends the wrong van to a child's birthday party. An unknown key **raises** rather than
+  returning zero rows, so "full" and "misconfigured" stay distinguishable.
+
+### The five niches are three product shapes
+| Niche | What it needs | Status |
 |---|---|---|
-| Demo agent | "Thanks for calling, this is Ava." | **Only when asked** — prompt says *"Asked whether you're AI: say yes"* |
-| **Northside** (real client) | "Thank you for calling Northside Roofing Company, this is Ava." | **None anywhere in the prompt** |
+| **Tree services / stump grinding** | Speed-to-lead + on-site estimate booked to calendar. *Nobody quotes a removal by text.* | **Already shipped** — the fastest pilot available, needs no new code |
+| Dumpster, portable restroom | Deterministic rate card | Needs SMS quoting |
+| Skid steer, party bus, bounce houses | Quote **+ per-item availability** | Inventory shipped; quoting not |
 
-"This is Ava" reads as a human name, and reactive-only disclosure is not "before or at the time of
-interaction." Not legal advice — but it is live law, in the home state, on a real client's line,
-and the fix is one clause.
+### Backlog — raised 2026-08-17/18, deliberately not built
+Recorded so they are not lost, and so they are not mistaken for current scope. None is started.
 
-**Ship this wording** (agreed 2026-08-15):
+**Channel plays — conversations, not code:**
+- **The top-ten Texas roofing company** (the cousin is their business developer). Biggest name,
+  slowest sale: a company that size already has a call centre, so the wedge is **after-hours and
+  storm surge**, not replacement. Storm surge is a *capacity* problem, which
+  `max_concurrent_per_slot` already models. Needs no code — only the right framing.
+- **Brother-in-law sells CRM systems and does not know AI.** That is a **channel, not a customer**:
+  he sells the CRM, we are the AI layer on top. Worth one conversation before any integration is
+  imagined — and ask *which* CRM first, because it decides everything downstream.
+- **Realtors** through the same network. The real-estate vertical already exists; nothing to build.
 
-> Thanks for calling {Business} — this is Ava, their AI assistant. How can I help you today?
+**Chamber readiness — mostly not code:**
+- A chamber room is **mixed businesses**, which makes a vertical page the wrong artifact. The right
+  one already exists: the shared demo line, which classifies the caller's industry live and now
+  discloses that Ava is AI.
+- **The demo is the pitch.** Hand someone the phone, let Ava book *them*, then show the booking land
+  on the calendar and the confirmation email arrive. "Proof, not promises" stops being a slogan the
+  moment it happens in front of someone.
+- What is actually missing is a **leave-behind and a capture path** — a card or QR pointing at the
+  demo number, with the existing `/api/intake` catching the follow-up.
 
-Why exactly this, so nobody "improves" it back into a violation or a hang-up:
-- **Business name first** — the caller's first question is whether they reached the right place.
-- **"their AI assistant"**, not "an AI assistant" — the possessive ties her to the business and
-  reads warmer; "an" sounds like a third-party service was bolted on.
-- **Never "automated system", "virtual agent", or "bot".** Those carry IVR-dead-end associations
-  and are what actually makes callers hang up. "Assistant" tests as competent, not obstructive.
-- **+3 words over the current greeting**, so the latency work is not undone.
-- **Do not bundle "this call may be recorded"** — recording consent is a separate question with
-  its own state-by-state rules. One change at a time.
-- **Do not promise a transfer to a human** unless that client actually has `hot_transfer`
-  (Elite / add-on). An escape hatch belongs in the *prompt*, fired on hesitation — not in the
-  greeting, where it becomes a claim.
-- Keep the existing *"Asked whether you're AI: say yes, plainly and without apologising"* line as
-  the backstop, and **add it to Northside's prompt, which has no disclosure line at all.**
+**Deferred builds, in rough order of value:**
+- **Text-to-Quote, human-confirmed.** Chris has rough pricing only, so v1 **never auto-sends a
+  price**: draft → owner approves by one tap → send. The human in the loop *is* the fail-closed
+  mode. Quoting commits money where booking only commits time — a wrong zone lookup texts a
+  contractor a firm price with a payment link from the yard's own number, and they will hold the
+  yard to it.
+- **Deposits + Stripe holds, and digital waivers.** Bounce houses and equipment take damage deposits
+  as standard. Needs the SMS layer underneath it first.
+- **Multi-day rental slots.** `book_slot()` already handles a multi-day interval via `tstzrange`,
+  but `generateSlots` is day-bounded, so nothing *offers* a seven-day dumpster hire. Not needed for
+  the entertainment pilot; required for dumpsters.
+- **Fleet-level availability beyond per-item counts** — which specific unit, where it is, when it
+  comes back. `client_inventory.quantity` covers "two identical bounce houses"; it does not track
+  individual assets.
+- **Setup fee for the rental verticals.** `SETUP_FEE` is 0, removed 2026-07-17 when auto-provisioning
+  shipped. Equipment-yard owners think in assets and often prefer a setup fee with a lower monthly.
+  Revisit for those niches only, and only with real pricing.
+- **An event-rentals vertical page** — only *after* the pilot works, written around a real
+  reference. One page with a named client behind it beats ten speculative ones.
 
-Booking-heavy verticals may trade ~2s for a competence signal: *"…their AI assistant. I can check
-the schedule and get you booked. What can I do for you?"* For legal, reassure instead:
-*"…their AI assistant. Everything you tell me goes straight to the team."*
-
-Roll it out with a script shaped like `set-client-model.mjs` — dry-run by default, `--apply` to
-write, and **verify through each agent's own `response_engine`**, not through the LLM object.
+### Compliance, applied and verified
+- **Texas TRAIGA disclosure is LIVE on all 11 agents** (2026-08-15). Greeting is *"Thanks for
+  calling {Business} — this is Ava, their AI assistant."* Never "automated system", "virtual agent"
+  or "bot": those carry the phone-tree associations that actually cause hang-ups.
+- **SMS consent is LIVE on all 11 agents** (2026-08-18). Ava asks once, `capture-lead` stores it
+  with a timestamp and the sentence behind it, and `sendSms` refuses without it. `consent` is a
+  **required parameter**, so the compiler asks at every call site rather than trusting anyone to
+  remember. A `true` with no timestamp is refused — it cannot answer "when did they agree".
+- Both were rolled out dry-run-first and **verified through each agent's own `response_engine`**,
+  then re-checked for version pinning. No drift either time.
 
 ### Usage metering: the gate is MET. Billing is BUILT. The switch is OFF.
-- **Phase A reconciled clean on 2026-08-15.** First period closed 2026-08-14;
-  `scripts/verify-usage.mjs` agreed with Retell **exactly** — 48 call durations, 105 minutes.
-  That comparison was the stated gate for Phase B, and it passed. *Caveat: it passed on an easy
-  case — 18 minutes, zero overage. The overage arithmetic has never met real data.*
-- **Phase B is built and disabled.** `lib/billing.ts` holds every decision that could charge
-  someone wrong; `/api/cron/usage-bill` (11:30 UTC) is thin. Three guards, each for a named
-  failure: **`USAGE_BILLING_ENABLED` must be exactly `'true'`** or nothing bills; a Stripe
-  idempotency key plus a metadata lookup on pending invoice items so **a cron that runs twice
-  cannot bill twice** (and if that lookup *fails*, it declines to charge — "I could not verify"
-  and "it is safe" are different answers); and a **$500 auto-bill ceiling**, because every billed
-  number descends from a duration we *copied* from Retell and a unit mix-up upstream produces
-  arithmetic that is flawless and enormous.
+- **Phase A reconciled clean on 2026-08-15.** First period closed 2026-08-14; `verify-usage.mjs`
+  agreed with Retell **exactly** — 48 call durations, 105 minutes. *Caveat: an easy case — 18
+  minutes, zero overage. The overage arithmetic has never met real data.*
+- **Phase B is built and disabled.** `lib/billing.ts` holds every decision that could charge someone
+  wrong; `/api/cron/usage-bill` (11:30 UTC) is thin. Three guards: **`USAGE_BILLING_ENABLED` must
+  be exactly `'true'`**; a Stripe idempotency key plus a metadata lookup on pending invoice items so
+  a cron running twice cannot bill twice (and if that lookup *fails* it declines to charge); and a
+  **$500 auto-bill ceiling**, because every billed number descends from a duration we *copied* from
+  Retell.
 - `node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-billing.mjs`
   dry-runs the real `decideBilling` against the real ledger and touches Stripe not at all.
 - **Northside can never be billed** — no Stripe anchor, and it will never have one retroactively.
-  The first client to sign up after 2026-08-10 is the first with a real one.
 - **`TIER_MINUTES` / `OVERAGE_RATE_CENTS` stay unadvertised until the switch flips.** The copy and
   the switch move together. This file has shipped that mistake once already (2026-07-11).
 
-### SMS: register, spike, then build — decided 2026-08-15
-Chris has friends in five rental/logistics niches and **at least one who would run a real pilot.**
-That is the scarce input, not more verticals — there are nine live and zero paying clients.
-**No new vertical pages.** The page follows the customer.
-
-- **The five niches are three products.** *Tree services / stump grinding* cannot be quoted by text
-  at all — removals need an on-site estimate, which is **speed-to-lead plus calendar booking, and
-  that is already shipped and proven.** Fastest pilot available; needs no new code. *Dumpster and
-  portable restroom* are deterministic rate cards. *Skid steer and party bus* also need **fleet**
-  availability (which unit, is it out) — the calendar books people-time, not inventory. Not built.
-- **A2P 10DLC is the long pole: 2–3 weeks of manual review**, confirmed by Retell's own docs. No
-  vendor avoids it — Retell, Twilio and Telnyx all sit behind the same Campaign Registry. Start
-  the registration before anything else; it is pure calendar time.
-- **Retell shipped SMS + chat agents in June 2026.** So the next step is a **spike, not a build**:
-  Retell chat agents run on the **web channel with no A2P registration**, so the conversation
-  design and tool wiring can be proven while the paperwork clears. The question to answer: can a
-  chat agent call the *existing* custom tools (`/api/available-slots`, `/api/book-appointment`,
-  `/api/capture-lead`)? If yes, Retell owns conversation and we own the deterministic tools —
-  exactly how booking already works. If no, build our own inbound route.
-- **Rex's SMS templates already end with "reply YES" and nothing listens** — `lib/rex-sequences.ts`
-  sends via `sendSms`, and there is no inbound route among the API routes. That is a live hole in
-  a shipped feature, whichever path wins.
-- **Quoting commits money, unlike booking, which commits time.** Chris has only rough pricing, so
-  the first version **never auto-sends a price**: draft → owner approves by one tap → send. The
-  human in the loop *is* the fail-closed mode.
-- Whichever path wins, one client gets **one SMS identity**. Do not let it split across vendors.
-
-### Stack review 2026-08-15 — change nothing about voice
-Voice spend is **~$15/month** (105 min at ~$0.13–0.15 all-in). There is no money to save, and
-switching would forfeit the proven booking chain and the Haiku benchmark. **Retell resells
-Twilio** — its own pricing lists telephony as "$0.015/minute (US via Twilio)", so "Retell vs
-Twilio" was never a real choice. Per message: Retell ~$0.012, Twilio ~$0.011, Telnyx ~$0.007 — a
-**~$6/month** spread at pilot volume, less than the 10DLC campaign fee all three share. Cost does
-not decide the SMS architecture; reuse and reliability do.
-
 ### The calendar chain is proven. Do NOT re-verify it.
-On a real call to **Northside** at 2026-08-06 00:25 UTC, with two blocks sitting on the owner's
-Google Calendar:
+On a real call to **Northside** at 2026-08-06 00:25 UTC, with two blocks on the owner's Google
+Calendar (9–10 blocked, 10–11 free, 11–12 blocked), a caller asked for *"Friday between nine and
+twelve."* Ava offered **"8:00 AM or 10:00 AM"** and booked 10:00 — she threaded the single free
+hour. Nothing in our database knew about either block. Everything downstream was correct on the
+same call: event titled `Roof inspection — Victoria Gray` with the job address as its location,
+**exactly one** caller confirmation stating the right day, owner alert delivered, lead linked,
+`confirmation_sent` true.
 
-| Friday Aug 7 | state |
-|---|---|
-| 9:00–10:00 AM | blocked by the owner in Google |
-| 10:00–11:00 AM | **free** |
-| 11:00–12:00 PM | blocked by the owner in Google |
-
-The caller asked for *"Friday between nine and twelve."* Ava offered **"8:00 AM or 10:00 AM"** and
-booked 10:00 — she threaded the single free hour. Nothing in our database knew about either
-block. Everything downstream was correct on the same call: event titled
-`Roof inspection — Victoria Gray` with the job address as its location, **exactly one** caller
-confirmation stating the right day, owner alert delivered, lead linked, `confirmation_sent` true.
-
-**The owner-alert path is CLOSED** — it was the last unexercised step in the booking chain, and it
-fired and arrived on that call. It had never fired before because the demo line has no
-`agent_subscriptions` row and therefore no owner to notify.
+**The owner-alert path is CLOSED** — the last unexercised step in the booking chain fired and
+arrived. It had never fired before because the demo line has no `agent_subscriptions` row.
 
 ### Also proven, unattended
-- **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with
-  nobody watching, found an access token that had already expired, refreshed it via the refresh
-  token, and recorded success without alerting anyone. That retires the old "crons have never
-  been observed firing" watch item, and it proves the OAuth refresh path — the exact thing
-  Google's *Testing* publishing status would have destroyed after 7 days.
-- **All 9 vertical templates + Northside now run `claude-4.5-haiku`.** The 2026-08-04 benchmark
-  had only ever been applied to the shared demo LLM. Like-for-like on the same agent and number:
+- **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with nobody
+  watching, found an expired access token, refreshed it, and recorded success without alerting
+  anyone. That proves the OAuth refresh path.
+- **All 9 vertical templates + Northside run `claude-4.5-haiku`.** Like-for-like on the same agent
+  and number:
 
   | | p50 | max | opening turns |
   |---|---|---|---|
@@ -145,127 +214,111 @@ fired and arrived on that call. It had never fired before because the demo line 
   Revert: `node --env-file=.env.local scripts/retell/set-client-model.mjs --model claude-4.6-sonnet --apply`
 
 ### How the calendar integration is built
-- `lib/calendar/` is a provider seam. **`google.ts` is the only file that knows Google exists**
-  — Microsoft Graph is meant to be a new file, not a rewrite. Never Apple/CalDAV (no OAuth, needs
-  a hand-typed app password, kills "live within minutes").
+- `lib/calendar/` is a provider seam. **`google.ts` is the only file that knows Google exists** —
+  Microsoft Graph is meant to be a new file, not a rewrite. Never Apple/CalDAV.
 - **`lib/availability.ts` was not touched.** A Google freeBusy response reduces to its existing
-  `BusyInterval` shape, so calendar busy times concatenate with rows from `bookings`.
-- **Reads fail CLOSED, writes fail OPEN.** Both `/api/available-slots` (offering) and
-  `/api/book-appointment` (accepting) refuse rather than offer a time they cannot verify. The
-  event *write* after a successful booking is non-fatal — the slot is already atomically held and
-  the caller is on the phone — and marks `calendar_sync_status='pending'` for the cron to retry.
+  `BusyInterval` shape.
+- **Reads fail CLOSED, writes fail OPEN.** Both `/api/available-slots` and `/api/book-appointment`
+  refuse rather than offer a time they cannot verify. The event *write* after a successful booking
+  is non-fatal and marks `calendar_sync_status='pending'` for the cron to retry.
 - **`getProviderForClient()` returning `null` is the normal case** and must stay first-class.
-  Every client without a connected calendar behaves exactly as before the feature existed.
 - Tokens are AES-256-GCM encrypted under **`CALENDAR_TOKEN_KEY`**. Lose or rotate it and every
   connected client must reconnect by hand. It is in Vercel; keep a durable copy elsewhere.
 
 ### Facts that will waste your time if you don't know them
 - **There is exactly ONE `agent_subscriptions` row:** `damozman@yahoo.com` →
-  `www.Northsideroofing.com`. Connecting a calendar resolves the client from that table, so you
-  must be logged in as **damozman@yahoo.com**. `chris@369agenticsystems.com` has no row and the
-  connect flow dead-ends at the login page.
+  `www.Northsideroofing.com`, business_name "Northside Roofing Company", tier Elite. Connecting a
+  calendar resolves the client from that table, so you must be logged in as **damozman@yahoo.com**.
 - **Two phone numbers, easily confused.** Northside is **+1 (817) 612-6757**; the shared demo line
-  is **+1 (817) 635-0220**. A test on the demo line proves nothing about calendars —
-  `demo.369agenticsystems.com` has no subscription row, and `calendar_connections` is FK'd to
-  `agent_subscriptions`, so **the demo line can never hold a calendar connection.** One test
-  session was lost to exactly this.
-- **A client's Google Calendar timezone is not necessarily the business timezone.** Chris's was
-  set to UTC, which rendered a correct 9:00 AM Central booking as 2pm and looked like a bug for
-  half an hour. The stored instant was right the whole time. Expect this on real onboarding.
-- **Google returns `"primary"` verbatim** from freeBusy — it does *not* normalise it to the
-  account address. So `account_email` stays null and the dashboard says "Google account". Getting
-  the real address would mean requesting `openid email` purely to label a card, and a scope change
-  later costs a re-consent from every connected client. Deliberately not done.
-- `node --env-file=.env.local` is how the Retell scripts get their key; `verify-calendar-sync.mjs`
-  needs `CALENDAR_TOKEN_KEY` and will happily run on a live access token without the Google client
-  credentials.
+  is **+1 (817) 635-0220**. A test on the demo line proves nothing about calendars — the demo line
+  has no subscription row and can never hold a calendar connection. One session was lost to this.
+- **The shared demo agent (`agent_c29218a34d116e3a2a56ba8827`) is neither a template nor a
+  subscription**, so scripts that enumerate those two sources miss it. It takes real prospect calls.
+  `set-ai-disclosure.mjs` and `set-sms-consent.mjs` both add it by id.
+- **A client's Google Calendar timezone is not necessarily the business timezone.** Chris's was set
+  to UTC, which rendered a correct 9:00 AM Central booking as 2pm. Expect this on real onboarding.
+- **Google returns `"primary"` verbatim** from freeBusy — it does *not* normalise it to the account
+  address, so `account_email` stays null and the dashboard says "Google account". Deliberate.
+- **`agent_subscriptions.owner_phone` and `followup_method` are written at onboarding and never
+  read.** Deliberately kept — both become live the moment owner SMS notification is built.
 
 ### Google OAuth status
-Consent screen is **published to Production** (not Testing — that issues 7-day refresh tokens and
-would kill every connection silently). Scopes are exactly `calendar.freebusy` + `calendar.events`.
-Domain ownership is verified via a TXT record that sits **alongside** the Private Email SPF record
-— do not edit that one. `/privacy` and `/terms` must stay at those exact paths and outside
-middleware; Google's console points at them.
+Consent screen is **published to Production**. Scopes are exactly `calendar.freebusy` +
+`calendar.events`. Domain ownership is verified via a TXT record that sits **alongside** the Private
+Email SPF record — do not edit that one. `/privacy` and `/terms` must stay at those exact paths and
+outside middleware.
 
-**Verification has NOT been submitted.** Until it clears, anyone connecting sees the "Google
-hasn't verified this app" interstitial and must click Advanced → Continue, and there is a 100-user
-cap. See Open item 0.
+**Verification has NOT been submitted.** Until it clears, anyone connecting sees the "Google hasn't
+verified this app" interstitial and must click Advanced → Continue, and there is a 100-user cap.
 
 ### Open items
-0. **Submit for Google verification.** Everything that was blocking it now exists. The submission
-   needs a **demo video showing the end-to-end OAuth consent and the app using the scopes**, which
-   is why it could not be done earlier. Justification to use, which is true of the code: *we
-   request `calendar.freebusy` rather than `calendar.readonly` specifically so we never receive
-   event titles, attendees or descriptions — we only need to know whether a time is occupied.*
-   Review takes up to 10 days on Google's schedule and gates nothing else.
-   **The recording order matters:** disconnect the calendar first so there is a fresh consent to
-   film, log in as `damozman@yahoo.com`, and call **Northside** on +1 (817) 612-6757 — a demo-line
-   call proves nothing, and one session was already lost to that.
-1. **`RETELL_TEMPLATE_AGENT_DENTAL` — DIAGNOSED 2026-08-15, one character.** The agent is not
-   missing; the env var has a **duplicated `7`**, making it 33 characters where every real Retell
-   agent id is 32. Correct: `agent_c15e91298719748ba3b54bdbc3`. Recorded (wrong):
-   `agent_c15e912987197748ba3b54bdbc3`. The Dental Demo Agent exists and is fully wired with all
-   three custom tools. Fix `.env.local` **and Vercel** — a hook blocks writing `.env*` from here.
-2. **Phase B billing: flip the switch when Stripe is live.** Set `USAGE_BILLING_ENABLED=true` in
-   Vercel (needs a redeploy — env vars bake at build time), and **flip the pricing copy in the
-   same move.** Run `scripts/verify-billing.mjs` first; it dry-runs the real decision path.
-3. **Phase 2b bulk runner — NOT built, deliberately.** It manufactures the proprietary statistic
-   that replaces the removed borrowed ones, and everything it needs is built and tested
-   (`tallyAuditCalls`, `unreachedShare`, honest denominators, 30-call minimum). **Blocked on a
-   decision only Chris can make:** cold-calling businesses that never made contact is a different
-   legal posture from calling a form submitter — Texas telemarketing registration and do-not-call
-   apply. Do not build this unprompted.
-4. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only
-   caller when `/api/update-dossier` was deleted.
-5. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+0. **Submit for Google verification.** Everything blocking it now exists. Needs a **demo video
+   showing end-to-end OAuth consent and the app using the scopes**. Justification, true of the code:
+   *we request `calendar.freebusy` rather than `calendar.readonly` specifically so we never receive
+   event titles, attendees or descriptions.* Review takes up to 10 days and gates nothing else.
+   **Recording order matters:** disconnect the calendar first so there is a fresh consent to film,
+   log in as `damozman@yahoo.com`, and call **Northside** on +1 (817) 612-6757 — a demo-line call
+   proves nothing, and one session was already lost to that.
+1. **Register the A2P brand + campaign for 3SIX9 MEDIA MASTERS LLC.** Low-volume standard. This is
+   the gate on every SMS track and it is pure calendar time.
+2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
+   weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
+3. **Trust Hub automation.** Secondary Profile + brand + campaign via API at signup. **Blocked on a
+   data gap:** the questionnaire collects pain points and job values, not legal business name, EIN,
+   address or authorized rep. Signup has to ask, and clients have to be willing to hand over an EIN.
+   Approval is asynchronous, so SMS becomes a *second stage* — voice live in minutes, texting live
+   when the campaign clears.
+4. **Phase B billing: flip the switch when Stripe is live.** Set `USAGE_BILLING_ENABLED=true` in
+   Vercel (needs a redeploy) and **flip the pricing copy in the same move.** Run
+   `scripts/verify-billing.mjs` first.
+5. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+   and failed silently for months — nobody read its output, only that it ran. Assume siblings.
+6. **Phase 2b bulk runner — NOT built, deliberately.** Blocked on a decision only Chris can make:
+   cold-calling businesses that never made contact is a different legal posture from calling a form
+   submitter. Do not build this unprompted.
+7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
+   when `/api/update-dossier` was deleted.
+8. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
 ### Lessons that each cost real time
 - **One-sided adoption always leaves a window.** When two things arrive in an order you do not
-  control, *each* must adopt the other. The booking-notification fix made `capture-lead` adopt the
-  booking and stopped there; the leftover 73ms window — between the booking row existing and its
-  `calendar_event_id` being written — hit on the very first real call and put a phone number on a
+  control, *each* must adopt the other. The leftover 73ms window between a booking row existing and
+  its `calendar_event_id` being written hit on the very first real call and put a phone number on a
   customer's calendar event instead of their name. **Do not "fix" ordering by reordering the
   prompt**: tool-call order is the model's to choose.
-- **Verify through the consumer's view, not the producer's.** An LLM that reports the new model
+- **Verify through the consumer's view, not the producer's.** An LLM that reports the new value
   while the agent still resolves to an older version is what made the demo line answer calls and
-  record none for ten days. `set-client-model.mjs` re-reads through each agent's own
-  `response_engine` for this reason.
-- **A bare Postgres `timestamp` has no timezone, and `new Date()` will read it as the server's.**
-  Vercel runs UTC. This told a real customer their appointment was on Wednesday when it was
-  Thursday. `starts_at` (timestamptz) is the truth; the prose columns are for display only.
-- **Arming a shared-secret gate silently breaks every producer that did not get the new secret**,
-  and the breakage is silent by construction. This caused both the funnel outage and the ten-day
-  call outage. After arming any gate, enumerate the producers and verify each one still delivers.
+  record none for ten days.
+- **A bare Postgres `timestamp` has no timezone, and `new Date()` reads it as the server's.** Vercel
+  runs UTC. This told a real customer their appointment was Wednesday when it was Thursday.
+- **Arming a shared-secret gate silently breaks every producer that did not get the new secret.**
+  After arming any gate, enumerate the producers and verify each one still delivers.
 - **Measure before recommending.** A four-minute benchmark settled a model-choice question that
-  would otherwise have been argued from plausible reasoning. Do not upgrade a model on the theory
-  that a task is "reasoning-heavy" — run the comparison first.
-- **Retell's transcript splits an agent turn whenever ASR hears anything.** It is not a record of
-  what the caller heard. Never diagnose call quality from a transcript when a human heard the call.
-- **A test that reads the clock twice must be bounded against both readings.** One asserting a
-  token lifetime against only the *earlier* reading failed about one run in three.
-- **A copied value can only be checked against its source.** `calls.duration_seconds` is copied
-  from Retell's payload, so every number the meter derives is downstream of that copy — and when
-  the copy is wrong, *nothing inside our own database can tell*, because our sums agree with our
-  rows and our rows are simply short of the truth. `verify-usage.mjs` compares against Retell and
-  found a call recorded as `null` that Retell said ran 234 seconds: a missed `call_ended` webhook,
-  silently under-billing. Reconcile against the source, not the mirror.
+  would otherwise have been argued from plausible reasoning.
+- **Retell's transcript splits an agent turn whenever ASR hears anything.** Never diagnose call
+  quality from a transcript when a human heard the call.
+- **A copied value can only be checked against its source.** `calls.duration_seconds` is copied from
+  Retell, so when the copy is wrong *nothing inside our own database can tell* — our sums agree with
+  our rows and our rows are simply short of the truth. Reconcile against the source, not the mirror.
 - **`.limit(5)` is not a count.** Two numbers reported to Chris were wrong because a probe query
-  capped at five rows was read as the total — the real figure was 19, and the repo's own
-  `gumloop-prompts-archive.md` had already written it down.
-- **Advertise a promise only when the system can keep it.** Copy and capability ship together or
-  not at all.
+  capped at five rows was read as the total.
+- **Advertise a promise only when the system can keep it.** Copy and capability ship together.
 - **Outside advice is worth verifying, not adopting and not dismissing.** Two external AI reviews
-  (2026-08-15) were graded against the actual repo. The confident, specific claim — *"your primary
-  CTA is a dead link, that's free money"* — was **false**: every flagged `href="#"` carries a
-  `data-audit` handler, and the reviewer had read the HTML without running the JS. The claim that
-  sounded like boilerplate compliance throat-clearing — *"Texas requires AI disclosure"* — was
-  **real, in force, and unmet on a live client's phone line.** The advice most worth checking is
-  rarely the advice most confidently delivered. Grade every claim against the system itself.
+  (2026-08-15) were graded against the repo. The confident, specific claim — *"your primary CTA is a
+  dead link"* — was **false**: every flagged `href="#"` carries a `data-audit` handler and the
+  reviewer had read the HTML without running the JS. The claim that sounded like boilerplate —
+  *"Texas requires AI disclosure"* — was **real, in force, and unmet on a live client's line.**
+- **A "leave alone" note can outlive its reason.** `369AgenticSystems.code-workspace` sat dirty for
+  a month because every session deferred to a warning nobody had checked. It was three lines of
+  editor config. A permanently dirty `git status` is a broken smoke detector.
+- **Read the SDK types before promising an integration is simple.** "Import a Twilio number into
+  Retell" sounds like an account link; `PhoneNumberImportParams` requires `termination_uri`, so it
+  is elastic SIP trunking. That reversed a recommendation made one message earlier.
 - **"Just add another vertical" is almost never the answer here.** Nine are live, zero clients have
-  ever paid, and the one real subscription logged 18 minutes in a month. Product surface has never
-  been the constraint; distribution has. A warm introduction beats a tenth landing page.
+  ever paid, and the one real subscription logged 18 minutes in a month. Distribution has always
+  been the constraint. A warm introduction beats a tenth landing page.
 
 ### Verification scripts (all committed, all run against live systems)
 ```
@@ -284,27 +337,27 @@ node --import ./scripts/test-resolver.mjs scripts/verify-calendar-sync.mjs
                                          schema + a REAL freeBusy read and create/patch/delete
 node --import ./scripts/test-resolver.mjs scripts/verify-usage.mjs [--repair]
                                          meter vs RETELL's own call records; --repair backfills
-                                         durations lost to missed call_ended webhooks
 node --import ./scripts/test-resolver.mjs scripts/verify-billing.mjs
-                                         dry-runs the REAL decideBilling against the REAL ledger;
-                                         touches Stripe not at all
+                                         dry-runs the REAL decideBilling; touches Stripe not at all
+node --import ./scripts/test-resolver.mjs scripts/verify-inventory.mjs
+                                         schema + a REAL double-book race against one item
 node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
+node --env-file=.env.local scripts/retell/set-ai-disclosure.mjs        dry run; --apply to write
+node --env-file=.env.local scripts/retell/set-sms-consent.mjs          dry run; --apply to write
 node --env-file=.env.local scripts/retell/update-availability-tool.mjs dry run; --apply to write
 node --env-file=.env.local scripts/retell/update-demo-script.mjs       aborts on bad tool names
 ```
 
 ### Environment notes
-- Chris runs **PowerShell**. Never hand over bash syntax or angle-bracket placeholders —
-  `<` is a reserved operator and the line fails to parse before running. Script it with
-  prompts instead.
+- Chris runs **PowerShell**. Never hand over bash syntax or angle-bracket placeholders — `<` is a
+  reserved operator and the line fails to parse before running. Script it with prompts instead.
 - **Retell webhooks always hit production**, never a preview — the URL is on the agent.
-- Vercel previews are SSO-protected; `curl` gets `401 "Protected deployment"` without a
-  Protection Bypass for Automation token.
+- Vercel previews are SSO-protected; `curl` gets `401 "Protected deployment"` without a bypass token.
 - Vercel **bakes env vars in at build time** — changing one requires a redeploy.
 - `npm test` uses `scripts/test-resolver.mjs` so Node can resolve the `@/` alias. It also means
-  **TypeScript parameter properties (`constructor(private readonly x)`) will not run** — Node's
-  type-stripping rejects them outright. Write the fields out longhand.
+  **TypeScript parameter properties (`constructor(private readonly x)`) will not run** — write the
+  fields out longhand.
 - A hook blocks writing to `.env*` files. Pass secrets inline (`VAR=value node ...`) instead.
 
 ## Project Overview
@@ -405,16 +458,22 @@ estimate shown to a prospect. Import it; never re-declare it. The 9 static calcu
 a mirrored `const RECOVERY_RATE = 0.30` with a comment pointing back, since they can't import.
 Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts` guards both.
 
-## Launch State (as of 2026-08-15)
+## Launch State (as of 2026-08-18)
 - Dental: all agents marked FUTURE (not yet deployed to that vertical)
 - Legal: 4 agents (Ava, Rex, Nova, Felix) — all LIVE
 - SaaS: 4 agents (Ava, Rex, Nova LIVE; Scout DEPLOYING — not built)
 - All other verticals: 3 agents (Ava, Rex, Nova) — all LIVE
 - Zero paying clients. No testimonials, logos, or plural-client claims are permissible anywhere.
-- **Inbound SMS does not exist.** `lib/twilio-sms.ts` sends only, called only by Rex sequences;
-  there is no inbound route. Rex SMS follow-up and Nova review requests are NOT shipped — the
-  "coming in phase 2" notes on the agent pages are accurate, leave them. `SMS Estimating —
-  COMING SOON` on the homepage is likewise true; leave it until the SMS work actually lands.
+- **Inbound SMS still does not exist.** `lib/twilio-sms.ts` sends only, called only by Rex
+  sequences; there is no inbound route among the API routes. Rex SMS follow-up and Nova review
+  requests are NOT shipped — the "coming in phase 2" notes on the agent pages are accurate, leave
+  them. `SMS Estimating — COMING SOON` on the homepage is likewise true; leave it until the SMS
+  work actually lands. **Twilio is unconfigured**, so nothing can send regardless.
+- **Rex's templates are client-branded and consent-gated as of 2026-08-18.** They render
+  `{business}` from `agent_subscriptions.business_name`, carry "Reply STOP to opt out" on step 0,
+  and `sendSms` refuses without a recorded, timestamped opt-in.
+- **Per-item rental inventory IS shipped** (`client_inventory`, `bookings.inventory_item_key`,
+  `book_slot()` with a tenth argument). No client has inventory rows yet.
 - **Google Calendar booking IS shipped and proven on a real call.** Ava's page and `/privacy`
   describe it in the present tense, corrected 2026-08-10 (PR #31). The Cal.com claims that used
   to sit there are gone, as is "Claude Sonnet" from Ava's tech list — but `/book-demo` still
