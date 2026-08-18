@@ -38,6 +38,17 @@ export interface SendSmsInput {
 export async function sendSms(input: SendSmsInput): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const { toPhone, message, trackingId, consent } = input
 
+  // Consent is checked BEFORE configuration, deliberately.
+  //
+  // Both refuse, so today the order changes nothing that reaches a carrier. It changes two things
+  // that matter: the reason logged is the true one rather than whichever check happened to run
+  // first, and the gate becomes provable now — with Twilio still unconfigured — instead of only
+  // after it is wired up, which is exactly the wrong moment to first find out whether it works.
+  if (!consent?.granted) {
+    console.warn(`[SMS] Refused — ${consent?.reason ?? 'no consent object supplied'}${trackingId ? ` [${trackingId}]` : ''}`)
+    return { success: false, error: `No consent to text this recipient: ${consent?.reason ?? 'none supplied'}` }
+  }
+
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
     console.error('[SMS] Twilio not configured')
     return { success: false, error: 'Twilio not configured' }
@@ -47,12 +58,6 @@ export async function sendSms(input: SendSmsInput): Promise<{ success: boolean; 
     return { success: false, error: 'Missing toPhone or message' }
   }
 
-  // The gate. Every path into Twilio passes through here, which is the whole point of putting it
-  // in this function rather than in the three routes that call it.
-  if (!consent?.granted) {
-    console.warn(`[SMS] Refused — ${consent?.reason ?? 'no consent object supplied'}${trackingId ? ` [${trackingId}]` : ''}`)
-    return { success: false, error: `No consent to text this recipient: ${consent?.reason ?? 'none supplied'}` }
-  }
 
   try {
     // Format phone number: ensure it starts with + and country code
