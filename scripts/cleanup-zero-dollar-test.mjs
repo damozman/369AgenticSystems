@@ -104,6 +104,42 @@ for (const row of rows) {
   }
 }
 
+// Sweep ORPHANS. The subscription row records ONE agent, but a single checkout can provision
+// several: the event reaches every registered endpoint, and Stripe retries. The 2026-08-18 run
+// produced three agents and three numbers from one checkout, and the row named only the last
+// writer — so a cleanup driven by the row alone leaves purchased numbers billing forever.
+// Matched on the agent NAME, which provisioning derives from the business name.
+const AGENT_NAME_PREFIX = 'ZERO DOLLAR TEST'
+const allAgents = (await retell.agent.list()).items ?? (await retell.agent.list()) ?? []
+const orphans = (Array.isArray(allAgents) ? allAgents : [])
+  .filter(a => String(a.agent_name || '').startsWith(AGENT_NAME_PREFIX))
+  .filter(a => !PROTECTED_AGENTS.includes(a.agent_id))
+
+if (orphans.length) {
+  console.log(`
+Orphan sweep — ${orphans.length} agent(s) named "${AGENT_NAME_PREFIX}..."`)
+  const allNumbers = (await retell.phoneNumber.list()).items ?? []
+  for (const a of orphans) {
+    const bound = allNumbers.filter(n => (n.inbound_agents || []).some(x => x.agent_id === a.agent_id))
+    for (const n of bound) {
+      if (PROTECTED_NUMBERS.includes(n.phone_number)) { console.log(`  REFUSING protected number ${n.phone_number}`); continue }
+      act(`Retell number ${n.phone_number} (orphan, bound to ${a.agent_id})`)
+      if (APPLY) await retell.phoneNumber.delete(n.phone_number).catch(e => console.error('   failed:', e.message))
+    }
+    let llmId
+    try {
+      const full = await retell.agent.retrieve(a.agent_id)
+      if (full?.response_engine?.type === 'retell-llm') llmId = full.response_engine.llm_id
+    } catch {}
+    act(`Retell agent ${a.agent_id} (${a.agent_name})`)
+    if (APPLY) await retell.agent.delete(a.agent_id).catch(e => console.error('   failed:', e.message))
+    if (llmId) {
+      act(`Retell LLM ${llmId}`)
+      if (APPLY) await retell.llm.delete(llmId).catch(e => console.error('   failed:', e.message))
+    }
+  }
+}
+
 // Prove the cleanup rather than assume it: re-read both sources afterwards.
 if (APPLY) {
   const { data: left } = await supabase.from('agent_subscriptions').select('client_domain')

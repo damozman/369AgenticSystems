@@ -263,13 +263,25 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    the gate on every SMS track and it is pure calendar time.
 2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
    weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
-   **This depends on the zero-dollar checkout fix (2026-08-18).** Stripe sends
-   `payment_status: 'no_payment_required'`, *not* `'paid'`, whenever a coupon zeroes the amount
-   due. The webhook gated on `'paid'` alone, so before that fix a 100%-off checkout returned
-   HTTP 200, appeared as a successful delivery in Stripe's dashboard, and provisioned **nothing** —
-   no `agent_subscriptions` row, and therefore nothing for inventory, schedule or calendar to
-   attach to. The advice above is only true with that fix in place; verify with
-   `scripts/verify-zero-dollar-checkout.mjs` before booking her time.
+   **A real 100%-off checkout was run end to end on 2026-08-18 and it provisions correctly.**
+   Stripe returned `payment_status: 'paid'` with `amount_total: 0` — *not*
+   `'no_payment_required'`, which was predicted from the API docs and is wrong for a
+   subscription-mode checkout whose first invoice is zero. **The 'paid' gate was never a blocker
+   for this flow.** Do not re-derive that theory; it was tested and disproved. (The webhook now
+   also accepts `'no_payment_required'` as hardening — that status is real for other shapes,
+   such as a trial with no payment method — but nothing about the pilot depended on it.)
+   **What the run DID surface, and what actually threatens her onboarding:**
+   - **One checkout provisioned THREE agents and THREE phone numbers.** See the idempotency note
+     under Open items. This is the real risk to a live signup, and it costs money per duplicate.
+   - **A test-mode Stripe webhook endpoint is registered against `https://369agenticsystems.com`**,
+     so a *test-mode* checkout provisions REAL Retell agents and numbers and writes REAL rows to
+     production Supabase. There is no sandbox below the Stripe layer.
+   - `business_name` was never written by `provisionClient` — fixed 2026-08-18. Without it
+     `lib/client-identity.ts` falls back to a generic phrase and every client-branded message
+     goes out unbranded. Northside only had one because it was inserted by hand.
+   Re-verify with `scripts/verify-zero-dollar-checkout.mjs`, and always run
+   `scripts/cleanup-zero-dollar-test.mjs` afterwards — it sweeps orphaned agents by name, not
+   just the one the subscription row records.
    **Her `client_schedules` row must be written explicitly, at onboarding.** There is no row by
    default and `DEFAULT_SCHEDULE` (`lib/client-schedule.ts`) closes Saturday and Sunday and caps
    the horizon at 14 days. A party-rental business is almost entirely weekends and books months
@@ -295,15 +307,30 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    on live Retell traffic. Measure before changing any of them.
 
 ### Lessons that each cost real time
+- **A bug derived from documentation is a hypothesis, not a finding.** On 2026-08-18 a careful
+  reading of the Stripe webhook produced a confident, specific, plausible claim: a 100%-off
+  checkout sends `payment_status: 'no_payment_required'`, the gate only accepts `'paid'`, so the
+  pilot silently provisions nothing. It survived an independent review. **A real checkout then
+  returned `'paid'` with `amount_total: 0` and provisioned fine.** The theory was wrong, and no
+  amount of further reading would have shown it — only the run did. Same principle as
+  reconciling a copied value against its source: *the system is the authority on its own
+  behaviour.* Insisting on the end-to-end run before the fix merged is what caught it.
+- **One checkout can provision several times, and nothing stops it.** That same run created
+  **three** Retell agents, three phone numbers and three duplicate `agent_configurations` rows
+  from a single purchase — the event reached both a local listener and the registered production
+  endpoint, and production was retried 37 seconds later. `checkout.session.completed` has **no
+  idempotency guard**: no lookup on `stripe_subscription_id`, no dedupe on the event id. The
+  `agent_subscriptions` upsert hides it, because `onConflict: 'client_domain'` overwrites only
+  the columns present in the payload — so the surviving row was a *mixture of two different
+  provisioning runs*, taking `business_name` from one and `retell_agent_id` from another, and
+  looked entirely normal. Every duplicate agent and number stays purchased and billing.
 - **A webhook that returns 200 is not a webhook that did anything.** The Stripe gate answered
-  `{received: true}` for every `payment_status` it did not recognise, so a zero-dollar checkout
-  provisioned nothing while **Stripe's own dashboard showed the delivery as successful**. The
-  producer's view of a webhook is "did it get a 2xx", which is not the same question as "did the
-  work happen" — the same shape as the dental funnel money-risk fix, where a customer could be
-  charged and never provisioned. Two rules came out of it: a handler that declines to act must
-  **say so out loud** (log + owner alert), and a status set you match on must have an explicit
-  else-branch rather than a silent default. Found by reading the gate before onboarding a real
-  pilot through it, not by an alert — because there was no alert.
+  `{received: true}` for every `payment_status` it did not recognise, so any refusal was
+  indistinguishable from success in Stripe's dashboard. The producer's view of a webhook is "did
+  it get a 2xx", which is not the same question as "did the work happen" — the same shape as the
+  dental funnel money-risk fix. Fixed 2026-08-18: a handler that declines to act now logs and
+  sends an owner alert, and the status set has an explicit else-branch rather than a silent
+  default.
 - **One-sided adoption always leaves a window.** When two things arrive in an order you do not
   control, *each* must adopt the other. The leftover 73ms window between a booking row existing and
   its `calendar_event_id` being written hit on the very first real call and put a phone number on a

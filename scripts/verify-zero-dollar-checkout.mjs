@@ -197,7 +197,13 @@ if (!coupon) {
 const promos = await stripe.promotionCodes.list({ code: PROMO_CODE, limit: 1 })
 let promo = promos.data[0]
 if (!promo) {
-  promo = await stripe.promotionCodes.create({ coupon: coupon.id, code: PROMO_CODE })
+  // API version 2026-06-24.dahlia takes a nested `promotion`, not a flat `coupon` — a flat
+  // one fails with "Received unknown parameter: coupon". Checked against the installed SDK's
+  // PromotionCodeCreateParams rather than guessed.
+  promo = await stripe.promotionCodes.create({
+    promotion: { type: 'coupon', coupon: coupon.id },
+    code: PROMO_CODE,
+  })
   ok(`created promotion code ${promo.code}`)
 } else {
   ok(`reusing promotion code ${promo.code}`)
