@@ -97,14 +97,16 @@ for (const row of rows) {
     if (e) console.error('   config delete failed:', e.message)
   }
 
-  // The claim outlives the subscription row otherwise, and a stale claim would block a
-  // re-test that happened to reuse the same subscription id.
-  if (row.stripe_subscription_id) {
-    act(`provisioning_claims row ${row.stripe_subscription_id}`)
-    if (APPLY) {
-      const { error: e } = await supabase.from('provisioning_claims').delete().eq('stripe_subscription_id', row.stripe_subscription_id)
-      if (e) console.error('   claim delete failed:', e.message)
-    }
+  // Scoped to the DOMAIN, not to the subscription id on the row.
+  //
+  // Two checkouts for the same test domain produce two claims, but agent_subscriptions is
+  // upserted on client_domain — so the row names only the LAST subscription and a delete keyed
+  // on it leaves the earlier claim behind. That happened on 2026-08-19 and left exactly one
+  // orphan. Harmless in itself, but it is litter in a table whose whole job is to be trusted.
+  act(`provisioning_claims rows for ${row.client_domain}`)
+  if (APPLY) {
+    const { error: e } = await supabase.from('provisioning_claims').delete().eq('client_domain', row.client_domain)
+    if (e) console.error('   claim delete failed:', e.message)
   }
 
   act(`agent_subscriptions row ${row.client_domain}`)
