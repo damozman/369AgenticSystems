@@ -43,14 +43,31 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
   // Rental stock. Off by default: most verticals sell time, and an equipment table is pure
   // friction for a roofer. Mirrors the has_emergency_service pattern in Section 3.
   const [rentsItems, setRentsItems] = useState(false)
-  const [inventory, setInventory] = useState<{ label: string; quantity: number }[]>([
-    { label: '', quantity: 1 },
-  ])
 
-  const setItem = (i: number, patch: Partial<{ label: string; quantity: number }>) =>
+  /**
+   * quantity is held as TEXT, not a number.
+   *
+   * Coercing on every keystroke means clearing the box yields Number('') === 0, so a 0 sits
+   * in the field and whatever is typed next lands after it — typing 10 gives 010. Keeping the
+   * raw text lets the box be genuinely empty mid-edit; it is parsed once, on submit.
+   */
+  type ItemRow = { label: string; quantity: string }
+  const [inventory, setInventory] = useState<ItemRow[]>([{ label: '', quantity: '1' }])
+
+  const setItem = (i: number, patch: Partial<ItemRow>) =>
     setInventory(prev => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
-  const addItem    = () => setInventory(prev => [...prev, { label: '', quantity: 1 }])
+  const addItem    = () => setInventory(prev => [...prev, { label: '', quantity: '1' }])
   const removeItem = (i: number) => setInventory(prev => prev.filter((_, idx) => idx !== i))
+
+  /** Digits only while typing, and an empty box is allowed until they leave the field. */
+  const onQuantityChange = (i: number, raw: string) =>
+    setItem(i, { quantity: raw.replace(/[^0-9]/g, '').slice(0, 4) })
+
+  /** On the way out, settle it: empty or 0 becomes 1, and 007 becomes 7. */
+  const onQuantityBlur = (i: number) =>
+    setItem(i, { quantity: String(Math.max(1, parseInt(inventory[i]?.quantity ?? '1', 10) || 1)) })
+
+  const quantityOf = (row: ItemRow) => Math.max(1, parseInt(row.quantity, 10) || 1)
 
   const filledItems = inventory.filter(r => r.label.trim() !== '')
 
@@ -64,7 +81,7 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
    */
   const collisions = (() => {
     const pool = filledItems.map(r => ({
-      item_key: deriveItemKey(r.label), label: r.label.trim(), quantity: r.quantity,
+      item_key: deriveItemKey(r.label), label: r.label.trim(), quantity: quantityOf(r),
     }))
     const words = new Set<string>()
     for (const it of pool) for (const w of it.label.toLowerCase().split(/[^a-z0-9]+/)) {
@@ -126,7 +143,7 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
           },
           // Only when they said they rent things. An empty array and an absent key mean
           // different things to the route: absent leaves existing stock alone.
-          ...(rentsItems ? { inventory: filledItems.map(r => ({ label: r.label.trim(), quantity: Number(r.quantity) })) } : {}),
+          ...(rentsItems ? { inventory: filledItems.map(r => ({ label: r.label.trim(), quantity: quantityOf(r) })) } : {}),
         }),
       })
 
@@ -464,13 +481,17 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
                     onChange={e => setItem(i, { label: e.target.value })}
                   />
                   <input
-                    style={{ flex: 1, margin: 0 }}
-                    type="number"
-                    min={1}
-                    max={999}
+                    style={{ flex: 1, margin: 0, minWidth: 0 }}
+                    // text + inputMode, not type=number: a number input keeps its own
+                    // partially-typed buffer, which is what put a stray 0 in front of the
+                    // digits. inputMode still brings up the numeric keypad on a phone.
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     aria-label="How many you own"
                     value={row.quantity}
-                    onChange={e => setItem(i, { quantity: Number(e.target.value) })}
+                    onChange={e => onQuantityChange(i, e.target.value)}
+                    onBlur={() => onQuantityBlur(i)}
                   />
                   <button
                     type="button"
