@@ -85,11 +85,29 @@ export function matchItem(items: InventoryItem[], spoken: string | null | undefi
 }
 
 /** A phrase Ava can read back when she needs the caller to choose. */
-export function describeChoices(items: InventoryItem[]): string {
+/**
+ * How many options are worth saying out loud.
+ *
+ * Four, matching the limit openSlots already uses for times — the reasoning is the same, and
+ * it is about what a caller can hold in their head, not about payload size. A yard with fifty
+ * chair models produced a 1,165-character instruction telling Ava to read all fifty names down
+ * the phone; measured 2026-08-19.
+ */
+export const MAX_SPOKEN_CHOICES = 4
+
+/**
+ * A phrase Ava can read back when she needs the caller to choose.
+ *
+ * Truncates past MAX_SPOKEN_CHOICES rather than listing everything. The count is kept in the
+ * phrase because "and 46 more" tells the caller this is a catalogue and the right move is to
+ * describe what they want, whereas a bare list of four implies those are all the options.
+ */
+export function describeChoices(items: InventoryItem[], limit: number = MAX_SPOKEN_CHOICES): string {
   const labels = (items ?? []).map(i => i.label)
   if (labels.length === 0) return ''
   if (labels.length === 1) return labels[0]
-  return `${labels.slice(0, -1).join(', ')} or ${labels[labels.length - 1]}`
+  if (labels.length <= limit) return `${labels.slice(0, -1).join(', ')} or ${labels[labels.length - 1]}`
+  return `${labels.slice(0, limit).join(', ')} and ${labels.length - limit} more`
 }
 
 /**

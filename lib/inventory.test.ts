@@ -110,3 +110,29 @@ test('deriveItemKey collides only when the labels are genuinely the same words',
   assert.equal(deriveItemKey('Bounce House'), deriveItemKey('bounce-house'))
   assert.notEqual(deriveItemKey('Princess Castle'), deriveItemKey('Castle Combo'))
 })
+
+test('describeChoices does not read a catalogue down the phone', () => {
+  const many = Array.from({ length: 50 }, (_, i) => ({
+    item_key: `chair_${i}`, label: `Chair model ${i}`, quantity: 10,
+  }))
+  const phrase = describeChoices(many)
+  assert.ok(phrase.length < 120, `expected a short phrase, got ${phrase.length} chars`)
+  assert.match(phrase, /and 46 more$/)
+  // The untruncated version was 1,165 characters of chair names.
+  assert.ok(!phrase.includes('Chair model 49'))
+})
+
+test('describeChoices is unchanged for the handful case it was written for', () => {
+  const items = [
+    { item_key: 'a', label: 'Princess Castle', quantity: 1 },
+    { item_key: 'b', label: 'Castle Combo', quantity: 1 },
+    { item_key: 'c', label: 'Obstacle Course', quantity: 1 },
+    { item_key: 'd', label: 'Blackjack table', quantity: 2 },
+  ]
+  assert.equal(describeChoices(items), 'Princess Castle, Castle Combo, Obstacle Course or Blackjack table')
+})
+
+test('describeChoices takes an explicit limit, for a tighter prompt', () => {
+  const items = Array.from({ length: 10 }, (_, i) => ({ item_key: `k${i}`, label: `Item ${i}`, quantity: 1 }))
+  assert.equal(describeChoices(items, 3), 'Item 0, Item 1, Item 2 and 7 more')
+})

@@ -4,7 +4,7 @@ import { sendClientBookingAlert } from '@/lib/email-sequences'
 import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
 import { buildBookingEvent, buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
-import { describeChoices, loadInventory, matchItem } from '@/lib/inventory'
+import { describeChoices, loadInventory, matchItem, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -199,10 +199,22 @@ export async function POST(request: NextRequest) {
 
     if (match.kind === 'ambiguous') {
       // Never guess between equals — "castle" fits two units and picking one sends the wrong van.
+      //
+      // Past a handful of candidates the right instruction changes shape. Reading four options
+      // is a question; reading fifty is a catalogue nobody can listen to, and it happens as soon
+      // as a rental yard stocks "chair" in fifty styles. So ask them to NARROW rather than
+      // choose, and give a few examples of the kind of answer that would help.
+      const tooManyToRead = match.candidates.length > MAX_SPOKEN_CHOICES
       return NextResponse.json(
         {
           error:   'item_ambiguous',
-          message: `Ask which one they mean: ${describeChoices(match.candidates)}.`,
+          message: tooManyToRead
+            ? `There are ${match.candidates.length} items matching that. Do NOT read the list out. `
+              + 'Ask whether they have an item or model number from the website, or have them '
+              + `describe what they are after — a few examples are ${describeChoices(match.candidates, 3)}.`
+            : `Ask which one they mean: ${describeChoices(match.candidates)}.`,
+          // The full list stays in the payload: Ava may need it to recognise the caller's next
+          // answer, even when she must not recite it.
           options: match.candidates.map(c => c.label),
         },
         { status: 409 },
