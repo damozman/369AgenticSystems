@@ -97,6 +97,16 @@ for (const row of rows) {
     if (e) console.error('   config delete failed:', e.message)
   }
 
+  // The claim outlives the subscription row otherwise, and a stale claim would block a
+  // re-test that happened to reuse the same subscription id.
+  if (row.stripe_subscription_id) {
+    act(`provisioning_claims row ${row.stripe_subscription_id}`)
+    if (APPLY) {
+      const { error: e } = await supabase.from('provisioning_claims').delete().eq('stripe_subscription_id', row.stripe_subscription_id)
+      if (e) console.error('   claim delete failed:', e.message)
+    }
+  }
+
   act(`agent_subscriptions row ${row.client_domain}`)
   if (APPLY) {
     const { error: e } = await supabase.from('agent_subscriptions').delete().eq('client_domain', row.client_domain)
