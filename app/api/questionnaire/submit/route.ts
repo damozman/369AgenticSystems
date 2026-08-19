@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { syncQuestionnaireToKB } from '@/lib/retell-kb-sync'
+import { createClient as createUserClient } from '@/lib/supabase-server'
+import { onboardingAuthEnforced, verifyOnboardingToken } from '@/lib/security/onboarding-token'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +15,7 @@ export async function POST(request: NextRequest) {
     // `schedule` is pulled out deliberately: formData is spread straight into
     // client_questionnaires, and these columns live on client_schedules instead. Leaving it in
     // the spread would fail the whole upsert on an unknown column.
-    const { client_domain, schedule, ...formData } = body
+    const { client_domain, schedule, onboarding_token, ...formData } = body
 
     if (!client_domain) {
       return NextResponse.json({ error: 'client_domain is required' }, { status: 400 })
@@ -28,6 +30,55 @@ export async function POST(request: NextRequest) {
 
     if (subError || !subscription) {
       return NextResponse.json({ error: 'Client domain not found' }, { status: 404 })
+    }
+
+    /**
+     * Prove the caller is allowed to write to THIS client.
+     *
+     * Until 2026-08-19 there was nothing here but the existence check above, despite the
+     * comment claiming otherwise. Anyone who knew a client_domain could rewrite that client's
+     * questionnaire, their working hours, their rental stock, and — through
+     * syncQuestionnaireToKB below — the general_prompt of their LIVE Retell agent.
+     *
+     * Two ways in, because neither covers the whole life of a client:
+     *   - a signed link, which is what the welcome email carries. The questionnaire is clicked
+     *     seconds after payment, when there is no session to check; demanding an OTP round-trip
+     *     at that moment is the wrong trade.
+     *   - an authenticated owner, which is how a client edits their hours or stock months later,
+     *     long after that email is buried.
+     */
+    const token = onboarding_token ?? new URL(request.url).searchParams.get('t')
+    let authorizedBy: 'signed-link' | 'owner-session' | null =
+      verifyOnboardingToken(token, client_domain).valid ? 'signed-link' : null
+
+    if (!authorizedBy) {
+      try {
+        const userClient = await createUserClient()
+        const { data: { user } } = await userClient.auth.getUser()
+        const owner = String(subscription.user_email ?? '').toLowerCase()
+        if (user?.email && owner && user.email.toLowerCase() === owner) authorizedBy = 'owner-session'
+      } catch (e) {
+        // No session cookie at all is the normal case for the emailed-link path, not an error.
+        console.warn('[QUESTIONNAIRE] session lookup failed:', e instanceof Error ? e.message : e)
+      }
+    }
+
+    if (!authorizedBy) {
+      // Reporting-only until ONBOARDING_AUTH_ENFORCED is 'true'. Arming a gate blind has twice
+      // broken producers that never got the new secret — the funnel outage and the ten-day call
+      // outage — so this logs first, both link producers get verified against real links, and
+      // only then does it start refusing.
+      const detail = `${client_domain} (token: ${verifyOnboardingToken(token, client_domain).valid ? 'ok' : (token ? 'invalid' : 'absent')})`
+      if (onboardingAuthEnforced()) {
+        console.error(`[QUESTIONNAIRE] REFUSED unauthorised submit for ${detail}`)
+        return NextResponse.json(
+          { error: 'This link is no longer valid. Ask us for a fresh one, or sign in first.' },
+          { status: 403 },
+        )
+      }
+      console.warn(`[QUESTIONNAIRE] ⚠ WOULD REFUSE unauthorised submit for ${detail} — set ONBOARDING_AUTH_ENFORCED=true to enforce`)
+    } else {
+      console.log(`[QUESTIONNAIRE] authorised via ${authorizedBy} for ${client_domain}`)
     }
 
     // Upsert questionnaire

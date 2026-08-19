@@ -63,6 +63,10 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_domain: domain,
+          // Proof that this form was opened from a link we sent. Read from the URL at submit
+          // time rather than via useSearchParams, which would drag a Suspense boundary into a
+          // page that has no other reason for one.
+          onboarding_token: new URLSearchParams(window.location.search).get('t'),
           ...formData,
           // One open/close pair applied to the days that are ticked. Per-day hours are what
           // the column supports, but asking seven times is onboarding friction nobody needs
