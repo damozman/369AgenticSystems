@@ -54,6 +54,18 @@ const domain  = process.argv[2]
 const profile = PROFILES[process.argv.includes('--profile') ? process.argv[process.argv.indexOf('--profile') + 1] : 'entertainment']
 const APPLY   = process.argv.includes('--apply')
 
+// The onboarding questionnaire (Section 4) already collects timezone, business_hours,
+// slot_duration_minutes and max_concurrent_per_slot, and UPSERTS them. It does NOT collect
+// booking_horizon_days or lead_time_hours — those two silently keep the DB defaults of 14
+// days and 12 hours, which is exactly what breaks an events business that books months out.
+//
+// So writing the whole profile AFTER a client has filled the questionnaire would overwrite
+// the real hours they typed with this profile's guesses. --gaps-only writes just the two
+// columns the questionnaire cannot reach and leaves everything they told us alone.
+const GAPS_ONLY = process.argv.includes('--gaps-only')
+const QUESTIONNAIRE_OWNS = ['timezone', 'business_hours', 'slot_duration_minutes', 'max_concurrent_per_slot']
+const GAP_FIELDS = ['booking_horizon_days', 'lead_time_hours']
+
 if (!domain || domain.startsWith('--')) {
   console.error('Usage: ... scripts/setup-client-schedule.mjs <client_domain> [--profile entertainment] [--apply]')
   console.error('Profiles: ' + Object.keys(PROFILES).join(', '))
@@ -66,6 +78,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 let failures = 0
 const ok  = (m) => console.log(`  [ok]   ${m}`)
 const bad = (m) => { failures++; console.log(`  [FAIL] ${m}`) }
+const warn = (m) => console.log(`  [warn] ${m}`)
 const heading = (t) => console.log(`\n${t}\n${'-'.repeat(t.length)}`)
 
 // --- The client must exist first ---------------------------------------------------------
@@ -147,23 +160,40 @@ if (!APPLY) {
   process.exit(failures ? 1 : 0)
 }
 
+const payload = GAPS_ONLY
+  ? Object.fromEntries(GAP_FIELDS.map(k => [k, profile[k]]))
+  : profile
+
+if (GAPS_ONLY) {
+  console.log('  --gaps-only: writing ONLY ' + GAP_FIELDS.join(', '))
+  console.log('  leaving the questionnaire\'s fields untouched: ' + QUESTIONNAIRE_OWNS.join(', '))
+} else if (existingRow) {
+  console.log('  WARNING: this client already has a row. If they filled the questionnaire,')
+  console.log('  their real hours are about to be replaced by this profile. Use --gaps-only.')
+}
+
 const { error: upErr } = await supabase
   .from('client_schedules')
-  .upsert({ client_domain: domain, ...profile }, { onConflict: 'client_domain' })
+  .upsert({ client_domain: domain, ...payload }, { onConflict: 'client_domain' })
 
 if (upErr) { bad(`write failed: ${upErr.message}`); process.exit(1) }
 ok('client_schedules row written')
 
 // Re-read through the REAL loader. A write that the loader does not return is not a change.
 const after = await loadSchedule(supabase, domain)
-const mismatches = ['timezone','slot_duration_minutes','max_concurrent_per_slot','lead_time_hours','booking_horizon_days']
-  .filter(k => after[k] !== profile[k])
+const checked = GAPS_ONLY ? GAP_FIELDS : ['timezone','slot_duration_minutes','max_concurrent_per_slot', ...GAP_FIELDS]
+const mismatches = checked.filter(k => after[k] !== profile[k])
 if (mismatches.length) bad(`loader disagrees on: ${mismatches.join(', ')}`)
-else ok('loader returns the new values')
+else ok('loader returns the new values for ' + checked.join(', '))
 
+// Whichever mode, say out loud what the loader now reports for the weekend — that is the
+// setting most likely to be silently wrong, and the one nobody notices until a Saturday.
 for (const day of ['sat','sun']) {
-  if (after.business_hours?.[day]) ok(`${day} is open per the loader`)
-  else bad(`${day} still closed per the loader`)
+  const h = after.business_hours?.[day]
+  const state = h ? h.open + '-' + h.close : 'CLOSED'
+  if (h) ok(day + ' per the loader: ' + state)
+  else if (GAPS_ONLY) warn(day + ' per the loader: CLOSED — if they take weekend work, they have not said so in the questionnaire')
+  else bad(day + ' still closed per the loader')
 }
 
 heading('Verdict')
