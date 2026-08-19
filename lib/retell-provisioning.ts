@@ -97,12 +97,39 @@ async function cloneAgentLlm(templateLlmId: string, businessName: string, ownerP
  */
 async function allocatePhoneNumber(agentId: string, preferredAreaCode?: string): Promise<string> {
   const areaCode = preferredAreaCode ? parseInt(preferredAreaCode, 10) : undefined
+  const wantsAreaCode = Boolean(areaCode) && !Number.isNaN(areaCode)
+
+  if (wantsAreaCode) {
+    try {
+      const response = await client.phoneNumber.create({
+        inbound_agents: [{ agent_id: agentId, weight: 1 }],
+        area_code: areaCode,
+      })
+      return response.phone_number
+    } catch (e) {
+      /**
+       * Retell answers `404 No phone numbers of this area code` when its inventory for that
+       * area code is empty, and it hard-failed the whole signup. Hit for real on 2026-08-19
+       * with **214** — Dallas, a major metro code, so this is not an obscure-prefix problem.
+       * The first pilot client is in Fort Worth (817), which is no more likely to be stocked.
+       *
+       * Falling back is right rather than merely convenient: under the two-number design this
+       * number is never published. The client forwards their own advertised line to it, so its
+       * area code is very nearly cosmetic — while failing to provision means a customer who
+       * paid gets nothing and a human has to intervene.
+       *
+       * The preference is still tried FIRST, so nothing changes when the area code is available.
+       */
+      console.warn(`[RETELL] No numbers available in area code ${areaCode}; falling back to any area code:`, e instanceof Error ? e.message : e)
+    }
+  }
 
   const response = await client.phoneNumber.create({
     inbound_agents: [{ agent_id: agentId, weight: 1 }],
-    ...(areaCode && !Number.isNaN(areaCode) ? { area_code: areaCode } : {}),
   })
-
+  if (wantsAreaCode) {
+    console.warn(`[RETELL] Provisioned ${response.phone_number} instead of an ${areaCode} number — tell the client if they ever ask why.`)
+  }
   return response.phone_number
 }
 
