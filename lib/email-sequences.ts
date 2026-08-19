@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { escapeHtml } from '@/lib/security/sanitize'
+import { questionnaireUrl } from '@/lib/security/onboarding-token'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -107,7 +108,7 @@ export async function sendWelcomeEmail({
         <p style="margin:0 0 16px;font-size:14px;color:#FFFFFF;">
           <strong>Fast-track your setup:</strong> Answer a quick questionnaire so your agent understands your business.
         </p>
-        <a href="https://369agenticsystems.com/onboarding/questionnaire/${clientDomain}" style="display:inline-block;background:#D4AF37;color:#0A0A0A;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:opacity 0.2s;">
+        <a href="${questionnaireUrl(clientDomain)}" style="display:inline-block;background:#D4AF37;color:#0A0A0A;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:opacity 0.2s;">
           Complete Questionnaire (5 min)
         </a>
         <p style="margin:14px 0 0;font-size:12px;color:#64748B;">

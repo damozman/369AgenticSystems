@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { STRIPE_CUSTOM_FIELD_KEYS, customFieldValue } from '@/lib/stripe-config'
+import { questionnaireUrl } from '@/lib/security/onboarding-token'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,7 +104,7 @@ export default async function OnboardingCompletePage({
             </p>
             {info?.clientDomain ? (
               <a
-                href={`/onboarding/questionnaire/${info.clientDomain}`}
+                href={questionnaireUrl(info.clientDomain, '')}
                 className="inline-block rounded-lg bg-[#D4AF37] px-7 py-3 text-sm font-bold text-[#0A0A0A] no-underline"
               >
                 Complete Questionnaire (5 min)
