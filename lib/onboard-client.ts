@@ -63,6 +63,49 @@ export async function provisionClient(input: ProvisionClientInput) {
   const activeAgents = AGENTS_BY_TIER[tier] ?? AGENTS_BY_TIER.Starter
   const monthlyCost  = PRICE_BY_TIER[tier]  ?? 400
 
+  // -1. Claim this purchase BEFORE anything is bought.
+  //
+  // On 2026-08-18 one checkout provisioned three agents and bought three phone numbers: the
+  // event reached two endpoints and one of them was retried. Two of those runs were 3ms apart,
+  // which is why this is an INSERT that can lose rather than a SELECT that can be raced — both
+  // callers would have read "not provisioned yet" before either wrote.
+  //
+  // It has to happen before step 0, not after: the money is spent in step 0, so a guard placed
+  // any later stops the duplicate ROW while still buying the duplicate NUMBER.
+  if (stripeSubscriptionId) {
+    const { error: claimError } = await supabase
+      .from('provisioning_claims')
+      .insert({ stripe_subscription_id: stripeSubscriptionId, client_domain: clientDomain })
+
+    if (claimError) {
+      // 23505 = unique_violation: another delivery of the same checkout got here first.
+      if (claimError.code === '23505') {
+        console.log(`[ONBOARD] ${stripeSubscriptionId} is already claimed — duplicate delivery, nothing provisioned`)
+        return null
+      }
+      // Any other failure means we cannot prove this is the only run, and provisioning anyway
+      // risks a second phone number. Refuse: the webhook alerts, and a human can retry.
+      throw new Error(`Could not claim provisioning for ${stripeSubscriptionId}: ${claimError.message}`)
+    }
+  } else {
+    // One-off payments carry no subscription id, so there is nothing stable to key on and this
+    // call is NOT idempotent. Every real signup is subscription-mode; this is here so the gap
+    // is visible in the logs rather than silent.
+    console.warn(`[ONBOARD] No stripeSubscriptionId for ${clientDomain} — provisioning is NOT protected against duplicate delivery`)
+  }
+
+  // Release the claim on any failure, so a transient Retell or database error does not lock a
+  // paying customer out of ever being provisioned by a later retry.
+  const releaseClaim = async (why: string) => {
+    if (!stripeSubscriptionId) return
+    console.error(`[ONBOARD] Releasing claim on ${stripeSubscriptionId} — ${why}`)
+    const { error } = await supabase
+      .from('provisioning_claims')
+      .delete()
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+    if (error) console.error('[ONBOARD] Claim release FAILED — retries will be blocked:', error.message)
+  }
+
   // 0. Provision Retell agent (new per-client agent from template)
   console.log(`[ONBOARD] Provisioning Retell agent for ${businessName}...`)
   let retellAgentId: string
@@ -81,6 +124,7 @@ export async function provisionClient(input: ProvisionClientInput) {
     console.log(`[ONBOARD] ✓ Retell agent provisioned: ${retellAgentId} → ${retellPhoneNumber}`)
   } catch (e) {
     console.error('[ONBOARD] Retell provisioning failed:', e)
+    await releaseClaim('Retell provisioning failed')
     // For now, fail the whole onboarding if Retell provisioning fails
     throw new Error(`Failed to provision Retell agent: ${e instanceof Error ? e.message : e}`)
   }
@@ -109,6 +153,12 @@ export async function provisionClient(input: ProvisionClientInput) {
     activated_at:   new Date().toISOString(),
     retell_agent_id: retellAgentId,
     retell_phone_number: retellPhoneNumber,
+    // The customer-facing name every client-branded message renders from
+    // (lib/client-identity.ts). Collected at checkout and passed to Retell for the agent,
+    // but it was not persisted here — so a Stripe-provisioned client had no business_name
+    // and Rex's templates fell back to a generic phrase. The legal entity name never
+    // appears here; see CLAUDE.md on 3SIX9 MEDIA MASTERS LLC.
+    business_name: businessName,
   }
 
   // Store preferred area code if provided
@@ -146,6 +196,10 @@ export async function provisionClient(input: ProvisionClientInput) {
 
   if (subError) {
     console.error('[ONBOARD] Subscription insert failed:', subError.message)
+    // The Retell agent and number are already bought at this point. Releasing the claim lets a
+    // retry finish the job, but that retry will buy ANOTHER number — the orphan from this run
+    // has to be released by hand. provisioning_claims.completed_at IS NULL finds these.
+    await releaseClaim('subscription insert failed — NOTE: a Retell number is already purchased and orphaned')
     throw new Error(subError.message)
   }
 
@@ -202,6 +256,16 @@ export async function provisionClient(input: ProvisionClientInput) {
     console.log('[ONBOARD] Owner notification sent')
   } catch (e) {
     console.error('[ONBOARD] Owner notification failed:', e)
+  }
+
+  if (stripeSubscriptionId) {
+    const { error: completeError } = await supabase
+      .from('provisioning_claims')
+      .update({ completed_at: new Date().toISOString(), retell_agent_id: retellAgentId })
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+    // Non-fatal: the claim already did its job by existing. An unmarked claim only means the
+    // "abandoned mid-flight" query is less precise.
+    if (completeError) console.error('[ONBOARD] Could not mark claim complete:', completeError.message)
   }
 
   console.log(`[ONBOARD] ✓ ${businessName} (${tier} · ${vertical}) — ${clientDomain}`)

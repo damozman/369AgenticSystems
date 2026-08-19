@@ -263,6 +263,36 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    the gate on every SMS track and it is pure calendar time.
 2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
    weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
+   **A real 100%-off checkout was run end to end on 2026-08-18 and it provisions correctly.**
+   Stripe returned `payment_status: 'paid'` with `amount_total: 0` — *not*
+   `'no_payment_required'`, which was predicted from the API docs and is wrong for a
+   subscription-mode checkout whose first invoice is zero. **The 'paid' gate was never a blocker
+   for this flow.** Do not re-derive that theory; it was tested and disproved. (The webhook now
+   also accepts `'no_payment_required'` as hardening — that status is real for other shapes,
+   such as a trial with no payment method — but nothing about the pilot depended on it.)
+   **What the run DID surface, and what actually threatens her onboarding:**
+   - **One checkout provisioned THREE agents and THREE phone numbers.** **Fixed 2026-08-18** —
+     `provisioning_claims` claims a purchase by `stripe_subscription_id` *before* Retell is
+     called, so a duplicate delivery loses the insert and spends nothing. Verified with
+     `scripts/verify-provisioning-idempotency.mjs`, which buys nothing: it runs every call under
+     a deliberately invalid `RETELL_API_KEY`, so a broken guard fails authentication before
+     `phoneNumber.create()` instead of purchasing. **The migration must be applied before the
+     code ships** — without the table `provisionClient` refuses every signup, fail-closed by
+     choice. Applied to production 2026-08-18.
+   - **A test-mode Stripe webhook endpoint is registered against `https://369agenticsystems.com`**,
+     so a *test-mode* checkout provisions REAL Retell agents and numbers and writes REAL rows to
+     production Supabase. There is no sandbox below the Stripe layer.
+   - `business_name` was never written by `provisionClient` — fixed 2026-08-18. Without it
+     `lib/client-identity.ts` falls back to a generic phrase and every client-branded message
+     goes out unbranded. Northside only had one because it was inserted by hand.
+   Re-verify with `scripts/verify-zero-dollar-checkout.mjs`, and always run
+   `scripts/cleanup-zero-dollar-test.mjs` afterwards — it sweeps orphaned agents by name, not
+   just the one the subscription row records.
+   **Her `client_schedules` row must be written explicitly, at onboarding.** There is no row by
+   default and `DEFAULT_SCHEDULE` (`lib/client-schedule.ts`) closes Saturday and Sunday and caps
+   the horizon at 14 days. A party-rental business is almost entirely weekends and books months
+   ahead, so on defaults Ava refuses every Saturday and anything past a fortnight — and it reads as
+   a bug in the booking engine, not as configuration.
 3. **Trust Hub automation.** Secondary Profile + brand + campaign via API at signup. **Blocked on a
    data gap:** the questionnaire collects pain points and job values, not legal business name, EIN,
    address or authorized rep. Signup has to ask, and clients have to be willing to hand over an EIN.
@@ -278,11 +308,48 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    submitter. Do not build this unprompted.
 7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
    when `/api/update-dossier` was deleted.
-8. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+8. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
+   E2E.** Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` → `https://369agenticsystems.com/api/stripe-webhook`,
+   `checkout.session.completed`, created 2026-07-11, **disabled 2026-08-18** at Chris's request
+   after a sandbox checkout provisioned real Retell agents and bought real numbers.
+   **Production's Stripe integration is wired to TEST mode** — that endpoint is `livemode: false`
+   and production verified its signature successfully, which is only possible if production's
+   `STRIPE_WEBHOOK_SECRET` is this endpoint's. So while it is disabled, **a checkout on the live
+   site provisions nothing.** That is safe today (zero paying clients, Stripe live mode never
+   started) and it is the point — but it must be re-enabled before any full end-to-end run, and
+   before live mode. Re-enable:
+   ```
+   node --env-file=.env.local -e "import('stripe').then(async({default:S})=>{const s=new S(process.env.STRIPE_SECRET_KEY);const e=await s.webhookEndpoints.update('we_1Trrqk3nqoZlRtPEan18MmjD',{disabled:false});console.log(e.status)})"
+   ```
+9. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
 ### Lessons that each cost real time
+- **A bug derived from documentation is a hypothesis, not a finding.** On 2026-08-18 a careful
+  reading of the Stripe webhook produced a confident, specific, plausible claim: a 100%-off
+  checkout sends `payment_status: 'no_payment_required'`, the gate only accepts `'paid'`, so the
+  pilot silently provisions nothing. It survived an independent review. **A real checkout then
+  returned `'paid'` with `amount_total: 0` and provisioned fine.** The theory was wrong, and no
+  amount of further reading would have shown it — only the run did. Same principle as
+  reconciling a copied value against its source: *the system is the authority on its own
+  behaviour.* Insisting on the end-to-end run before the fix merged is what caught it.
+- **One checkout can provision several times, and nothing stops it.** That same run created
+  **three** Retell agents, three phone numbers and three duplicate `agent_configurations` rows
+  from a single purchase — the event reached both a local listener and the registered production
+  endpoint, and production was retried 37 seconds later. `checkout.session.completed` has **no
+  idempotency guard**: no lookup on `stripe_subscription_id`, no dedupe on the event id. The
+  `agent_subscriptions` upsert hides it, because `onConflict: 'client_domain'` overwrites only
+  the columns present in the payload — so the surviving row was a *mixture of two different
+  provisioning runs*, taking `business_name` from one and `retell_agent_id` from another, and
+  looked entirely normal. Every duplicate agent and number stays purchased and billing.
+- **A webhook that returns 200 is not a webhook that did anything.** The Stripe gate answered
+  `{received: true}` for every `payment_status` it did not recognise, so any refusal was
+  indistinguishable from success in Stripe's dashboard. The producer's view of a webhook is "did
+  it get a 2xx", which is not the same question as "did the work happen" — the same shape as the
+  dental funnel money-risk fix. Fixed 2026-08-18: a handler that declines to act now logs and
+  sends an owner alert, and the status set has an explicit else-branch rather than a silent
+  default.
 - **One-sided adoption always leaves a window.** When two things arrive in an order you do not
   control, *each* must adopt the other. The leftover 73ms window between a booking row existing and
   its `calendar_event_id` being written hit on the very first real call and put a phone number on a
@@ -341,6 +408,15 @@ node --import ./scripts/test-resolver.mjs scripts/verify-billing.mjs
                                          dry-runs the REAL decideBilling; touches Stripe not at all
 node --import ./scripts/test-resolver.mjs scripts/verify-inventory.mjs
                                          schema + a REAL double-book race against one item
+node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs
+                                         preflight for a 100%-off checkout; dry run, --apply to
+                                         create the coupon. Completing the checkout BUYS a Retell
+                                         number and writes to PRODUCTION Supabase.
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-provisioning-idempotency.mjs
+                                         duplicate-delivery guard; BUYS NOTHING by design
+node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs
+                                         releases that number + agent + LLM and deletes the rows;
+                                         dry run, --apply to delete. Refuses to touch Northside.
 node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
 node --env-file=.env.local scripts/retell/set-ai-disclosure.mjs        dry run; --apply to write
