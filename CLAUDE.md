@@ -271,8 +271,14 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    also accepts `'no_payment_required'` as hardening — that status is real for other shapes,
    such as a trial with no payment method — but nothing about the pilot depended on it.)
    **What the run DID surface, and what actually threatens her onboarding:**
-   - **One checkout provisioned THREE agents and THREE phone numbers.** See the idempotency note
-     under Open items. This is the real risk to a live signup, and it costs money per duplicate.
+   - **One checkout provisioned THREE agents and THREE phone numbers.** **Fixed 2026-08-18** —
+     `provisioning_claims` claims a purchase by `stripe_subscription_id` *before* Retell is
+     called, so a duplicate delivery loses the insert and spends nothing. Verified with
+     `scripts/verify-provisioning-idempotency.mjs`, which buys nothing: it runs every call under
+     a deliberately invalid `RETELL_API_KEY`, so a broken guard fails authentication before
+     `phoneNumber.create()` instead of purchasing. **The migration must be applied before the
+     code ships** — without the table `provisionClient` refuses every signup, fail-closed by
+     choice. Applied to production 2026-08-18.
    - **A test-mode Stripe webhook endpoint is registered against `https://369agenticsystems.com`**,
      so a *test-mode* checkout provisions REAL Retell agents and numbers and writes REAL rows to
      production Supabase. There is no sandbox below the Stripe layer.
@@ -302,7 +308,20 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    submitter. Do not build this unprompted.
 7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
    when `/api/update-dossier` was deleted.
-8. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+9. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
+   E2E.** Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` → `https://369agenticsystems.com/api/stripe-webhook`,
+   `checkout.session.completed`, created 2026-07-11, **disabled 2026-08-18** at Chris's request
+   after a sandbox checkout provisioned real Retell agents and bought real numbers.
+   **Production's Stripe integration is wired to TEST mode** — that endpoint is `livemode: false`
+   and production verified its signature successfully, which is only possible if production's
+   `STRIPE_WEBHOOK_SECRET` is this endpoint's. So while it is disabled, **a checkout on the live
+   site provisions nothing.** That is safe today (zero paying clients, Stripe live mode never
+   started) and it is the point — but it must be re-enabled before any full end-to-end run, and
+   before live mode. Re-enable:
+   ```
+   node --env-file=.env.local -e "import('stripe').then(async({default:S})=>{const s=new S(process.env.STRIPE_SECRET_KEY);const e=await s.webhookEndpoints.update('we_1Trrqk3nqoZlRtPEan18MmjD',{disabled:false});console.log(e.status)})"
+   ```
+10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
@@ -393,6 +412,8 @@ node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs
                                          preflight for a 100%-off checkout; dry run, --apply to
                                          create the coupon. Completing the checkout BUYS a Retell
                                          number and writes to PRODUCTION Supabase.
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-provisioning-idempotency.mjs
+                                         duplicate-delivery guard; BUYS NOTHING by design
 node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs
                                          releases that number + agent + LLM and deletes the rows;
                                          dry run, --apply to delete. Refuses to touch Northside.
