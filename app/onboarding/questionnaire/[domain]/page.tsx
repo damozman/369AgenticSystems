@@ -103,6 +103,10 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
 
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  // Set from the server's answer on a successful submit, not from the URL. Decides whether the
+  // ending offers the dashboard or explains how to sign in. Defaults false so the safe ending
+  // (never redirect into the login wall) is what shows if the field is ever missing.
+  const [hasSession, setHasSession] = useState(false)
   const [error, setError] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -156,8 +160,14 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
         throw new Error(err.error || 'Failed to save questionnaire')
       }
 
+      const result = await response.json().catch(() => ({}))
+      // Only redirect someone who demonstrably has a session. An owner editing their hours
+      // months later does; a brand-new client who clicked the link in their welcome email
+      // does not, and /client-dashboard is behind middleware auth — so the old unconditional
+      // push ended onboarding on a login wall. Anything other than an owner session gets a
+      // screen that stays put and explains how to sign in.
+      setHasSession(result?.authorized_by === 'owner-session')
       setSubmitted(true)
-      setTimeout(() => router.push('/client-dashboard'), 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -173,9 +183,48 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
           Questionnaire Saved
         </h2>
         <p style={{ fontSize: '15px', color: '#94A3B8', marginBottom: '24px', lineHeight: '1.6' }}>
-          Your questionnaire has been saved. Your agent is now live and will use this context to provide smarter responses.
+          Your answers are saved and your agent is already using them — no further setup needed
+          on your side.
         </p>
-        <p style={{ fontSize: '13px', color: '#64748B' }}>Redirecting to dashboard...</p>
+
+        {hasSession ? (
+          <>
+            <button
+              type="button"
+              onClick={() => router.push('/client-dashboard')}
+              style={{ width: 'auto', margin: 0, padding: '12px 24px', fontSize: '14px' }}
+            >
+              Go to your dashboard
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: '15px', color: '#94A3B8', marginBottom: '24px', lineHeight: '1.6' }}>
+              To see your calls and bookings, sign in with the email address you used at checkout.
+              We will send you a one-time code — there is no password to remember.
+            </p>
+            {/*
+              Points at the dashboard, not /login, deliberately. Middleware bounces an
+              unauthenticated visitor to /login and the login page pushes a non-admin back to
+              /client-dashboard once the code is entered, so this one href is right whether or
+              not they have a session. That keeps the button working even if authorized_by is
+              ever wrong — hasSession then only picks the wording, never the destination.
+            */}
+            <a
+              href="/client-dashboard"
+              style={{
+                display: 'inline-block', padding: '12px 24px', fontSize: '14px', fontWeight: 600,
+                borderRadius: '8px', textDecoration: 'none',
+                background: '#D4AF37', color: '#0A0A0A',
+              }}
+            >
+              Sign in to your dashboard
+            </a>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '20px', lineHeight: 1.6 }}>
+              You can close this page safely. Nothing here needs to be filled in twice.
+            </p>
+          </>
+        )}
       </div>
     )
   }
