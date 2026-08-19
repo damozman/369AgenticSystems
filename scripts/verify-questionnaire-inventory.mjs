@@ -19,6 +19,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { deriveItemKey, loadInventory } from '../lib/inventory.ts'
 import { loadSchedule } from '../lib/client-schedule.ts'
+import { mintOnboardingToken } from '../lib/security/onboarding-token.ts'
 
 const DOMAIN = 'questionnaire-test.369agenticsystems.com'
 const URL    = 'http://localhost:3001/api/questionnaire/submit'
@@ -37,11 +38,22 @@ async function cleanup() {
   await supabase.from('agent_subscriptions').delete().eq('client_domain', DOMAIN)
 }
 
+/**
+ * Carries a signed token, because /api/questionnaire/submit refuses unauthorised writes once
+ * ONBOARDING_AUTH_ENFORCED is on — which it is in production as of 2026-08-19. Minting one
+ * here keeps this test honest in both modes rather than passing only because the gate happens
+ * to be reporting-only. Null when no secret is set locally, which the gate then treats as an
+ * unauthenticated call, exactly as it should.
+ */
 function post(body) {
   return fetch(URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_domain: DOMAIN, ...body }),
+    body: JSON.stringify({
+      client_domain: DOMAIN,
+      onboarding_token: mintOnboardingToken(DOMAIN),
+      ...body,
+    }),
   })
 }
 
