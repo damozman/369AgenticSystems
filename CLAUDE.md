@@ -351,7 +351,29 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    ```
    node --env-file=.env.local -e "import('stripe').then(async({default:S})=>{const s=new S(process.env.STRIPE_SECRET_KEY);const e=await s.webhookEndpoints.update('we_1Trrqk3nqoZlRtPEan18MmjD',{disabled:false});console.log(e.status)})"
    ```
-9. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+9. **Inventory control is a planning number, not a live stock count — and clients cannot touch it.**
+   Raised by Chris on 2026-08-19 after the mock onboarding, in this order of value:
+   - **Ava reads inventory and hours LIVE on every call** (`loadInventory` / `loadSchedule`), so a
+     row changed at 9:00 is honoured on the 9:01 call. No sync, no redeploy, no agent update.
+     Questionnaire *text* is different — it is COPIED into the agent prompt at submit time and is
+     stale until re-synced. Do not confuse the two paths.
+   - **No UI reads or writes `client_inventory`.** `grep -rln client_inventory app components`
+     returns nothing. A client cannot see their stock, fix a mistyped quantity, or take a torn
+     bounce house out of service. The `active` column exists and is read live — it is simply
+     unreachable. And once `questionnaireCompleted` is true the dashboard checklist drops its
+     link, so there is no route back to the questionnaire either; only the 90-day emailed link.
+   - **The real modelling gap is rental WINDOWS, not damage.** `quantity` is compared against
+     bookings that overlap an appointment *slot*. A bounce house booked Saturday 10:00 for 90
+     minutes reads as free at noon, while it is physically at a party until Sunday. `book_slot()`
+     already takes a `tstzrange`, so the interval can span days; `generateSlots` is day-bounded,
+     which is the same root cause as the unbuilt seven-day dumpster hire.
+   - Nothing reconciles stock against reality: not returns, not condition, not turnaround.
+   **Build order when this is worth building:** rental windows → turnaround buffer → an
+   out-of-service toggle in the dashboard → bulk quantities (`bookings.quantity`, `count(*)`
+   becomes `sum(quantity)`, which means dropping and recreating `book_slot` and finally editing
+   `lib/availability.ts`). Do the last one only when a client's chairs actually run out on a
+   Saturday; identity items are the scarce ones, bulk stock usually is not.
+10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
@@ -417,7 +439,28 @@ verified this app" interstitial and must click Advanced → Continue, and there 
   ever paid, and the one real subscription logged 18 minutes in a month. Distribution has always
   been the constraint. A warm introduction beats a tenth landing page.
 
-### Mock onboarding — the rehearsal, and what it costs
+### Mock onboarding — RUN on 2026-08-19, and what it proved
+Cost about **$4.26** across two Retell numbers, both released; the account is back to 2 numbers,
+11 agents, 1 subscription, 0 claims.
+
+- **The welcome-email link IS signed.** Submitting the questionnaire from that email succeeded
+  through the armed gate, which is the only way to observe it. That was the whole point of the run
+  and the last unverified producer. Do not re-derive this.
+- **A 214 (Dallas) checkout failed with `404 No phone numbers of this area code`.** Everything
+  around the failure behaved: orphan cleanup deleted the agent and LLM so nothing leaked, the
+  claim was released so Stripe's retry could try again, and the owner alert fired with the real
+  error. **817 worked**, so this is per-area-code inventory at Retell, not a broken account. The
+  fallback is PR #45.
+- **Two separate checkouts provisioned twice**, correctly — different `stripe_subscription_id`,
+  so they are genuinely different purchases rather than duplicate deliveries. The orphan sweep
+  found the second number because it matches on **agent name**; the subscription row names only
+  the last writer.
+- **After submitting, the client is bounced to a login wall.** The form redirects to
+  `/client-dashboard`, which is behind middleware auth, and a brand-new client has never signed
+  in — onboarding deliberately does not require it. A short "check your email to sign in"
+  confirmation is the fix. Not built.
+
+### Mock onboarding — the runbook, and what it costs
 One real Retell number, bought and released. Everything else is free. Stripe stays in test mode,
 so no card is charged, but **Retell has no test mode** and the number is a real purchase.
 
