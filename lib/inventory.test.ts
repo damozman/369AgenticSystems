@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { describeChoices, matchItem, normalise, type InventoryItem } from './inventory.ts'
+import { describeChoices, deriveItemKey, matchItem, normalise, type InventoryItem } from './inventory.ts'
 
 /**
  * The failure these guard against is booking the wrong unit. It is discovered when a van arrives
@@ -92,4 +92,21 @@ test('choices read back as a sentence Ava can say', () => {
   assert.equal(describeChoices(ITEMS.slice(0, 3)), 'Princess Castle, Castle Combo or Obstacle Course')
   assert.equal(describeChoices(ITEMS.slice(0, 1)), 'Princess Castle')
   assert.equal(describeChoices([]), '')
+})
+
+test('deriveItemKey is stable, lowercase and safe for the DB check constraint', () => {
+  assert.equal(deriveItemKey('Princess Castle bounce house'), 'princess_castle_bounce_house')
+  assert.equal(deriveItemKey('  Blackjack Table  '), 'blackjack_table')
+  assert.equal(deriveItemKey("Sandra's 20ft Slide!"), 'sandra_s_20ft_slide')
+  // The DB requires item_key = lower(item_key) and item_key <> ''.
+  for (const label of ['ABC', 'a b c', '  x  ', 'Café Table', '20ft']) {
+    const key = deriveItemKey(label)
+    assert.equal(key, key.toLowerCase(), `${label} must produce a lowercase key`)
+    assert.notEqual(key, '', `${label} must produce a non-empty key`)
+  }
+})
+
+test('deriveItemKey collides only when the labels are genuinely the same words', () => {
+  assert.equal(deriveItemKey('Bounce House'), deriveItemKey('bounce-house'))
+  assert.notEqual(deriveItemKey('Princess Castle'), deriveItemKey('Castle Combo'))
 })

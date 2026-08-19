@@ -119,3 +119,22 @@ export async function loadInventory(
 
   return { items: (data ?? []) as InventoryItem[], error: null }
 }
+
+/**
+ * The stable database key for an item, derived from what the client typed.
+ *
+ * Shared deliberately. The onboarding questionnaire and the spreadsheet importer both create
+ * inventory, and if they derived keys differently the same "Princess Castle" would land twice
+ * under two keys — one of which no booking would ever reference again.
+ *
+ * `item_key` is the column `bookings.inventory_item_key` points at, so it must never change
+ * for an item that has been booked. That is precisely why clients are not asked to invent it:
+ * a label is a name and can be reworded freely, a key is an identity and cannot.
+ */
+export function deriveItemKey(label: string): string {
+  return (label ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60)
+}

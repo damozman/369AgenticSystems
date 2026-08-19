@@ -30,7 +30,7 @@
 import fs from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import { parseRawRows } from '../lib/ops-brief-parse.ts'
-import { matchItem, describeChoices, loadInventory } from '../lib/inventory.ts'
+import { matchItem, describeChoices, loadInventory, deriveItemKey } from '../lib/inventory.ts'
 
 const domain   = process.argv[2]
 const filePath = process.argv[3]
@@ -55,10 +55,6 @@ const bad  = (m) => { failures++; console.log(`  [FAIL] ${m}`) }
 const warn = (m) => { warnings++; console.log(`  [warn] ${m}`) }
 const heading = (t) => console.log(`\n${t}\n${'-'.repeat(t.length)}`)
 
-/** A stable, lowercase key derived from the label. The DB requires lowercase and non-empty. */
-function slugify(label) {
-  return label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60)
-}
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -131,7 +127,7 @@ for (let i = headerIndex + 1; i < rows.length; i++) {
   const activeRaw = colIdx.active !== undefined ? (row[colIdx.active] ?? '').trim().toLowerCase() : 'yes'
   const active = !['no', 'n', 'false', '0', 'unavailable'].includes(activeRaw)
 
-  const item_key = slugify(label)
+  const item_key = deriveItemKey(label)
   if (!item_key) { bad(`row ${i}: "${label}" produces an empty item_key`); continue }
   if (seenKeys.has(item_key)) { bad(`row ${i}: "${label}" and "${seenKeys.get(item_key)}" both key to "${item_key}" — rename one`); continue }
   seenKeys.set(item_key, label)
