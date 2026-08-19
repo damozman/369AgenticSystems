@@ -6,32 +6,48 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-19 (evening).
+**Last updated:** 2026-08-19.
 
-### Where this session ended
-**PR #42 is MERGED and deployed.** Zero-dollar checkouts provision, duplicate deliveries cannot
-double-provision, `business_name` is persisted. Proven end to end against production: one
-checkout produced exactly one agent and one number, and the same event re-delivered twice changed
-nothing. **PR #43 is OPEN and NOT reviewed in a browser** — weekend hours, booking horizon, lead
-time, rental inventory in the questionnaire, plus the spreadsheet importer. Its data path is
-verified; **its layout is not, especially the item rows on mobile.**
+### Where this session ended — 2026-08-19
 
-**Northside was accidentally submitted through the new questionnaire on 2026-08-19 and has been
-restored.** The `client_schedules` row and 5 rental inventory rows it created were deleted, and
-both loaders re-checked: 0 inventory items, and no schedule row so it falls back to
-`DEFAULT_SCHEDULE` exactly as before. **Two things were NOT restored, both harmless but worth
-knowing:** `client_questionnaires` content from 2026-07-14 was overwritten and is not recoverable
-from the app, and `syncQuestionnaireToKB` merged those answers into Northside's **live Retell
-prompt** — it now carries *"We do all delivery setup and teardown"* inside the
-`BUSINESS_CONTEXT` markers. The base roofing prompt is intact and the sync is idempotent, so
-re-filling the questionnaire correctly overwrites the block. Northside is a test-only client, so
-no customer data was lost.
+**`master` is clean and everything below is DEPLOYED.** PRs #42, #43 and #44 are merged.
+**PRs #45 and #46 are OPEN** and both are small:
+- **#45** — Retell area-code fallback, plus deleting `provisioning_claims` by domain rather than
+  by the subscription id on the row. Take this one first: the failure it fixes has actually fired,
+  and the pilot client is in the same metro.
+- **#46** — questionnaire copy: which items belong in inventory, and what the quantity number
+  means. Copy only.
 
-**The accident is a symptom, not the bug.** See open item 0.
+**Production state, verified rather than assumed:**
+- Retell: **2 numbers** (+18176350220 demo, +18176126757 Northside), **11 agents**, no test agents.
+- Supabase: **1 `agent_subscriptions` row** (Northside), 0 `provisioning_claims`, 0 inventory rows.
+- **The onboarding gate is ARMED.** `ONBOARDING_TOKEN_SECRET` and `ONBOARDING_AUTH_ENFORCED=true`
+  are both set in Vercel. Verified on production: an unauthenticated POST gets **403**, a
+  production-minted signed link gets **200**, and that same token aimed at a different client gets
+  **403**. **Rotating that secret invalidates every questionnaire link already emailed.**
+- **The test-mode Stripe webhook to production is DISABLED** (open item 8). Nothing provisions
+  from a checkout until it is re-enabled.
 
-**Original last-updated:** 2026-08-18. `master` is clean; PRs #37–#40 merged. **AI disclosure and SMS
-consent are APPLIED and verified on all 11 live agents.** Both 2026-08-16 migrations are applied to
-production. The dental template-id typo is fixed in `.env.local` and Vercel.
+**What shipped this session:** zero-dollar checkouts provision correctly; a duplicate delivery
+cannot double-provision (`provisioning_claims` claims a purchase *before* Retell is called);
+`business_name` is persisted; `/api/questionnaire/submit` requires a signed link or an owner
+session; the questionnaire asks for booking horizon, lead time and rental stock; a spreadsheet
+importer reads CSV **and** XLSX; and `describeChoices` no longer hands Ava 1,165 characters of
+chair names to read down the phone.
+
+**Northside was accidentally submitted through the questionnaire during a layout review and has
+been restored** — the schedule row and 5 rental inventory rows are deleted, and both loaders were
+re-checked. Two things were NOT restored, both harmless because Northside is a test-only client:
+its `client_questionnaires` content from 2026-07-14 was overwritten, and `syncQuestionnaireToKB`
+merged those answers into its **live Retell prompt**, which still carries *"We do all delivery
+setup and teardown"* inside the `BUSINESS_CONTEXT` markers. The base roofing prompt is intact and
+the sync is idempotent, so re-filling the questionnaire correctly overwrites the block — a
+two-minute fix nobody has done. **That accident is what found the missing ownership check.**
+
+**Still carried forward from 2026-08-18:** **AI disclosure and SMS consent are APPLIED and verified
+on all 11 live agents.** Both 2026-08-16 migrations are applied to production, as is
+`2026-08-18-provisioning-claims.sql`. The dental template-id typo is fixed in `.env.local` and
+Vercel.
 
 ### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
 Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
@@ -511,6 +527,30 @@ node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-p
 node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs
                                          releases that number + agent + LLM and deletes the rows;
                                          dry run, --apply to delete. Refuses to touch Northside.
+node --env-file=.env.local scripts/verify-onboarding-result.mjs <domain>
+                                         asserts a real onboarding produced exactly ONE of
+                                         everything. Read-only. Run it again after re-delivering
+                                         the Stripe event — unchanged counts is the actual test.
+node --env-file=.env.local scripts/review-sandbox-client.mjs --create|--show|--delete
+                                         a throwaway client for reviewing onboarding UI by hand.
+                                         No retell_agent_id, so submitting the questionnaire
+                                         against it cannot reach any live agent's prompt.
+                                         USE THIS, never a real client's domain.
+ONBOARDING_TOKEN_SECRET=<same as server> node --env-file=.env.local --import ./scripts/test-resolver.mjs   scripts/verify-questionnaire-auth.mjs  proves the ownership gate; reports whether the server is
+                                         ENFORCING or reporting-only rather than assuming
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-questionnaire-inventory.mjs
+                                         questionnaire -> schedule + inventory, end to end against
+                                         a throwaway client. Buys nothing. Needs the dev server.
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/setup-client-schedule.mjs <domain>
+                                         weekend/horizon profile; proves the effect through the
+                                         REAL generateSlots, not by reporting a successful write.
+                                         **--gaps-only** writes just booking_horizon_days and
+                                         lead_time_hours, so it cannot clobber the hours a client
+                                         typed into the questionnaire.
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/setup-client-inventory.mjs <domain> <file.xlsx|csv>
+                                         bulk inventory from the client's own spreadsheet, via the
+                                         wholesale ops-brief parser. Reports which spoken phrases
+                                         would come back AMBIGUOUS before anything is written.
 node --env-file=.env.local scripts/retell/recon.mjs                    every LLM's tool URLs
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
 node --env-file=.env.local scripts/retell/set-ai-disclosure.mjs        dry run; --apply to write
