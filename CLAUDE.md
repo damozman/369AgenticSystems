@@ -6,7 +6,7 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
-**Last updated:** 2026-08-19.
+**Last updated:** 2026-08-19 (evening).
 
 ### Where this session ended
 **PR #42 is MERGED and deployed.** Zero-dollar checkouts provision, duplicate deliveries cannot
@@ -275,27 +275,24 @@ outside middleware.
 verified this app" interstitial and must click Advanced → Continue, and there is a 100-user cap.
 
 ### Open items
-0. **🔴 `/api/questionnaire/submit` HAS NO OWNERSHIP CHECK — fix before merging PR #43.**
-   The route comment says *"Verify the client domain exists and the user owns it"*; the code only
-   checks that the domain **exists**. There is no session, no auth header, and `middleware.ts`
-   does not match `/api/*`. So an unauthenticated POST with any known `client_domain` can
-   overwrite that client's questionnaire, their `client_schedules` hours, and (with PR #43) their
-   `client_inventory` — and it then calls `syncQuestionnaireToKB`, which **rewrites the
-   `general_prompt` of that client's live Retell agent**. Same class as the `/api/update-dossier`
-   open relay that was deleted on 2026-08-03, and worse: this one reaches the phone line.
-   Found on 2026-08-19 when an accidental submit against Northside's domain did exactly this by
-   hand. **PR #43 widens the blast radius of this route, so the auth fix belongs with it.**
-1. **Submit for Google verification.** Everything blocking it now exists. Needs a **demo video
+0. **Submit for Google verification.** Everything blocking it now exists. Needs a **demo video
    showing end-to-end OAuth consent and the app using the scopes**. Justification, true of the code:
    *we request `calendar.freebusy` rather than `calendar.readonly` specifically so we never receive
    event titles, attendees or descriptions.* Review takes up to 10 days and gates nothing else.
    **Recording order matters:** disconnect the calendar first so there is a fresh consent to film,
    log in as `damozman@yahoo.com`, and call **Northside** on +1 (817) 612-6757 — a demo-line call
    proves nothing, and one session was already lost to that.
-2. **Register the A2P brand + campaign for 3SIX9 MEDIA MASTERS LLC.** Low-volume standard. This is
+1. **Register the A2P brand + campaign for 3SIX9 MEDIA MASTERS LLC.** Low-volume standard. This is
    the gate on every SMS track and it is pure calendar time.
-3. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
+2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
    weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
+   **She is out of town until roughly 2026-09-02**, so this is prepared rather than imminent; the
+   chamber event is still ~mid-September. **Chris intends a MOCK onboarding of his own first**,
+   which is worth doing for one specific reason beyond rehearsal: it is the only way to verify the
+   **welcome-email** link carries `?t=`. The post-payment page was verified against live
+   production on 2026-08-19; the email producer calls the same `questionnaireUrl()` in the same
+   deployment, but has never been seen. If it ever renders unsigned, the client simply cannot
+   submit the form — nothing breaks on a call. Runbook and costs are under "Mock onboarding" below.
    **A real 100%-off checkout was run end to end on 2026-08-18 and it provisions correctly.**
    Stripe returned `payment_status: 'paid'` with `amount_total: 0` — *not*
    `'no_payment_required'`, which was predicted from the API docs and is wrong for a
@@ -326,22 +323,22 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    the horizon at 14 days. A party-rental business is almost entirely weekends and books months
    ahead, so on defaults Ava refuses every Saturday and anything past a fortnight — and it reads as
    a bug in the booking engine, not as configuration.
-4. **Trust Hub automation.** Secondary Profile + brand + campaign via API at signup. **Blocked on a
+3. **Trust Hub automation.** Secondary Profile + brand + campaign via API at signup. **Blocked on a
    data gap:** the questionnaire collects pain points and job values, not legal business name, EIN,
    address or authorized rep. Signup has to ask, and clients have to be willing to hand over an EIN.
    Approval is asynchronous, so SMS becomes a *second stage* — voice live in minutes, texting live
    when the campaign clears.
-5. **Phase B billing: flip the switch when Stripe is live.** Set `USAGE_BILLING_ENABLED=true` in
+4. **Phase B billing: flip the switch when Stripe is live.** Set `USAGE_BILLING_ENABLED=true` in
    Vercel (needs a redeploy) and **flip the pricing copy in the same move.** Run
    `scripts/verify-billing.mjs` first.
-6. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+5. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
    and failed silently for months — nobody read its output, only that it ran. Assume siblings.
-7. **Phase 2b bulk runner — NOT built, deliberately.** Blocked on a decision only Chris can make:
+6. **Phase 2b bulk runner — NOT built, deliberately.** Blocked on a decision only Chris can make:
    cold-calling businesses that never made contact is a different legal posture from calling a form
    submitter. Do not build this unprompted.
-8. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
+7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
    when `/api/update-dossier` was deleted.
-9. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
+8. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
    E2E.** Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` → `https://369agenticsystems.com/api/stripe-webhook`,
    `checkout.session.completed`, created 2026-07-11, **disabled 2026-08-18** at Chris's request
    after a sandbox checkout provisioned real Retell agents and bought real numbers.
@@ -354,7 +351,7 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    ```
    node --env-file=.env.local -e "import('stripe').then(async({default:S})=>{const s=new S(process.env.STRIPE_SECRET_KEY);const e=await s.webhookEndpoints.update('we_1Trrqk3nqoZlRtPEan18MmjD',{disabled:false});console.log(e.status)})"
    ```
-10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+9. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
@@ -419,6 +416,27 @@ verified this app" interstitial and must click Advanced → Continue, and there 
 - **"Just add another vertical" is almost never the answer here.** Nine are live, zero clients have
   ever paid, and the one real subscription logged 18 minutes in a month. Distribution has always
   been the constraint. A warm introduction beats a tenth landing page.
+
+### Mock onboarding — the rehearsal, and what it costs
+One real Retell number, bought and released. Everything else is free. Stripe stays in test mode,
+so no card is charged, but **Retell has no test mode** and the number is a real purchase.
+
+1. **Enable the Stripe webhook** `we_1Trrqk3nqoZlRtPEan18MmjD` (open item 8) — it is disabled,
+   so nothing provisions while it is off.
+2. `node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs` — preflight, spends
+   nothing. Then `--apply` to print the checkout URL. The `ZERODOLLARTEST` promo code and its
+   100%-off coupon `hmfiggoW` already exist and are active.
+3. Complete the checkout. Use the throwaway domain the script prints, exactly — the cleanup keys
+   on it.
+4. `node --env-file=.env.local scripts/verify-onboarding-result.mjs <domain>` — expects exactly
+   ONE agent, number, claim and receptionist row. More than one means the idempotency guard
+   regressed.
+5. **Open the welcome email and check the questionnaire button's URL contains `?t=`.** This is
+   the step that cannot be automated and is the whole reason the mock run is worth a number.
+6. Fill the questionnaire in. Then `setup-client-inventory.mjs` if testing the spreadsheet path.
+7. `node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs` — dry run, then `--apply`.
+   It sweeps orphaned agents **by name**, not just the one the subscription row records.
+8. **Disable the webhook again**, and re-check Retell is back to 2 numbers.
 
 ### Verification scripts (all committed, all run against live systems)
 ```
