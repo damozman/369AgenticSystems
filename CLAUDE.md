@@ -308,7 +308,7 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    submitter. Do not build this unprompted.
 7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
    when `/api/update-dossier` was deleted.
-9. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
+8. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
    E2E.** Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` → `https://369agenticsystems.com/api/stripe-webhook`,
    `checkout.session.completed`, created 2026-07-11, **disabled 2026-08-18** at Chris's request
    after a sandbox checkout provisioned real Retell agents and bought real numbers.
@@ -321,7 +321,7 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    ```
    node --env-file=.env.local -e "import('stripe').then(async({default:S})=>{const s=new S(process.env.STRIPE_SECRET_KEY);const e=await s.webhookEndpoints.update('we_1Trrqk3nqoZlRtPEan18MmjD',{disabled:false});console.log(e.status)})"
    ```
-10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
+9. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
 
