@@ -2,6 +2,7 @@
 
 import { useState, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { deriveItemKey, describeChoices, matchItem } from '@/lib/inventory'
 
 export default function QuestionnaireForm({ params }: { params: Promise<{ domain: string }> }) {
   const router = useRouter()
@@ -32,7 +33,67 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
     days: ['mon', 'tue', 'wed', 'thu', 'fri'] as string[],
     slot_duration_minutes: 60,
     max_concurrent_per_slot: 1,
+    // Never asked before, so every client silently kept the database defaults of 14 days
+    // and 12 hours. Fine for a trade booking this week; wrong for anyone booking events
+    // months out, and invisible — they tick Saturday, see it saved, and still get refused.
+    booking_horizon_days: 60,
+    lead_time_hours: 12,
   }))
+
+  // Rental stock. Off by default: most verticals sell time, and an equipment table is pure
+  // friction for a roofer. Mirrors the has_emergency_service pattern in Section 3.
+  const [rentsItems, setRentsItems] = useState(false)
+
+  /**
+   * quantity is held as TEXT, not a number.
+   *
+   * Coercing on every keystroke means clearing the box yields Number('') === 0, so a 0 sits
+   * in the field and whatever is typed next lands after it — typing 10 gives 010. Keeping the
+   * raw text lets the box be genuinely empty mid-edit; it is parsed once, on submit.
+   */
+  type ItemRow = { label: string; quantity: string }
+  const [inventory, setInventory] = useState<ItemRow[]>([{ label: '', quantity: '1' }])
+
+  const setItem = (i: number, patch: Partial<ItemRow>) =>
+    setInventory(prev => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+  const addItem    = () => setInventory(prev => [...prev, { label: '', quantity: '1' }])
+  const removeItem = (i: number) => setInventory(prev => prev.filter((_, idx) => idx !== i))
+
+  /** Digits only while typing, and an empty box is allowed until they leave the field. */
+  const onQuantityChange = (i: number, raw: string) =>
+    setItem(i, { quantity: raw.replace(/[^0-9]/g, '').slice(0, 4) })
+
+  /** On the way out, settle it: empty or 0 becomes 1, and 007 becomes 7. */
+  const onQuantityBlur = (i: number) =>
+    setItem(i, { quantity: String(Math.max(1, parseInt(inventory[i]?.quantity ?? '1', 10) || 1)) })
+
+  const quantityOf = (row: ItemRow) => Math.max(1, parseInt(row.quantity, 10) || 1)
+
+  const filledItems = inventory.filter(r => r.label.trim() !== '')
+
+  /**
+   * Which names would leave Ava unable to tell two items apart.
+   *
+   * Runs the SAME matcher the booking route runs, so this is not an approximation of the
+   * problem — it is the problem. A collision is not an error and must never block signup:
+   * Ava simply has to ask 'which one?' every time a caller uses that word. Renaming now is
+   * free, and discovering it on a live booking call is not.
+   */
+  const collisions = (() => {
+    const pool = filledItems.map(r => ({
+      item_key: deriveItemKey(r.label), label: r.label.trim(), quantity: quantityOf(r),
+    }))
+    const words = new Set<string>()
+    for (const it of pool) for (const w of it.label.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (w.length > 2) words.add(w)
+    }
+    const out: string[] = []
+    for (const w of words) {
+      const m = matchItem(pool, w)
+      if (m.kind === 'ambiguous') out.push(`"${w}" could mean ${describeChoices(m.candidates)}`)
+    }
+    return out
+  })()
 
   const toggleDay = (day: string) =>
     setSchedule(prev => ({
@@ -81,7 +142,12 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
             ),
             slot_duration_minutes: Number(schedule.slot_duration_minutes),
             max_concurrent_per_slot: Number(schedule.max_concurrent_per_slot),
+            booking_horizon_days: Number(schedule.booking_horizon_days),
+            lead_time_hours: Number(schedule.lead_time_hours),
           },
+          // Only when they said they rent things. An empty array and an absent key mean
+          // different things to the route: absent leaves existing stock alone.
+          ...(rentsItems ? { inventory: filledItems.map(r => ({ label: r.label.trim(), quantity: quantityOf(r) })) } : {}),
         }),
       })
 
@@ -355,7 +421,139 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
           One truck or one crew? Leave this at 1. Three crews that can be out at once? Set it to 3.
         </p>
 
-        <div className="section-label">Section 5: Help Us Sound Like You</div>
+        <label>How far ahead can people book?</label>
+        <select
+          value={schedule.booking_horizon_days}
+          onChange={e => setSchedule(p => ({ ...p, booking_horizon_days: Number(e.target.value) }))}
+        >
+          <option value={14}>2 weeks</option>
+          <option value={30}>1 month</option>
+          <option value={60}>2 months</option>
+          <option value={120}>4 months</option>
+          <option value={180}>6 months</option>
+          <option value={365}>1 year</option>
+        </select>
+        <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
+          Your agent refuses anything past this. Booking parties or events months out? Pick 6 months or a year.
+        </p>
+
+        <label>How much notice do you need before a job?</label>
+        <select
+          value={schedule.lead_time_hours}
+          onChange={e => setSchedule(p => ({ ...p, lead_time_hours: Number(e.target.value) }))}
+        >
+          <option value={0}>None — same hour is fine</option>
+          <option value={2}>2 hours</option>
+          <option value={12}>12 hours</option>
+          <option value={24}>1 day</option>
+          <option value={48}>2 days</option>
+          <option value={72}>3 days</option>
+        </select>
+        <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
+          Nothing sooner than this gets offered. If you have to load a truck the day before, say 2 days.
+        </p>
+
+        <div className="section-label">Section 5: Do You Rent Out Equipment?</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+          <input
+            type="checkbox"
+            id="rentsItems"
+            checked={rentsItems}
+            onChange={e => setRentsItems(e.target.checked)}
+            style={{ width: 'auto', margin: 0 }}
+          />
+          <label htmlFor="rentsItems" style={{ margin: 0, marginTop: 0 }}>
+            Yes — we rent out specific items (bounce houses, tables, equipment)
+          </label>
+        </div>
+        <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
+          Leave this unticked if you sell your time rather than things. Tick it and your agent
+          tracks each item separately, so one castle out on Saturday does not block the rest.
+        </p>
+
+        {rentsItems && (
+          <>
+            <label>Your items</label>
+            <div style={{ marginTop: '6px', marginBottom: '12px' }}>
+              {inventory.map((row, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <input
+                    style={{ flex: 3, margin: 0 }}
+                    placeholder="e.g., Princess Castle bounce house"
+                    value={row.label}
+                    onChange={e => setItem(i, { label: e.target.value })}
+                  />
+                  <input
+                    style={{ flex: 1, margin: 0, minWidth: 0 }}
+                    // text + inputMode, not type=number: a number input keeps its own
+                    // partially-typed buffer, which is what put a stray 0 in front of the
+                    // digits. inputMode still brings up the numeric keypad on a phone.
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    aria-label="How many you own"
+                    value={row.quantity}
+                    onChange={e => onQuantityChange(i, e.target.value)}
+                    onBlur={() => onQuantityBlur(i)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    aria-label={`Remove ${row.label || 'item'}`}
+                    disabled={inventory.length === 1}
+                    style={{
+                      width: 'auto', margin: 0, padding: '10px 14px', fontSize: '13px',
+                      background: '#1A1A2E', color: '#94A3B8',
+                      border: '1px solid rgba(148,163,184,0.2)',
+                      opacity: inventory.length === 1 ? 0.4 : 1,
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addItem}
+              style={{
+                width: 'auto', margin: '0 0 8px', padding: '10px 18px', fontSize: '13px',
+                background: '#1A1A2E', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.4)',
+              }}
+            >
+              + Add another item
+            </button>
+
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
+              The number is how many you own. Two identical bounce houses? One row, quantity 2.
+              Got a lot of stock? Send us a spreadsheet instead and we will load it for you.
+            </p>
+
+            {collisions.length > 0 && (
+              /* Not an error. Ava can still book these — she just has to ask which one every
+                 time a caller says the shared word, and renaming now costs nothing. */
+              <div style={{
+                border: '1px solid rgba(212,175,55,0.4)', background: 'rgba(212,175,55,0.06)',
+                borderRadius: '8px', padding: '12px 14px', marginBottom: '20px',
+              }}>
+                <div style={{ fontSize: '13px', color: '#D4AF37', fontWeight: 700, marginBottom: '6px' }}>
+                  Some names sound alike
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#94A3B8', lineHeight: 1.7 }}>
+                  {collisions.map(c => <li key={c}>{c}</li>)}
+                </ul>
+                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '8px', lineHeight: 1.6 }}>
+                  That is fine — your agent will ask the caller which one they mean. Give them more
+                  distinct names if you would rather she did not have to.
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="section-label">Section 6: Help Us Sound Like You</div>
 
         <label>What objections do callers raise most?</label>
         <textarea
