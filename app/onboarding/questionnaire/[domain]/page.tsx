@@ -475,6 +475,18 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
         {rentsItems && (
           <>
             <label>Your items</label>
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', marginBottom: '12px', lineHeight: 1.6 }}>
+              List the things customers ask for <strong>by name</strong> and that can <strong>run out</strong> —
+              a specific bounce house, a particular trailer. Bulk stock you never run short of, like
+              chairs or linens, is better described in the notes at the end: your agent can still talk
+              about it, without treating 200 chairs as 200 separate bookings.
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '4px', fontSize: '11px', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ flex: 3 }}>Item name — what callers say</div>
+              <div style={{ flex: 1, minWidth: 0 }}>How many</div>
+              <div style={{ width: '86px' }} />
+            </div>
             <div style={{ marginTop: '6px', marginBottom: '12px' }}>
               {inventory.map((row, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
@@ -527,7 +539,9 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
             </button>
 
             <p style={{ fontSize: '12px', color: '#64748B', marginTop: '-14px', marginBottom: '20px' }}>
-              The number is how many you own. Two identical bounce houses? One row, quantity 2.
+              <strong>How many</strong> is how many you own — and it is exactly how many your agent will
+              let out at the same time. Two identical bounce houses? One row, 2. When both are booked for
+              Saturday afternoon, she stops offering that item and moves the caller to another one.
               Got a lot of stock? Send us a spreadsheet instead and we will load it for you.
             </p>
 
