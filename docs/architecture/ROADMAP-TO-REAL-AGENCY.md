@@ -1,4 +1,18 @@
 # Roadmap to Real Agency
+
+> # ⚠ STALE — DO NOT TRUST THIS FOR CURRENT STATE
+> **Last genuinely maintained 2026-07-16. Kept as a dated historical record of why things were
+> built the way they were — not as a description of the system as it stands.**
+>
+> Known-wrong claims below include: Gumloop as a live integration (**cancelled**, account dies
+> 2026-09-02), a **$1,500 setup fee** (`SETUP_FEE` has been **0** since 2026-07-17), and dental's
+> template agent not existing (it does; the id typo is fixed). Nothing below mentions Google
+> Calendar booking, per-item rental inventory, usage metering and billing, provisioning
+> idempotency, AI disclosure, SMS consent, or A2P — all of which shipped after it was written.
+>
+> **For what is actually deliverable today, read `WHAT-CAN-I-DELIVER-TODAY.md` in this folder.**
+> For current working state, read the Session Handoff section at the top of `CLAUDE.md`.
+
 **Strategic prioritization: what to build (and in what order) to move from "home office project" to "actual agency business."**
 Date: 2026-07-11 · Updated: 2026-07-14
 Context: Ava (receptionist) + Rex/Nova (follow-up/confirmation) are now live and genuinely verified across all 9 verticals (closed 2026-07-14, was the last real gap in vertical coverage/tier differentiation). Business automation and the launch pipeline are also verified end-to-end. What's left before the Monday 2026-07-20 target is either deliberately deferred (Stripe live mode, dental) or needs a real phone call to close (spelling-accuracy verification) — not more building.

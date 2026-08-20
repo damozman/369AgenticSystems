@@ -1,4 +1,18 @@
 # 369 Agentic Systems — System Blueprint
+
+> # ⚠ STALE — DO NOT TRUST THIS FOR CURRENT STATE
+> **Last genuinely maintained 2026-07-16. Kept as a dated historical record of why things were
+> built the way they were — not as a description of the system as it stands.**
+>
+> Known-wrong claims below include: Gumloop as a live integration (**cancelled**, account dies
+> 2026-09-02), a **$1,500 setup fee** (`SETUP_FEE` has been **0** since 2026-07-17), and dental's
+> template agent not existing (it does; the id typo is fixed). Nothing below mentions Google
+> Calendar booking, per-item rental inventory, usage metering and billing, provisioning
+> idempotency, AI disclosure, SMS consent, or A2P — all of which shipped after it was written.
+>
+> **For what is actually deliverable today, read `WHAT-CAN-I-DELIVER-TODAY.md` in this folder.**
+> For current working state, read the Session Handoff section at the top of `CLAUDE.md`.
+
 **Single source of truth for architecture, business model, and current build state.**
 Last rewritten: 2026-07-10, refreshed 2026-07-16 (the 2026-07-10 version's agent live/planned table and "Known Gap" section were badly stale — both corrected below. Replaces the 2026-05-23 version, which described a pre-pivot product — email-diagnostic scans, Flowise, 8 industries, no real receptionist. None of that reflects the live business anymore.)
 

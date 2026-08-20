@@ -1,88 +1,252 @@
 # What Can I Actually Deliver Today
-**Ground truth as of 2026-07-16. Read this before a sales call, before flipping Stripe to live, before quoting a feature.**
 
-> Companion to `369-SYSTEM-BLUEPRINT.md` in this folder — that one explains the architecture, this one answers "if someone pays right now, what do they actually get."
+**Ground truth as of 2026-08-19 (late).** Read this before a sales call, before a chamber event,
+before quoting a feature, before flipping Stripe to live.
 
-> **2026-07-16 update:** investigating the untested admin multi-client dashboard (Month 2 item, checklist below) surfaced a real, live production bug — `/admin` was missing from `middleware.ts`'s admin-only route gate entirely, so any real logged-in client could have navigated straight to it and seen every other client's revenue, MRR, and churn-risk data. Fixed and verified with real Supabase sessions (the real admin still gets in cleanly, a real client session now correctly bounces to `/client-dashboard`), and the dashboard's actual numbers were cross-checked against raw Supabase data and matched exactly. Not customer-facing, so it doesn't change what you can sell — but it was a real exposure until today.
+> **Companion docs.** `369-SYSTEM-BLUEPRINT.md` explains the architecture; `ROADMAP-TO-REAL-AGENCY.md`
+> is the dated history. **Both are stale (Jul 16) and carry a banner saying so.** This file is the
+> only one in this folder maintained as current. For coding rules, see `CLAUDE.md` in the repo root.
 
-> **2026-07-14 update (full day):** as of a real signup (Northside Roofing) run end-to-end with no manual intervention, the whole core pipeline is genuinely verified together: provisioning, questionnaire-driven personalization (confirmed on a real call — agent quoted exact warranty/pricing/scheduling language from the questionnaire), Elite live call transfer (previously completely broken — `transfer_phone_number` isn't a real Retell field — now fixed, upgraded to a warm transfer with a private handoff briefing, confirmed on real calls), Elite transcript search (confirmed against real data), and client dashboard essentials (phone number display, billing portal, questionnaire tracking). Later the same day: real-time email alerts to the client the moment a lead or booking happens (with a calendar `.ics` attachment on bookings), **Rex/Nova follow-up extended from 3 verticals to all 9** (the single largest gap in the launch plan — closed), and a real post-payment page replacing Stripe's generic confirmation screen. Retell's account balance was also checked and topped up directly on their dashboard. Full detail: Era 8 of `docs/reference/changelog-recent-sessions.html` and items 1e/1f/1g of `docs/architecture/ROADMAP-TO-REAL-AGENCY.md`.
+## How this was verified
 
-> **2026-07-13 update:** the "manual provisioning" section below was accurate as of 2026-07-11 but is now wrong — real per-client automated provisioning was tested and confirmed working the same night this note was added, after a real Stripe signup uncovered it had never actually worked (schema drift, wrong Retell API endpoints, a version-field rejection). See the corrected section below and `retell_provisioning_gaps_2026-07-13.md` (memory) for the full story.
+Everything below was checked against the live system on 2026-08-19, not read out of a prior doc.
+Retell agent and number counts came from the Retell API; row counts from production Supabase; the
+Stripe mode and webhook state from the Stripe API; feature flags from env and code. Where
+something is **claimed but unverified**, it says so in place.
+
+**"Greenlit" here means three things at once:** the code is deployed, it is legally clear to use
+(AI disclosure, SMS consent), and it is not sitting behind an off switch. Something can be fully
+built and still not deliverable — usage billing is the clearest example.
 
 ---
 
 ## The short version
 
-You can sell and deliver **Starter, Pro, and Elite honestly, today, across 8 actively-promoted verticals** (roofing, HVAC, plumbing, legal, real estate, insurance, wholesale, plus SaaS which is technically live but deliberately pulled from promotion — see below). 24/7 call answering, real per-client personalization, live call transfer and transcript search (Elite), and real-time lead/booking alerts to the client, all confirmed against the real system. Nova's booking confirmation is genuinely a Starter feature; Rex's automated 3-step follow-up is genuinely Pro/Elite-exclusive as of 2026-07-16 (it fired on every tier by mistake until then — fixed). The one deliberate, known exception is dental (waitlist-only by design, not part of this launch). Stripe is still in test mode — that's the one remaining gate before real money moves, and it's a decision, not a bug.
+**The product works. The path to being paid for it does not, right now.**
+
+Ava answers calls 24/7, qualifies, captures leads, checks real availability against the owner's
+Google Calendar, books, and sends confirmations — proven on real calls, at 964ms p50. That is
+genuinely deliverable in **8 verticals** today (all but dental).
+
+But three things are off, and two of them deliberately:
+
+1. **Stripe is in test mode** and its only webhook endpoint is **disabled**. A checkout on the
+   live site today provisions **nothing**. Safe and intentional with zero paying clients — but it
+   means *nobody can buy* until it is re-enabled.
+2. **No client has a Google Calendar connected** (`calendar_connections` = 0). The booking chain is
+   proven, but every new client must complete OAuth — and until Google verification clears they see
+   an "unverified app" warning first.
+3. **SMS does not exist in either direction.** No inbound route, Twilio unconfigured, A2P brand
+   unregistered. Everything SMS-shaped is a promise, not a capability.
+
+**Zero paying clients. One subscription row (Northside, a test client). 55 calls, 27 leads, 21
+bookings all-time.** Nothing here has been proven at volume.
 
 ---
 
-## ✅ Fixed 2026-07-11 — the pricing page overclaim
+## Live system state — 2026-08-19
 
-`lib/tier-config.ts` used to list Pro/Elite features that didn't exist anywhere in the codebase ("Lead scoring & prioritization," "Conversion tracking," "Advanced reporting" on Pro; "Review request automation," "AI review response drafting," "Reputation score monitoring," "Referral tracking" on Elite). Rewritten to only list what's real: Pro now shows the actual follow-up sequence plus Enhanced Voice Quality (real Retell feature) and priority email support; Elite shows Premium Voice Quality + Custom Business Intelligence (both real Retell features) plus priority onboarding/support. Full before/after logged in `docs/reference/removed-agent-abilities-reference.html` (Round 3) and `pricing_tier_overclaim_2026-07-11.md` in memory.
-
-`PREMIUM_ADDONS` in the same file (Live Call Transfer, Branded Caller ID, Spanish Support, Custom Voice, HIPAA Pack) is still dead code — defined but never rendered anywhere in the pricing UI. Left alone since it's not currently sellable either way; flag before ever wiring it up.
-
----
-
-## What's real, right now, per tier
-
-| Tier | Price | What's actually included |
-|---|---|---|
-| **Starter** | $400/mo + $1,500 setup | Ava answers calls 24/7, qualifies, books, personalized to the business via the onboarding questionnaire. **Nova sends the caller a booking confirmation email** (genuinely a Starter feature, not Pro-gated). Real-time dashboard with phone number, billing portal, questionnaire tracking. Real-time email alert to the client on every new lead/booking (with calendar invite on bookings). HD call quality (real Retell feature). Daily email summary. **Does not include Rex follow-up** (gated 2026-07-16 — previously fired on every tier by mistake). |
-| **Pro** | $600/mo | Everything in Starter, **plus Rex's automated 3-step lead-nurture follow-up** — now genuinely gated to Pro/Elite only (fixed 2026-07-16; previously fired for Starter too, for free) and live in all 9 verticals (closed 2026-07-14). Plus real Enhanced Voice Quality. |
-| **Elite** | $750/mo | Everything in Pro, plus **live call transfer** (warm transfer with a private handoff briefing to the owner — confirmed on real calls), **call recording + searchable transcript archive** (confirmed against real data), Premium Voice Quality and Retell's Custom Business Intelligence (real, bundled Retell features), and priority onboarding/support. Both headline Elite features were completely broken until 2026-07-14 — confirm this note is still current before quoting Elite. |
+| Thing | State |
+|---|---|
+| Retell agents | **11** — 9 vertical templates + the shared demo agent + Northside |
+| Retell numbers | **2** — (817) 635-0220 demo, (817) 612-6757 Northside |
+| `agent_subscriptions` | **1** (Northside — test client, no Stripe anchor) |
+| `calendar_connections` | **0** |
+| `client_schedules` / `client_inventory` | **0** / **0** |
+| `calls` / `leads` / `bookings` | 55 / 27 / 21 (all-time) |
+| Stripe | **test mode**; sole webhook `we_1Trrqk3nqoZlRtPEan18MmjD` **disabled** |
+| Pricing | $400 / $600 / $750 flat. `SETUP_FEE = 0`. No minute limits advertised. |
 
 ---
 
-## What's live, per vertical
+## The engine — shared by every vertical
 
-| Vertical | Ava (receptionist) | Rex (follow-up) | Nova (confirmation) | Felix / Scout |
-|---|---|---|---|---|
-| Roofing, HVAC, Plumbing | ✅ Live | ✅ Live | ✅ Live | — |
-| Legal | ✅ Live | ✅ Live | ✅ Live | Felix ✅ live (conflict check) |
-| Real Estate, Insurance, Wholesale | ✅ Live | ✅ Live | ✅ Live | — |
-| SaaS | ✅ Live (technically) | ✅ Live | ✅ Live | Scout planned |
-| Dental | Waitlist — nothing live | Content exists, agent doesn't | Content exists, agent doesn't | — |
+All nine verticals run the *same* system. A vertical is a template agent, a landing page, and some
+copy — not a separate product. So this table is where most of the truth lives, and the per-vertical
+sections below record only where a vertical **differs**.
 
-**SaaS deprioritized from active promotion, 2026-07-16** — don't lead a sales call with it. The underlying product still works, but Chris's call: phone answering is a weak fit for SaaS since phone isn't their primary lead channel. Removed from every public vertical selector (homepage, `/founding`, SEO/structured data) — the page itself and the `/saas` funnel stay live and reachable, just not promoted. Revisit Month 3-4 with a webhook-triggered trial/demo follow-up repositioning instead of call-answering. Full note: `pending_items.md` (memory).
+### Deliverable today
 
-**Closed 2026-07-14:** Rex/Nova now live in all 9 verticals — verified live for real-estate and saas specifically, mechanically identical for the rest since Nova generates its confirmation copy live via Claude rather than per-vertical hand-written templates. A Pro/Elite sale in any launched vertical now delivers what it promises. Dental is the one deliberate exception — content is ready, but its template agent doesn't exist on Retell yet and it's staying waitlist-only by design.
+| Capability | Notes |
+|---|---|
+| **24/7 call answering** (Ava) | Dedicated agent + number per client. `claude-4.5-haiku`, 964ms p50. |
+| **AI disclosure** | Live on all 11 agents. Texas TRAIGA. The greeting names Ava as an AI assistant. |
+| **Lead capture** | `capture-lead`, writes `leads`, real-time owner email alert. |
+| **Real availability + booking** | `available-slots` / `book-appointment`, capacity-checked in one transaction behind an advisory lock. Cannot double-book. |
+| **Google Calendar awareness** | Reads owner freeBusy; refuses rather than offering a time it cannot verify. Writes the event back. **Requires the client to connect — nobody is connected today.** |
+| **Booking confirmations** (Nova) | Email + `.ics`. All 9 verticals. |
+| **Follow-up sequences** (Rex) | 3-step, all 9 verticals, Pro/Elite gated. **Email only.** |
+| **Per-client personalization** | Questionnaire merges into the agent prompt. Proven on a real call. |
+| **Per-item rental inventory** | `client_inventory` + `bookings.inventory_item_key`. Read live on every call. **No client has rows.** |
+| **Per-client hours / horizon** | `client_schedules`. Read live. |
+| **Client dashboard** | Calls, leads, bookings, transcripts, billing portal, CSV export. |
+| **Usage metering** | Reconciled exactly against Retell for the first closed period. |
+| **Automated provisioning** | Checkout → agent + number + rows, with a duplicate-delivery guard and area-code fallback. **Gated by the disabled webhook.** |
+
+### Built but switched OFF — a decision, not a build
+
+| Capability | What it needs |
+|---|---|
+| **Usage billing / overage** | `USAGE_BILLING_ENABLED=true` in Vercel + redeploy. **Flip the pricing copy in the same move.** Run `verify-billing.mjs` first. Caveat: the overage arithmetic has never met real data — the one closed period had zero overage. |
+| **Taking real money** | Stripe live mode, and re-enable the webhook. |
+
+### Not built — do not sell
+
+| Gap | What is needed |
+|---|---|
+| **Inbound SMS** | No route exists. Needs the Retell chat-agent spike (can it call the existing tools?), then A2P clearance. |
+| **Outbound SMS** | `lib/twilio-sms.ts` sends only; **Twilio unconfigured**; A2P brand unregistered. |
+| **Text-to-Quote** | Needs SMS first. v1 must be draft → owner approves → send. Never auto-price. |
+| **Multi-day rental windows** | `book_slot()` takes a `tstzrange` and could span days; `generateSlots` is day-bounded, so nothing *offers* a 3-day hire. Blocks dumpsters and weekend rentals. |
+| **Inventory UI** | No screen reads or writes `client_inventory`. A client cannot fix a quantity or take a torn item out of service. |
+| **Bulk quantities** | Every booking consumes exactly 1 unit. "200 chairs" means 200 separate bookings, not one order of 200. |
+| **Deposits / waivers** | Nothing exists. Standard for bounce houses and equipment. |
+| **Owner SMS alerts** | `owner_phone` and `followup_method` are captured at onboarding and never read. |
+| **Scout** (SaaS) | Marked DEPLOYING on the site. Not built. |
 
 ---
 
-## Funnels — status
+## Per-vertical breakdown
 
-Both funnels are wired to real endpoints, not placeholders (checked directly, no `GUMLOOP_WEBHOOK_URL_HERE` or dead links remain anywhere in `/public`):
+### Roofing · HVAC · Plumbing
 
-- **Cold-email funnel** (static pages → Gumloop → 3-email sequence): live, real webhook, differentiated by `source_tag` per vertical.
-- **Warm funnel** (ROI calculator → pricing → Stripe checkout → real post-payment page → client dashboard → real Retell agent + phone number): genuinely verified end-to-end **in Stripe test mode**, most recently 2026-07-14 — a real test purchase creates a real Retell agent (with a personalized greeting, not a shared template), allocates and binds a real phone number, writes a correct `agent_subscriptions` row, correctly attributes that customer's inbound calls, lands on a real confirmation page (not Stripe's generic one) with a direct link into the questionnaire, and the deeper questionnaire-driven personalization is confirmed live on a real call too. Not yet tested with real money.
+- **Deliverable today:** everything in the engine table. Ava, Rex, Nova all live. Template agent
+  exists. Landing page + ROI calculator + intake live.
+- **Not deliverable:** SMS quoting, storm-surge texting, anything SMS.
+- **Needed to finish:** nothing vertical-specific. These are the most complete verticals and the
+  only proven ones — **Northside (roofing) is where the calendar chain and owner alerts were proven.**
+- **Note:** the top-ten Texas roofing company in the network is an *after-hours + storm surge* play,
+  not a replacement sale. Storm surge is a capacity problem, which `max_concurrent_per_slot` already
+  models. Needs no code — only the right framing.
 
-**Funnels are ready to execute on** — nothing is broken or placeholder, and as of 2026-07-14 the tier/vertical promises the funnel sells actually match what's built. The one remaining gate before real money moves is Stripe test mode itself, which is Chris's call, not a technical blocker.
+### Tree services / stump grinding — *no page; sold as the roofing/plumbing shape*
+
+- **Deliverable today:** everything. Speed-to-lead plus an on-site estimate booked to the calendar
+  is exactly what is built. Nobody quotes a removal by text, so the missing SMS layer costs nothing.
+- **Not deliverable:** nothing it actually needs.
+- **Needed to finish:** **nothing. This is the fastest pilot available and requires no new code.**
+  It has no landing page, which is a marketing gap, not a product one.
+
+### Legal
+
+- **Deliverable today:** engine + **Felix conflict check** (`/api/felix/conflict-check`), live.
+- **Not deliverable:** document drafting; intake beyond qualification.
+- **Needed to finish:** nothing. Felix pins `claude-sonnet-4-6` and runs mid-call on live traffic —
+  **measure before changing that model.**
+
+### Real Estate
+
+- **Deliverable today:** full engine. Ava, Rex, Nova live.
+- **Not deliverable:** SMS, listing-system integration.
+- **Needed to finish:** nothing. The realtors in the network can be sold what exists today.
+
+### Insurance
+
+- **Deliverable today:** full engine.
+- **Not deliverable:** claims triage, policy lookup.
+- **Needed to finish:** nothing.
+
+### Wholesale / Distribution
+
+- **Deliverable today:** full engine, plus the **ops-brief spreadsheet importer** (CSV + XLSX) —
+  the same parser that bulk-loads rental inventory.
+- **Not deliverable:** quoting, multi-day holds.
+- **Needed to finish:** nothing for the core offer.
+
+### SaaS
+
+- **Deliverable today:** engine works. Ava, Rex, Nova live.
+- **Not deliverable:** **Scout is marked DEPLOYING on the site and does not exist.**
+- **Needed to finish:** either build Scout or change the badge. **Deliberately deprioritized** —
+  phone is a weak channel for SaaS, so don't lead with it. The honest move is fixing the badge.
+
+### Dental — **NOT deliverable, by design**
+
+- **Deliverable today:** nothing. All agents marked FUTURE. `dental-leads` has no intake form, and
+  `/dental/pricing` **redirects to the waitlist** so nobody can be charged without provisioning.
+- **What exists:** a Dental Demo Agent on Retell, Rex + Nova content, the landing page. The
+  template-id typo is fixed in both `.env.local` and Vercel.
+- **Needed to finish:** a decision to launch, then flip the agents off FUTURE and remove the pricing
+  redirect. **The gating is intentional — leave it until dental is actually wanted.**
 
 ---
 
-## Per-client provisioning: automated, now genuinely verified (2026-07-14)
+## The rental niches — no vertical page, and that is correct
 
-As of 2026-07-13, a Stripe payment automatically provisions a real, dedicated Retell agent and phone number — no manual step required. This was previously believed done (marked DONE 2026-07-11) but that claim was never actually true: the production database didn't even have the columns the provisioning code wrote to until this fix, so every real attempt would have thrown after already creating a billable Retell agent. Three separate bugs (schema drift, two wrong Retell API endpoints, a version-field rejection) were found and fixed the same night by testing a real signup, not by reading the code. Full detail: `retell_provisioning_gaps_2026-07-13.md` (memory), Era 7 of `docs/reference/changelog-recent-sessions.html`.
+This is where the *next* client comes from. `CLAUDE.md` is explicit: **do not add vertical pages.**
+The page follows the customer.
 
-**Standing gap closed 2026-07-14:** the questionnaire-driven deeper personalization (business services, hours, emergency rules, FAQs merged into the agent's prompt) was only verified at the function level as of 2026-07-13. A real signup (Northside Roofing) plus a real live call has now confirmed it works — the caller price-shopped and asked about warranty; the agent answered with the exact 25-year warranty and pricing language straight from the questionnaire. You can now tell a customer their agent "knows their business" from the questionnaire.
+**All of these must be provisioned under one of the 9 existing verticals.** `TEMPLATE_AGENT_IDS` in
+`lib/retell-provisioning.ts` has exactly 9 keys, and `vertical` comes from Stripe's
+`client_reference_id`. **A checkout with `client_reference_id=entertainment` throws
+`No template agent configured` and provisions nothing.** The questionnaire does the real
+personalizing on top, so this is a choice to make deliberately — not a blocker, but not a
+detail to discover during a live onboarding either.
 
-**New standing item:** the agent doesn't yet confirm email/phone spelling accuracy back to the caller in a verified way — the instruction was added to all 9 vertical templates 2026-07-14 after a real transcript showed a misheard email address, but hasn't been confirmed working on an actual call yet. Confirm before relying on it for a real customer's contact info.
+### Party / event rental — mobile casino, DJ, bounce houses — **THE PILOT**
+
+- **Deliverable today:** call answering, lead capture, **per-item availability** (the princess castle
+  vs the castle combo), booking, calendar, confirmations. The inventory work shipped 2026-08-16
+  specifically for this shape.
+- **Not deliverable:** multi-day rental windows, bulk quantities, deposits, waivers, SMS, quoting.
+- **Needed to finish the pilot:**
+  1. Pick the vertical she is provisioned under — no `entertainment` template exists.
+  2. Re-enable the Stripe webhook, then run a 100%-off checkout to get a real
+     `stripe_subscription_id` — the billing anchor Northside can never have.
+  3. **Write `client_schedules` explicitly.** Defaults close Sat + Sun and cap the horizon at
+     **14 days**. A party-rental business is almost entirely weekends and books months ahead — on
+     defaults Ava refuses every Saturday and anything past a fortnight, and it reads as a bug in the
+     booking engine rather than as configuration. Use `setup-client-schedule.mjs`.
+  4. Load real inventory rows — `setup-client-inventory.mjs` takes her own spreadsheet.
+  5. Connect her calendar. She will see the unverified-app warning until Google clears.
+  6. A real test call.
+- **Known sharp edge:** a bounce house booked Saturday 10:00 for 90 minutes reads as *free* at noon,
+  while it is physically at a party until Sunday. Same root cause as the missing 7-day dumpster hire.
+  **Her stock is identity-shaped, so per-item counts carry the pilot** — but this will bite the first
+  time someone books a full weekend.
+
+### Dumpster rental · portable restrooms
+
+- **Deliverable today:** call answering, lead capture, booking of a *same-day* slot.
+- **Not deliverable:** **multi-day hire — which is the entire business.** Plus rate-card quoting by SMS.
+- **Needed to finish:** multi-day rental windows (`generateSlots` is the blocker), then a
+  deterministic rate card, then SMS. **Do not sell this niche yet.**
+
+### Skid steer · equipment · party bus
+
+- **Deliverable today:** per-item availability and booking.
+- **Not deliverable:** quoting, multi-day windows, deposits.
+- **Needed to finish:** as dumpsters, plus damage deposits. Equipment-yard owners think in assets and
+  often prefer a setup fee with a lower monthly — `SETUP_FEE` is 0 and would need revisiting **for
+  these niches only, and only with real pricing.**
 
 ---
 
-## Before you take real money — the actual checklist
+## What to finish, in order
 
-1. ~~Fix the Pro/Elite feature list on the pricing page~~ — done 2026-07-11.
-2. ~~Decide Rex/Nova rollout for the 6 verticals where they're still "planned"~~ — done 2026-07-14: Rex already had content for all 9, just needed switching on; Nova extended to all 9 via its Claude-generated (not hand-written) template system. Verified live for real-estate and saas.
-3. Flip Stripe to live mode when ready (see `stripe_live_mode_prep` notes — direct-curl signature testing technique, Vercel env var masking behavior). **Deliberately still test-mode — Chris's call, "soon but not yet" as of 2026-07-14.**
-4. ~~Confirm the `/onboarding-complete` Payment Link redirect~~ — done 2026-07-14: turned out nothing was redirecting there at all (page didn't exist, links used Stripe's generic confirmation). Built a real page and wired up all 3 live links; verified against a real completed session.
-5. ~~Have your manual provisioning steps written down~~ — superseded 2026-07-13: provisioning is now automated and verified, no manual checklist needed for the core flow.
-6. ~~Run one real signup all the way through the questionnaire to confirm personalization actually works~~ — done 2026-07-14, confirmed on a real call.
-7. Fix the typo'd `RETELL_TEMPLATE_AGENT_DENTAL` env var before dental ever launches — currently points at a nonexistent agent ID. **Deliberately deferred — Chris confirmed dental stays waitlist-only for now, 2026-07-14.**
-8. ~~Check Retell account credit balance~~ — done 2026-07-14: Chris checked directly on Retell's dashboard, topped up the balance, and cross-verified the day's usage against the numbers reported mid-session — matched.
-9. Confirm the email/phone spelling-accuracy instruction (added 2026-07-14) actually changes agent behavior on a real call, not just sitting unused in the prompt. **Still open — needs a real test call.**
-10. Twilio still isn't configured — Pro-tier SMS follow-up and any future SMS-based client alerts are blocked on this, not on code. **Still open, not urgent.**
-11. ~~Rex was firing on every tier, not just Pro/Elite~~ — fixed 2026-07-16, verified live with a temporary Starter-tier test subscription (correctly skipped) and a regression check against a real Elite subscription (still fires normally).
-12. ~~Admin dashboard reachable by any logged-in client~~ — fixed 2026-07-16, verified with real Supabase sessions. Not customer-facing, doesn't change what's sellable, but was a real exposure until fixed.
+Ordered by what unblocks the most. **The first two are calendar time, not build time** — they run
+whether or not anyone is at a keyboard, and neither has started.
+
+1. **Register the A2P brand + campaign** for `3SIX9 MEDIA MASTERS LLC`. Low-volume standard, ~$19
+   one-time. Gates *every* SMS track. Register directly with Twilio, never through a reseller.
+   **Do not give Northside a Secondary Profile** — a rejection damages the Primary trust score.
+2. **Submit for Google verification.** Needs a demo video of end-to-end OAuth consent. Up to 10 days.
+   Until it clears, every new client sees an unverified-app warning and there is a 100-user cap.
+   Record it signed in as `damozman@yahoo.com`, calling **Northside** — a demo-line call proves nothing.
+3. **Re-enable the Stripe webhook** (`we_1Trrqk3nqoZlRtPEan18MmjD`). Nothing provisions until it is
+   on. Disable it again afterward if not going live immediately.
+4. **Prepare the pilot** — decide her vertical, then schedule → inventory → calendar → test call.
+   She is back ~2026-09-02; the chamber event is ~mid-September.
+5. **Fix Northside's contaminated prompt.** Its live Retell prompt still carries *"We do all delivery
+   setup and teardown"* inside the `BUSINESS_CONTEXT` markers from an accidental questionnaire submit.
+   The sync is idempotent, so re-filling correctly overwrites it. Two minutes.
+6. **Fix the SaaS Scout badge** (or build Scout). It currently claims DEPLOYING for something that
+   does not exist.
+7. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+   and failed silently for months — nobody read its output, only that it ran. Assume siblings.
+8. **Flip usage billing** only when Stripe is live — **and move the pricing copy in the same commit.**
+   Advertising minutes before the meter bills them has already shipped once.
+
+**Deliberately not on this list:** more vertical pages. Nine are live, zero clients have ever paid,
+and the one real subscription logged 18 minutes in a month. Distribution was always the constraint —
+a warm introduction beats a tenth landing page.

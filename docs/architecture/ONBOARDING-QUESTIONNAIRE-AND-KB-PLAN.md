@@ -1,4 +1,18 @@
 # Onboarding Questionnaire + Knowledge Base Integration Plan
+
+> # ⚠ STALE — DO NOT TRUST THIS FOR CURRENT STATE
+> **Last genuinely maintained 2026-07-16. Kept as a dated historical record of why things were
+> built the way they were — not as a description of the system as it stands.**
+>
+> Known-wrong claims below include: Gumloop as a live integration (**cancelled**, account dies
+> 2026-09-02), a **$1,500 setup fee** (`SETUP_FEE` has been **0** since 2026-07-17), and dental's
+> template agent not existing (it does; the id typo is fixed). Nothing below mentions Google
+> Calendar booking, per-item rental inventory, usage metering and billing, provisioning
+> idempotency, AI disclosure, SMS consent, or A2P — all of which shipped after it was written.
+>
+> **For what is actually deliverable today, read `WHAT-CAN-I-DELIVER-TODAY.md` in this folder.**
+> For current working state, read the Session Handoff section at the top of `CLAUDE.md`.
+
 **Detailed design for post-checkout client vetting → Retell agent context**
 
 Last updated: 2026-07-11 | Status: **SUPERSEDED 2026-07-13, fully built and verified — historical planning record, no open to-dos.** Re-checked 2026-07-16: every file this doc describes still exists and does what the correction note below says. See note below for what actually shipped.
