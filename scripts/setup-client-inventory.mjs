@@ -47,6 +47,24 @@ const COLUMNS = {
   label:    ['item_name', 'item name', 'item', 'name', 'description', 'equipment', 'product'],
   quantity: ['how_many_you_own', 'how many you own', 'quantity', 'qty', 'count', 'units', 'how many'],
   active:   ['available', 'active', 'in service', 'in_service'],
+  // Optional. Absent means the item is booked as an intra-day appointment, exactly as every
+  // existing client's stock is — the load-bearing null. Only a value here switches an item onto
+  // multi-day hire windows.
+  minDays:  ['min_rental_days', 'min rental days', 'minimum days', 'min days'],
+  maxDays:  ['max_rental_days', 'max rental days', 'maximum days', 'max days'],
+}
+
+/**
+ * A rental-length cell. Blank is meaningful and must stay null rather than becoming a number.
+ * Returns `undefined` for "the client wrote something we cannot read", so the caller can warn
+ * instead of silently hiring a bounce house out for a day nobody agreed to.
+ */
+function parseDays(raw) {
+  const text = (raw ?? '').trim()
+  if (!text) return null
+  const n = parseInt(text, 10)
+  if (Number.isNaN(n) || n < 1) return undefined
+  return n
 }
 
 let failures = 0, warnings = 0
@@ -132,17 +150,40 @@ for (let i = headerIndex + 1; i < rows.length; i++) {
   if (seenKeys.has(item_key)) { bad(`row ${i}: "${label}" and "${seenKeys.get(item_key)}" both key to "${item_key}" — rename one`); continue }
   seenKeys.set(item_key, label)
 
-  ITEMS.push({ item_key, label, quantity: qty, active })
+  const minDays = colIdx.minDays !== undefined ? parseDays(row[colIdx.minDays]) : null
+  const maxDays = colIdx.maxDays !== undefined ? parseDays(row[colIdx.maxDays]) : null
+
+  if (minDays === undefined) { bad(`row ${i}: "${label}" has an unreadable minimum rental length "${(row[colIdx.minDays] ?? '').trim()}"`); continue }
+  if (maxDays === undefined) { bad(`row ${i}: "${label}" has an unreadable maximum rental length "${(row[colIdx.maxDays] ?? '').trim()}"`); continue }
+
+  // A maximum below the minimum offers nothing at all, and silently — the item would simply
+  // stop appearing. The database rejects it too; caught here so the client can fix the row.
+  if (minDays !== null && maxDays !== null && maxDays < minDays) {
+    bad(`row ${i}: "${label}" allows ${minDays}–${maxDays} days — the maximum is below the minimum, so it would never be offered`)
+    continue
+  }
+  // A maximum with no minimum is almost always a half-filled row, and it would leave the item
+  // booking intra-day slots while the client believes they configured a hire.
+  if (minDays === null && maxDays !== null) {
+    warn(`row ${i}: "${label}" has a maximum but no minimum — it will still book as an intra-day slot, NOT a multi-day hire`)
+  }
+
+  ITEMS.push({ item_key, label, quantity: qty, active, min_rental_days: minDays, max_rental_days: maxDays })
 }
 
 if (!ITEMS.length) { bad('no usable item rows found'); process.exit(1) }
-for (const it of ITEMS) console.log(`     ${it.active ? ' ' : '(inactive) '}${it.label}  x${it.quantity}  -> ${it.item_key}`)
+for (const it of ITEMS) {
+  const hire = it.min_rental_days === null ? ''
+    : `  [hire ${it.min_rental_days}${it.max_rental_days === null ? '+' : `-${it.max_rental_days}`}d]`
+  console.log(`     ${it.active ? ' ' : '(inactive) '}${it.label}  x${it.quantity}${hire}  -> ${it.item_key}`)
+}
 ok(`${ITEMS.length} item(s), ${ITEMS.filter(i => !i.active).length} marked unavailable`)
 
 // --- 4. What Ava will mishear ------------------------------------------------------------------
 heading('4. Spoken matching (the REAL matchItem)')
 // Only active items are ever loaded at call time, so only they can collide.
-const pool = ITEMS.filter(i => i.active).map(({ item_key, label, quantity }) => ({ item_key, label, quantity }))
+const pool = ITEMS.filter(i => i.active).map(({ item_key, label, quantity, min_rental_days, max_rental_days }) =>
+  ({ item_key, label, quantity, min_rental_days, max_rental_days }))
 
 for (const it of pool) {
   const m = matchItem(pool, it.label)
