@@ -8,15 +8,42 @@ item is actually resolved, delete it from the list instead of marking it done.
 
 **Last updated:** 2026-08-19.
 
-### Where this session ended — 2026-08-19
+### Where this session ended — 2026-08-19 (late)
 
-**`master` is clean and everything below is DEPLOYED.** PRs #42, #43 and #44 are merged.
-**PRs #45 and #46 are OPEN** and both are small:
-- **#45** — Retell area-code fallback, plus deleting `provisioning_claims` by domain rather than
-  by the subscription id on the row. Take this one first: the failure it fixes has actually fired,
-  and the pilot client is in the same metro.
+**`master` is clean, NOTHING is open, and everything below is DEPLOYED.** PRs #42–#47 are all
+merged; production is on `5580750` and the deploy reported success. The last three:
+- **#45** — Retell area-code fallback (a 214 checkout had failed with
+  `404 No phone numbers of this area code`).
 - **#46** — questionnaire copy: which items belong in inventory, and what the quantity number
   means. Copy only.
+- **#47** — onboarding no longer ends on a login wall. See below.
+
+**#47, and the one thing about it worth carrying forward.** The questionnaire pushed *every*
+submitter to `/client-dashboard`, which middleware guards — fine for an owner editing hours later,
+wrong for a brand-new client who has never signed in. `/api/questionnaire/submit` already worked
+out which gate opened, so it now **returns `authorized_by`** and only `owner-session` gets the
+redirect; everyone else gets an ending that stays put and explains the OTP sign-in.
+**The button points at `/client-dashboard`, not `/login`, on purpose:** middleware bounces an
+unauthenticated visitor to `/login`, and `/login` pushes a non-admin back to `/client-dashboard`
+after the code. One href is right either way, so the destination survives `authorized_by` being
+wrong — `hasSession` only picks the wording, and defaults to `false`.
+**Do not "fix" the sign-in step itself as part of this.** A new client genuinely must sign in;
+the bug was being ejected *silently*, not being asked. Chris confirmed the current behaviour is
+fine for now. Removing the OTP round-trip is separate, larger work.
+
+**Verified locally, not on the preview, and that was deliberate.** The Vercel preview cannot test
+this: it is SSO-protected, so an incognito window never reaches it, and in a normal window Chris
+is signed in as `chris@369agenticsystems.com` — which is the sandbox client's `user_email`, so
+he would get `owner-session` and see the branch that already worked. **Locally
+`ONBOARDING_TOKEN_SECRET` is absent and `ONBOARDING_AUTH_ENFORCED` is unset**, so the gate runs
+reporting-only, `authorized_by` comes back **null**, and the safe default renders the exact branch
+under test with no token to mint. Confirmed by screenshot: the confirmation rendered and stayed.
+The `owner-session` wording branch was **not** exercised — unchanged in behaviour, only in copy.
+
+**Incidental proof from that run:** two submits against the sandbox left the first four inventory
+rows **inactive** rather than deleted, which is the designed behaviour (`bookings.inventory_item_key`
+is plain text, so deleting would orphan bookings). The review sandbox has been deleted; Supabase is
+back to exactly 1 subscription.
 
 **Production state, verified rather than assumed:**
 - Retell: **2 numbers** (+18176350220 demo, +18176126757 Northside), **11 agents**, no test agents.
@@ -471,10 +498,6 @@ Cost about **$4.26** across two Retell numbers, both released; the account is ba
   so they are genuinely different purchases rather than duplicate deliveries. The orphan sweep
   found the second number because it matches on **agent name**; the subscription row names only
   the last writer.
-- **After submitting, the client is bounced to a login wall.** The form redirects to
-  `/client-dashboard`, which is behind middleware auth, and a brand-new client has never signed
-  in — onboarding deliberately does not require it. A short "check your email to sign in"
-  confirmation is the fix. Not built.
 
 ### Mock onboarding — the runbook, and what it costs
 One real Retell number, bought and released. Everything else is free. Stripe stays in test mode,
