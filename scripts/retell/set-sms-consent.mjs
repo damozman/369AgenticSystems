@@ -27,20 +27,40 @@ const APPLY = process.argv.includes('--apply')
 const client = new Retell({ apiKey })
 
 const PARAM_NAME = 'sms_consent'
+
+/**
+ * A REQUIRED enum as of 2026-08-20, replacing the optional boolean.
+ *
+ * The boolean was deliberately left out of `required` so a model that had not asked could never
+ * be cornered into guessing `false`. That reasoning was right and the mechanism was wrong: an
+ * optional parameter is one the model can simply omit, and on two consecutive live calls it did
+ * — Ava asked, the caller said yes, and `capture_lead` arrived with no `sms_consent` key at all.
+ * A real verbal opt-in was recorded as no consent. Prompt wording was strengthened once in
+ * between and did not fix it.
+ *
+ * The enum keeps the original protection while removing the silent-omission path: `not_asked` is
+ * a truthful answer, so requiring the field never forces an invented one.
+ */
 const PARAM_SPEC = {
-  type: 'boolean',
+  type: 'string',
+  enum: ['granted', 'declined', 'not_asked'],
   description:
-    'True ONLY if the caller explicitly agreed to receive text messages when asked. Leave it out '
-    + 'entirely if they declined or if you did not ask. Never infer consent from the fact that '
-    + 'they called.',
+    'Whether the caller agreed to receive text messages. Use "granted" ONLY if you asked and they '
+    + 'said yes. Use "declined" if you asked and they said no. Use "not_asked" if the subject '
+    + 'never came up — that is always an honest answer and is far better than guessing. Never '
+    + 'infer consent from the fact that they called.',
 }
 
 const PROMPT_LINE =
-  '- Before ending, ask once: "Is it alright if we text you updates about this?" Pass '
-  + 'sms_consent=true to capture_lead only if they say yes. If they decline, do not ask again and '
-  + 'do not mention it further.'
+  '- Before ending, ask once: "Is it alright if we text you updates about this?" capture_lead '
+  + 'REQUIRES sms_consent: "granted" if they said yes, "declined" if they said no, "not_asked" if '
+  + 'it never came up. Never send "granted" unless you actually asked and heard yes. If they '
+  + 'decline, do not ask again and do not mention it further.'
 
-const PROMPT_MARKER = /sms_consent/i
+// Matches the NEW wording specifically. A bare /sms_consent/ would report agents carrying the
+// previous "pass sms_consent=true" line as already done, leaving the prompt contradicting a
+// schema that no longer accepts a boolean.
+const PROMPT_MARKER = /sms_consent: "granted"/
 
 // ── Targets: the same set the disclosure rollout uses ─────────────────────────
 const targets = new Map()
@@ -95,7 +115,10 @@ for (const [agentId, label] of targets) {
 
   const tool        = tools[idx]
   const props       = tool.parameters?.properties ?? {}
-  const toolNeeds   = !(PARAM_NAME in props)
+  // Needs changing if the param is absent, still the old boolean, or not yet required — so a
+  // re-run upgrades the agents that already carry the previous shape.
+  const spec = props[PARAM_NAME]
+  const toolNeeds   = !spec || spec.type !== 'string' || !(t.parameters?.required ?? []).includes(PARAM_NAME)
   const promptNeeds = !PROMPT_MARKER.test(llm.general_prompt ?? '')
 
   const nextTools = tools.map((t, i) => i !== idx ? t : ({
@@ -103,10 +126,9 @@ for (const [agentId, label] of targets) {
     parameters: {
       ...t.parameters,
       properties: { ...props, [PARAM_NAME]: PARAM_SPEC },
-      // Deliberately NOT added to `required`. A caller who declines must still produce a valid
-      // capture_lead call — making consent mandatory would either block the lead outright or push
-      // the model to send a guessed `false`, and a guessed boolean is exactly what must never end
-      // up in a consent record.
+      // NOW required — see PARAM_SPEC above for why this reverses the original decision. Safe to
+      // require only because `not_asked` exists: the model always has something true to send.
+      required: [...new Set([...(t.parameters?.required ?? []), PARAM_NAME])],
     },
   }))
 

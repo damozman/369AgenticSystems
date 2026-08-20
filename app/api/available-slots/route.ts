@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { openSlots, formatSlot, formatRentalWindow, generateRentalWindows, filterAvailable, type BusyInterval, type ClientSchedule, type Slot } from '@/lib/availability'
 import { getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
-import { loadInventory, matchItem, isRental } from '@/lib/inventory'
+import { loadInventory, matchItem, isRental, describeChoices, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
 
 /**
@@ -150,6 +150,45 @@ export async function POST(request: NextRequest) {
    * shape until someone sets it.
    */
   const wantedItem = requestedItem ? matchItem(inventory, requestedItem) : null
+
+  /**
+   * A named item that resolves to more than one thing is answered here, not left to fall through.
+   *
+   * Until 2026-08-20 an ambiguous name dropped into the slot pass below, which answers with
+   * intra-day appointment times. Observed on a real call: "do you have a bounce house?" — four
+   * of them in stock — came back "8:00 AM or 9:00 AM". That is not a vaguer answer, it is the
+   * wrong SHAPE of answer, and Ava read it out. Refusing costs one clarifying question; guessing
+   * sends the wrong van to a child's party, which is the whole reason matchItem refuses at all.
+   */
+  if (wantedItem?.kind === 'ambiguous') {
+    const tooManyToRead = wantedItem.candidates.length > MAX_SPOKEN_CHOICES
+    console.log(`[SLOTS] ⚠  "${requestedItem}" is ambiguous across ${wantedItem.candidates.length} item(s) — ${clientDomain}`)
+    return NextResponse.json({
+      slots: [],
+      timezone: schedule.timezone,
+      error: 'item_ambiguous',
+      // Same two shapes book-appointment uses, for the same reason: reading fifty chair styles
+      // down the phone is a catalogue nobody can listen to.
+      message: tooManyToRead
+        ? `There are ${wantedItem.candidates.length} items matching that. Do NOT read the list out. `
+          + 'Ask whether they have an item or model number, or have them describe what they are '
+          + `after — a few examples are ${describeChoices(wantedItem.candidates, 3)}.`
+        : `Ask which one they mean: ${describeChoices(wantedItem.candidates)}.`,
+      options: wantedItem.candidates.map(c => c.label),
+    })
+  }
+
+  if (wantedItem?.kind === 'none') {
+    console.log(`[SLOTS] ⚠  "${requestedItem}" is not stocked — ${clientDomain}`)
+    return NextResponse.json({
+      slots: [],
+      timezone: schedule.timezone,
+      error: 'item_unknown',
+      message: `That is not something this business stocks. What they do have is ${describeChoices(inventory)}.`,
+      options: inventory.map(c => c.label),
+    })
+  }
+
   const rentalItems = inventory.filter(isRental)
 
   if (rentalItems.length > 0) {

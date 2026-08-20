@@ -137,7 +137,19 @@ export async function POST(request: NextRequest) {
    * The timestamp is not decoration. "When did they agree?" is the first question asked after a
    * complaint, and a flag with no time is the record that proves we were not keeping records.
    */
-  const grantedConsent = sms_consent === true || sms_consent === 'true'
+  /**
+   * `'granted'` joins `true` as of 2026-08-20.
+   *
+   * As an optional boolean, the parameter was simply omitted on two consecutive live calls where
+   * Ava had asked and the caller had said yes — so a real verbal opt-in recorded as `false`.
+   * It is now a REQUIRED enum whose third value is `'not_asked'`, which keeps the property the
+   * boolean was optional to protect: the model is never cornered into inventing a consent answer,
+   * because "I did not ask" is one of the things it can truthfully say.
+   *
+   * Anything that is not an explicit grant is not consent — `'declined'`, `'not_asked'`, absent
+   * and malformed all fall through to no consent, which is the safe direction.
+   */
+  const grantedConsent = sms_consent === true || sms_consent === 'true' || sms_consent === 'granted'
   const consentPatch = grantedConsent
     ? {
         sms_consent:        true,
