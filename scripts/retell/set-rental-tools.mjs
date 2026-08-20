@@ -30,22 +30,102 @@ if (!apiKey) { console.error('✗ RETELL_API_KEY not set'); process.exit(1) }
 const APPLY = process.argv.includes('--apply')
 const client = new Retell({ apiKey })
 
-const PARAM_NAME = 'rental_days'
-const PARAM_SPEC = {
-  type: 'number',
-  description:
-    'How many days the caller wants to keep the item, when they have said. Whole days only. '
-    + 'Leave it out entirely if they have not said or the item is not hired by the day — never '
-    + 'guess a length, because the number of days is what the price is based on.',
+/**
+ * BOTH parameters, because `item` is the one that was missing and it is the important one.
+ *
+ * `check_availability` shipped with **no parameters at all**, so Ava had no way to name a unit.
+ * Per-item inventory has existed at the database and API layer since 2026-08-16 and was
+ * unreachable by voice the whole time — every test called the API directly. A real call on
+ * 2026-08-20 sent `{}`, `{"rental_days":1}` and `{"rental_days":3}`, got generic time slots, and
+ * booked with `inventory_item_key: null` while telling the caller four items were reserved.
+ */
+const PARAM_SPECS = {
+  item: {
+    type: 'string',
+    description:
+      'The rental item the caller named, in their own words — "princess castle", "20x40 tent". '
+      + 'Send this whenever they mention a specific thing. Leave it out only if they have not '
+      + 'named anything yet. If it matches more than one item you will be told, and you must ask '
+      + 'which one rather than choosing.',
+  },
+  rental_days: {
+    type: 'number',
+    description:
+      'How many days the caller wants to keep the item, when they have said. Whole days only. '
+      + 'Leave it out entirely if they have not said or the item is not hired by the day — never '
+      + 'guess a length, because the number of days is what the price is based on.',
+  },
 }
 
-const PROMPT_LINE =
-  '- For items hired by the day, ask how many days they need it before checking availability, '
-  + 'and pass rental_days. If they are unsure, offer the shortest hire rather than guessing. '
-  + 'When you confirm, always say both the collection day and the day it is due back.'
+const BLOCK_START = '<!-- RENTAL_GUIDANCE_START -->'
+const BLOCK_END = '<!-- RENTAL_GUIDANCE_END -->'
 
-const PROMPT_MARKER = /rental_days/i
+/**
+ * Rewritten 2026-08-20 after listening to a real call.
+ *
+ * What went wrong was not that Ava was unhelpful — it was that she was TOO complete. She took a
+ * four-item order, re-confirmed it three times, checked availability three times, and finished by
+ * saying "you're all set" having reserved nothing: the booking stored one hour and no item. Five
+ * minutes forty-one seconds, 32 LLM requests.
+ *
+ * So the job is deliberately narrowed. She answers availability per item (which is real, and is
+ * what per-item inventory is FOR), captures the whole wishlist, and holds ONE delivery date. She
+ * does not pretend to reserve a basket the schema cannot hold. A booking row carries a single
+ * `inventory_item_key`; four items in one order is a modelling gap, not something a prompt can
+ * paper over, and pretending otherwise is how a caller is told they have a bounce house they
+ * do not have.
+ */
+const PROMPT_BLOCK = [
+  BLOCK_START,
+  '## Rentals',
+  '- ALWAYS pass `item` to check_availability when the caller names something. Without it you are',
+  '  asking whether the business is open, not whether that unit is free — and you will be told',
+  '  about times that have nothing to do with what they asked for.',
+  '- For anything hired by the day, ask how many days and pass `rental_days`. If they are unsure,',
+  '  offer the shortest hire rather than guessing. Say BOTH the collection day and the day it is',
+  '  due back, with the number of days.',
+  '- If an item matches more than one thing in stock, ask which one. Never choose for them.',
+  '',
+  '## Multiple items — what you may and may not promise',
+  '- Take the whole list. Put every item, with quantities and days, into `issue_description` on',
+  '  capture_lead so nothing is lost.',
+  '- Book ONE delivery date and time with book_appointment. That holds the slot in the calendar.',
+  '- Do NOT tell them the items are reserved or that they are "all set". Say the team will confirm',
+  '  the items and send a quote. Only ONE item can actually be held per booking, so claiming more',
+  '  is a promise the business cannot keep.',
+  '',
+  '## Keep it moving',
+  '- Confirm the order back ONCE, briefly, at the end. Do not re-read the list each time it grows.',
+  '- Check availability once per item, not repeatedly for the same thing.',
+  '- Before ending, ask once whether it is alright to text them. If they say yes you MUST pass',
+  '  sms_consent=true to capture_lead — asking and then not recording it means their answer is',
+  '  lost and we cannot text them at all.',
+  BLOCK_END,
+].join('\n')
+
+// A plain containment check. The marker is literal text; a regex here only invites escaping bugs.
+const PROMPT_MARKER = { test: (t) => String(t ?? '').includes(BLOCK_START) }
 const TOOLS = ['check_availability', 'book_appointment']
+
+/**
+ * Put the block BEFORE the questionnaire's context block, and replace any earlier copy.
+ *
+ * `syncQuestionnaireToKB` slices the prompt from `BUSINESS_CONTEXT_START` to the end, so anything
+ * appended after it is silently deleted by the client's next questionnaire submit — the trap that
+ * stripped Northside's SMS consent. Inserting ahead of that marker means this guidance survives.
+ */
+const CONTEXT_MARKER = '\n\n<!-- BUSINESS_CONTEXT_START -->'
+
+function withRentalBlock(prompt) {
+  let base = prompt ?? ''
+  const s = base.indexOf(BLOCK_START)
+  const e = base.indexOf(BLOCK_END)
+  if (s !== -1 && e !== -1) base = (base.slice(0, s) + base.slice(e + BLOCK_END.length)).replace(/\n{3,}/g, '\n\n')
+
+  const ctx = base.indexOf(CONTEXT_MARKER)
+  if (ctx === -1) return `${base.trimEnd()}\n\n${PROMPT_BLOCK}\n`
+  return `${base.slice(0, ctx).trimEnd()}\n\n${PROMPT_BLOCK}${base.slice(ctx)}`
+}
 
 // ── Targets: clients with real rental stock, and nobody else ──────────────────
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -127,7 +207,8 @@ for (const [agentId, label] of targets) {
 
   const toolNeeds = TOOLS.filter(n => {
     const t = tools.find(x => x.name === n)
-    return !(PARAM_NAME in (t.parameters?.properties ?? {}))
+    const props = t.parameters?.properties ?? {}
+    return Object.keys(PARAM_SPECS).some(k => !(k in props))
   })
 
   /**
@@ -147,7 +228,7 @@ for (const [agentId, label] of targets) {
     return {
       ...existing,
       type: existing.type ?? 'object',
-      properties: { ...(existing.properties ?? {}), [PARAM_NAME]: PARAM_SPEC },
+      properties: { ...(existing.properties ?? {}), ...PARAM_SPECS },
       // Deliberately NOT added to `required`. Most callers on a rental line are booking a
       // same-day item or have not said a length yet, and a required field pushes the model to
       // invent one — a guessed number of days is a guessed price.
@@ -166,17 +247,19 @@ for (const [agentId, label] of targets) {
     continue
   }
 
-  const promptNeeds = !PROMPT_MARKER.test(llm.general_prompt ?? '')
+  // Compare against the rewritten prompt rather than just checking the marker exists, so
+  // re-running after the block's wording changes updates it instead of reporting "already asks".
+  const currentPrompt = llm.general_prompt ?? ''
+  const rewritten = withRentalBlock(currentPrompt)
+  const promptNeeds = rewritten !== currentPrompt
 
   plan.push({
     agentId, label, llmId, agentName: agent.agent_name,
     toolNeeds, promptNeeds, nextTools,
-    // Appended, which is how the two sibling scripts do it — but see the warning printed at the
-    // end: anything after a client's BUSINESS_CONTEXT block is deleted by their next
-    // questionnaire submit, so this must be re-run after one.
-    nextPrompt: promptNeeds
-      ? `${(llm.general_prompt ?? '').trimEnd()}\n${PROMPT_LINE}\n`
-      : llm.general_prompt,
+    // Inserted BEFORE the questionnaire's BUSINESS_CONTEXT block, not appended after it, so a
+    // client re-submitting the questionnaire cannot silently delete this guidance the way it
+    // deleted Northside's SMS consent line.
+    nextPrompt: rewritten,
   })
 }
 
@@ -205,9 +288,11 @@ console.log(`\n${toChange.length} LLM(s) need changing, ${byLlm.size - toChange.
 if (!APPLY) {
   if (toChange.length) {
     console.log(`\nTool gains, on ${TOOLS.join(' and ')}:`)
-    console.log(`  ${PARAM_NAME} — ${PARAM_SPEC.description}\n`)
-    console.log('Prompt gains:')
-    console.log(`  ${PROMPT_LINE}\n`)
+    for (const [k, v] of Object.entries(PARAM_SPECS)) console.log(`  ${k} — ${v.description}`)
+    console.log()
+    console.log('Prompt block (replaces any earlier copy, inserted before BUSINESS_CONTEXT):')
+    console.log(PROMPT_BLOCK.split('\n').map(l => '  ' + l).join('\n'))
+    console.log()
 
     // Print the schema that would actually be written for the tool that had none.
     // "It will be fine" is precisely what nearly shipped an invalid one.
@@ -242,7 +327,8 @@ for (const p of toChange) {
   const llm = await client.llm.retrieve(p.llmId)
   const toolsOk = TOOLS.every(n => {
     const t = (llm.general_tools ?? []).find(x => x.name === n)
-    return t && PARAM_NAME in (t.parameters?.properties ?? {})
+    const props = t?.parameters?.properties ?? {}
+    return Boolean(t) && Object.keys(PARAM_SPECS).every(k => k in props)
   })
   const promptOk = PROMPT_MARKER.test(llm.general_prompt ?? '')
   if (toolsOk && promptOk) { verified++; console.log(`  ✓ ${p.label}`) }

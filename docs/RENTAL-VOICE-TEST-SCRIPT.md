@@ -1,103 +1,81 @@
-# Rental voice test — call script
+# Rental voice test — what to say on the phone
 
-**Number: +1 (817) 612-6757 (Northside).** Not the demo line — the demo line has no subscription
-row, so it can never see inventory and proves nothing here.
+**Call +1 (817) 612-6757.** Not the demo line.
 
-**Read this first.** Northside is a *roofing* agent carrying a party-rental stock list. That
-mismatch is deliberate and temporary: it is the only agent safe to experiment on, and its prompt
-was already due a rebuild. Expect Ava to sound slightly odd about *what the business is* — that is
-not the thing under test. What **is** under test is whether the tools return the right items,
-windows and refusals.
+Ava now answers as an **event & party rental** receptionist with 40 items in stock. Weekend hours
+are open (Sat 08:00–20:00, Sun 10:00–18:00) and the booking horizon is 180 days.
 
-Backup of the original LLM config (prompt, greeting, all tools) is in the session scratchpad as
-`northside-llm-backup-2026-08-20.json`.
+Say the line in **bold**. The line under it is what should happen. That's the whole test.
 
 ---
 
-## What to listen for, not just what to say
+## Call 1
 
-Each case below has a **pass** condition. A wrong-but-fluent answer is the failure mode that
-matters — Ava sounding confident while booking the wrong thing.
+**1. "Hi — do you rent bounce houses?"**
+She should say yes and ask which one, or ask what you need. She should sound like a rental
+company, not a roofer.
 
-### 1. The ambiguity refusal (the one that protects a birthday party)
+**2. "Do you have the Princess Castle this Saturday?"**
+She should check, then offer a **window** — something like *"Saturday the 22nd through Sunday the
+23rd, one day."* The important part: **she says both days and a day count**, not just a start time.
 
-> "Hi, do you have a castle available Saturday?"
+**3. "Can I have the 20x40 frame tent for just one day?"**
+She should **say no** and tell you it goes out for **at least 2 days**, then ask if that works.
+If she offers you one day anyway, that's a bug — write it down.
 
-**Pass:** she asks *which* castle, naming the three — Princess Castle, Castle Combo, Medieval
-Castle. **Fail:** she picks one. That is the wrong van to a child's party.
+**4. "Okay, what about a photo booth Saturday afternoon?"**
+She should ask **enclosed or open air**, then offer **normal times** — "2:00 PM", "3:00 PM".
+**Not** a multi-day window. Photo booths are same-day items and must still behave the old way.
 
-### 2. The too-many-to-read branch
+**5. "Let's book the Portable Dance Floor for three days starting Saturday."**
+Give her a name, phone, email and address when she asks. Let her complete the booking.
+Note down what she says the return day is.
 
-> "I need a table."
+**6. Let her ask about texting you.** Say yes or no — either is fine, just confirm she asks once
+and doesn't nag.
 
-**Pass:** she does **not** recite a list. She should ask you to narrow it — a model number, or
-what kind. "Table" matches **11** items because the matcher is substring-based and
-"infla-**table**" and "por-**table**" both contain it.
-**Fail:** she reads out eleven items. Nobody can listen to that.
+---
 
-### 3. Multi-day hire — the whole point of the build
+## Call 2 — the one that proves the fix
 
-> "How much for the 20x40 frame tent for the weekend?"
-> "Can I get it Friday through Sunday?"
+Wait a minute, then call back.
 
-**Pass:** she offers a **window**, saying both the collection day and the day it is due back,
-with a day count. The 20x40 is configured minimum **2** days, maximum **14**.
-**Fail:** she offers a one-hour slot, or states only a start day. Stating the start alone hides
-the number the price depends on.
+**"Is the Portable Dance Floor free on Sunday?"** (the day *after* the one you booked)
 
-### 4. The range refusal
+**It must be unavailable.** There is only one, and you just took it for three days.
 
-> "Can I get the 20x40 tent for just one day?"
+If she offers it, that is **the exact bug this whole build was for** — a unit reading as free
+while it is physically at a customer's party. That is the single most important answer of the
+whole test.
 
-**Pass:** she declines and says it goes out for **at least 2 days**, then asks how long you need.
-**Fail:** she books one day. That silently re-prices the hire.
+---
 
-### 5. The hold actually holds
+## Two things that are NOT bugs
 
-Book the **Portable Dance Floor** (there is only 1) for 3 days. Then call back:
-
-> "Is the dance floor free two days from now?"
-
-**Pass:** no. It is out. **Fail:** it is offered — that is the original bug, a unit reading as
-free while it is physically at a customer's site.
-
-### 6. Same-day items still behave as before
-
-> "Do you have a photo booth for Saturday afternoon?"
-
-**Pass:** she asks enclosed or open air, then offers **normal time slots** — not a multi-day
-window. Photo booths have no `min_rental_days`, so they must still book as intra-day
-appointments. This is the load-bearing case: if same-day stock started getting hire windows,
-every existing client would break.
-
-### 7. The inactive item
-
-> "Do you have the mechanical bull?"
-
-**Pass:** she says they do not stock it — it is marked unavailable and `loadInventory` only
-returns active rows. **Fail:** she offers it.
+- **Ask for "a castle" and she may not ask which one.** `check_availability` is deliberately
+  permissive; the "which one did you mean?" refusal happens at **booking**, not when checking. So
+  the clarifying question may come later than you expect.
+- **Ask for the mechanical bull and she may not say "we don't have that"** when merely checking —
+  it is marked unavailable, and the same permissive rule applies. It should be refused when you
+  try to book it.
 
 ---
 
 ## After the calls
 
-```
-node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-booking.mjs 2
-node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-inventory.mjs
-```
-
-Then check the bookings directly — the thing worth confirming is that a multi-day hire stored an
-`ends_at` spanning the hire, not one slot:
+Check what actually got stored — especially that the 3-day booking has an `ends_at` three days
+after its start, not one hour:
 
 ```
 node --env-file=.env.local -e "const{createClient}=require('@supabase/supabase-js');const s=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY);s.from('bookings').select('inventory_item_key,starts_at,ends_at').order('created_at',{ascending:false}).limit(5).then(r=>console.table(r.data))"
 ```
 
-## Putting Northside back
+## Putting Northside back afterwards
 
 ```
 node --env-file=.env.local -e "const{createClient}=require('@supabase/supabase-js');const s=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY);s.from('client_inventory').delete().eq('client_domain','www.Northsideroofing.com').then(()=>console.log('inventory cleared'))"
 ```
 
-The prompt line added by `set-rental-tools.mjs` stays until removed by hand or overwritten by a
-questionnaire re-submit. Restore the full original from the backup JSON if it matters.
+The rental prompt, the rental tool parameters and the weekend schedule stay until removed by hand.
+The original LLM config is backed up in the session scratchpad as
+`northside-llm-backup-2026-08-20.json`.
