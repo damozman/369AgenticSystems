@@ -188,7 +188,11 @@ concurrency (1/20), tool schema validity (all three tools verified against produ
 **Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
 measurement and Sonnet's 2399ms p50 sits on the cliff — both make it MORE likely, not less.
 
-**Next step is a Retell support ticket, not more code.** Evidence to send: agent
+**TICKET FILED with Retell on 2026-08-20** carrying the `triedKeys` line and the direct
+measurement. Awaiting their reply — **do not re-diagnose this while it is open**, and do not
+re-test the configuration to "check": it has been checked four times and exonerated.
+
+**Original note, kept for the evidence list:** Evidence to send: agent
 `agent_d39a1b13cfd8fb2e3c9c12f06e`, the `public_log_url` of any dead call, and the point that the
 same model, prompt and tools answer in ~700ms when called directly. The 3000ms first-token budget
 is Retell's setting and is not exposed to us.
