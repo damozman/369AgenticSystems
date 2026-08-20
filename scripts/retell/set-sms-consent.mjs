@@ -45,21 +45,14 @@ const PARAM_SPEC = {
   type: 'string',
   enum: ['granted', 'declined', 'not_asked'],
   description:
-    'Whether the caller agreed to receive text messages. Use "granted" ONLY if you asked and they '
-    + 'said yes. Use "declined" if you asked and they said no. Use "not_asked" if the subject '
-    + 'never came up — that is always an honest answer and is far better than guessing. Never '
-    + 'infer consent from the fact that they called.',
+    '"granted" only if you asked and they said yes. "declined" if you asked and they said no. '
+    + '"not_asked" if it never came up — always an honest answer. Never guess.',
 }
 
 const PROMPT_LINE =
   '- Before ending, ask once: "Is it alright if we text you updates about this?" capture_lead '
-  + 'REQUIRES sms_consent: "granted" if they said yes, "declined" if they said no, "not_asked" if '
-  + 'it never came up. Never send "granted" unless you actually asked and heard yes. If they '
-  + 'decline, do not ask again and do not mention it further.'
+  + 'requires sms_consent: "granted", "declined", or "not_asked".'
 
-// Matches the NEW wording specifically. A bare /sms_consent/ would report agents carrying the
-// previous "pass sms_consent=true" line as already done, leaving the prompt contradicting a
-// schema that no longer accepts a boolean.
 const PROMPT_MARKER = /sms_consent: "granted"/
 
 // ── Targets: the same set the disclosure rollout uses ─────────────────────────

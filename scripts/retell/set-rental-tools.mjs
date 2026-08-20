@@ -43,25 +43,20 @@ const PARAM_SPECS = {
   item: {
     type: 'string',
     description:
-      'The rental item the caller named, in their own words — "princess castle", "20x40 tent". '
-      + 'Send this whenever they mention a specific thing. Leave it out only if they have not '
-      + 'named anything yet. If it matches more than one item you will be told, and you must ask '
-      + 'which one rather than choosing.',
-  },
-  booking_token: {
-    type: 'string',
-    description:
-      'The booking_token from the slot you are booking, copied EXACTLY from the check_availability '
-      + 'result. It carries the item and the exact dates, so you do not have to repeat them. Always '
-      + 'send it when booking something you just checked. Never invent one and never edit one — an '
-      + 'altered token is rejected.',
+      'The item the caller named, in their words. Send whenever they name one. Omit if they have '
+      + 'not. Never choose between similar items yourself.',
   },
   rental_days: {
     type: 'number',
     description:
-      'How many days the caller wants to keep the item, when they have said. Whole days only. '
-      + 'Leave it out entirely if they have not said or the item is not hired by the day — never '
-      + 'guess a length, because the number of days is what the price is based on.',
+      'Whole days they want it, when they have said. Omit if unstated. Never guess — days set '
+      + 'the price.',
+  },
+  booking_token: {
+    type: 'string',
+    description:
+      'Copy exactly from the check_availability result for the slot they chose. Carries the item '
+      + 'and dates. Never invent or edit one.',
   },
 }
 
@@ -86,36 +81,23 @@ const BLOCK_END = '<!-- RENTAL_GUIDANCE_END -->'
 const PROMPT_BLOCK = [
   BLOCK_START,
   '## Rentals',
-  '- ALWAYS pass `item` to check_availability when the caller names something. Without it you are',
-  '  asking whether the business is open, not whether that unit is free — and you will be told',
-  '  about times that have nothing to do with what they asked for.',
-  '- For anything hired by the day, ask how many days and pass `rental_days`. If they are unsure,',
-  '  offer the shortest hire rather than guessing. Say BOTH the collection day and the day it is',
-  '  due back, with the number of days.',
-  '- If an item matches more than one thing in stock, ask which one. Never choose for them.',
+  '- Always pass `item` to check_availability when they name something.',
+  '- For day-hire items, ask how many days and pass `rental_days`. Say both the collection day and',
+  '  the day it is due back.',
+  '- If a name matches several items, ask which. Never choose.',
+  '- When booking, pass the `booking_token` from the result for the slot they chose, copied exactly.',
   '',
-  '## Multiple items — what you may and may not promise',
-  '- Take the whole list. Put every item, with quantities and days, into `issue_description` on',
-  '  capture_lead so nothing is lost.',
-  '- When you book, pass the booking_token from the check_availability result for the slot they',
-  '  chose, copied exactly. It carries the item and the dates so they cannot be lost between',
-  '  turns. Do not retype the item or the day count instead of the token.',
-  '- You MUST call book_appointment once, before the call ends, for the delivery date and time',
-  '  they settled on. Nothing is held until you do — capture_lead only writes down what they want.',
-  '  On a real call this step was skipped and the caller was told the team would follow up about a',
-  '  date that no calendar ever knew about. If they are undecided, book the earliest date they',
-  '  agreed to rather than leaving it unbooked.',
-  '- Do NOT tell them the items are reserved or that they are "all set". Say the team will confirm',
-  '  the items and send a quote. Only ONE item can actually be held per booking, so claiming more',
-  '  is a promise the business cannot keep.',
+  '## What you may promise',
+  '- Take the whole list into `issue_description` on capture_lead.',
+  '- You MUST call book_appointment once before the call ends, for the delivery date. Nothing is',
+  '  held until you do.',
+  '- Do not say the items are reserved or that they are "all set" — say the team will confirm and',
+  '  send a quote.',
   '',
   '## Keep it moving',
-  '- Confirm the order back ONCE, briefly, at the end. Do not re-read the list each time it grows.',
-  '- Check availability once per item, not repeatedly for the same thing.',
-  '- Before ending, ask once whether it is alright to text them. capture_lead REQUIRES sms_consent:',
-  '  "granted" if they said yes, "declined" if they said no, "not_asked" if it never came up.',
-  '  Asking and then not recording it loses a real opt-in, which is the one answer we cannot',
-  '  reconstruct later. Never send "granted" unless you actually asked and heard yes.',
+  '- Confirm the order back once, at the end. Check each item once.',
+  '- Ask once whether it is alright to text them. capture_lead requires sms_consent: "granted",',
+  '  "declined", or "not_asked". Never send "granted" unless you asked and heard yes.',
   BLOCK_END,
 ].join('\n')
 
