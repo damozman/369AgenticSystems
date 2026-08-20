@@ -72,9 +72,14 @@ export async function POST(request: NextRequest) {
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
 
-  // Either the exact instant from available-slots, or the day-and-time pair Ava spoke. Demanding
-  // both would reject the more precise of the two.
-  if (!call_id || (!starts_at && (!appointment_date || !appointment_time))) {
+  // Three ways to say when: a booking_token (most precise — it carries the interval that was
+  // actually offered), the exact instant, or the day-and-time pair Ava spoke. Demanding more than
+  // one would reject the precise forms in favour of the loosest.
+  //
+  // The token has to satisfy this gate or it cannot stand alone, and standing alone is the entire
+  // point: it exists so Ava does not have to re-supply what she was already handed. It is only
+  // accepted here as a claim — the signature is checked below, and a bad one is refused there.
+  if (!call_id || (!booking_token && !starts_at && (!appointment_date || !appointment_time))) {
     return NextResponse.json(
       { error: 'Missing required fields: call_id, and either starts_at or both appointment_date and appointment_time' },
       { status: 400 }
