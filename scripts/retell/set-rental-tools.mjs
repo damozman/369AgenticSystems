@@ -130,16 +130,41 @@ for (const [agentId, label] of targets) {
     return !(PARAM_NAME in (t.parameters?.properties ?? {}))
   })
 
-  const nextTools = tools.map(t => !TOOLS.includes(t.name) ? t : ({
-    ...t,
-    parameters: {
-      ...t.parameters,
-      properties: { ...(t.parameters?.properties ?? {}), [PARAM_NAME]: PARAM_SPEC },
+  /**
+   * Build the extended schema.
+   *
+   * `check_availability` carries **no `parameters` object at all** on all 11 live agents — it is
+   * a no-argument tool today. Spreading `...t.parameters` when it is undefined yields `{}`, which
+   * would produce a schema with `properties` but **no `type: 'object'`**, shipping an invalid
+   * tool definition to a live phone line. A malformed tool does not fail loudly: the model simply
+   * stops being able to answer, which on a call is silence and a hang-up.
+   *
+   * `type` comes from the existing schema when there is one, so a tool that is somehow not an
+   * object schema is not silently rewritten into one — it is rejected below instead.
+   */
+  const buildParams = (t) => {
+    const existing = t.parameters ?? {}
+    return {
+      ...existing,
+      type: existing.type ?? 'object',
+      properties: { ...(existing.properties ?? {}), [PARAM_NAME]: PARAM_SPEC },
       // Deliberately NOT added to `required`. Most callers on a rental line are booking a
       // same-day item or have not said a length yet, and a required field pushes the model to
       // invent one — a guessed number of days is a guessed price.
-    },
-  }))
+    }
+  }
+
+  const nextTools = tools.map(t => !TOOLS.includes(t.name) ? t : ({ ...t, parameters: buildParams(t) }))
+
+  const malformed = nextTools
+    .filter(t => TOOLS.includes(t.name))
+    .filter(t => t.parameters?.type !== 'object' || typeof t.parameters?.properties !== 'object')
+    .map(t => t.name)
+
+  if (malformed.length) {
+    problems.push(`${label} — would produce an invalid schema for ${malformed.join(', ')}; not written`)
+    continue
+  }
 
   const promptNeeds = !PROMPT_MARKER.test(llm.general_prompt ?? '')
 
@@ -183,6 +208,14 @@ if (!APPLY) {
     console.log(`  ${PARAM_NAME} — ${PARAM_SPEC.description}\n`)
     console.log('Prompt gains:')
     console.log(`  ${PROMPT_LINE}\n`)
+
+    // Print the schema that would actually be written for the tool that had none.
+    // "It will be fine" is precisely what nearly shipped an invalid one.
+    const sample = toChange[0]?.nextTools?.find(t => t.name === 'check_availability')
+    if (sample) {
+      console.log('Resulting check_availability schema (this tool had NO parameters before):')
+      console.log(`  ${JSON.stringify(sample.parameters)}\n`)
+    }
   }
   console.log('Dry run — nothing written. Re-run with --apply.')
   process.exit(0)
