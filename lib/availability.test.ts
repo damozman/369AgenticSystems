@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   generateSlots,
+  generateRentalWindows,
   filterAvailable,
   openSlots,
   formatSlot,
@@ -233,4 +234,110 @@ test('a close time that is not after the open time closes the day', () => {
     business_hours: { mon: { open: '17:00', close: '08:00' } },
   }), MON_JAN_5)
   assert.equal(slots.length, 0, 'overnight shifts are not supported and must not silently invert')
+})
+
+
+/**
+ * Multi-day rental windows.
+ *
+ * The bug these exist to prevent is specific and was live: a bounce house booked Saturday 10:00
+ * for 90 minutes read as FREE at noon, while it was physically at a party until Sunday. Every
+ * test below is aimed at that class of error — a unit being offered while it is out.
+ */
+
+const rentalSchedule = (over: Partial<ClientSchedule> = {}): ClientSchedule => schedule({
+  business_hours: {
+    mon: { open: '08:00', close: '17:00' },
+    tue: { open: '08:00', close: '17:00' },
+    wed: { open: '08:00', close: '17:00' },
+    thu: { open: '08:00', close: '17:00' },
+    fri: { open: '08:00', close: '17:00' },
+    sat: { open: '09:00', close: '15:00' },
+    sun: { open: '09:00', close: '15:00' },
+  },
+  lead_time_hours: 0,
+  booking_horizon_days: 30,
+  ...over,
+})
+
+test('a rental window spans days rather than collapsing into one', () => {
+  const now = new Date('2026-09-01T12:00:00Z') // Tuesday
+  const [first] = generateRentalWindows(rentalSchedule(), 3, now)
+
+  assert.ok(first, 'expected at least one window')
+  const spanMs = first.endsAt.getTime() - first.startsAt.getTime()
+  assert.ok(spanMs > 2 * 86_400_000, `window spanned only ${spanMs}ms — day-bounded regression`)
+})
+
+test('the whole span is busy, so an overlapping day is not offered again', () => {
+  const now = new Date('2026-09-01T12:00:00Z')
+  const windows = generateRentalWindows(rentalSchedule(), 2, now)
+  const taken = windows[0]
+
+  // One unit, already out on that window. Every window touching it must disappear.
+  const free = filterAvailable(
+    windows,
+    [{ starts_at: taken.startsAt, ends_at: taken.endsAt }],
+    1,
+    60,
+  )
+
+  for (const w of free) {
+    const overlaps = w.startsAt < taken.endsAt && w.endsAt > taken.startsAt
+    assert.ok(!overlaps, `offered ${w.startsAt.toISOString()} while the unit is still out`)
+  }
+})
+
+test('a window is not offered when the return day is closed', () => {
+  // Yard shut at weekends: a Friday start returning Saturday has nobody to receive it.
+  const weekdaysOnly = rentalSchedule({
+    business_hours: {
+      mon: { open: '08:00', close: '17:00' },
+      tue: { open: '08:00', close: '17:00' },
+      wed: { open: '08:00', close: '17:00' },
+      thu: { open: '08:00', close: '17:00' },
+      fri: { open: '08:00', close: '17:00' },
+      sat: null,
+      sun: null,
+    },
+  })
+  const now = new Date('2026-09-01T12:00:00Z')
+
+  for (const w of generateRentalWindows(weekdaysOnly, 1, now)) {
+    const returnDay = w.endsAt.getUTCDay()
+    assert.ok(returnDay !== 0 && returnDay !== 6, `returns on a closed day: ${w.endsAt.toISOString()}`)
+  }
+})
+
+test('a zero or negative hire is refused rather than producing a backwards window', () => {
+  const now = new Date('2026-09-01T12:00:00Z')
+  assert.equal(generateRentalWindows(rentalSchedule(), 0, now).length, 0)
+  assert.equal(generateRentalWindows(rentalSchedule(), -2, now).length, 0)
+})
+
+test('lead time is respected — nothing leaves the yard sooner than allowed', () => {
+  const now = new Date('2026-09-01T12:00:00Z')
+  const s = rentalSchedule({ lead_time_hours: 48 })
+  const earliest = now.getTime() + 48 * 3_600_000
+
+  for (const w of generateRentalWindows(s, 2, now)) {
+    assert.ok(w.startsAt.getTime() >= earliest, `window starts inside the lead time: ${w.startsAt.toISOString()}`)
+  }
+})
+
+test('a hire may finish past the horizon, but may not START past it', () => {
+  const now = new Date('2026-09-01T12:00:00Z')
+  const s = rentalSchedule({ booking_horizon_days: 7 })
+  const horizonEnd = now.getTime() + 7 * 86_400_000
+
+  const windows = generateRentalWindows(s, 5, now)
+  assert.ok(windows.length > 0, 'expected windows inside a 7-day horizon')
+  for (const w of windows) {
+    assert.ok(w.startsAt.getTime() <= horizonEnd, 'started past the horizon')
+  }
+  // The horizon caps how far ahead you may book, not how long you may keep the unit.
+  assert.ok(
+    windows.some(w => w.endsAt.getTime() > horizonEnd),
+    'no window ran past the horizon — a long hire near the edge is being wrongly dropped',
+  )
 })

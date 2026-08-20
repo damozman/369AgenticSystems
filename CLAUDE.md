@@ -126,7 +126,13 @@ dumpster-rental and real-estate people; his brother-in-law sells CRM systems but
 
 **This is distribution finally arriving.** Nine verticals have been live with zero paying clients
 and 18 minutes of real traffic in a month — product surface was never the constraint.
-**Do NOT add vertical pages.** The page follows the customer.
+**REVERSED 2026-08-19 — the three RENTAL pages are now GREENLIT.** The old rule ("do not add
+vertical pages, the page follows the customer") was written when nine pages were live with zero
+distribution. Distribution has now arrived, and Chris's reason is the one that overrides it: he
+will be **in the room** with these buyers at chamber events, needs something specific to point
+each one at, and **cannot explain a product he has no artifact for**. Building ahead of the
+customer is correct *here* precisely because the face-time is booked.
+**Still do NOT add pages for the original nine** — that rule stands and is unchanged.
 
 **The pilot is her entertainment business**, because she owns it and there is no sale to make.
 She has no `agent_subscriptions` row yet, and inventory, schedule and calendar are all FK'd to it —
@@ -138,6 +144,35 @@ genuine `stripe_subscription_id`, the billing anchor Northside can never have.
 Sunday to **closed** and `booking_horizon_days` to **14**. A party-rental business is almost
 entirely weekends and books months ahead. On defaults Ava refuses every Saturday and anything past
 a fortnight, and it looks like a bug in the booking engine.
+
+### The three rental pages — GREENLIT 2026-08-19, engine first
+
+**Decision:** three separate pages, not one combined — grouped by **who is buying**, so Chris can
+point one specific person at one specific page and target ads tightly.
+
+| Page | Covers | Buyer |
+|---|---|---|
+| **Event & Party Rentals** | bounce houses, mobile casino, DJ, **party bus** | event planner / parent |
+| **Dumpster & Portable Restrooms** | roll-off dumpsters, portable toilets | contractor / site manager |
+| **Equipment Rental** | skid steer, trailers, small plant | contractor / landscaper |
+
+Party bus sits with **events**, not equipment — the buyer is the same person planning the party.
+
+**Build order: the multi-day engine FIRST, then all three pages.** Chris's own constraint decides
+this — *"we're not putting anything on the pages that isn't truthful."* Today:
+- **Event & party** could honestly describe its core service now (per-item inventory shipped).
+- **Dumpster / restroom and equipment CANNOT.** Their core service *is* multi-day hire, and
+  `generateSlots` cannot offer it. A truthful page today would omit the main thing.
+
+**The blocker, exactly.** `lib/availability.ts` → `generateSlots` builds slots strictly inside one
+day: the inner loop requires `start + durationMs <= dayClose`, so **a bookable slot can never
+cross a day boundary**. `book_slot()` already takes a `tstzrange`, so the database layer is
+already capable — this is a slot-generation problem, not a schema one. `filterAvailable` is
+overlap-based and duration-agnostic, so it should not need to change.
+
+**This one build unlocks all three pages AND closes a real pilot risk:** a bounce house booked
+Saturday 10:00 for 90 minutes currently reads as *free* at noon while it is physically at a party
+until Sunday. Same root cause as the unbuilt seven-day dumpster hire.
 
 ### Twilio / A2P 10DLC — state as of 2026-08-18
 - **Account is upgraded to pay-as-you-go with ISV Reseller identity, and the Primary Compliance
@@ -265,8 +300,8 @@ Recorded so they are not lost, and so they are not mistaken for current scope. N
 - **Setup fee for the rental verticals.** `SETUP_FEE` is 0, removed 2026-07-17 when auto-provisioning
   shipped. Equipment-yard owners think in assets and often prefer a setup fee with a lower monthly.
   Revisit for those niches only, and only with real pricing.
-- **An event-rentals vertical page** — only *after* the pilot works, written around a real
-  reference. One page with a named client behind it beats ten speculative ones.
+- ~~An event-rentals vertical page~~ — **PROMOTED OUT OF BACKLOG 2026-08-19.** Now three pages,
+  greenlit and scheduled. See "The three rental pages" above.
 
 ### Compliance, applied and verified
 - **Texas TRAIGA disclosure is LIVE on all 11 agents** (2026-08-15). Greeting is *"Thanks for

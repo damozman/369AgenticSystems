@@ -180,6 +180,75 @@ export function generateSlots(schedule: ClientSchedule, now: Date = new Date()):
   return slots
 }
 
+/**
+ * A multi-day rental window: pick the item up on one open day, bring it back on a later one.
+ *
+ * Deliberately a SEPARATE function from `generateSlots` rather than a flag on it. The two answer
+ * different questions — `generateSlots` asks "when can someone come to you", this asks "when can
+ * this unit leave the yard and when is it back" — and every existing client books the former.
+ * Keeping them apart means nothing a roofer, attorney or plumber does can change shape, which is
+ * the same load-bearing property `verify-inventory.mjs` already guards for items generally.
+ *
+ * Shape of a window:
+ *   - It STARTS at `open` on a day the business is open, because that is when a unit can be
+ *     collected or delivered.
+ *   - It ENDS at `close` on the return day, `days` later. The unit is unavailable for that whole
+ *     span — a dumpster in someone's driveway on Saturday is not available on Sunday, which is
+ *     precisely what day-bounded slots got wrong.
+ *   - The return day must itself be open. Nobody takes a return on a day the yard is shut, and
+ *     offering one books a unit back in when there is no one there to receive it.
+ *
+ * `days` is counted as nights out: `days: 1` leaves Friday morning and returns Saturday at close.
+ * The result is a plain `Slot`, so `filterAvailable` works on it unchanged — that function is
+ * overlap-based and duration-agnostic, so a 3-day window collides with anything touching it.
+ */
+export function generateRentalWindows(
+  schedule: ClientSchedule,
+  days: number,
+  now: Date = new Date(),
+): Slot[] {
+  if (!Number.isFinite(days) || days < 1) return []
+
+  const earliest = new Date(now.getTime() + schedule.lead_time_hours * 3_600_000)
+  const horizonEnd = new Date(now.getTime() + schedule.booking_horizon_days * 86_400_000)
+
+  const windows: Slot[] = []
+  let civil = civilDateInZone(earliest, schedule.timezone)
+
+  // +1 so a window that starts on the horizon's final day is still considered, matching
+  // generateSlots. A window may legitimately END past the horizon — the horizon governs how far
+  // ahead someone may BOOK, not how long they may keep the unit.
+  for (let i = 0; i <= schedule.booking_horizon_days + 1; i++) {
+    const startHours = schedule.business_hours?.[weekdayOf(civil)]
+
+    if (startHours) {
+      const openMin = parseWallClock(startHours.open)
+
+      if (openMin !== null) {
+        const returnCivil = addCivilDays(civil, days)
+        const returnHours = schedule.business_hours?.[weekdayOf(returnCivil)]
+        const closeMin = returnHours ? parseWallClock(returnHours.close) : null
+
+        // A closed return day disqualifies the window rather than sliding it, because sliding
+        // silently gives the customer a longer hire than they asked for — and on a rate card
+        // that is a day they were not quoted.
+        if (returnHours && closeMin !== null) {
+          const startsAt = zonedWallClockToUtc(civil, 0, openMin, schedule.timezone)
+          const endsAt = zonedWallClockToUtc(returnCivil, 0, closeMin, schedule.timezone)
+
+          if (startsAt >= earliest && startsAt <= horizonEnd && endsAt > startsAt) {
+            windows.push({ startsAt, endsAt })
+          }
+        }
+      }
+    }
+
+    civil = addCivilDays(civil, 1)
+  }
+
+  return windows
+}
+
 function toTime(value: string | Date | null): number | null {
   if (!value) return null
   const t = value instanceof Date ? value.getTime() : new Date(value).getTime()

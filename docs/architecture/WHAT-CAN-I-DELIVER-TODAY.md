@@ -173,8 +173,14 @@ sections below record only where a vertical **differs**.
 
 ## The rental niches — no vertical page, and that is correct
 
-This is where the *next* client comes from. `CLAUDE.md` is explicit: **do not add vertical pages.**
-The page follows the customer.
+This is where the *next* client comes from. **Three pages are GREENLIT as of 2026-08-19** — Event &
+Party Rentals, Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so
+one specific person can be pointed at one specific page. This **reverses** the older "do not add
+vertical pages" rule, which was written when nine pages were live with zero distribution; the
+chamber face-time is what changed it. **That reversal does not extend to the original nine.**
+
+**The multi-day engine is being built FIRST**, because two of the three pages cannot truthfully
+describe their core service until it exists (see below, and "What to finish, in order").
 
 **All of these must be provisioned under one of the 9 existing verticals.** `TEMPLATE_AGENT_IDS` in
 `lib/retell-provisioning.ts` has exactly 9 keys, and `vertical` comes from Stripe's
