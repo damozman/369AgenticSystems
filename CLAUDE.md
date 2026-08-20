@@ -6,6 +6,22 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
+**Companion doc — `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md`. Keep it current.**
+This section is *working state* (what is in flight right now). That doc is *delivery state*
+(what a paying client actually gets, per vertical, and what each gap still needs). They answer
+different questions and both go stale silently.
+
+**Update it whenever real capability changes** — something ships, a switch flips, a gap closes,
+or a live-system fact in it turns out to be wrong. Not every session; only when the answer to
+"what can we sell today" moves. The goal is that its **"Not deliverable"** and **"What to finish,
+in order"** lists shrink over time while the **"Deliverable today"** table grows. If a session
+closes an item there, delete it from that doc rather than marking it done — same rule as here.
+
+**Re-derive it from the live system, never from its own previous version.** Every count and
+status in it came from the Retell API, production Supabase, the Stripe API, and the code — that
+is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
+**STALE** on purpose and are historical records; do not update them and do not quote them.
+
 **Last updated:** 2026-08-19.
 
 ### Where this session ended — 2026-08-19 (late)
@@ -67,9 +83,35 @@ been restored** — the schedule row and 5 rental inventory rows are deleted, an
 re-checked. Two things were NOT restored, both harmless because Northside is a test-only client:
 its `client_questionnaires` content from 2026-07-14 was overwritten, and `syncQuestionnaireToKB`
 merged those answers into its **live Retell prompt**, which still carries *"We do all delivery
-setup and teardown"* inside the `BUSINESS_CONTEXT` markers. The base roofing prompt is intact and
-the sync is idempotent, so re-filling the questionnaire correctly overwrites the block — a
-two-minute fix nobody has done. **That accident is what found the missing ownership check.**
+setup and teardown"* inside the `BUSINESS_CONTEXT` markers. **That accident is what found the
+missing ownership check.**
+
+**CORRECTED 2026-08-19 by checking the live agent — the previous claim here that "the base roofing
+prompt is intact" and that re-filling is "a two-minute fix" was WRONG, and the mechanism behind it
+is a live landmine:**
+- Northside's **greeting still discloses AI** (*"this is Ava, their AI assistant"*) — TRAIGA is
+  intact. But its `general_prompt` is **735 chars vs the roofing template's 1239**, and has lost
+  **both** the *"asked whether you're AI"* backstop line **and** the entire `sms_consent`
+  instruction. `set-ai-disclosure.mjs` and `set-sms-consent.mjs` both report it as the **1 of 11**
+  still needing changes.
+- **Why: the two writers do not adopt each other.** Both compliance scripts append their line to
+  the **end** of `general_prompt` (`${text.trimEnd()}
+${LINE}
+`). `mergePromptWithContext` in
+  `lib/retell-kb-sync.ts` does `basePrompt.slice(0, startIdx)` from `BUSINESS_CONTEXT_START`. So a
+  line appended **after** an existing context block is **silently deleted by the next questionnaire
+  submit**. Exactly the *one-sided adoption* lesson below, third occurrence.
+- **Who this hits:** only a client who submits the questionnaire *after* a compliance script ran.
+  A brand-new client is safe — cloned from a template, the consent text sits in the base **before**
+  any marker, so the first submit preserves it. The risk is a **re-submit** (editing hours or stock
+  months later), which is a normal, encouraged action.
+- **The fix has an ORDER, and getting it backwards re-breaks it:** re-fill the questionnaire
+  **first** (overwrites the delivery-teardown block), **then** re-run
+  `set-ai-disclosure.mjs --apply` and `set-sms-consent.mjs --apply`. Running the scripts first
+  means the re-fill deletes them again.
+- **Not yet fixed properly.** The durable fix is for the compliance scripts to write into the base
+  (before the marker), or for the sync to preserve trailing content after `BUSINESS_CONTEXT_END`.
+  Not built — deliberately not started unprompted.
 
 **Still carried forward from 2026-08-18:** **AI disclosure and SMS consent are APPLIED and verified
 on all 11 live agents.** Both 2026-08-16 migrations are applied to production, as is

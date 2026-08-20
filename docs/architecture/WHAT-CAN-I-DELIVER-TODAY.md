@@ -70,7 +70,7 @@ sections below record only where a vertical **differs**.
 | Capability | Notes |
 |---|---|
 | **24/7 call answering** (Ava) | Dedicated agent + number per client. `claude-4.5-haiku`, 964ms p50. |
-| **AI disclosure** | Live on all 11 agents. Texas TRAIGA. The greeting names Ava as an AI assistant. |
+| **AI disclosure** | Greeting names Ava as an AI assistant — **verified on all 11**. Texas TRAIGA. The in-prompt backstop line is present on 10 of 11 (Northside lost it, see item 5). |
 | **Lead capture** | `capture-lead`, writes `leads`, real-time owner email alert. |
 | **Real availability + booking** | `available-slots` / `book-appointment`, capacity-checked in one transaction behind an advisory lock. Cannot double-book. |
 | **Google Calendar awareness** | Reads owner freeBusy; refuses rather than offering a time it cannot verify. Writes the event back. **Requires the client to connect — nobody is connected today.** |
@@ -237,9 +237,20 @@ whether or not anyone is at a keyboard, and neither has started.
    on. Disable it again afterward if not going live immediately.
 4. **Prepare the pilot** — decide her vertical, then schedule → inventory → calendar → test call.
    She is back ~2026-09-02; the chamber event is ~mid-September.
-5. **Fix Northside's contaminated prompt.** Its live Retell prompt still carries *"We do all delivery
-   setup and teardown"* inside the `BUSINESS_CONTEXT` markers from an accidental questionnaire submit.
-   The sync is idempotent, so re-filling correctly overwrites it. Two minutes.
+5. **Fix Northside's prompt — and the mechanism that broke it.** Verified against the live agent
+   2026-08-19: Northside's greeting still discloses AI (TRAIGA intact), but its `general_prompt` is
+   **735 chars vs the roofing template's 1239** and has lost both the *"asked whether you're AI"*
+   backstop and the whole `sms_consent` instruction. It is the **1 of 11** that
+   `set-ai-disclosure.mjs` and `set-sms-consent.mjs` both still flag.
+   **Order matters:** re-fill the questionnaire **first**, *then* re-run both scripts with
+   `--apply`. Backwards, the re-fill deletes them again.
+   **The underlying bug is not Northside-specific.** Both compliance scripts append their line to
+   the **end** of the prompt; `mergePromptWithContext` cuts from `BUSINESS_CONTEXT_START` to the
+   end. So any compliance line appended **after** a client's context block is silently deleted by
+   their next questionnaire submit. A brand-new client is safe (the template's text sits in the
+   base, before any marker), but **a re-submit — editing hours or stock months later — strips it.**
+   Durable fix: write compliance lines into the base, or preserve trailing content after
+   `BUSINESS_CONTEXT_END`. **Not built.**
 6. **Fix the SaaS Scout badge** (or build Scout). It currently claims DEPLOYING for something that
    does not exist.
 7. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
