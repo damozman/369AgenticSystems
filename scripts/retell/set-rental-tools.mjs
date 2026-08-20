@@ -48,6 +48,14 @@ const PARAM_SPECS = {
       + 'named anything yet. If it matches more than one item you will be told, and you must ask '
       + 'which one rather than choosing.',
   },
+  booking_token: {
+    type: 'string',
+    description:
+      'The booking_token from the slot you are booking, copied EXACTLY from the check_availability '
+      + 'result. It carries the item and the exact dates, so you do not have to repeat them. Always '
+      + 'send it when booking something you just checked. Never invent one and never edit one — an '
+      + 'altered token is rejected.',
+  },
   rental_days: {
     type: 'number',
     description:
@@ -89,6 +97,9 @@ const PROMPT_BLOCK = [
   '## Multiple items — what you may and may not promise',
   '- Take the whole list. Put every item, with quantities and days, into `issue_description` on',
   '  capture_lead so nothing is lost.',
+  '- When you book, pass the booking_token from the check_availability result for the slot they',
+  '  chose, copied exactly. It carries the item and the dates so they cannot be lost between',
+  '  turns. Do not retype the item or the day count instead of the token.',
   '- You MUST call book_appointment once, before the call ends, for the delivery date and time',
   '  they settled on. Nothing is held until you do — capture_lead only writes down what they want.',
   '  On a real call this step was skipped and the caller was told the team would follow up about a',

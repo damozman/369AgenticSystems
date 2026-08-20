@@ -5,6 +5,7 @@ import { getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
 import { loadInventory, matchItem, isRental, describeChoices, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
+import { mintBookingToken } from '@/lib/security/booking-token'
 
 /**
  * The times Ava offers a caller.
@@ -260,11 +261,18 @@ export async function POST(request: NextRequest) {
         slots: spokenWindows,
         suggested: spokenWindows.length > 1 ? `${spokenWindows[0]} or ${spokenWindows[1]}` : spokenWindows[0],
         timezone: schedule.timezone,
+        // booking_token carries the item and the exact hire interval, so book_appointment does
+        // not depend on Ava re-supplying them. See lib/security/booking-token.ts.
         slot_details: chosenWindows.map((o, i) => ({
           spoken:    spokenWindows[i],
           starts_at: o.slot.startsAt.toISOString(),
           ends_at:   o.slot.endsAt.toISOString(),
           available_items: o.items.map(it => it.label),
+          booking_token: mintBookingToken({
+            itemKey:  o.items[0]?.item_key ?? null,
+            startsAt: o.slot.startsAt,
+            endsAt:   o.slot.endsAt,
+          }),
         })),
         inventory: forItems.map(it => it.label),
       })
@@ -327,6 +335,13 @@ export async function POST(request: NextRequest) {
       starts_at: c.slot.startsAt.toISOString(),
       ends_at:   c.slot.endsAt.toISOString(),
       available_items: c.items.map(it => it.label),
+      // Only when the caller's request narrowed to ONE unit. With several still in play there is
+      // no single item to commit to, and a token naming an arbitrary one would book a guess.
+      booking_token: mintBookingToken({
+        itemKey:  c.items.length === 1 ? c.items[0].item_key : null,
+        startsAt: c.slot.startsAt,
+        endsAt:   c.slot.endsAt,
+      }),
     })),
     inventory: inventory.map(it => it.label),
   })
@@ -361,6 +376,9 @@ function respond(slots: Slot[], schedule: ClientSchedule, clientDomain: string) 
       spoken:     spoken[i],
       starts_at:  s.startsAt.toISOString(),
       ends_at:    s.endsAt.toISOString(),
+      // A people-time slot: no item, so the token carries only the interval. Every existing
+      // client is in this branch, and it behaves exactly as before if the token is ignored.
+      booking_token: mintBookingToken({ itemKey: null, startsAt: s.startsAt, endsAt: s.endsAt }),
     })),
   })
 }

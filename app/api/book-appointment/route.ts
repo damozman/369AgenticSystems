@@ -5,6 +5,7 @@ import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
 import { buildBookingEvent, buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
 import { describeChoices, isRental, loadInventory, matchItem, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
+import { verifyBookingToken } from '@/lib/security/booking-token'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     starts_at,
     item,
     rental_days,
+    booking_token,
   } = source as {
     client_domain?:    string
     appointment_date?: string
@@ -60,6 +62,12 @@ export async function POST(request: NextRequest) {
      * configured rental item, so an existing client passing it by accident changes nothing.
      */
     rental_days?:      number | string
+    /**
+     * The opaque handle from available-slots' slot_details. Preferred over every other field
+     * here: it carries the item and the exact interval that were actually offered, so booking
+     * the right thing no longer depends on the model re-supplying values it saw two turns ago.
+     */
+    booking_token?:    string
   }
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
@@ -98,9 +106,34 @@ export async function POST(request: NextRequest) {
   const schedule = await loadSchedule(supabase, resolvedClientDomain)
 
   // Prefer the exact instant available-slots handed out; fall back to parsing what Ava said.
-  const startsAt = starts_at
+  /**
+   * Spend the token first, when there is one.
+   *
+   * On 2026-08-20 Ava called this tool with neither `item` nor `rental_days` despite both being
+   * on the schema and in the prompt, and booked a one-hour appointment while telling the caller a
+   * dance floor was theirs for three days. A signed handle removes the re-supply step entirely.
+   * A token that does not verify is REFUSED rather than ignored: silently falling back to the
+   * prose fields would turn a corrupted handle into a subtly wrong booking, which is the failure
+   * this whole mechanism exists to prevent.
+   */
+  const tokenCheck = verifyBookingToken(booking_token)
+  if (booking_token && !tokenCheck.valid && tokenCheck.reason !== 'not-configured') {
+    console.error(`[BOOKING] ✗  booking_token ${tokenCheck.reason} — ${resolvedClientDomain}`)
+    return NextResponse.json(
+      {
+        error: 'booking_token_invalid',
+        message: tokenCheck.reason === 'expired'
+          ? 'That offer has expired. Check availability again and offer a fresh time.'
+          : 'That booking reference is not valid. Check availability again and use the booking_token from the result.',
+      },
+      { status: 409 },
+    )
+  }
+  const offer = tokenCheck.valid ? tokenCheck.offer : null
+
+  const startsAt = offer?.startsAt ?? (starts_at
     ? new Date(starts_at)
-    : resolveAppointmentStart(appointment_date ?? '', appointment_time ?? '', schedule.timezone)
+    : resolveAppointmentStart(appointment_date ?? '', appointment_time ?? '', schedule.timezone))
 
   // Refuse rather than guess. A booking silently landing at midnight, or a year out, is worse
   // than one that visibly failed — Ava can ask the caller to repeat the time.
@@ -200,7 +233,30 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (item && inventory.length > 0) {
+  /**
+   * The token's item wins over anything spoken.
+   *
+   * It names the unit whose availability was actually checked, so it cannot drift from what the
+   * caller was offered — whereas re-matching `item` re-runs a fuzzy lookup against whatever
+   * wording came back around, and an ambiguous phrase two turns later can resolve differently.
+   */
+  if (offer?.itemKey) {
+    const known = inventory.find(i => i.item_key === offer.itemKey)
+    if (!known) {
+      // The item was active when it was offered and is not now — sold, retired, or deactivated
+      // mid-call. Refuse rather than book a unit that is no longer in service.
+      console.error(`[BOOKING] ✗  token names ${offer.itemKey}, no longer stocked — ${resolvedClientDomain}`)
+      return NextResponse.json(
+        {
+          error:   'item_unavailable',
+          message: 'That item is no longer available. Check availability again and offer what is in stock.',
+        },
+        { status: 409 },
+      )
+    }
+    itemKey = known.item_key
+    console.log(`[BOOKING] ·  item from booking_token: ${known.label}`)
+  } else if (item && inventory.length > 0) {
     const match = matchItem(inventory, item)
 
     if (match.kind === 'ambiguous') {
@@ -266,7 +322,12 @@ export async function POST(request: NextRequest) {
   const bookedItem = itemKey ? inventory.find(i => i.item_key === itemKey) ?? null : null
   let holdEndsAt = endsAt
 
-  if (bookedItem && isRental(bookedItem)) {
+  if (offer) {
+    // The interval that was offered, spent verbatim. No re-derivation from a day count, so the
+    // hold cannot disagree with what the caller was told.
+    holdEndsAt = offer.endsAt
+    console.log(`[BOOKING] ·  interval from booking_token — until ${holdEndsAt.toISOString()}`)
+  } else if (bookedItem && isRental(bookedItem)) {
     const askedDays = Number(rental_days)
     const days = Number.isFinite(askedDays) && askedDays >= 1
       ? Math.floor(askedDays)
