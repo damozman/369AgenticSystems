@@ -223,15 +223,15 @@ const CONFIGS: Record<string, VerticalConfig> = {
     },
   },
   'equipment-rental': {
-    name:     'Equipment Rental',
+    name:     'Equipment & Heavy Machinery Rental',
     headline: 'The Skid Steer Is Booked. Was the Call?',
     subtitle: '2-minute form — then we show you what unanswered rental calls cost per month.',
     tickerLabel: 'rentals',
     comparisonRole: 'Rental Counter Clerk',
     painPoints: [
       'Rental calls missed while the counter is serving someone',
+      'Excavators, lifts and compaction all tracked in one operator\'s head',
       'Contractors moving to the next yard when nobody picks up',
-      'Machine availability tracked in one operator\'s head',
       'Early-morning and weekend calls going unanswered',
     ],
     fields: {
