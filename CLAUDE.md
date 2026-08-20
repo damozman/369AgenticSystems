@@ -175,30 +175,37 @@ unit is out. The calendar check deliberately stays on the short window, because 
 the owner is free for three solid days would refuse almost every hire over an unrelated meeting
 on day two. A hire outside the item's stated range is **refused**, not re-priced.
 
-### ⚠ After ANY agent config write, the next call is likely to die — burn one
-Observed 5-for-5 on 2026-08-20. Every call that died after the greeting (0 LLM requests, Retell
-logging `3000ms timeout reached for first token` on all three attempts) came **immediately after
-an LLM update**; every call that followed without a further change **worked**:
+### ⚠ UNRESOLVED: Northside stops responding after the greeting — it is NOT our config
+As of 2026-08-20 07:00 the agent answers, plays its greeting, and never speaks again. Retell logs
+`3000ms timeout reached for first token`, three attempts, then `Failed to get response from any
+LLM provider`. `llm_token_usage` is absent — no request ever completed, nothing billed.
 
-| 05:15 worked | **05:25 DEAD** (prompt swap) | 05:27 worked | **06:08 DEAD ×2** (set-rental-tools)
-| 06:13 worked | **06:31 DEAD ×2** (set-sms-consent + set-rental-tools) |
+**Two theories were formed and BOTH were disproved. Do not re-derive either.**
+1. *"The first call after a config write dies — burn one."* Held 5-for-5 for a while, then broke:
+   calls kept failing with **no config change in between**. It was coincidence — config writes and
+   test calls were simply interleaved all evening.
+2. *"Our prefill payload got too big."* The combined prompt + tool JSON had grown to 12,108 chars
+   (~3,027 tokens) from prose written into descriptions re-sent every turn. Trimmed to 9,868
+   (~2,467). **Calls kept failing identically.** The trim was still worth keeping — explanation
+   belongs in the repo, not in a per-turn payload — but it fixed nothing.
 
-**It is not the content of the change, it is the act of changing.** Probable mechanism, unproven:
-Retell prompt-caches the system prompt + tool schemas, any byte change invalidates the prefix, and
-the first cold prefill on a ~4,200-char prompt plus 5 tool schemas exceeds Retell's **3000ms
-first-token budget** from their infrastructure. Retries are cold too — a cache entry is not
-readable until the first response starts streaming.
-
-**Do NOT chase this as a latency bug.** Measured directly against `claude-haiku-4-5` with the
-same prompt and tools at the same moment those calls were dying: **p50 636ms, max 844ms, 0/8 over
-3000ms.** The model is fast; the cold path through Retell is not.
+**What the evidence actually says.** Measured directly against `claude-haiku-4-5` with the *exact*
+prompt and tools those failing calls were using, at the same moments: **p50 ~700ms, max ~1.1s,
+0/8 over 3000ms**, repeatedly. The model answers this payload in well under a second. Also ruled
+out: agent/LLM version pinning (agent v0 resolves LLM v0, aligned), concurrency (1/20), tool
+schema validity, and the `/api/available-slots` endpoint itself (200 in ~600ms from the same
+machine). The time is being spent somewhere inside Retell's path that we cannot see.
 
 **Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
-measurement, and Sonnet's 2399ms p50 sits on the cliff — both make it more likely, not less.
+measurement and Sonnet's 2399ms p50 sits on the cliff — both make it MORE likely, not less.
 
-**The rule:** after any `--apply`, place one throwaway call and expect it to fail, then test. And
-when a call dies, check `public_log_url` on the call object FIRST — it names the cause in one
-request and is the fastest diagnostic available.
+**Next step is a Retell support ticket, not more code.** Evidence to send: agent
+`agent_d39a1b13cfd8fb2e3c9c12f06e`, the `public_log_url` of any dead call, and the point that the
+same model, prompt and tools answer in ~700ms when called directly. The 3000ms first-token budget
+is Retell's setting and is not exposed to us.
+
+**When a call misbehaves, read `public_log_url` on the call object FIRST.** It named the cause in
+one request tonight after five tool calls of circling.
 
 ### The three rental pages — GREENLIT 2026-08-19, engine first
 
