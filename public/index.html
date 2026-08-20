@@ -528,6 +528,23 @@
     .kinetic { transition: letter-spacing 0.4s ease, color 0.3s ease; }
     .kinetic:hover { letter-spacing: 0.06em; color: var(--gold) !important; }
 
+    /* Footer systems block — three grouped sub-columns instead of one long stack. */
+    .footer-systems { flex: 1 1 460px; min-width: 260px; }
+    .footer-systems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 24px 28px;
+    }
+    .footer-subhead {
+      color: var(--text-secondary); font-size: 0.66rem; letter-spacing: 0.14em;
+      text-transform: uppercase; margin-bottom: 10px; opacity: 0.75;
+    }
+    .footer-link {
+      display: block; color: var(--text-muted); text-decoration: none;
+      font-size: 0.83rem; line-height: 1.5; margin-bottom: 9px;
+    }
+    .footer-link:last-child { margin-bottom: 0; }
+
     section { position: relative; z-index: 1; }
 
     .audit-card.insurance:hover { border-color: rgba(20,184,166,0.45);  box-shadow: 0 8px 28px rgba(20,184,166,0.18); }
@@ -641,7 +658,7 @@
         <!-- Overline -->
         <div class="reveal" style="display:inline-flex; align-items:center; gap:10px; margin-bottom:28px;" aria-hidden="true">
           <div style="width:28px; height:1px; background:var(--gold);"></div>
-          <span class="section-label">Dallas-Fort Worth · 369 Agentic Systems</span>
+          <span class="section-label">Built in Dallas–Fort Worth · Available Nationwide</span>
           <div style="width:28px; height:1px; background:var(--gold);"></div>
         </div>
 
@@ -1338,24 +1355,40 @@
 
       <div>
         <div class="logo" style="font-size:1.3rem; margin-bottom:8px; display:block; text-decoration:none; color:var(--text-primary);">369<span style="color:var(--gold);"> Agentic Systems</span></div>
-        <p style="color:var(--text-muted); font-size:0.78rem; max-width:240px; line-height:1.6;">Custom Agentic Operating Systems for high-ticket businesses. Invisible infrastructure. Visible scale.</p>
+        <p style="color:var(--text-muted); font-size:0.78rem; max-width:240px; line-height:1.6;">An AI receptionist that answers every call, checks your real calendar, and books the job. Purpose-built for your industry.</p>
         <p style="color:var(--text-muted); font-size:0.68rem; max-width:240px; line-height:1.55; margin-top:10px; font-family:'Courier New',monospace; opacity:0.6;">// Tesla's sequence. The pattern behind everything.</p>
       </div>
 
-      <nav aria-label="Systems navigation">
+      <!-- Grouped into three sub-columns rather than one 11-item stack. Every link is
+           still here — the AOS names are the search terms — but grouping them by who
+           is buying cuts the height roughly in half and makes the list scannable. -->
+      <nav aria-label="Systems navigation" class="footer-systems">
         <p style="color:var(--text-muted); font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:14px;">Systems</p>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <a href="roofing-leads/"              class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Speed-to-Lead AOS</a>
-          <a href="hvac-leads/"                 class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Emergency Response AOS</a>
-          <a href="plumbing-leads/"             class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Emergency Recovery AOS</a>
-          <a href="real-estate-leads/"          class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Pipeline Velocity AOS</a>
-          <a href="insurance-leads/"            class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Agency Revenue AOS</a>
-          <a href="wholesale-leads/"            class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Distribution Velocity AOS</a>
-          <a href="legal-automation/"          class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Legal Excellence AOS</a>
-          <a href="dental-leads/"               class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Patient Revenue AOS</a>
-          <a href="event-rentals-leads/" class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Booking Velocity AOS</a>
-          <a href="dumpster-rental-leads/" class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Hire Desk AOS</a>
-          <a href="equipment-rental-leads/" class="kinetic" style="color:var(--text-muted); text-decoration:none; font-size:0.83rem; transition:color 0.3s;">Rental Counter AOS</a>
+        <div class="footer-systems-grid">
+
+          <div>
+            <p class="footer-subhead">Home Services</p>
+            <a href="roofing-leads/"  class="kinetic footer-link">Speed-to-Lead AOS</a>
+            <a href="hvac-leads/"     class="kinetic footer-link">Emergency Response AOS</a>
+            <a href="plumbing-leads/" class="kinetic footer-link">Emergency Recovery AOS</a>
+          </div>
+
+          <div>
+            <p class="footer-subhead">Rental &amp; Hire</p>
+            <a href="event-rentals-leads/"    class="kinetic footer-link">Booking Velocity AOS</a>
+            <a href="dumpster-rental-leads/"  class="kinetic footer-link">Hire Desk AOS</a>
+            <a href="equipment-rental-leads/" class="kinetic footer-link">Rental Counter AOS</a>
+          </div>
+
+          <div>
+            <p class="footer-subhead">Professional &amp; Trade</p>
+            <a href="real-estate-leads/" class="kinetic footer-link">Pipeline Velocity AOS</a>
+            <a href="insurance-leads/"   class="kinetic footer-link">Agency Revenue AOS</a>
+            <a href="wholesale-leads/"   class="kinetic footer-link">Distribution Velocity AOS</a>
+            <a href="legal-automation/"  class="kinetic footer-link">Legal Excellence AOS</a>
+            <a href="dental-leads/"      class="kinetic footer-link">Patient Revenue AOS</a>
+          </div>
+
         </div>
       </nav>
 
@@ -1377,7 +1410,7 @@
     </div>
 
     <div style="max-width:1200px; margin:36px auto 0; padding-top:24px; border-top:1px solid rgba(148,163,184,0.06); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-      <p style="color:var(--text-muted); font-size:0.72rem;">© 2026 369 Agentic Systems. All rights reserved. Based in Dallas-Fort Worth, TX.</p>
+      <p style="color:var(--text-muted); font-size:0.72rem;">© 2026 369 Agentic Systems. All rights reserved. Based in Dallas–Fort Worth, TX · Available nationwide.</p>
       <!-- Google's OAuth verification requires the privacy policy to be reachable from the homepage. Do not remove. -->
       <p style="color:var(--text-muted); font-size:0.72rem;">
         <a href="/privacy" style="color:var(--text-muted); text-decoration:none;">Privacy Policy</a>
