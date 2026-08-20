@@ -22,101 +22,74 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-19.
+**Last updated:** 2026-08-20 (overnight).
 
-### Where this session ended — 2026-08-19 (late)
+### Where this session ended — 2026-08-20 (overnight)
 
-**`master` is clean, NOTHING is open, and everything below is DEPLOYED.** PRs #42–#47 are all
-merged; production is on `5580750` and the deploy reported success. The last three:
-- **#45** — Retell area-code fallback (a 214 checkout had failed with
-  `404 No phone numbers of this area code`).
-- **#46** — questionnaire copy: which items belong in inventory, and what the quantity number
-  means. Copy only.
-- **#47** — onboarding no longer ends on a login wall. See below.
+**`master` is clean, nothing is open, everything below is deployed.** PRs #42–#47 merged; the rest
+went straight to master. 248 tests pass.
 
-**#47, and the one thing about it worth carrying forward.** The questionnaire pushed *every*
-submitter to `/client-dashboard`, which middleware guards — fine for an owner editing hours later,
-wrong for a brand-new client who has never signed in. `/api/questionnaire/submit` already worked
-out which gate opened, so it now **returns `authorized_by`** and only `owner-session` gets the
-redirect; everyone else gets an ending that stays put and explains the OTP sign-in.
-**The button points at `/client-dashboard`, not `/login`, on purpose:** middleware bounces an
-unauthenticated visitor to `/login`, and `/login` pushes a non-admin back to `/client-dashboard`
-after the code. One href is right either way, so the destination survives `authorized_by` being
-wrong — `hasSession` only picks the wording, and defaults to `false`.
-**Do not "fix" the sign-in step itself as part of this.** A new client genuinely must sign in;
-the bug was being ejected *silently*, not being asked. Chris confirmed the current behaviour is
-fine for now. Removing the OTP round-trip is separate, larger work.
+**🔴 The one blocker: Northside stops responding after the greeting.** See the UNRESOLVED section
+below — a Retell-side first-token timeout, extensively ruled out on our side, and it is what
+stopped testing. **Calls DO get through intermittently** (four worked tonight), so this is a
+support ticket, not a code change.
 
-**Verified locally, not on the preview, and that was deliberate.** The Vercel preview cannot test
-this: it is SSO-protected, so an incognito window never reaches it, and in a normal window Chris
-is signed in as `chris@369agenticsystems.com` — which is the sandbox client's `user_email`, so
-he would get `owner-session` and see the branch that already worked. **Locally
-`ONBOARDING_TOKEN_SECRET` is absent and `ONBOARDING_AUTH_ENFORCED` is unset**, so the gate runs
-reporting-only, `authorized_by` comes back **null**, and the safe default renders the exact branch
-under test with no token to mint. Confirmed by screenshot: the confirmation rendered and stayed.
-The `owner-session` wording branch was **not** exercised — unchanged in behaviour, only in copy.
-
-**Incidental proof from that run:** two submits against the sandbox left the first four inventory
-rows **inactive** rather than deleted, which is the designed behaviour (`bookings.inventory_item_key`
-is plain text, so deleting would orphan bookings). The review sandbox has been deleted; Supabase is
-back to exactly 1 subscription.
+**Northside has been converted into a RENTAL test agent. It is no longer a roofing agent.**
+Deliberate and reversible, and it will confuse anyone who does not know:
+- `general_prompt` swapped to an event/party-rental receptionist. **The original LLM config —
+  greeting, prompt, all tools — is backed up** as `northside-llm-backup-2026-08-20.json` in that
+  session's scratchpad. If it is gone, re-clone from the roofing template.
+- **40 `client_inventory` rows** loaded from `templates/mock-event-rental-inventory.csv`.
+- A `client_schedules` row on the **entertainment profile** — Sat 08:00–20:00, Sun 10:00–18:00,
+  180-day horizon, written by `setup-client-schedule.mjs`.
+- To undo: delete its `client_inventory` rows and restore the prompt from the backup.
 
 **Production state, verified rather than assumed:**
-- Retell: **2 numbers** (+18176350220 demo, +18176126757 Northside), **11 agents**, no test agents.
-- Supabase: **1 `agent_subscriptions` row** (Northside), 0 `provisioning_claims`, 0 inventory rows.
-- **The onboarding gate is ARMED.** `ONBOARDING_TOKEN_SECRET` and `ONBOARDING_AUTH_ENFORCED=true`
-  are both set in Vercel. Verified on production: an unauthenticated POST gets **403**, a
-  production-minted signed link gets **200**, and that same token aimed at a different client gets
-  **403**. **Rotating that secret invalidates every questionnaire link already emailed.**
-- **The test-mode Stripe webhook to production is DISABLED** (open item 8). Nothing provisions
-  from a checkout until it is re-enabled.
+- Retell: **11 agents**, **2 numbers** — unchanged all night, nothing was provisioned.
+- Supabase: **2 `agent_subscriptions`** — Northside plus a **leftover `review-sandbox`** row (no
+  `retell_agent_id`, harmless; `review-sandbox-client.mjs --delete` removes it).
+- `client_inventory` **40**, `client_schedules` **1**, `bookings` **24**, `leads` **31**,
+  `calendar_connections` **0**.
+- The test-mode Stripe webhook is still **DISABLED**. Nothing provisions from a checkout.
 
-**What shipped this session:** zero-dollar checkouts provision correctly; a duplicate delivery
-cannot double-provision (`provisioning_claims` claims a purchase *before* Retell is called);
-`business_name` is persisted; `/api/questionnaire/submit` requires a signed link or an owner
-session; the questionnaire asks for booking horizon, lead time and rental stock; a spreadsheet
-importer reads CSV **and** XLSX; and `describeChoices` no longer hands Ava 1,165 characters of
-chair names to read down the phone.
+**What shipped tonight**
+- **Multi-day rental windows.** `generateRentalWindows` + `formatRentalWindow`, migration applied,
+  `verify-rental-windows.mjs` green against production — including the check that matters: a real
+  three-night hire booked, then the same unit refused **mid-hire**.
+- **`book-appointment` holds the unit for the whole hire.** `endsAt` stays one slot long (right for
+  the owner's-calendar check and the confirmation text); `book_slot` now receives a `holdEndsAt`
+  spanning the hire, because `available-slots` reads `bookings.ends_at` to decide if a unit is out.
+- **Per-item inventory is reachable by voice at last.** `check_availability` and `book_appointment`
+  had **no `item` parameter at all** — shipped 2026-08-16 and unreachable by phone the entire time,
+  because every test called the API directly. Verify through the consumer, not the producer.
+- **Ambiguous and unknown items are refused** by `available-slots` rather than falling through to
+  intra-day slots. "Do you have a bounce house?" used to answer "8:00 AM or 9:00 AM".
+- **`sms_consent` is a required enum** (`granted` / `declined` / `not_asked`) on **all 11 agents**,
+  and is **proven on a real call** — asked, answered, stored `true`.
+- **`booking_token`** — `available-slots` mints a signed handle carrying the item and the exact
+  interval; `book_appointment` spends it. Verified against production: tampered and invented
+  tokens 409, a valid one books the right unit for the right window with nothing else supplied.
+- Docs: `WHAT-CAN-I-DELIVER-TODAY.md` rewritten from live state, the other three
+  `docs/architecture/` files bannered STALE, `docs/README.md` corrected.
 
-**Northside was accidentally submitted through the questionnaire during a layout review and has
-been restored** — the schedule row and 5 rental inventory rows are deleted, and both loaders were
-re-checked. Two things were NOT restored, both harmless because Northside is a test-only client:
-its `client_questionnaires` content from 2026-07-14 was overwritten, and `syncQuestionnaireToKB`
-merged those answers into its **live Retell prompt**, which still carries *"We do all delivery
-setup and teardown"* inside the `BUSINESS_CONTEXT` markers. **That accident is what found the
-missing ownership check.**
+**⚠ Latency regressed and is NOT fixed.** This agent benchmarked at **964ms p50**; the last working
+call measured **llm p50 1438ms, e2e 1821ms, max 3129ms**. Chris called it "not very fluid", and one
+turn crossed Retell's 3000ms cliff *during a working call*. Cause is prefill growth — prose written
+into tool descriptions and the system prompt, which are re-sent every turn. Trimmed once
+(12,108 → 9,868 chars); **more is still warranted**, `capture_lead` alone is 2,571 chars.
+**Measuring trap:** a single-turn probe reads ~700ms while a real call averages **6,602
+tokens/request**, so measure mid-conversation or the number flatters.
 
-**CORRECTED 2026-08-19 by checking the live agent — the previous claim here that "the base roofing
-prompt is intact" and that re-filling is "a two-minute fix" was WRONG, and the mechanism behind it
-is a live landmine:**
-- Northside's **greeting still discloses AI** (*"this is Ava, their AI assistant"*) — TRAIGA is
-  intact. But its `general_prompt` is **735 chars vs the roofing template's 1239**, and has lost
-  **both** the *"asked whether you're AI"* backstop line **and** the entire `sms_consent`
-  instruction. `set-ai-disclosure.mjs` and `set-sms-consent.mjs` both report it as the **1 of 11**
-  still needing changes.
-- **Why: the two writers do not adopt each other.** Both compliance scripts append their line to
-  the **end** of `general_prompt` (`${text.trimEnd()}
-${LINE}
-`). `mergePromptWithContext` in
-  `lib/retell-kb-sync.ts` does `basePrompt.slice(0, startIdx)` from `BUSINESS_CONTEXT_START`. So a
-  line appended **after** an existing context block is **silently deleted by the next questionnaire
-  submit**. Exactly the *one-sided adoption* lesson below, third occurrence.
-- **Who this hits:** only a client who submits the questionnaire *after* a compliance script ran.
-  A brand-new client is safe — cloned from a template, the consent text sits in the base **before**
-  any marker, so the first submit preserves it. The risk is a **re-submit** (editing hours or stock
-  months later), which is a normal, encouraged action.
-- **The fix has an ORDER, and getting it backwards re-breaks it:** re-fill the questionnaire
-  **first** (overwrites the delivery-teardown block), **then** re-run
-  `set-ai-disclosure.mjs --apply` and `set-sms-consent.mjs --apply`. Running the scripts first
-  means the re-fill deletes them again.
-- **Not yet fixed properly.** The durable fix is for the compliance scripts to write into the base
-  (before the marker), or for the sync to preserve trailing content after `BUSINESS_CONTEXT_END`.
-  Not built — deliberately not started unprompted.
+**Three changes are untested by voice** — they landed after the last connected call:
+`booking_token` **required** with `"none"` as the escape, and the trimmed descriptions. On the next
+call that connects, watch whether `book_appointment` finally carries a token: the booking has
+stored `inventory_item_key: null` on every attempt so far.
 
-**Still carried forward from 2026-08-18:** **AI disclosure and SMS consent are APPLIED and verified
-on all 11 live agents.** Both 2026-08-16 migrations are applied to production, as is
-`2026-08-18-provisioning-claims.sql`. The dental template-id typo is fixed in `.env.local` and
-Vercel.
+**The lesson the night kept teaching: optional means omittable.** `item`, then `sms_consent`, then
+`booking_token` were each defined on the tool, described in the prompt, and simply not sent.
+Strengthening the wording failed twice. What worked was making the parameter **required with a
+truthful escape** — `not_asked`, `"none"` — so the model is never cornered into inventing an
+answer. Reach for that shape before reaching for firmer wording.
 
 ### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
 Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
@@ -184,10 +157,13 @@ LLM provider`. `llm_token_usage` is absent — no request ever completed, nothin
 1. *"The first call after a config write dies — burn one."* Held 5-for-5 for a while, then broke:
    calls kept failing with **no config change in between**. It was coincidence — config writes and
    test calls were simply interleaved all evening.
-2. *"Our prefill payload got too big."* The combined prompt + tool JSON had grown to 12,108 chars
-   (~3,027 tokens) from prose written into descriptions re-sent every turn. Trimmed to 9,868
-   (~2,467). **Calls kept failing identically.** The trim was still worth keeping — explanation
-   belongs in the repo, not in a per-turn payload — but it fixed nothing.
+2. *"Our prefill payload got too big."* Trimmed 12,108 → 9,868 chars and **calls kept failing
+   identically**, so payload does not explain a death on the FIRST turn, where context is small.
+   **But do not over-read that retraction:** a later working call measured **llm p50 1438ms
+   against a 964ms benchmark, max 3129ms** — so prefill growth is real, costs fluidity, and does
+   push the tail across the 3000ms cliff mid-call. The original "~700ms, nothing to see" probe was
+   unrepresentative: it measured a **single turn** while a real call averages **6,602
+   tokens/request**. Payload is a live fluidity problem; it is just not the first-turn cause.
 
 **What the evidence actually says.** Measured directly against `claude-haiku-4-5` with the *exact*
 prompt and tools those failing calls were using, at the same moments: **p50 ~700ms, max ~1.1s,

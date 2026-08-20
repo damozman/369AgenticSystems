@@ -1,6 +1,6 @@
 # What Can I Actually Deliver Today
 
-**Ground truth as of 2026-08-19 (late).** Read this before a sales call, before a chamber event,
+**Ground truth as of 2026-08-20 (overnight).** Read this before a sales call, before a chamber event,
 before quoting a feature, before flipping Stripe to live.
 
 > **Companion docs.** `369-SYSTEM-BLUEPRINT.md` explains the architecture; `ROADMAP-TO-REAL-AGENCY.md`
@@ -28,7 +28,11 @@ Ava answers calls 24/7, qualifies, captures leads, checks real availability agai
 Google Calendar, books, and sends confirmations — proven on real calls, at 964ms p50. That is
 genuinely deliverable in **8 verticals** today (all but dental).
 
-But three things are off, and two of them deliberately:
+**And as of 2026-08-20 the phone line itself is unreliable** — agents intermittently answer, play
+the greeting, and never speak again (Retell-side first-token timeout, ruled out on our side).
+Calls do get through, but not on demand. **Do not stake a live demo on a single call.**
+
+Beyond that, three things are off, and two of them deliberately:
 
 1. **Stripe is in test mode** and its only webhook endpoint is **disabled**. A checkout on the
    live site today provisions **nothing**. Safe and intentional with zero paying clients — but it
@@ -77,7 +81,9 @@ sections below record only where a vertical **differs**.
 | **Booking confirmations** (Nova) | Email + `.ics`. All 9 verticals. |
 | **Follow-up sequences** (Rex) | 3-step, all 9 verticals, Pro/Elite gated. **Email only.** |
 | **Per-client personalization** | Questionnaire merges into the agent prompt. Proven on a real call. |
-| **Per-item rental inventory** | `client_inventory` + `bookings.inventory_item_key`. Read live on every call. **No client has rows.** |
+| **Per-item rental inventory** | `client_inventory` + `bookings.inventory_item_key`. Read live on every call, and **reachable by voice as of 2026-08-20** — until then `check_availability` had no `item` parameter, so it shipped in August and no caller could ever name a unit. |
+| **Multi-day rental windows** | Shipped 2026-08-20. Ava offers "Friday through Monday — 3 days", refuses a hire shorter or longer than the item allows, and the unit is held for the **whole** span, not one slot. Verified against production. |
+| **Ambiguity refusal** | A name matching several items ("bounce house") is answered with "which one?", never with a guess or with appointment times. Over four candidates she asks them to narrow rather than reciting a catalogue. |
 | **Per-client hours / horizon** | `client_schedules`. Read live. |
 | **Client dashboard** | Calls, leads, bookings, transcripts, billing portal, CSV export. |
 | **Usage metering** | Reconciled exactly against Retell for the first closed period. |
@@ -97,7 +103,8 @@ sections below record only where a vertical **differs**.
 | **Inbound SMS** | No route exists. Needs the Retell chat-agent spike (can it call the existing tools?), then A2P clearance. |
 | **Outbound SMS** | `lib/twilio-sms.ts` sends only; **Twilio unconfigured**; A2P brand unregistered. |
 | **Text-to-Quote** | Needs SMS first. v1 must be draft → owner approves → send. Never auto-price. |
-| **Multi-day rental windows** | `book_slot()` takes a `tstzrange` and could span days; `generateSlots` is day-bounded, so nothing *offers* a 3-day hire. Blocks dumpsters and weekend rentals. |
+| **Voice reliability on this account** | 🔴 **The current blocker.** Agents intermittently answer, play the greeting and never speak again — Retell reports a 3000ms first-token timeout. Ruled out on our side (model measures ~700ms, versions aligned, concurrency clear). Calls do get through, but not dependably. **Do not demo on a single call.** |
+| **Conversational latency** | Regressed to **llm p50 1438ms / e2e 1821ms** against a 964ms benchmark — noticeably less fluid. Cause is prefill growth in tool descriptions and the system prompt. Trimmed once; more warranted. |
 | **Inventory UI** | No screen reads or writes `client_inventory`. A client cannot fix a quantity or take a torn item out of service. |
 | **Bulk quantities** | Every booking consumes exactly 1 unit. "200 chairs" means 200 separate bookings, not one order of 200. |
 | **Deposits / waivers** | Nothing exists. Standard for bounce houses and equipment. |
@@ -194,7 +201,9 @@ detail to discover during a live onboarding either.
 - **Deliverable today:** call answering, lead capture, **per-item availability** (the princess castle
   vs the castle combo), booking, calendar, confirmations. The inventory work shipped 2026-08-16
   specifically for this shape.
-- **Not deliverable:** multi-day rental windows, bulk quantities, deposits, waivers, SMS, quoting.
+- **Multi-day hire now works** (2026-08-20): she offers real windows, refuses a length the item is
+  not hired out for, and holds the unit for the whole span.
+- **Not deliverable:** bulk quantities, deposits, waivers, SMS, quoting.
 - **Needed to finish the pilot:**
   1. Pick the vertical she is provisioned under — no `entertainment` template exists.
   2. Re-enable the Stripe webhook, then run a 100%-off checkout to get a real
@@ -214,9 +223,10 @@ detail to discover during a live onboarding either.
 ### Dumpster rental · portable restrooms
 
 - **Deliverable today:** call answering, lead capture, booking of a *same-day* slot.
-- **Not deliverable:** **multi-day hire — which is the entire business.** Plus rate-card quoting by SMS.
-- **Needed to finish:** multi-day rental windows (`generateSlots` is the blocker), then a
-  deterministic rate card, then SMS. **Do not sell this niche yet.**
+- **Multi-day hire shipped 2026-08-20** — the blocker that made this niche unsellable is gone.
+- **Not deliverable:** rate-card quoting by SMS; bulk quantity ("four restrooms" is still four
+  separate bookings).
+- **Needed to finish:** a deterministic rate card, then SMS. The booking half now works.
 
 ### Skid steer · equipment · party bus
 
