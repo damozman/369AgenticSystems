@@ -145,6 +145,17 @@ Sunday to **closed** and `booking_horizon_days` to **14**. A party-rental busine
 entirely weekends and books months ahead. On defaults Ava refuses every Saturday and anything past
 a fortnight, and it looks like a bug in the booking engine.
 
+### ⚠ PENDING: apply `2026-08-19-rental-windows.sql` to production
+The rental-window engine is **built, tested (240 pass) and deployed**, but the migration adding
+`client_inventory.min_rental_days` / `max_rental_days` **has NOT been applied.** There is no
+migration runner and no Postgres connection in this repo — only PostgREST keys — so it must be
+pasted into the Supabase SQL editor by hand, as every previous migration was.
+
+**Nothing breaks while it is unapplied.** `loadInventory` coalesces the missing columns to null,
+`isRental()` returns false for null, and every item therefore books intra-day slots exactly as
+today. The feature is simply inert. Verify with `verify-rental-windows.mjs`, which refuses to
+run until the columns exist.
+
 ### The three rental pages — GREENLIT 2026-08-19, engine first
 
 **Decision:** three separate pages, not one combined — grouped by **who is buying**, so Chris can
@@ -582,7 +593,11 @@ so no card is charged, but **Retell has no test mode** and the number is a real 
 
 1. **Enable the Stripe webhook** `we_1Trrqk3nqoZlRtPEan18MmjD` (open item 8) — it is disabled,
    so nothing provisions while it is off.
-2. `node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs` — preflight, spends
+2. `node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-rental-windows.mjs
+                                         multi-day hire: schema + a REAL three-night hold, proving
+                                         the days in the MIDDLE are blocked. Buys nothing.
+                                         **Refuses until 2026-08-19-rental-windows.sql is applied.**
+node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs` — preflight, spends
    nothing. Then `--apply` to print the checkout URL. The `ZERODOLLARTEST` promo code and its
    100%-off coupon `hmfiggoW` already exist and are active.
 3. Complete the checkout. Use the throwaway domain the script prints, exactly — the cleanup keys
