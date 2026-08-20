@@ -4,7 +4,7 @@ import { sendClientBookingAlert } from '@/lib/email-sequences'
 import { resolveAppointmentStart, civilDateInZone } from '@/lib/availability'
 import { buildBookingEvent, buildBookingEventPatch, getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
-import { describeChoices, loadInventory, matchItem, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
+import { describeChoices, isRental, loadInventory, matchItem, MAX_SPOKEN_CHOICES } from '@/lib/inventory'
 import { denyIfBadRetellSecret, internalHeaders } from '@/lib/security/route-guard'
 
 const supabase = createClient(
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     location,
     starts_at,
     item,
+    rental_days,
   } = source as {
     client_domain?:    string
     appointment_date?: string
@@ -54,6 +55,11 @@ export async function POST(request: NextRequest) {
     // Supplied verbatim from available-slots' slot_details. Preferred over the prose fields,
     // which have to be re-parsed and have already put one real booking a full year out.
     starts_at?:        string
+    /**
+     * How many nights the caller is keeping a rental unit. Ignored for anything that is not a
+     * configured rental item, so an existing client passing it by accident changes nothing.
+     */
+    rental_days?:      number | string
   }
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
@@ -243,10 +249,57 @@ export async function POST(request: NextRequest) {
   // Atomic capacity check + insert. Two callers on two simultaneous calls can both be told
   // 10:00 AM is free before either row lands, so the check has to happen where the insert does
   // — the Supabase client cannot open a transaction.
+  /**
+   * How long the UNIT is held — which is not the same interval as the appointment.
+   *
+   * `endsAt` above is one slot long and is exactly right for the questions it answers: is the
+   * owner free to hand this over, and what does the confirmation say the appointment is. For a
+   * hire, though, the unit is gone until it comes back, and that is what has to be written to
+   * `bookings.ends_at`, because `/api/available-slots` reads that column to decide whether the
+   * unit is out. Storing one slot here is precisely the original bug — a bounce house reading as
+   * free on Saturday afternoon while it was at a party until Sunday.
+   *
+   * Deliberately NOT applied to the owner's-calendar check further up. That asks whether the
+   * owner can be there at collection; asking whether they are free for three solid days would
+   * refuse almost every hire on account of an unrelated meeting on day two.
+   */
+  const bookedItem = itemKey ? inventory.find(i => i.item_key === itemKey) ?? null : null
+  let holdEndsAt = endsAt
+
+  if (bookedItem && isRental(bookedItem)) {
+    const askedDays = Number(rental_days)
+    const days = Number.isFinite(askedDays) && askedDays >= 1
+      ? Math.floor(askedDays)
+      : bookedItem.min_rental_days ?? 1
+
+    // Refuse rather than quietly re-price. A hire outside the stated range is a different
+    // number on the rate card, and silently shortening or extending it bills someone for a
+    // day they never agreed to.
+    const belowMin = bookedItem.min_rental_days !== null && days < bookedItem.min_rental_days
+    const aboveMax = bookedItem.max_rental_days !== null && days > bookedItem.max_rental_days
+
+    if (belowMin || aboveMax) {
+      const min = bookedItem.min_rental_days
+      const max = bookedItem.max_rental_days
+      const range = max === null ? `at least ${min} days` : `between ${min} and ${max} days`
+      console.log(`[BOOKING] ⚠  ${days}-day hire refused for ${bookedItem.label} — allowed ${range}`)
+      return NextResponse.json(
+        {
+          error:   'rental_length_invalid',
+          message: `The ${bookedItem.label} is hired out for ${range}. Ask how long they need it and try again.`,
+        },
+        { status: 409 },
+      )
+    }
+
+    holdEndsAt = new Date(startsAt.getTime() + days * 86_400_000)
+    console.log(`[BOOKING] ·  ${bookedItem.label} held ${days} day(s) — until ${holdEndsAt.toISOString()}`)
+  }
+
   const { data: bookedRows, error: bookingError } = await supabase.rpc('book_slot', {
     p_client_domain:    resolvedClientDomain,
     p_starts_at:        startsAt.toISOString(),
-    p_ends_at:          endsAt.toISOString(),
+    p_ends_at:          holdEndsAt.toISOString(),
     p_call_id:          callRow?.id ?? null,
     p_lead_id:          leadRow?.id ?? null,
     p_appointment_date: appointmentDateValue,

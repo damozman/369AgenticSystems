@@ -156,11 +156,24 @@ cleaned up; `client_inventory` back to 0, `bookings` back to 21.
 row, `isRental()` returns false for null, so everything still books intra-day slots. An item only
 switches to windows when someone sets a value.
 
-**NOT yet done: the tool contract.** Ava cannot be *asked* for a hire length by voice —
-`check_availability` has no `rental_days` parameter. The route accepts it and falls back to each
-item's own minimum, so it works, but *"can I get it for five days?"* will not do the right thing
-until the prompt and the tool schema are changed **together**. That pairing has corrupted real
-leads before; see the coupled-contracts lesson below.
+**The tool contract is BUILT but NOT APPLIED, and that is correct — it has nobody to apply to.**
+`scripts/retell/set-rental-tools.mjs` adds `rental_days` to **both** `check_availability` and
+`book_appointment` **and** the prompt line, in **one update per LLM**, because they are one
+contract. It targets **only clients with a `client_inventory` row that has `min_rental_days`
+set** — never the nine templates. A roofer, attorney or plumber has no hires to quote, and a
+rental prompt line is noise on a call it can never apply to.
+
+Today that set is **empty**, so the script correctly does nothing. **Run it right after the
+pilot's inventory rows are loaded** — dry run first, then `--apply`. It re-reads every LLM
+afterwards to verify through the consumer's view rather than trusting the write.
+
+**Also fixed in the same pass: `book-appointment` now holds the unit for the whole hire.**
+`endsAt` is still one slot long — correct for the owner's-calendar check and the confirmation
+text — but `book_slot` is now passed a `holdEndsAt` spanning the rental. Writing one slot there
+was the original bug exactly: `/api/available-slots` reads `bookings.ends_at` to decide whether a
+unit is out. The calendar check deliberately stays on the short window, because asking whether
+the owner is free for three solid days would refuse almost every hire over an unrelated meeting
+on day two. A hire outside the item's stated range is **refused**, not re-priced.
 
 ### The three rental pages — GREENLIT 2026-08-19, engine first
 
@@ -676,6 +689,10 @@ node --env-file=.env.local scripts/retell/recon.mjs                    every LLM
 node --env-file=.env.local scripts/retell/set-client-model.mjs         dry run; --apply to write
 node --env-file=.env.local scripts/retell/set-ai-disclosure.mjs        dry run; --apply to write
 node --env-file=.env.local scripts/retell/set-sms-consent.mjs          dry run; --apply to write
+node --env-file=.env.local scripts/retell/set-rental-tools.mjs         dry run; --apply to write.
+                                         Adds rental_days to check_availability AND book_appointment
+                                         AND the prompt, in ONE update. Targets ONLY clients with
+                                         min_rental_days set — never the templates.
 node --env-file=.env.local scripts/retell/update-availability-tool.mjs dry run; --apply to write
 node --env-file=.env.local scripts/retell/update-demo-script.mjs       aborts on bad tool names
 ```
