@@ -197,7 +197,13 @@ export async function POST(request: NextRequest) {
       console.error(`[QUESTIONNAIRE] KB sync failed:`, e)
     }
 
-    return NextResponse.json({ success: true, message: 'Questionnaire saved' })
+    // authorized_by tells the form which ending to show. A client who arrived on a signed
+    // link from the welcome email has never signed in — bouncing them at /client-dashboard,
+    // which middleware guards, drops them on a login wall seconds after they finished
+    // onboarding. Reported by the server rather than inferred from the token in the URL,
+    // because the server is the only thing that knows which of the two gates actually opened.
+    // Stays null in reporting-only mode, and the form treats null as 'no session'.
+    return NextResponse.json({ success: true, message: 'Questionnaire saved', authorized_by: authorizedBy })
   } catch (e) {
     console.error('[QUESTIONNAIRE] Error:', e)
     return NextResponse.json(
