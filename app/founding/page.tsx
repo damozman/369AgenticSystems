@@ -7,7 +7,7 @@ import { AgentTeamGrid } from '@/components/agents/AgentTeamGrid'
 export const metadata: Metadata = {
   title: '369 Agentic Systems | AI Workforce Infrastructure',
   description:
-    'Deploy an autonomous AI workforce that handles lead intake, appointment setting, follow-up, and revenue recovery 24/7 — without adding headcount. Built for law firms, dental practices, roofing companies, real estate brokerages, and more.',
+    'An AI receptionist that answers every call 24/7, qualifies the caller, checks your real calendar, and books the appointment — then follows up by email. Without adding headcount. Built for law firms, roofing companies, real estate brokerages, rental yards, and more.',
   keywords: [
     'AI automation', 'autonomous agents', 'lead response automation',
     'AI workforce', 'business automation', 'appointment booking automation',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '369 Agentic Systems | AI Workforce Infrastructure',
-    description: 'Deploy an autonomous AI workforce. 24/7 lead intake, appointment setting, and revenue recovery.',
+    description: 'An AI receptionist that answers every call 24/7, qualifies the caller, and books the appointment into your real calendar.',
   },
   robots: { index: true, follow: true },
 }
@@ -194,9 +194,9 @@ export default function HomePage() {
           </h1>
 
           <p style={{ margin: '0 auto 44px', maxWidth: 620, fontSize: 18, color: '#94A3B8', lineHeight: 1.8 }}>
-            369 Agentic Systems installs an autonomous AI workforce inside your business —
-            handling lead intake, appointment setting, follow-up, and revenue recovery
-            around the clock. No additional headcount. No manual admin.
+            369 Agentic Systems puts an AI receptionist on your line — answering every call,
+            qualifying the caller, checking your real calendar and booking the job, then
+            following up by email. Around the clock. No additional headcount.
           </p>
 
           <div className="lp-hero-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
@@ -283,7 +283,7 @@ export default function HomePage() {
               Meet the Team
             </h2>
             <p style={{ margin: '0 auto', maxWidth: 520, fontSize: 15, color: '#64748B', lineHeight: 1.75 }}>
-              Your autonomous AI workforce, handling intake, outreach, and intelligence — live agents shown below, more rolling out by vertical.
+              Your deployed agents, handling intake, outreach, and confirmations — live agents shown below, more rolling out by vertical.
             </p>
           </div>
           <AgentTeamGrid vertical="original" size="medium" />
