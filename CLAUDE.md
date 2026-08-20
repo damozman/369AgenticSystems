@@ -175,6 +175,31 @@ unit is out. The calendar check deliberately stays on the short window, because 
 the owner is free for three solid days would refuse almost every hire over an unrelated meeting
 on day two. A hire outside the item's stated range is **refused**, not re-priced.
 
+### ⚠ After ANY agent config write, the next call is likely to die — burn one
+Observed 5-for-5 on 2026-08-20. Every call that died after the greeting (0 LLM requests, Retell
+logging `3000ms timeout reached for first token` on all three attempts) came **immediately after
+an LLM update**; every call that followed without a further change **worked**:
+
+| 05:15 worked | **05:25 DEAD** (prompt swap) | 05:27 worked | **06:08 DEAD ×2** (set-rental-tools)
+| 06:13 worked | **06:31 DEAD ×2** (set-sms-consent + set-rental-tools) |
+
+**It is not the content of the change, it is the act of changing.** Probable mechanism, unproven:
+Retell prompt-caches the system prompt + tool schemas, any byte change invalidates the prefix, and
+the first cold prefill on a ~4,200-char prompt plus 5 tool schemas exceeds Retell's **3000ms
+first-token budget** from their infrastructure. Retries are cold too — a cache entry is not
+readable until the first response starts streaming.
+
+**Do NOT chase this as a latency bug.** Measured directly against `claude-haiku-4-5` with the
+same prompt and tools at the same moment those calls were dying: **p50 636ms, max 844ms, 0/8 over
+3000ms.** The model is fast; the cold path through Retell is not.
+
+**Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
+measurement, and Sonnet's 2399ms p50 sits on the cliff — both make it more likely, not less.
+
+**The rule:** after any `--apply`, place one throwaway call and expect it to fail, then test. And
+when a call dies, check `public_log_url` on the call object FIRST — it names the cause in one
+request and is the fastest diagnostic available.
+
 ### The three rental pages — GREENLIT 2026-08-19, engine first
 
 **Decision:** three separate pages, not one combined — grouped by **who is buying**, so Chris can
