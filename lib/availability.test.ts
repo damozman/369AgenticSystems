@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   generateSlots,
   generateRentalWindows,
+  formatRentalWindow,
   filterAvailable,
   openSlots,
   formatSlot,
@@ -340,4 +341,31 @@ test('a hire may finish past the horizon, but may not START past it', () => {
     windows.some(w => w.endsAt.getTime() > horizonEnd),
     'no window ran past the horizon — a long hire near the edge is being wrongly dropped',
   )
+})
+
+
+test('a spoken hire states both ends and the night count', () => {
+  const spoken = formatRentalWindow(
+    {
+      startsAt: new Date('2026-09-04T13:00:00Z'), // Fri 08:00 America/Chicago
+      endsAt:   new Date('2026-09-07T22:00:00Z'), // Mon 17:00 America/Chicago
+    },
+    'America/Chicago',
+  )
+
+  assert.match(spoken, /Friday/,   'collection day missing')
+  assert.match(spoken, /Monday/,   'return day missing — the caller would not know when it is due back')
+  assert.match(spoken, /3 days/,   `night count wrong or missing: ${spoken}`)
+})
+
+test('a one-night hire says "day", not "days"', () => {
+  const spoken = formatRentalWindow(
+    {
+      startsAt: new Date('2026-09-04T13:00:00Z'),
+      endsAt:   new Date('2026-09-05T20:00:00Z'),
+    },
+    'America/Chicago',
+  )
+  assert.match(spoken, /1 day$/, `expected singular: ${spoken}`)
+  assert.doesNotMatch(spoken, /1 days/)
 })

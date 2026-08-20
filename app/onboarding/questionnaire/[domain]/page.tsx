@@ -80,8 +80,12 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
    * free, and discovering it on a live booking call is not.
    */
   const collisions = (() => {
+    // Rental duration is irrelevant to a name-collision check, but it is part of InventoryItem
+    // and null is the meaningful default — "not hired by the day". Spelled out rather than cast,
+    // so adding a field to InventoryItem keeps failing here until someone decides what it means.
     const pool = filledItems.map(r => ({
       item_key: deriveItemKey(r.label), label: r.label.trim(), quantity: quantityOf(r),
+      min_rental_days: null, max_rental_days: null,
     }))
     const words = new Set<string>()
     for (const it of pool) for (const w of it.label.toLowerCase().split(/[^a-z0-9]+/)) {

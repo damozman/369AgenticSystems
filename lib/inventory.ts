@@ -19,6 +19,19 @@ export interface InventoryItem {
   label:    string
   /** How many of this item exist — two identical bounce houses genuinely take two bookings. */
   quantity: number
+  /**
+   * Shortest hire, in nights out. **null is the load-bearing case**: it means this item is not
+   * hired by the day and is booked as an intra-day slot, exactly as every existing client's
+   * items are. Only a non-null value switches the item onto multi-day rental windows.
+   */
+  min_rental_days: number | null
+  /** Longest hire, in nights out. null alongside a set minimum means no stated maximum. */
+  max_rental_days: number | null
+}
+
+/** Whether this item is hired by the day rather than booked as an intra-day appointment. */
+export function isRental(item: InventoryItem): boolean {
+  return item.min_rental_days !== null && item.min_rental_days >= 1
 }
 
 export type ItemMatch =
@@ -125,7 +138,7 @@ export async function loadInventory(
 ): Promise<{ items: InventoryItem[]; error: string | null }> {
   const { data, error } = await supabase
     .from('client_inventory')
-    .select('item_key, label, quantity')
+    .select('item_key, label, quantity, min_rental_days, max_rental_days')
     .eq('client_domain', clientDomain)
     .eq('active', true)
     .order('label', { ascending: true })
@@ -135,7 +148,18 @@ export async function loadInventory(
     return { items: [], error: error.message }
   }
 
-  return { items: (data ?? []) as InventoryItem[], error: null }
+  // Normalised rather than cast: a row written before the rental-windows migration comes back
+  // with these keys absent, and `undefined` would slip past the `!== null` check in isRental()
+  // and switch a chair onto multi-day hire.
+  const items: InventoryItem[] = (data ?? []).map(r => ({
+    item_key: r.item_key,
+    label:    r.label,
+    quantity: r.quantity,
+    min_rental_days: r.min_rental_days ?? null,
+    max_rental_days: r.max_rental_days ?? null,
+  }))
+
+  return { items, error: null }
 }
 
 /**

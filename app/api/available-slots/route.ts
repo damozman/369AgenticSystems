@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { openSlots, formatSlot, filterAvailable, type BusyInterval, type ClientSchedule, type Slot } from '@/lib/availability'
+import { openSlots, formatSlot, formatRentalWindow, generateRentalWindows, filterAvailable, type BusyInterval, type ClientSchedule, type Slot } from '@/lib/availability'
 import { getProviderForClient } from '@/lib/calendar'
 import { loadSchedule } from '@/lib/client-schedule'
-import { loadInventory, matchItem } from '@/lib/inventory'
+import { loadInventory, matchItem, isRental } from '@/lib/inventory'
 import { denyIfBadRetellSecret } from '@/lib/security/route-guard'
 
 /**
@@ -140,6 +140,86 @@ export async function POST(request: NextRequest) {
   // still gate the slot for everyone. Bookings that name an item only gate that item.
   const generalBusy = allBusy.filter(b => !b.inventory_item_key)
 
+  /**
+   * Items hired BY THE DAY are answered with multi-day windows, not intra-day slots.
+   *
+   * Offering a dumpster a 60-minute slot is not a smaller version of the right answer, it is the
+   * wrong answer: the unit is in someone's driveway until they are done with it. So rental items
+   * are handled here and deliberately excluded from the slot pass below — safe to do because
+   * `min_rental_days` is new and null on every existing row, so nothing in production changes
+   * shape until someone sets it.
+   */
+  const wantedItem = requestedItem ? matchItem(inventory, requestedItem) : null
+  const rentalItems = inventory.filter(isRental)
+
+  if (rentalItems.length > 0) {
+    // Answer with windows when the caller named a rental item, or when everything in stock is
+    // hired by the day. A mixed yard asked a vague question still gets the slot path below,
+    // because "when can I come in" and "how long can I keep it" are different questions and
+    // guessing which one was meant is how a caller ends up booking the wrong shape entirely.
+    const namedRental = wantedItem?.kind === 'match' && isRental(wantedItem.item)
+    const allRental = rentalItems.length === inventory.length
+
+    if (namedRental || allRental) {
+      const forItems = namedRental ? [wantedItem.item] : rentalItems
+
+      // How long they want it. Absent is the common case on a first question — fall back to the
+      // item's own minimum, which is the shortest honest answer rather than a guess.
+      const askedDays = Number(source.rental_days)
+      const requestedDays = Number.isFinite(askedDays) && askedDays >= 1 ? Math.floor(askedDays) : null
+
+      const offers: { slot: Slot; items: typeof forItems }[] = []
+
+      for (const it of forItems) {
+        const days = requestedDays ?? it.min_rental_days ?? 1
+
+        // Refuse rather than silently shortening or extending: a hire outside the stated range
+        // is a different price, and quietly changing it is how someone is billed for a day they
+        // did not agree to.
+        if (it.min_rental_days !== null && days < it.min_rental_days) continue
+        if (it.max_rental_days !== null && days > it.max_rental_days) continue
+
+        const windows = generateRentalWindows(schedule, days)
+        const itemBusy = allBusy.filter(b => b.inventory_item_key === it.item_key)
+        const free = filterAvailable(
+          windows,
+          [...itemBusy, ...generalBusy, ...externalBusy],
+          it.quantity,
+          schedule.slot_duration_minutes,
+        )
+        for (const w of free) offers.push({ slot: w, items: [it] })
+      }
+
+      offers.sort((a, b) => a.slot.startsAt.getTime() - b.slot.startsAt.getTime())
+
+      if (offers.length === 0) {
+        console.log(`[SLOTS] No rental window available — ${clientDomain}`)
+        return NextResponse.json({
+          slots: [],
+          message: 'Nothing is free for those dates. Offer to take their details and have someone call back.',
+        })
+      }
+
+      const chosenWindows = offers.slice(0, 4)
+      const spokenWindows = chosenWindows.map(o => formatRentalWindow(o.slot, schedule.timezone))
+
+      console.log(`[SLOTS] ✓  ${chosenWindows.length} rental window(s) — ${clientDomain}`)
+
+      return NextResponse.json({
+        slots: spokenWindows,
+        suggested: spokenWindows.length > 1 ? `${spokenWindows[0]} or ${spokenWindows[1]}` : spokenWindows[0],
+        timezone: schedule.timezone,
+        slot_details: chosenWindows.map((o, i) => ({
+          spoken:    spokenWindows[i],
+          starts_at: o.slot.startsAt.toISOString(),
+          ends_at:   o.slot.endsAt.toISOString(),
+          available_items: o.items.map(it => it.label),
+        })),
+        inventory: forItems.map(it => it.label),
+      })
+    }
+  }
+
   // A wider net than the four we will offer: a slot rejected for one unit may be fine for
   // another, so there has to be something left to choose from after the per-item pass.
   const candidates = openSlots(schedule, [...generalBusy, ...externalBusy], { limit: 12, perDay: 6 })
@@ -156,7 +236,7 @@ export async function POST(request: NextRequest) {
 
   // If the caller already named a unit, only that unit's availability is interesting.
   const wanted = requestedItem ? matchItem(inventory, requestedItem) : null
-  const considered = wanted?.kind === 'match' ? [wanted.item] : inventory
+  const considered = wanted?.kind === 'match' ? [wanted.item] : inventory.filter(it => !isRental(it))
 
   const withItems = candidates
     .map(slot => ({

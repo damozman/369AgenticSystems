@@ -308,6 +308,34 @@ function ordinal(n: number): string {
  * year anywhere in the conversation and has to guess when it later builds book_appointment's
  * arguments — confirmed on a real booking, where it guessed 2025 instead of 2026.
  */
+/**
+ * A multi-day hire, said out loud.
+ *
+ * `formatSlot` speaks only the start, which for a rental would state the collection day and
+ * silently drop the return — the single most important number on a hire, and the one the price
+ * depends on. This says both ends and the night count, so a caller cannot agree to a window
+ * without hearing how long they actually have it.
+ */
+export function formatRentalWindow(slot: Slot, timeZone: string): string {
+  const on = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('en-US', { timeZone, ...opts }).format(d)
+
+  const dayPhrase = (d: Date) =>
+    `${on(d, { weekday: 'long' })}, ${on(d, { month: 'long' })} ${ordinal(Number(on(d, { day: 'numeric' })))}`
+
+  // Counted from the civil days in the client's own zone, not from elapsed milliseconds — a
+  // DST change would otherwise turn three nights into "2.96 days" and round it to two.
+  const startCivil = civilDateInZone(slot.startsAt, timeZone)
+  const endCivil = civilDateInZone(slot.endsAt, timeZone)
+  const nights = Math.round(
+    (Date.UTC(endCivil.year, endCivil.month - 1, endCivil.day) -
+     Date.UTC(startCivil.year, startCivil.month - 1, startCivil.day)) / 86_400_000,
+  )
+
+  const unit = nights === 1 ? 'day' : 'days'
+  return `${dayPhrase(slot.startsAt)} through ${dayPhrase(slot.endsAt)} — ${nights} ${unit}`
+}
+
 export function formatSlot(slot: Slot, timeZone: string): string {
   const on = (opts: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat('en-US', { timeZone, ...opts }).format(slot.startsAt)
