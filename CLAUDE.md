@@ -165,12 +165,25 @@ LLM provider`. `llm_token_usage` is absent — no request ever completed, nothin
    unrepresentative: it measured a **single turn** while a real call averages **6,602
    tokens/request**. Payload is a live fluidity problem; it is just not the first-turn cause.
 
-**What the evidence actually says.** Measured directly against `claude-haiku-4-5` with the *exact*
-prompt and tools those failing calls were using, at the same moments: **p50 ~700ms, max ~1.1s,
-0/8 over 3000ms**, repeatedly. The model answers this payload in well under a second. Also ruled
-out: agent/LLM version pinning (agent v0 resolves LLM v0, aligned), concurrency (1/20), tool
-schema validity, and the `/api/available-slots` endpoint itself (200 in ~600ms from the same
-machine). The time is being spent somewhere inside Retell's path that we cannot see.
+**DECISIVE EVIDENCE — 2026-08-20 21:11. Retell's own log names three providers:**
+```
+triedKeys: [ vertex-anthropic-global:claude-4.5-haiku,
+             anthropic-default:claude-4.5-haiku,
+             bedrock-runtime-claude-global:claude-4.5-haiku ]
+errorMsgs: [3000ms timeout, 3000ms timeout, 3000ms timeout]
+```
+Retell failed to get a first token from **Google Vertex, Anthropic direct, and AWS Bedrock** —
+three independent vendors, identical failure. Minutes later, the **exact same `general_prompt` and
+tool schemas**, read live off that agent and sent straight to Anthropic: **p50 571ms, max 940ms,
+0/6 over 3000ms.**
+
+Three independent providers do not degrade simultaneously and identically, and the payload that
+allegedly could not produce a token in 3s answers one of those same providers in half a second.
+**The fault is inside Retell's request path. Our configuration is exonerated — stop re-testing it.**
+
+Also ruled out, each checked directly: agent/LLM version pinning (agent v0 resolves LLM v0),
+concurrency (1/20), tool schema validity (all three tools verified against production),
+`model_high_priority` (false), and `/api/available-slots` itself (200 in ~600ms, minting tokens).
 
 **Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
 measurement and Sonnet's 2399ms p50 sits on the cliff — both make it MORE likely, not less.
