@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 export type AgentName   = 'ava' | 'rex' | 'nova' | 'felix' | 'scout'
-export type Vertical    = 'roofing' | 'hvac' | 'plumbing' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'dental' | 'wholesale' | 'original'
+export type Vertical    = 'roofing' | 'hvac' | 'plumbing' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'dental' | 'wholesale' | 'event-rentals' | 'dumpster-rental' | 'equipment-rental' | 'original'
 export type AgentStatus = 'live' | 'deploying' | 'future'
 
 interface AgentCardProps {
@@ -93,6 +93,10 @@ const VERTICAL_COLORS: Record<Vertical, string> = {
   saas:          '#8B5CF6',
   dental:        '#EC4899',
   wholesale:     '#84CC16',
+  // The three rental niches. Hues deliberately clear of the nine above.
+  'event-rentals':    '#F59E0B',
+  'dumpster-rental':  '#10B981',
+  'equipment-rental': '#6366F1',
 }
 
 const STATUS_CONFIG: Record<AgentStatus, { label: string; color: string; bg: string }> = {
@@ -107,8 +111,18 @@ const SIZE_CONFIG = {
   large:  { w: 280, h: 350, name: 26, role: 11, virtue: 13 },
 }
 
+// The three rental verticals have no bespoke agent art yet, so they fall back to
+// the generic `_original` portraits rather than requesting a file that 404s.
+// Drop in `{agent}_{vertical}.jpg` and delete the entry to give one its own look.
+const IMAGE_SLUGS: Partial<Record<Vertical, string>> = {
+  'real-estate':      'real_estate',
+  'event-rentals':    'original',
+  'dumpster-rental':  'original',
+  'equipment-rental': 'original',
+}
+
 function imagePath(agent: AgentName, vertical: Vertical): string {
-  const v = vertical === 'real-estate' ? 'real_estate' : vertical
+  const v = IMAGE_SLUGS[vertical] ?? vertical
   return `/img/agents/${agent}/${agent}_${v}.jpg`
 }
 
