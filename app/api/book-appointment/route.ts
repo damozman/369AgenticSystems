@@ -72,6 +72,10 @@ export async function POST(request: NextRequest) {
 
   const call_id = retellCall?.call_id ?? (source.call_id as string | undefined)
 
+  // "none" is the schema's honest escape for a booking made without checking availability first
+  // — see set-rental-tools.mjs. Treated exactly as absent, so the prose fields take over.
+  const claimedToken = booking_token && booking_token !== 'none' ? booking_token : null
+
   // Three ways to say when: a booking_token (most precise — it carries the interval that was
   // actually offered), the exact instant, or the day-and-time pair Ava spoke. Demanding more than
   // one would reject the precise forms in favour of the loosest.
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
   // The token has to satisfy this gate or it cannot stand alone, and standing alone is the entire
   // point: it exists so Ava does not have to re-supply what she was already handed. It is only
   // accepted here as a claim — the signature is checked below, and a bad one is refused there.
-  if (!call_id || (!booking_token && !starts_at && (!appointment_date || !appointment_time))) {
+  if (!call_id || (!claimedToken && !starts_at && (!appointment_date || !appointment_time))) {
     return NextResponse.json(
       { error: 'Missing required fields: call_id, and either starts_at or both appointment_date and appointment_time' },
       { status: 400 }
@@ -121,8 +125,8 @@ export async function POST(request: NextRequest) {
    * prose fields would turn a corrupted handle into a subtly wrong booking, which is the failure
    * this whole mechanism exists to prevent.
    */
-  const tokenCheck = verifyBookingToken(booking_token)
-  if (booking_token && !tokenCheck.valid && tokenCheck.reason !== 'not-configured') {
+  const tokenCheck = verifyBookingToken(claimedToken)
+  if (claimedToken && !tokenCheck.valid && tokenCheck.reason !== 'not-configured') {
     console.error(`[BOOKING] ✗  booking_token ${tokenCheck.reason} — ${resolvedClientDomain}`)
     return NextResponse.json(
       {

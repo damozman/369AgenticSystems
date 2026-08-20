@@ -55,8 +55,9 @@ const PARAM_SPECS = {
   booking_token: {
     type: 'string',
     description:
-      'Copy exactly from the check_availability result for the slot they chose. Carries the item '
-      + 'and dates. Never invent or edit one.',
+      'Copy exactly from the check_availability result for the slot they chose — it carries the '
+      + 'item and dates. Send "none" if you did not check availability first. Never invent or edit '
+      + 'one.',
   },
 }
 
@@ -206,7 +207,9 @@ for (const [agentId, label] of targets) {
   const toolNeeds = TOOLS.filter(n => {
     const t = tools.find(x => x.name === n)
     const props = t.parameters?.properties ?? {}
-    return Object.keys(PARAM_SPECS).some(k => !(k in props))
+    if (Object.keys(PARAM_SPECS).some(k => !(k in props))) return true
+    // Also catch an agent carrying booking_token as merely optional.
+    return n === 'book_appointment' && !(t.parameters?.required ?? []).includes('booking_token')
   })
 
   /**
@@ -233,7 +236,22 @@ for (const [agentId, label] of targets) {
     }
   }
 
-  const nextTools = tools.map(t => !TOOLS.includes(t.name) ? t : ({ ...t, parameters: buildParams(t) }))
+  /**
+   * `booking_token` is REQUIRED on book_appointment, with `"none"` as the honest way out.
+   *
+   * As an optional parameter it was minted, returned, and then simply not sent — the third time
+   * tonight that optional meant omittable (after `item` and `sms_consent`). Requiring it is only
+   * safe because `"none"` exists: a booking made without checking availability has something true
+   * to send, so the model is never cornered into inventing a handle.
+   */
+  const nextTools = tools.map(t => {
+    if (!TOOLS.includes(t.name)) return t
+    const params = buildParams(t)
+    if (t.name === 'book_appointment') {
+      params.required = [...new Set([...(params.required ?? []), 'booking_token'])]
+    }
+    return { ...t, parameters: params }
+  })
 
   const malformed = nextTools
     .filter(t => TOOLS.includes(t.name))
