@@ -48,16 +48,21 @@ bookings all-time.** Nothing here has been proven at volume.
 
 ---
 
-## Live system state — 2026-08-19
+## Live system state — 2026-08-20
 
 | Thing | State |
 |---|---|
 | Retell agents | **11** — 9 vertical templates + the shared demo agent + Northside |
 | Retell numbers | **2** — (817) 635-0220 demo, (817) 612-6757 Northside |
-| `agent_subscriptions` | **1** (Northside — test client, no Stripe anchor) |
+| `agent_subscriptions` | **2** — Northside (test client, no Stripe anchor) + a leftover `review-sandbox` row with no agent |
 | `calendar_connections` | **0** |
-| `client_schedules` / `client_inventory` | **0** / **0** |
-| `calls` / `leads` / `bookings` | 55 / 27 / 21 (all-time) |
+| `client_schedules` / `client_inventory` | **1** / **40** (38 active, 12 hired by the day) — all Northside's, see below |
+| `calls` / `leads` / `bookings` | 72 / 31 / 24 (all-time); **54 minutes in the last 30 days** |
+
+> ⚠️ **Northside is no longer a roofing agent.** It was converted on 2026-08-20 into an
+> event/party-rental test agent: rental prompt, 40 mock inventory rows, weekend hours, 180-day
+> horizon. Original LLM config is backed up. It is the only client with inventory or a schedule,
+> and those rows are **test data, not a real yard**.
 | Stripe | **test mode**; sole webhook `we_1Trrqk3nqoZlRtPEan18MmjD` **disabled** |
 | Pricing | $400 / $600 / $750 flat. `SETUP_FEE = 0`. No minute limits advertised. |
 
@@ -178,16 +183,19 @@ sections below record only where a vertical **differs**.
 
 ---
 
-## The rental niches — no vertical page, and that is correct
+## The rental niches — three pages GREENLIT, and the engine is now ready
 
-This is where the *next* client comes from. **Three pages are GREENLIT as of 2026-08-19** — Event &
-Party Rentals, Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so
-one specific person can be pointed at one specific page. This **reverses** the older "do not add
-vertical pages" rule, which was written when nine pages were live with zero distribution; the
-chamber face-time is what changed it. **That reversal does not extend to the original nine.**
+This is where the *next* client comes from. **Three pages are greenlit** — Event & Party Rentals,
+Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so one specific
+person can be pointed at one specific page. This **reverses** the older "do not add vertical pages"
+rule, written when nine pages were live with zero distribution; the chamber face-time changed it.
+**That reversal does not extend to the original nine.**
 
-**The multi-day engine is being built FIRST**, because two of the three pages cannot truthfully
-describe their core service until it exists (see below, and "What to finish, in order").
+**The engine they were waiting on shipped 2026-08-20.** Multi-day hire, per-item availability
+reachable by voice, ambiguity refusal, and a signed booking handle are all live and verified
+against production. The constraint was Chris's own — *"we're not putting anything on the pages that
+isn't truthful"* — and two of the three pages could not honestly describe their core service until
+multi-day hire existed. **It does now, so all three are buildable and nothing blocks them.**
 
 **All of these must be provisioned under one of the 9 existing verticals.** `TEMPLATE_AGENT_IDS` in
 `lib/retell-provisioning.ts` has exactly 9 keys, and `vertical` comes from Stripe's
@@ -240,8 +248,11 @@ detail to discover during a live onboarding either.
 
 ## What to finish, in order
 
-Ordered by what unblocks the most. **The first two are calendar time, not build time** — they run
-whether or not anyone is at a keyboard, and neither has started.
+Split deliberately: the first group **runs on calendar time** — filed once, then waiting — and the
+second is **build time that nothing blocks**. Start the first group, then work the second while it
+clears. Do not sit waiting on any of it.
+
+### Group A — start these, then stop thinking about them
 
 1. **Register the A2P brand + campaign** for `3SIX9 MEDIA MASTERS LLC`. Low-volume standard, ~$19
    one-time. Gates *every* SMS track. Register directly with Twilio, never through a reseller.
@@ -249,31 +260,56 @@ whether or not anyone is at a keyboard, and neither has started.
 2. **Submit for Google verification.** Needs a demo video of end-to-end OAuth consent. Up to 10 days.
    Until it clears, every new client sees an unverified-app warning and there is a 100-user cap.
    Record it signed in as `damozman@yahoo.com`, calling **Northside** — a demo-line call proves nothing.
-3. **Re-enable the Stripe webhook** (`we_1Trrqk3nqoZlRtPEan18MmjD`). Nothing provisions until it is
-   on. Disable it again afterward if not going live immediately.
-4. **Prepare the pilot** — decide her vertical, then schedule → inventory → calendar → test call.
-   She is back ~2026-09-02; the chamber event is ~mid-September.
-5. **Fix Northside's prompt — and the mechanism that broke it.** Verified against the live agent
-   2026-08-19: Northside's greeting still discloses AI (TRAIGA intact), but its `general_prompt` is
-   **735 chars vs the roofing template's 1239** and has lost both the *"asked whether you're AI"*
-   backstop and the whole `sms_consent` instruction. It is the **1 of 11** that
-   `set-ai-disclosure.mjs` and `set-sms-consent.mjs` both still flag.
-   **Order matters:** re-fill the questionnaire **first**, *then* re-run both scripts with
-   `--apply`. Backwards, the re-fill deletes them again.
-   **The underlying bug is not Northside-specific.** Both compliance scripts append their line to
-   the **end** of the prompt; `mergePromptWithContext` cuts from `BUSINESS_CONTEXT_START` to the
-   end. So any compliance line appended **after** a client's context block is silently deleted by
-   their next questionnaire submit. A brand-new client is safe (the template's text sits in the
-   base, before any marker), but **a re-submit — editing hours or stock months later — strips it.**
-   Durable fix: write compliance lines into the base, or preserve trailing content after
-   `BUSINESS_CONTEXT_END`. **Not built.**
-6. **Fix the SaaS Scout badge** (or build Scout). It currently claims DEPLOYING for something that
-   does not exist.
-7. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
-   and failed silently for months — nobody read its output, only that it ran. Assume siblings.
-8. **Flip usage billing** only when Stripe is live — **and move the pricing copy in the same commit.**
-   Advertising minutes before the meter bills them has already shipped once.
+3. **The Retell ticket is filed** (2026-08-20) for agents that answer, greet, then never speak.
+   Their own log named three providers failing identically while the same payload answered in
+   571ms direct. **Do not re-diagnose or re-test the config while it is open** — it has been
+   exonerated four times. Voice testing is blocked until they reply.
 
-**Deliberately not on this list:** more vertical pages. Nine are live, zero clients have ever paid,
-and the one real subscription logged 18 minutes in a month. Distribution was always the constraint —
-a warm introduction beats a tenth landing page.
+### Group B — buildable right now, nothing blocks these
+
+**Ordered by what helps the chamber event most.**
+
+1. **The three rental landing pages.** Greenlit 2026-08-19, and the engine they were waiting on
+   **shipped 2026-08-20** — multi-day hire, per-item availability by voice, ambiguity refusal. All
+   three can now describe their core service truthfully, which was the only thing holding them
+   back. Chris needs an artifact to point a specific person at; this is the highest-value unblocked
+   work and it touches neither Retell, SMS, nor Google.
+2. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
+   against a 964ms benchmark — audibly less fluid. Cause is prose in tool descriptions and the
+   system prompt, re-sent every turn. Trimmed once (12,108 → 9,868 chars); `capture_lead` is still
+   **2,571 chars** and is the fattest remaining target. **Measurable without a phone call** — send
+   the live prompt and tools straight to the model and time to first token, but do it
+   mid-conversation: a single-turn probe reads ~700ms while a real call averages 6,602 tokens.
+3. **An inventory screen.** `grep -rln client_inventory app components` returns nothing. A client
+   cannot see their stock, fix a mistyped quantity, or take a torn bounce house out of service —
+   the `active` column exists and is read live, it is simply unreachable. Pure Next.js, no vendor.
+4. **`capture_lead` sends the wrong `vertical`.** It sent `"wholesale"` on a roofing-domain client
+   on three separate calls, mislabelling every lead. Small fix, real data quality.
+5. **The compliance-line-stripping bug.** Both compliance scripts append their line to the **end**
+   of the prompt; `mergePromptWithContext` cuts from `BUSINESS_CONTEXT_START` to the end. Any line
+   appended **after** a client's context block is silently deleted by their next questionnaire
+   submit. A new client is safe; **a re-submit — editing hours or stock months later — strips it.**
+   `set-rental-tools.mjs` already inserts *before* the marker and is immune; the two compliance
+   scripts are not. Durable fix: write into the base, or preserve trailing content.
+6. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+   and failed silently for months — nobody read its output, only that it ran. Assume siblings.
+7. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
+8. **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
+   `/api/update-dossier` was removed. Dead code that reads as a live integration.
+
+### Group C — gated on a real client, not on time
+
+- **Re-enable the Stripe webhook** (`we_1Trrqk3nqoZlRtPEan18MmjD`) before any end-to-end run.
+  Nothing provisions until it is on. Disable it again afterward if not going live immediately.
+- **Prepare the pilot** — schedule → inventory → calendar → test call. She is back ~2026-09-02;
+  the chamber event is ~mid-September. Her `client_schedules` row must be written explicitly:
+  defaults close Saturday and Sunday and cap the horizon at 14 days.
+- **Flip usage billing** only when Stripe is live — **and move the pricing copy in the same commit.**
+  Advertising minutes before the meter bills them has already shipped once.
+- **`booking_token` is untested by voice.** It is required on `book_appointment` with `"none"` as
+  the escape, and verified against production directly — but no connected call has carried one yet.
+  Every booking so far stored `inventory_item_key: null`. Check this on the first call that lands.
+
+**No longer on this list:** *"do not add vertical pages."* That rule was written when nine pages
+were live with zero distribution. Distribution arrived, and the three rental pages are greenlit —
+see CLAUDE.md. **It still holds for the original nine.**

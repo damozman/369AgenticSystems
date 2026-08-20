@@ -80,6 +80,12 @@ into tool descriptions and the system prompt, which are re-sent every turn. Trim
 **Measuring trap:** a single-turn probe reads ~700ms while a real call averages **6,602
 tokens/request**, so measure mid-conversation or the number flatters.
 
+**Next session: do NOT sit waiting on Retell.** `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md`
+now splits its finish list into **Group A** (calendar time — A2P, Google verification, the Retell
+ticket), **Group B** (buildable right now, nothing blocks it), and **Group C** (gated on a real
+client). Group B is the queue: **the three rental pages first** — greenlit, and the engine they
+waited on shipped last night — then cutting per-turn prefill, then an inventory screen.
+
 **Three changes are untested by voice** — they landed after the last connected call:
 `booking_token` **required** with `"none"` as the escape, and the trimmed descriptions. On the next
 call that connects, watch whether `book_appointment` finally carries a token: the booking has
