@@ -183,19 +183,36 @@ sections below record only where a vertical **differs**.
 
 ---
 
-## The rental niches — three pages GREENLIT, and the engine is now ready
+## The rental niches — three pages BUILT, engine live behind them
 
-This is where the *next* client comes from. **Three pages are greenlit** — Event & Party Rentals,
-Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so one specific
-person can be pointed at one specific page. This **reverses** the older "do not add vertical pages"
-rule, written when nine pages were live with zero distribution; the chamber face-time changed it.
+This is where the *next* client comes from. **All three pages shipped 2026-08-20** — Event & Party
+Rentals, Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so one
+specific person can be pointed at one specific page. This **reversed** the older "do not add
+vertical pages" rule, written when nine pages were live with zero distribution.
 **That reversal does not extend to the original nine.**
 
-**The engine they were waiting on shipped 2026-08-20.** Multi-day hire, per-item availability
+Each niche now has **two** artifacts, mirroring the original verticals:
+- A Next.js intake route — `/event-rentals`, `/dumpster-rental`, `/equipment-rental` — with the
+  shared intake form and ROI calculator. **`/{slug}/pricing` redirects to `/book-demo`**, on
+  purpose: `TEMPLATE_AGENT_IDS` has nine keys and a rental checkout would throw
+  `No template agent configured` *after* the card was charged. Same guard as `/dental/pricing`.
+- A long-form cold-email page — `/event-rentals-leads/`, `/dumpster-rental-leads/`,
+  `/equipment-rental-leads/` — each carrying a six-category **catalogue** of what the niche
+  actually rents. That catalogue is the sales material: it is what Chris reads before a chamber
+  conversation, and it doubles as the argument for ambiguity refusal.
+
+Both are reachable from the homepage: Event & Party Rentals holds the **second featured card**,
+dumpster and equipment sit in the grid, and all three are in the footer.
+
+**The engine they were waiting on shipped the same day.** Multi-day hire, per-item availability
 reachable by voice, ambiguity refusal, and a signed booking handle are all live and verified
 against production. The constraint was Chris's own — *"we're not putting anything on the pages that
-isn't truthful"* — and two of the three pages could not honestly describe their core service until
-multi-day hire existed. **It does now, so all three are buildable and nothing blocks them.**
+isn't truthful"* — and two of the three could not honestly describe their core service until
+multi-day hire existed.
+
+**No page claims SMS, quoting, deposits, waivers or bulk quantities**, and none asserts an industry
+average job value — the figure in each ROI calculator is labelled a starting estimate the visitor
+moves, because there is no data behind an average for these niches.
 
 **All of these must be provisioned under one of the 9 existing verticals.** `TEMPLATE_AGENT_IDS` in
 `lib/retell-provisioning.ts` has exactly 9 keys, and `vertical` comes from Stripe's
@@ -269,32 +286,27 @@ clears. Do not sit waiting on any of it.
 
 **Ordered by what helps the chamber event most.**
 
-1. **The three rental landing pages.** Greenlit 2026-08-19, and the engine they were waiting on
-   **shipped 2026-08-20** — multi-day hire, per-item availability by voice, ambiguity refusal. All
-   three can now describe their core service truthfully, which was the only thing holding them
-   back. Chris needs an artifact to point a specific person at; this is the highest-value unblocked
-   work and it touches neither Retell, SMS, nor Google.
-2. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
+1. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
    against a 964ms benchmark — audibly less fluid. Cause is prose in tool descriptions and the
    system prompt, re-sent every turn. Trimmed once (12,108 → 9,868 chars); `capture_lead` is still
    **2,571 chars** and is the fattest remaining target. **Measurable without a phone call** — send
    the live prompt and tools straight to the model and time to first token, but do it
    mid-conversation: a single-turn probe reads ~700ms while a real call averages 6,602 tokens.
-3. **An inventory screen.** `grep -rln client_inventory app components` returns nothing. A client
+2. **An inventory screen.** `grep -rln client_inventory app components` returns nothing. A client
    cannot see their stock, fix a mistyped quantity, or take a torn bounce house out of service —
    the `active` column exists and is read live, it is simply unreachable. Pure Next.js, no vendor.
-4. **`capture_lead` sends the wrong `vertical`.** It sent `"wholesale"` on a roofing-domain client
+3. **`capture_lead` sends the wrong `vertical`.** It sent `"wholesale"` on a roofing-domain client
    on three separate calls, mislabelling every lead. Small fix, real data quality.
-5. **The compliance-line-stripping bug.** Both compliance scripts append their line to the **end**
+4. **The compliance-line-stripping bug.** Both compliance scripts append their line to the **end**
    of the prompt; `mergePromptWithContext` cuts from `BUSINESS_CONTEXT_START` to the end. Any line
    appended **after** a client's context block is silently deleted by their next questionnaire
    submit. A new client is safe; **a re-submit — editing hours or stock months later — strips it.**
    `set-rental-tools.mjs` already inserts *before* the marker and is immune; the two compliance
    scripts are not. Durable fix: write into the base, or preserve trailing content.
-6. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+5. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
    and failed silently for months — nobody read its output, only that it ran. Assume siblings.
-7. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
-8. **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
+6. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
+7. **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
    `/api/update-dossier` was removed. Dead code that reads as a live integration.
 
 ### Group C — gated on a real client, not on time

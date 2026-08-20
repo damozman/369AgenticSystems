@@ -22,9 +22,59 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-20 (overnight).
+**Last updated:** 2026-08-20 (evening).
 
-### Where this session ended — 2026-08-20 (overnight)
+### Where this session ended — 2026-08-20 (evening)
+
+**🔶 There is an UNMERGED branch: `feat/rental-vertical-pages`.** Three commits, pushed, preview
+green. `master` is untouched. **Nothing below is on production until that branch merges.**
+
+Preview: `https://369-agentic-systems-git-feat-rental-vertical-pages-3six9mm.vercel.app`
+(Vercel SSO 302s *every* path including nonsense ones, so a 302 there proves nothing — everything
+was verified against a local production build instead.)
+
+**What is on the branch**
+- **The three rental niches now have two artifacts each**, mirroring the original verticals:
+  Next.js intake routes (`/event-rentals`, `/dumpster-rental`, `/equipment-rental`) plus long-form
+  cold-email pages (`/event-rentals-leads/`, `/dumpster-rental-leads/`, `/equipment-rental-leads/`).
+  This closes Group B #1. The static pages carry a six-category **catalogue** each — that is the
+  artifact Chris asked for so he can talk to any of the three buyers without missing selling points.
+- **`/{slug}/pricing` redirects to `/book-demo` on purpose.** `TEMPLATE_AGENT_IDS` has nine keys and
+  `vertical` reaches it as Stripe's `client_reference_id`, so a rental checkout would throw
+  `No template agent configured` **after** the card was charged — the dental funnel bug exactly.
+  `VerticalPricing`'s own union was deliberately left at nine so the compiler blocks a re-wiring.
+- **Homepage repositioned.** AOS demoted from positioning statement to product name: the hero now
+  leads with the job ("Never Miss the Call. Never Lose the Job.") and the mechanism, and AOS is
+  reintroduced at the catalog where it earns the $400 against a $250 answering service. AOS is
+  **untouched** on the nine vertical pages, the three rental pages, the agent pages and the footer.
+- **Five overclaims removed** — "runs your firm autonomously" (meta), "run your business for you"
+  (og), "run your business without adding headcount" (why-369), pillar 01's "not a generic template
+  retrofitted" (provisioning *does* clone a per-vertical template), and the CUSTOM card's "any
+  repetitive process — eliminated in 48h deploy". Plus four instances of "autonomous AI workforce"
+  on `/founding`.
+- **Homepage grid restructured.** Event & Party Rentals takes the second featured slot (live pilot +
+  chamber network); HVAC moves into the grid; dumpster and equipment get cards. `SYSTEM_` numbering
+  restarted mid-page (01,02 then 01–07) and is now one sequence, 01–12.
+
+**Two things to know before touching any of this**
+- **The rental palette changed and the homepage is why.** The grid already spent amber on roofing
+  (`.ic-roofing --cr: 245,158,11`) and a near-identical teal on insurance, so events went
+  amber → **violet #A855F7** and dumpster emerald → **true green #22C55E**. Equipment keeps
+  **#6366F1** — `.ic-saas` defines it but no SaaS card is rendered. Card and page now agree.
+- **The static pages were generated, not hand-written**, from `public/wholesale-leads/index.html`,
+  so they inherit its fixes. The generator lived in a scratchpad and is **not committed** — the
+  committed artifact is the HTML, edited directly from here on, per the Zero-Touch Policy.
+
+**⚠ Raised and deliberately NOT fixed — Chris's call.** The HVAC featured card claimed *"Over 60% of
+HVAC emergency calls come in after hours — every one that hits voicemail costs an average of $8,400
+a month"*. That is a borrowed stat of exactly the kind that is banned, and it is now in the grid
+rather than the featured row, but **the sentence is still on the page**. Either source it or cut it.
+
+**Still open from this session:** Chris wants a **word-by-word copy pass** over everything written
+today — the three static pages, the three Next.js pages, and the new homepage copy. Nothing has had
+one. He also has not decided whether the homepage card grid is still the right organising idea.
+
+### Where the previous session ended — 2026-08-20 (overnight)
 
 **`master` is clean, nothing is open, everything below is deployed.** PRs #42–#47 merged; the rest
 went straight to master. 248 tests pass.
@@ -206,7 +256,7 @@ is Retell's setting and is not exposed to us.
 **When a call misbehaves, read `public_log_url` on the call object FIRST.** It named the cause in
 one request tonight after five tool calls of circling.
 
-### The three rental pages — GREENLIT 2026-08-19, engine first
+### The three rental pages — BUILT 2026-08-20 (on `feat/rental-vertical-pages`)
 
 **Decision:** three separate pages, not one combined — grouped by **who is buying**, so Chris can
 point one specific person at one specific page and target ads tightly.
@@ -219,21 +269,15 @@ point one specific person at one specific page and target ads tightly.
 
 Party bus sits with **events**, not equipment — the buyer is the same person planning the party.
 
-**Build order: the multi-day engine FIRST, then all three pages.** Chris's own constraint decides
-this — *"we're not putting anything on the pages that isn't truthful."* Today:
-- **Event & party** could honestly describe its core service now (per-item inventory shipped).
-- **Dumpster / restroom and equipment CANNOT.** Their core service *is* multi-day hire, and
-  `generateSlots` cannot offer it. A truthful page today would omit the main thing.
+**Both artifacts exist per niche** — a Next.js intake route and a long-form `-leads` cold-email
+page. The `-leads` suffix is **load-bearing**: `public/event-rentals/` would collide with the
+Next.js route of the same name, and Next gives the page precedence, leaving the static file
+unreachable.
 
-**The blocker, exactly.** `lib/availability.ts` → `generateSlots` builds slots strictly inside one
-day: the inner loop requires `start + durationMs <= dayClose`, so **a bookable slot can never
-cross a day boundary**. `book_slot()` already takes a `tstzrange`, so the database layer is
-already capable — this is a slot-generation problem, not a schema one. `filterAvailable` is
-overlap-based and duration-agnostic, so it should not need to change.
-
-**This one build unlocks all three pages AND closes a real pilot risk:** a bounce house booked
-Saturday 10:00 for 90 minutes currently reads as *free* at noon while it is physically at a party
-until Sunday. Same root cause as the unbuilt seven-day dumpster hire.
+Chris's constraint governed the copy — *"we're not putting anything on the pages that isn't
+truthful."* So none of the six claims SMS, quoting, deposits, waivers or bulk quantities, and none
+asserts an industry-average job value: each ROI figure is labelled a starting estimate the visitor
+moves. **This deliberately differs from the nine**, which do assert an "avg job value".
 
 ### Twilio / A2P 10DLC — state as of 2026-08-18
 - **Account is upgraded to pay-as-you-go with ISV Reseller identity, and the Primary Compliance
