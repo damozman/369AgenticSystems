@@ -169,6 +169,10 @@ export async function POST(request: NextRequest) {
       const requestedDays = Number.isFinite(askedDays) && askedDays >= 1 ? Math.floor(askedDays) : null
 
       const offers: { slot: Slot; items: typeof forItems }[] = []
+      // Items skipped only because the requested length is outside their range. "We have none
+      // free" and "you asked for a hire we do not do" are completely different answers, and
+      // giving the first when the second is true sends a caller away from an idle unit.
+      const outOfRange: string[] = []
 
       for (const it of forItems) {
         const days = requestedDays ?? it.min_rental_days ?? 1
@@ -176,8 +180,14 @@ export async function POST(request: NextRequest) {
         // Refuse rather than silently shortening or extending: a hire outside the stated range
         // is a different price, and quietly changing it is how someone is billed for a day they
         // did not agree to.
-        if (it.min_rental_days !== null && days < it.min_rental_days) continue
-        if (it.max_rental_days !== null && days > it.max_rental_days) continue
+        if (it.min_rental_days !== null && days < it.min_rental_days) {
+          outOfRange.push(`the ${it.label} goes out for at least ${it.min_rental_days} days`)
+          continue
+        }
+        if (it.max_rental_days !== null && days > it.max_rental_days) {
+          outOfRange.push(`the ${it.label} goes out for at most ${it.max_rental_days} days`)
+          continue
+        }
 
         const windows = generateRentalWindows(schedule, days)
         const itemBusy = allBusy.filter(b => b.inventory_item_key === it.item_key)
@@ -193,11 +203,13 @@ export async function POST(request: NextRequest) {
       offers.sort((a, b) => a.slot.startsAt.getTime() - b.slot.startsAt.getTime())
 
       if (offers.length === 0) {
-        console.log(`[SLOTS] No rental window available — ${clientDomain}`)
-        return NextResponse.json({
-          slots: [],
-          message: 'Nothing is free for those dates. Offer to take their details and have someone call back.',
-        })
+        // Say WHICH of the two it is. Telling a caller nothing is free, when in truth they asked
+        // for a two-day hire on a unit with a three-day minimum, loses a booking we could take.
+        const why = outOfRange.length > 0
+          ? `That length is not one they hire out — ${outOfRange.join(', and ')}. Tell them the minimum and ask if that works.`
+          : 'Nothing is free for those dates. Offer to take their details and have someone call back.'
+        console.log(`[SLOTS] No rental window — ${clientDomain}${outOfRange.length ? ' (length out of range)' : ''}`)
+        return NextResponse.json({ slots: [], timezone: schedule.timezone, message: why })
       }
 
       const chosenWindows = offers.slice(0, 4)
