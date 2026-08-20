@@ -145,16 +145,22 @@ Sunday to **closed** and `booking_horizon_days` to **14**. A party-rental busine
 entirely weekends and books months ahead. On defaults Ava refuses every Saturday and anything past
 a fortnight, and it looks like a bug in the booking engine.
 
-### ⚠ PENDING: apply `2026-08-19-rental-windows.sql` to production
-The rental-window engine is **built, tested (240 pass) and deployed**, but the migration adding
-`client_inventory.min_rental_days` / `max_rental_days` **has NOT been applied.** There is no
-migration runner and no Postgres connection in this repo — only PostgREST keys — so it must be
-pasted into the Supabase SQL editor by hand, as every previous migration was.
+### Multi-day rental windows — APPLIED and VERIFIED against production 2026-08-19
+`2026-08-19-rental-windows.sql` is **applied**. `verify-rental-windows.mjs` passed every check
+against production, including the one the feature exists for: a real three-night hire was booked,
+and a second booking of the same unit **mid-hire was refused** — the unit is held for the whole
+span, not just its endpoints. 30 windows generated, none overlapping the live hire. All test rows
+cleaned up; `client_inventory` back to 0, `bookings` back to 21.
 
-**Nothing breaks while it is unapplied.** `loadInventory` coalesces the missing columns to null,
-`isRental()` returns false for null, and every item therefore books intra-day slots exactly as
-today. The feature is simply inert. Verify with `verify-rental-windows.mjs`, which refuses to
-run until the columns exist.
+**Still inert for every existing client, deliberately.** `min_rental_days` is null on every real
+row, `isRental()` returns false for null, so everything still books intra-day slots. An item only
+switches to windows when someone sets a value.
+
+**NOT yet done: the tool contract.** Ava cannot be *asked* for a hire length by voice —
+`check_availability` has no `rental_days` parameter. The route accepts it and falls back to each
+item's own minimum, so it works, but *"can I get it for five days?"* will not do the right thing
+until the prompt and the tool schema are changed **together**. That pairing has corrupted real
+leads before; see the coupled-contracts lesson below.
 
 ### The three rental pages — GREENLIT 2026-08-19, engine first
 
