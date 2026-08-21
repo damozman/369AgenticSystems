@@ -4,6 +4,18 @@
  *   node --env-file=.env.local scripts/retell/set-client-model.mjs              # dry run
  *   node --env-file=.env.local scripts/retell/set-client-model.mjs --apply
  *   node --env-file=.env.local scripts/retell/set-client-model.mjs --model claude-4.6-sonnet --apply
+ *   node --env-file=.env.local scripts/retell/set-client-model.mjs --model gpt-5 --only <agentId> --apply
+ *
+ * Targets: the 9 provisioning templates, every live client agent, AND the shared demo line.
+ * **The demo line was missing from this script until 2026-08-21** — it is neither a template nor a
+ * subscription, so both lookups skipped it, and a fleet-wide model change would have left the one
+ * agent real prospects actually call sitting on the old model. Added by id, as the two compliance
+ * scripts already do.
+ *
+ * `--only <agentId>` narrows to a single agent. Use it to prove an unproven model on ONE test agent
+ * (Northside) before moving anything that takes real traffic. The model string is validated against
+ * Retell's supported set up front, so a typo fails before the first write rather than halfway
+ * through and leaving the fleet split.
  *
  * The 2026-08-04 benchmark moved the shared demo line to claude-4.5-haiku on measured evidence —
  * Haiku's worst turn beat Sonnet's median — but it moved only that one LLM. Every vertical
@@ -35,6 +47,22 @@ const arg = name => {
 
 const MODEL = arg('--model') && arg('--model') !== true ? arg('--model') : 'claude-4.5-haiku'
 const APPLY = process.argv.includes('--apply')
+const ONLY  = arg('--only') && arg('--only') !== true ? arg('--only') : null
+
+// Retell's own supported set, from the SDK's LlmResponse['model'] union. Checked here rather than
+// discovered by an API rejection halfway through a multi-agent write, which would leave the fleet
+// split across two models.
+const SUPPORTED = new Set([
+  'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
+  'gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-5.1', 'gpt-5.2',
+  'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5',
+  'claude-4.5-sonnet', 'claude-4.6-sonnet', 'claude-5-sonnet', 'claude-4.5-haiku',
+  'gemini-3.0-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash',
+])
+if (!SUPPORTED.has(MODEL)) {
+  console.error(`✗ "${MODEL}" is not a model Retell accepts. One of:\n  ${[...SUPPORTED].join('\n  ')}`)
+  process.exit(1)
+}
 
 const client = new Retell({ apiKey })
 
@@ -60,6 +88,27 @@ if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KE
   for (const s of subs ?? []) targets.set(s.retell_agent_id, `client · ${s.client_domain}`)
 } else {
   console.warn('⚠  No Supabase credentials — checking templates only, NOT live client agents.\n')
+}
+
+// 3. The shared demo line. It is NEITHER a template NOR a subscription, so the two sources above
+//    both miss it — the same gap that let the demo line answer calls and record none for ten days.
+//    It is the number handed out at chamber events and it takes real prospect calls, so a model
+//    migration that skipped it would leave the ONE agent prospects actually reach on the old model.
+//    set-ai-disclosure.mjs and set-sms-consent.mjs already add it by id for exactly this reason.
+targets.set('agent_c29218a34d116e3a2a56ba8827', 'demo · shared line')
+
+// `--only <agentId>` narrows to a single agent, so a model can be proven on ONE test agent before
+// the whole fleet moves. Without this the smallest possible change was "every template + every
+// client at once", which is not a safe way to evaluate an unproven model.
+if (ONLY) {
+  const label = targets.get(ONLY)
+  if (!label) {
+    console.error(`✗ --only ${ONLY} is not one of the known targets:`)
+    for (const [id, l] of targets) console.error(`    ${id}  ${l}`)
+    process.exit(1)
+  }
+  for (const id of [...targets.keys()]) if (id !== ONLY) targets.delete(id)
+  console.log(`⚠  --only: limiting to ${ONLY} (${label}). The rest of the fleet is untouched.\n`)
 }
 
 if (targets.size === 0) {

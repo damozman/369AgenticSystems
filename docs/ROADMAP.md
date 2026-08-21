@@ -71,7 +71,7 @@ Read this backwards from the chamber event.
 
 | # | Must be true | State today |
 |---|---|---|
-| 1 | **A demo that works on demand** — hand someone the phone, Ava books *them*, the calendar entry and confirmation email land in front of them | 🔴 **Blocked by Retell.** See "The one thing that can sink both dates." |
+| 1 | **A demo that works on demand** — hand someone the phone, Ava books *them*, the calendar entry and confirmation email land in front of them | 🟡 **Workaround in hand, unproven.** Retell says switch off Anthropic models; the switch is staged and ready but no call has been placed on it yet. See below. |
 | 2 | **Something specific to point each buyer at** | ✅ **Done today.** Eleven verticals + three rental pages, all live. |
 | 3 | **A capture path in the room** — card or QR → the demo number, `/api/intake` catches the follow-up | 🔴 **Not built, and not on any engineering list.** See Track 4. |
 | 4 | **The ability to actually close** | 🔴 **Nobody can buy.** Stripe is in test mode and its only webhook is disabled. See Track 4. |
@@ -87,35 +87,79 @@ Read this backwards from the chamber event.
 | 4 | `client_schedules` written **explicitly** — defaults close Sat/Sun and cap the horizon at 14 days | Track 4 |
 | 5 | Real inventory rows loaded, then `set-rental-tools.mjs --apply` | Track 4 |
 | 6 | Calendar connected (she sees the unverified-app warning until Google clears) | Track 1 + Track 4 |
-| 7 | A real test call | 🔴 Blocked by Retell |
+| 7 | A real test call | 🟡 Unblocked *if* the model switch works — that is now the first thing to test |
 
 ---
 
-## 🔴 The one thing that can sink both dates
+## 🔴 The Retell blocker — ANSWERED 2026-08-20, and the answer is "change model"
 
-**The Retell first-token bug is the only item that is simultaneously (a) blocking, (b) on the
-critical path for *both* the pilot and the chamber event, and (c) entirely outside our control.**
+**Retell replied to the ticket on 2026-08-20 20:32.** Verbatim:
 
-Agents answer, play the greeting, and never speak again. Retell's own log shows three independent
-providers — Vertex, Anthropic direct, Bedrock — all timing out at 3000ms, while the identical
-prompt and tools sent straight to Anthropic answer at **p50 571ms, max 940ms, 0/6 over 3000ms**.
-Our configuration has been exonerated four times. **The ticket is filed. Do not re-diagnose it and
-do not re-test the config.**
+> *"There seems to be some issue with Anthropic models for the moment. While we are investigating,
+> I would suggest switch to some other models (e.g. GPT 5) for now."*
 
-Everything else on this roadmap has a workaround. This does not: **the demo is the pitch**, and the
-pilot cannot go live without a test call.
+**This confirms the diagnosis exactly.** The fault is inside Retell's request path and is specific
+to Anthropic models *as routed by them* — which is why their own log showed Vertex, Anthropic
+direct and Bedrock all failing identically while the same prompt sent straight to Anthropic
+answered at **p50 571ms**. Our configuration is exonerated, on the vendor's own word. **Stop
+re-testing it.** No ETA was given, so treat the fix as indefinite and route around it.
 
-> **This needs a decision from Chris, and it is the only genuinely blocking one on this list:**
-> if Retell has not resolved it by roughly **2026-09-08** — a week before the chamber event —
-> what happens? The options, in rough order of cost:
-> 1. **Escalate the ticket** citing the chamber date. Cheapest, do this regardless.
-> 2. **Test whether it is account-specific** — a fresh Retell account, one throwaway agent, twenty
->    calls. This is the only experiment that has not been run, and it distinguishes "Retell is
->    broken" from "*our account* is broken." Costs one number.
-> 3. **Demo without a live call** — a recorded call plus the dashboard and a real confirmation
->    email. Weaker, but "proof, not promises" survives it; a dead line in front of a buyer does not.
->
-> Decide the trigger date now, while it is cheap. Do not discover it at the event.
+### Scope the blast radius before touching anything
+
+**Retell's problem is Retell's routing, not Anthropic.** Three call sites in this repo talk to
+Anthropic **directly** and are entirely unaffected: `nova-templates`, `felix/conflict-check` and
+`email-ingest`, all pinned to `claude-sonnet-4-6`. **Do not "fix" those** — the last two run
+mid-call on live traffic, and changing them chases a bug they never had.
+
+Only the **11 Retell LLMs** are affected.
+
+### The staged switch — prove it on one agent first
+
+`scripts/retell/set-client-model.mjs` does this, and **it was patched on 2026-08-21 before being
+trusted**, for two reasons found by dry-running it:
+
+- **It never touched the shared demo line.** That agent is neither a template nor a subscription,
+  so both of the script's lookups skipped it — and it is the number handed out at chamber events
+  and the one that takes real prospect calls. A fleet-wide migration would have left **the one
+  agent prospects actually reach** on the broken model. Now added by id, as the two compliance
+  scripts already did. *(Third time this exact gap has bitten: it is what let the demo line answer
+  calls and record none for ten days.)*
+- **There was no way to change one agent.** The smallest possible action was "every template and
+  every client at once," which is not how you evaluate an unproven model. Added `--only <agentId>`,
+  plus up-front validation of the model string against Retell's supported set so a typo fails
+  before the first write instead of halfway through, leaving the fleet split across two models.
+
+**Do this in order:**
+
+1. **Northside only** — it is the test agent and takes no real traffic:
+   ```
+   node --env-file=.env.local scripts/retell/set-client-model.mjs --model gpt-5 --only agent_d39a1b13cfd8fb2e3c9c12f06e --apply
+   ```
+2. **Place real calls and measure three things**, not one:
+   - **Does it answer after the greeting?** That is the actual bug.
+   - **Latency.** Haiku benchmarked at **964ms p50**; anything near Sonnet's old **2399ms p50** sits
+     on Retell's 3000ms cliff and trades one failure mode for another. Read the spread, not the
+     median.
+   - **Do the fragile tools fire?** `item`, `sms_consent` and `booking_token` were each defined,
+     described in the prompt, and simply **not sent** until they were made required with a truthful
+     escape — and that shape was tuned against Haiku. **A different model family is exactly the
+     event that re-opens it.** `booking_token` has never been carried by any connected call, so
+     this is the first chance to observe it at all.
+3. **If it holds, move the demo line next** — that is what the chamber needs, and it is one
+   `--only` run.
+4. **Templates last.** They decide what every future client inherits, and no client is provisioning
+   this week. `--model claude-4.5-haiku --apply` reverts the lot when Retell fixes theirs.
+
+**On model choice:** GPT-5 is the support tech's suggestion, not a measured result. Retell also
+offers `gpt-5-mini`, `gpt-5-nano` and `gemini-3.5-flash`, and **a flash/mini tier is the closer
+latency match to Haiku than full GPT-5.** If GPT-5's p50 comes back materially above ~1000ms,
+benchmark those before accepting it — this repo has settled a model question with a four-minute
+benchmark before, and the whole reason the fleet is on Haiku is that somebody measured instead of
+reasoning.
+
+**What is no longer needed:** the fresh-account test, and the "demo without a live call" fallback.
+Both were contingencies for a vendor who had not replied. Keep escalating only if GPT-5 also fails,
+because that would mean the fault is not model-specific after all.
 
 ---
 
@@ -365,10 +409,11 @@ reconciled exactly, but it had zero overage.
 
 ## Decisions this roadmap is waiting on
 
-Only three, and only the first is urgent:
+Two. The Retell one **resolved itself on 2026-08-20** when the vendor replied — it is now a build
+task (switch model, measure, verify the tools) rather than a decision, and it is the first thing to
+do on the next working session because everything voice-shaped is queued behind it.
 
-1. **The Retell trigger date.** If the ticket has not resolved by ~2026-09-08, which fallback?
-   (Escalate / fresh-account test / demo without a live call.) Deciding now costs nothing.
-2. **Which of the nine verticals the pilot is provisioned under.** Needed before her checkout.
-3. **Stripe live mode before the chamber event, or not.** If not, the honest position at the event
+1. **Which of the nine verticals the pilot is provisioned under.** Needed before her checkout;
+   `TEMPLATE_AGENT_IDS` has nine keys and no `entertainment`.
+2. **Stripe live mode before the chamber event, or not.** If not, the honest position at the event
    is "I'll get you set up next week," and that should be a choice rather than a surprise.

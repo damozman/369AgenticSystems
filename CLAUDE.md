@@ -34,13 +34,23 @@ roadmap is written.
 **Read `docs/ROADMAP.md`.** It is the sequenced build order, written this session against the two
 dates that actually govern the work — the pilot returning **~2026-09-02** and the chamber event
 **~mid-September**. It consolidates Groups A/B/C from `WHAT-CAN-I-DELIVER-TODAY.md`, the open items
-below, and the dossier build order, and it names the three decisions it is waiting on.
+below, and the dossier build order.
 
-**The single most urgent thing in it is a decision, not a build:** the **Retell first-token bug is
-the only blocker on the critical path for both dates and is entirely outside our control.** The
-roadmap proposes a trigger date of **~2026-09-08** — if the ticket has not resolved by then, pick
-one of escalate / test a fresh Retell account / demo without a live call. Deciding now costs
-nothing; discovering it at the chamber event costs the event.
+**▶ FIRST ACTION: switch Northside to GPT-5 and place real calls.** Retell replied and confirmed
+the fault is theirs and Anthropic-model-specific (see the section below). Everything voice-shaped —
+the pilot's test call, the chamber demo, `booking_token`'s first-ever live observation — is queued
+behind proving this works. The script is patched and dry-run; the command is:
+
+```
+node --env-file=.env.local scripts/retell/set-client-model.mjs --model gpt-5 --only agent_d39a1b13cfd8fb2e3c9c12f06e --apply
+```
+
+**Measure three things on the calls, not one:** does it answer after the greeting (the actual bug);
+latency against the **964ms** Haiku benchmark (Sonnet's 2399ms sat on Retell's 3000ms cliff — do not
+trade one failure mode for another); and **whether `item`, `sms_consent` and `booking_token`
+actually fire.** Those three were each defined-but-not-sent until they were made required with a
+truthful escape, and that shape was tuned against Haiku — **a different model family is exactly the
+event that re-opens it.** Then the demo line, then the templates.
 
 **Highest-value build work, in order** (all detailed in the roadmap):
 1. **Track 2.1 — the questionnaire re-submit defect.** Three known bugs, one root cause. **New this
@@ -318,9 +328,16 @@ concurrency (1/20), tool schema validity (all three tools verified against produ
 **Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
 measurement and Sonnet's 2399ms p50 sits on the cliff — both make it MORE likely, not less.
 
-**TICKET FILED with Retell on 2026-08-20** carrying the `triedKeys` line and the direct
-measurement. Awaiting their reply — **do not re-diagnose this while it is open**, and do not
-re-test the configuration to "check": it has been checked four times and exonerated.
+**✅ RETELL REPLIED 2026-08-20 20:32 — and confirmed it is theirs.** Verbatim: *"There seems to be
+some issue with Anthropic models for the moment. While we are investigating, I would suggest switch
+to some other models (e.g. GPT 5) for now."* No ETA. **Our config is exonerated on the vendor's own
+word — stop re-testing it.** The workaround is a model switch; the staged plan is in
+`docs/ROADMAP.md` and the script is patched and ready.
+
+**Scope it correctly: this is Retell's ROUTING, not Anthropic.** The three call sites that talk to
+Anthropic **directly** — `nova-templates`, `felix/conflict-check`, `email-ingest` — are unaffected
+and **must not be changed** (open item 10 still stands; two of them run mid-call on live traffic).
+Only the 11 Retell LLMs are in scope.
 
 **Original note, kept for the evidence list:** Evidence to send: agent
 `agent_d39a1b13cfd8fb2e3c9c12f06e`, the `public_log_url` of any dead call, and the point that the
@@ -525,8 +542,11 @@ arrived. It had never fired before because the demo line has no `agent_subscript
 - **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with nobody
   watching, found an expired access token, refreshed it, and recorded success without alerting
   anyone. That proves the OAuth refresh path.
-- **All 9 vertical templates + Northside run `claude-4.5-haiku`.** Like-for-like on the same agent
-  and number:
+- **8 of 9 templates + Northside + the demo line run `claude-4.5-haiku`. [CORRECTED 2026-08-21]**
+  This used to claim all nine. A dry run of `set-client-model.mjs` shows **`dental` is still on
+  `claude-4.6-sonnet`** — drift from the 2026-08-04 rollout that nobody noticed because dental is
+  FUTURE and takes no traffic. Harmless today; it would be inherited by the first dental client, so
+  fix it whenever dental launches. Like-for-like on the same agent and number:
 
   | | p50 | max | opening turns |
   |---|---|---|---|
