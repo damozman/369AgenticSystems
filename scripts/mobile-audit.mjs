@@ -191,6 +191,13 @@ for (const path of PAGES) {
   const lines = []
   for (const vp of WIDTHS) {
     await page.setViewportSize({ width: vp.w, height: vp.h })
+    // Overlays that default to display:none are invisible to this script unless we
+    // open them. The audit picker had eleven cards and two broken links for months
+    // behind exactly that. Open anything modal-shaped before probing.
+    await page.evaluate(() => {
+      const m = document.getElementById('audit-modal')
+      if (m) m.classList.add('open')
+    })
     // Let the reveal observers and the hero panel settle.
     await page.waitForTimeout(450)
     const r = await page.evaluate(probe)

@@ -647,6 +647,11 @@
 
     .audit-card.insurance:hover { border-color: rgba(20,184,166,0.45);  box-shadow: 0 8px 28px rgba(20,184,166,0.18); }
     .audit-card.wholesale:hover { border-color: rgba(132,204,22,0.45);  box-shadow: 0 8px 28px rgba(132,204,22,0.18); }
+    .audit-card.hvac:hover        { border-color: rgba(255,101,51,0.45);   box-shadow: 0 8px 28px rgba(255,101,51,0.18); }
+    .audit-card.plumbing:hover    { border-color: rgba(56,189,248,0.45);   box-shadow: 0 8px 28px rgba(56,189,248,0.18); }
+    .audit-card.events:hover      { border-color: rgba(168,85,247,0.45);   box-shadow: 0 8px 28px rgba(168,85,247,0.18); }
+    .audit-card.dumpster:hover    { border-color: rgba(34,197,94,0.45);    box-shadow: 0 8px 28px rgba(34,197,94,0.18); }
+    .audit-card.equipment:hover   { border-color: rgba(99,102,241,0.45);   box-shadow: 0 8px 28px rgba(99,102,241,0.18); }
 
     /* ── Industry tag pills (Not Listed card SEO content) ────────────────── */
     .industry-tag {
@@ -700,13 +705,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      padding: 28px 22px;
-      border-radius: 14px;
+      gap: 9px;
+      padding: 18px 12px;
+      border-radius: 12px;
       text-decoration: none;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(148, 163, 184, 0.12);
-      min-width: 148px;
+      min-width: 0;
       text-align: center;
       transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
@@ -1551,7 +1556,7 @@
   <!-- ── JAVASCRIPT ───────────────────────────────────────────────────────── -->
   <!-- ── AUDIT PICKER MODAL ───────────────────────────────────────────────── -->
   <div id="audit-modal" role="dialog" aria-modal="true" aria-labelledby="audit-modal-title">
-    <div class="glass" style="max-width:640px; width:100%; padding:44px 36px; position:relative; text-align:center;">
+    <div class="glass" style="max-width:720px; width:100%; max-height:92vh; overflow-y:auto; padding:40px 32px; position:relative; text-align:center;">
 
       <button id="audit-modal-close" aria-label="Close" style="position:absolute; top:16px; right:20px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.6rem; line-height:1; transition:color 0.2s;">×</button>
 
@@ -1567,61 +1572,90 @@
           We'll route you to the right audit intake for your industry.
         </p>
 
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
-
-          <a href="legal-automation/#handoff" class="audit-card legal">
-            <span style="font-size:1.6rem;" aria-hidden="true">⚖️</span>
-            <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#60A5FA; margin-bottom:2px;">Legal Firm</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Law firms &amp; consultants</div>
-            </div>
-          </a>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(138px, 1fr)); gap:10px;">
 
           <a href="roofing-leads/#handoff" class="audit-card roofing">
-            <span style="font-size:1.6rem;" aria-hidden="true">🏠</span>
+            <span style="font-size:1.45rem;" aria-hidden="true">🏠</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#FF6533; margin-bottom:2px;">Roofing Co</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Roofing contractors</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#FF4500; margin-bottom:2px;">Roofing Co</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Roofing contractors</div>
             </div>
           </a>
-
-          <a href="dental/#handoff" class="audit-card dental">
-            <span style="font-size:1.6rem;" aria-hidden="true">🦷</span>
+          <a href="event-rentals-leads/#handoff" class="audit-card events">
+            <span style="font-size:1.45rem;" aria-hidden="true">🎪</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#EC4899; margin-bottom:2px;">Dental Practice</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Dentists &amp; specialists</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#A855F7; margin-bottom:2px;">Party &amp; Events</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Bounce houses, casino, DJ</div>
             </div>
           </a>
-
-          <a href="real-estate/#handoff" class="audit-card realestate">
-            <span style="font-size:1.6rem;" aria-hidden="true">🏡</span>
+          <a href="hvac-leads/#handoff" class="audit-card hvac">
+            <span style="font-size:1.45rem;" aria-hidden="true">❄️</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#0EA5E9; margin-bottom:2px;">Real Estate</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Agents &amp; brokerages</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#FF6533; margin-bottom:2px;">HVAC</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Heating &amp; cooling</div>
             </div>
           </a>
-
+          <a href="plumbing-leads/#handoff" class="audit-card plumbing">
+            <span style="font-size:1.45rem;" aria-hidden="true">🔧</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#38BDF8; margin-bottom:2px;">Plumbing</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Emergency &amp; service</div>
+            </div>
+          </a>
+          <a href="dumpster-rental-leads/#handoff" class="audit-card dumpster">
+            <span style="font-size:1.45rem;" aria-hidden="true">🗑️</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#22C55E; margin-bottom:2px;">Dumpster / Restroom</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Roll-offs &amp; portables</div>
+            </div>
+          </a>
+          <a href="equipment-rental-leads/#handoff" class="audit-card equipment">
+            <span style="font-size:1.45rem;" aria-hidden="true">🚜</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#6366F1; margin-bottom:2px;">Equipment Rental</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Excavators, lifts, plant</div>
+            </div>
+          </a>
+          <a href="real-estate-leads/#handoff" class="audit-card realestate">
+            <span style="font-size:1.45rem;" aria-hidden="true">🏡</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#0EA5E9; margin-bottom:2px;">Real Estate</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Agents &amp; brokerages</div>
+            </div>
+          </a>
           <a href="insurance-leads/#handoff" class="audit-card insurance">
-            <span style="font-size:1.6rem;" aria-hidden="true">🛡️</span>
+            <span style="font-size:1.45rem;" aria-hidden="true">🛡️</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#14B8A6; margin-bottom:2px;">Insurance Agency</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">P&amp;C, life &amp; health agencies</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#14B8A6; margin-bottom:2px;">Insurance Agency</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">P&amp;C, life &amp; health</div>
             </div>
           </a>
-
           <a href="wholesale-leads/#handoff" class="audit-card wholesale">
-            <span style="font-size:1.6rem;" aria-hidden="true">📦</span>
+            <span style="font-size:1.45rem;" aria-hidden="true">📦</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#84CC16; margin-bottom:2px;">Wholesale / Distrib.</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Distributors &amp; wholesalers</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#84CC16; margin-bottom:2px;">Wholesale / Distrib.</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Distributors &amp; wholesalers</div>
             </div>
           </a>
-
-          <a href="#" id="audit-unlisted-trigger" class="audit-card unlisted">
-            <span style="font-size:1.6rem;" aria-hidden="true">✦</span>
+          <a href="legal-automation/#handoff" class="audit-card legal">
+            <span style="font-size:1.45rem;" aria-hidden="true">⚖️</span>
             <div>
-              <div class="font-display" style="font-weight:600; font-size:0.85rem; color:#94A3B8; margin-bottom:2px;">Not Listed?</div>
-              <div style="color:var(--text-muted); font-size:0.7rem;">Tell us about yours</div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#60A5FA; margin-bottom:2px;">Legal Firm</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Law firms &amp; consultants</div>
+            </div>
+          </a>
+          <a href="dental-leads/#handoff" class="audit-card dental">
+            <span style="font-size:1.45rem;" aria-hidden="true">🦷</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#EC4899; margin-bottom:2px;">Dental Practice</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Waitlist · launching 2026</div>
+            </div>
+          </a>
+          <a href="#" id="audit-unlisted-trigger" class="audit-card unlisted">
+            <span style="font-size:1.45rem;" aria-hidden="true">✦</span>
+            <div>
+              <div class="font-display" style="font-weight:600; font-size:0.82rem; color:#94A3B8; margin-bottom:2px;">Not Listed?</div>
+              <div style="color:var(--text-muted); font-size:0.68rem; line-height:1.35;">Tell us about yours</div>
             </div>
           </a>
 
@@ -1641,8 +1675,7 @@
           Tell us about your business.
         </h3>
         <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:24px; line-height:1.6;">
-          We build for HVAC, financial advisors, insurance agencies, med spas, chiropractic, mortgage brokers, veterinary, e-commerce, and more. If admin is killing your growth, we can fix it.
-        </p>
+          If the phone is your bottleneck and your industry is not in the list, tell us about it — we will say honestly whether the system fits.</p>
 
         <form id="audit-custom-form" style="text-align:left;">
           <input type="text"  name="name"     class="audit-input" placeholder="Your name"          required />
