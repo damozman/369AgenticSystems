@@ -26,7 +26,8 @@ is the only reason it is trustworthy. The three other docs in `docs/architecture
 
 ### Where this session ended — 2026-08-20 (evening)
 
-**🔶 `feat/rental-vertical-pages` is UNMERGED — 14 commits, preview green, `master` untouched.**
+**🔶 `feat/rental-vertical-pages` is UNMERGED, preview green, `master` untouched.** (Commit count
+rots on every push — ask git, not this file.)
 **Nothing below is on production.** Preview:
 `https://369-agentic-systems-git-feat-rental-vertical-pages-3six9mm.vercel.app`
 (Vercel SSO 302s *every* path, so a 302 there proves nothing — verify against a local

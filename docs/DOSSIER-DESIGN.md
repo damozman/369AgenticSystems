@@ -9,8 +9,14 @@ a call, and still offer the call as their choice.* That is the right shape. For 
 requiring a 30-minute call before the buyer knows if it's worth 5 minutes is friction out of
 proportion to the purchase.
 
-Today the static intake form sends the prospect **nothing**. A real submission on 2026-08-21
-(EmpireTrak, equipment-rental) confirmed it: the owner alert arrived, the prospect got silence.
+Today the static intake form sends the prospect **nothing**. A real submission from EmpireTrak
+(equipment-rental) confirmed it: the owner alert arrived, the prospect got silence.
+
+> That submission is logged `2026-08-21T02:58:25Z`, which is **9:58 PM Central on Thursday
+> 2026-08-20** — the evening it actually happened. **Not a typo.** The database stores UTC and
+> Chris reads Central. A later session flagged the date as wrong and would have "corrected" it
+> into disagreeing with the row. Same trap as the bare-`timestamp` bug that once told a customer
+> their appointment was Wednesday when it was Thursday.
 
 ---
 
