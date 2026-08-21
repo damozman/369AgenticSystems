@@ -161,9 +161,29 @@ export async function POST(request: NextRequest) {
    * wrong SHAPE of answer, and Ava read it out. Refusing costs one clarifying question; guessing
    * sends the wrong van to a child's party, which is the whole reason matchItem refuses at all.
    */
-  if (wantedItem?.kind === 'ambiguous') {
-    const tooManyToRead = wantedItem.candidates.length > MAX_SPOKEN_CHOICES
-    console.log(`[SLOTS] ⚠  "${requestedItem}" is ambiguous across ${wantedItem.candidates.length} item(s) — ${clientDomain}`)
+  const ambiguousCandidates = wantedItem?.kind === 'ambiguous' ? wantedItem.candidates : null
+
+  /**
+   * Narrowing by AVAILABILITY beats asking the caller to narrow by name.
+   *
+   * The refusal above is still right — "castle" matches Princess Castle and Castle Combo, and
+   * picking one sends the wrong van to a child's party. But asking "which of these three?" before
+   * checking any of them is what produced this, on a real call 2026-08-21:
+   *
+   *     "We've got Castle Combo, Princess Castle, or Sports Arena. Which one do you want?"
+   *     "...and those are available Saturday, right?"
+   *     "I need to check each specific one to confirm."
+   *
+   * The caller has to choose blind, and is then told no. Offering only the candidates that are
+   * genuinely free is not choosing FOR them — they still pick — so the safety property holds
+   * while the question becomes answerable. Hire candidates therefore fall through to the rental
+   * pass below, which already checks each one and names it.
+   */
+  const ambiguousRentals = ambiguousCandidates?.filter(isRental) ?? []
+
+  if (ambiguousCandidates && ambiguousRentals.length === 0) {
+    const tooManyToRead = ambiguousCandidates.length > MAX_SPOKEN_CHOICES
+    console.log(`[SLOTS] ⚠  "${requestedItem}" is ambiguous across ${ambiguousCandidates.length} item(s) — ${clientDomain}`)
     return NextResponse.json({
       slots: [],
       timezone: schedule.timezone,
@@ -171,12 +191,16 @@ export async function POST(request: NextRequest) {
       // Same two shapes book-appointment uses, for the same reason: reading fifty chair styles
       // down the phone is a catalogue nobody can listen to.
       message: tooManyToRead
-        ? `There are ${wantedItem.candidates.length} items matching that. Do NOT read the list out. `
+        ? `There are ${ambiguousCandidates.length} items matching that. Do NOT read the list out. `
           + 'Ask whether they have an item or model number, or have them describe what they are '
-          + `after — a few examples are ${describeChoices(wantedItem.candidates, 3)}.`
-        : `Ask which one they mean: ${describeChoices(wantedItem.candidates)}.`,
-      options: wantedItem.candidates.map(c => c.label),
+          + `after — a few examples are ${describeChoices(ambiguousCandidates, 3)}.`
+        : `Ask which one they mean: ${describeChoices(ambiguousCandidates)}.`,
+      options: ambiguousCandidates.map(c => c.label),
     })
+  }
+
+  if (ambiguousRentals.length > 0) {
+    console.log(`[SLOTS] ⚠  "${requestedItem}" matches ${ambiguousRentals.length} hire item(s) — offering the free ones — ${clientDomain}`)
   }
 
   const rentalItems = inventory.filter(isRental)
@@ -236,8 +260,12 @@ export async function POST(request: NextRequest) {
      */
     const vague = !requestedItem
 
-    if (namedRental || allRental || notStocked || vague) {
-      const forItems = namedRental ? [wantedItem.item] : rentalItems
+    if (namedRental || allRental || notStocked || vague || ambiguousRentals.length > 0) {
+      // An ambiguous name narrows to ITS candidates, not the whole yard — "bounce house" should
+      // answer with bounce houses, never with a tent that happens to be free.
+      const forItems = namedRental
+        ? [wantedItem.item]
+        : ambiguousRentals.length > 0 ? ambiguousRentals : rentalItems
 
       // How long they want it. Absent is the common case on a first question — fall back to the
       // item's own minimum, which is the shortest honest answer rather than a guess.
@@ -284,7 +312,11 @@ export async function POST(request: NextRequest) {
         const why = outOfRange.length > 0
           ? `That length is not one they hire out — ${outOfRange.join(', and ')}. Tell them the minimum and ask if that works.`
           : 'Nothing is free for those dates. Offer to take their details and have someone call back.'
-        const prefix = notStocked ? `They do not stock "${notStocked}". ` : ''
+        const prefix = notStocked
+          ? `They do not stock "${notStocked}". `
+          : ambiguousRentals.length > 0
+            ? `Nothing matching "${requestedItem}" is free — say so plainly rather than listing the ones that are not. `
+            : ''
         console.log(`[SLOTS] No rental window — ${clientDomain}${outOfRange.length ? ' (length out of range)' : ''}`)
         return NextResponse.json({ slots: [], timezone: schedule.timezone, message: prefix + why })
       }
@@ -320,15 +352,21 @@ export async function POST(request: NextRequest) {
         slots: spokenWindows,
         suggested: spokenWindows.length > 1 ? `${spokenWindows[0]} or ${spokenWindows[1]}` : spokenWindows[0],
         timezone: schedule.timezone,
-        // Named only when the caller asked for something not carried. Every window below IS free,
-        // so Ava can decline and offer in one breath instead of reciting stock she has not checked.
+        // Every window below IS free, so Ava can answer in one breath instead of naming options
+        // she has not checked and then walking them back.
         ...(notStocked
           ? {
               error: 'item_unknown',
               message: `They do not stock "${notStocked}". Say so, then offer ONLY from the windows below — `
                 + 'each one names the item that is actually free. Do not read out the rest of the catalogue.',
             }
-          : {}),
+          : ambiguousRentals.length > 0
+            ? {
+                message: `"${requestedItem}" matches more than one item. Every window below is genuinely free — `
+                  + 'offer these by name and let them choose. Do NOT ask which one they meant first, and do '
+                  + 'not name a match that is not listed here.',
+              }
+            : {}),
         // booking_token carries the item and the exact hire interval, so book_appointment does
         // not depend on Ava re-supplying them. See lib/security/booking-token.ts.
         slot_details: chosenWindows.map((o, i) => ({
