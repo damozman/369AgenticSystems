@@ -555,11 +555,11 @@
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
-            <div id="monthly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$14k</div>
+            <div id="weekly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$14k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
-            <div id="quarterly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$62k</div>
+            <div id="monthly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$62k</div>
           </div>
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Premium</div>
@@ -809,8 +809,8 @@
     const premiumSlider  = document.getElementById('premium-slider');
     const renewalsDisp   = document.getElementById('renewals-display');
     const premiumDisp    = document.getElementById('premium-display');
-    const mlEl = document.getElementById('monthly-lapse');
-    const qlEl = document.getElementById('quarterly-lapse');
+    const wkEl = document.getElementById('weekly-lapse');
+    const moEl = document.getElementById('monthly-lapse');
     const alEl = document.getElementById('annual-lapse');
 
     function fmt(n) {
@@ -829,8 +829,8 @@
       const annual    = Math.round(weekly * 52);
       renewalsDisp.textContent = missedCalls + ' / wk';
       premiumDisp.textContent  = '$' + premium.toLocaleString();
-      mlEl.textContent = fmt(Math.round(weekly));
-      qlEl.textContent = fmt(monthly);
+      wkEl.textContent = fmt(Math.round(weekly));
+      moEl.textContent = fmt(monthly);
       alEl.textContent = fmt(annual);
     }
     renewalsSlider.addEventListener('input', updateROI);
