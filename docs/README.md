@@ -4,6 +4,11 @@
 for current working state, then **`architecture/WHAT-CAN-I-DELIVER-TODAY.md`** for what is
 actually deliverable — per vertical, and what each one still needs.
 
+**Then `ROADMAP.md`** (added 2026-08-21) for what to build next and in what order. The three answer
+different questions and all three go stale silently: CLAUDE.md is *working state*,
+WHAT-CAN-I-DELIVER-TODAY is *delivery state*, ROADMAP is *build order*. **`PHASE-2-ROADMAP.md` is
+none of these** — it is a 2026-07-16 planning reference for future paid add-ons, and says so itself.
+
 **Corrected 2026-08-19:** this file used to send you to `ROADMAP-TO-REAL-AGENCY.md` as the living
 tracker. It stopped being maintained on 2026-07-16 and is now bannered as a historical record, as
 are the blueprint and the questionnaire plan. Following the old instruction meant starting each

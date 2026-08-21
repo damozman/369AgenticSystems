@@ -22,101 +22,89 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-21.
+**Last updated:** 2026-08-21 (second session that day).
 
-### Where this session ended — 2026-08-21
+### Where this session ended — 2026-08-21 (second session)
 
-## ▶ START HERE NEXT SESSION — two things, in this order
+**Both items the previous session queued are DONE.** The branch is merged and deployed, and the
+roadmap is written.
 
-**1 · MERGE `feat/rental-vertical-pages`. Chris has decided to; he wants to do it first and watch
-the deploy.** It is a **clean fast-forward** — `git log HEAD..master` is empty and `git merge-tree`
-reports zero conflicts (checked 2026-08-21). **Use `--no-ff`**: 25 commits flattened into master
-give no single undo point, whereas a merge commit means one `git revert -m 1` restores everything.
+## ▶ START HERE NEXT SESSION
 
-```
-git checkout master && git merge --no-ff feat/rental-vertical-pages
-```
+**Read `docs/ROADMAP.md`.** It is the sequenced build order, written this session against the two
+dates that actually govern the work — the pilot returning **~2026-09-02** and the chamber event
+**~mid-September**. It consolidates Groups A/B/C from `WHAT-CAN-I-DELIVER-TODAY.md`, the open items
+below, and the dossier build order, and it names the three decisions it is waiting on.
 
-**Merging auto-deploys to production.** Afterwards, walk the live site with him — the homepage is
-substantially rebuilt and the three rental pages will be public for the first time.
+**The single most urgent thing in it is a decision, not a build:** the **Retell first-token bug is
+the only blocker on the critical path for both dates and is entirely outside our control.** The
+roadmap proposes a trigger date of **~2026-09-08** — if the ticket has not resolved by then, pick
+one of escalate / test a fresh Retell account / demo without a live call. Deciding now costs
+nothing; discovering it at the chamber event costs the event.
 
-*Why merge, in one line: production is currently telling prospects "check your email in 2–5
-minutes" for a dossier that has never existed, and this branch is what fixes that.* The branch is
-green — tsc, 248 tests, production build, `mobile-audit` 152 combinations with no overflow.
-
-**2 · Then build the full roadmap.** Chris asked for this explicitly as the next session's work.
-The raw material already exists and should be consolidated, not re-derived:
-- `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md` → **Groups A / B / C** is the real operational
-  roadmap. A = calendar time (A2P, Google verification, the Retell ticket); B = buildable now;
-  C = gated on a real client.
-- **CLAUDE.md "Open items" 0–11** below — the durable list. Item 11 (Nova's roofing fallback) is
-  the one that reaches a customer.
-- `docs/DOSSIER-DESIGN.md` → build order 0–7 for the dossier feature.
-- `docs/PHASE-2-ROADMAP.md` → **planning reference only, dated 2026-07-16, and it says so itself.**
-  Future *paid add-ons* (Quinn the quoting agent, `PREMIUM_ADDONS`), not operational work. Do not
-  confuse it with the roadmap being asked for; do read it before deciding what comes after the pilot.
-
-**The forcing function for ordering is the pilot**, not the backlog: she is back ~2026-09-02 and the
-chamber event is ~mid-September.
+**Highest-value build work, in order** (all detailed in the roadmap):
+1. **Track 2.1 — the questionnaire re-submit defect.** Three known bugs, one root cause. **New this
+   session**, see below.
+2. **Track 2.2 — Nova's roofing fallback** (open item 11). The only item that reaches the pilot's
+   *customers*.
+3. **Track 2.3 — cut per-turn prefill.** This is the chamber demo's fluidity.
+4. **Dossier steps 0 and 1.** Step 1 in particular is the cheapest real win on the list.
 
 ---
 
-**🔶 `feat/rental-vertical-pages` is UNMERGED — 25 commits, `master` untouched. Nothing below is on
-production.** Verified, not assumed: `git ls-tree master` has no `event-rentals`, `dumpster-rental`
-or `equipment-rental` route and no `*-leads` page for any of them.
+**✅ `feat/rental-vertical-pages` is MERGED and DEPLOYED** — `--no-ff`, merge commit `299f60e`,
+pushed `1f88528..299f60e`. Undo with `git revert -m 1 299f60e`; that single undo point is the whole
+reason for `--no-ff`.
 
-#### The copy pass is DONE — it was the gate on merging, and that gate is now clear
-Chris asked for the word-by-word pass, verified all six findings independently, and directed the
-fixes. **Five commits**, split by root cause rather than by file:
+**Re-verified immediately before merging rather than trusted:** tsc clean, **248/248** tests,
+production build clean, all three rental verticals present in the route table.
+**Verified on production after the deploy:** all three routes 200, all three `-leads` pages 200,
+`/{slug}/pricing` → **307 `/book-demo`** on all three, the false audit promise gone from **all 12**
+leads pages, no wholesale residue on any rental page, and **all 30 internal homepage links 200**.
 
-- `61ecf0d` **the wholesale template leaked into all three rental pages.** The PRIMARY hero button
-  read *"Deploy Distribution Velocity AOS"* — wholesale's product — on all three. The ROI fallbacks
-  read `$12k / $53k / $640k`, which are **correct for wholesale** (5/wk × $8,200) and ~20× wrong for
-  a rental yard. Also Nova's `alt` text and readout ids that never matched their labels.
-- `5f6b61b` **the audit promise that was never kept.** All 11 pages with a form said *"Run a free
-  automated audit… we'll map your exact X and show you precisely what the AOS recovers."* Nothing is
-  mapped and nothing is sent. b90e5a2 fixed the screen shown AFTER submitting; the promise one
-  paragraph ABOVE the button was left standing, so each page contradicted itself in one section.
-- `72ac66e` **Nova claim softened + three homepage badges → STANDBY.** See the blocker below.
-- `69fbbb4` neutral pronouns (two were H1s) and one spelling standard (US).
-- `4ccc514` a banner on the unscheduled monthly-ROI cron.
-- `42b571f` the same id/label mismatch on `insurance-leads`, missed first time because it uses
-  `-lapse` not `-loss`.
+*One thing that looks like a bug and is not:* production's homepage is 2,007 bytes smaller than
+`public/index.html`. The file is 2,007 lines and the repo copy is CRLF — content hashes match
+exactly once line endings are normalised. Don't re-investigate it.
 
-**Do not re-audit the ROI calculators.** All **twelve** were checked against each page's own slider
-defaults and `RECOVERY_RATE` on 2026-08-21 — every one is arithmetically correct, including the two
-on a monthly rather than weekly base (real-estate; roofing's $1.2M). The three rental pages were the
-only wrong ones. Every `getElementById` on all 12 pages was also checked for dangling refs: the only
-hit is `intake-error`, which is **correct by design** — `showIntakeFailure()` creates it if absent.
+#### 🔴 NEW this session — one defect class with three symptoms, and it lands on the pilot
+**The questionnaire submit path assumes it is the only writer of a client's configuration. It is
+not** — scripts write the same state out of band, and every place those assumptions meet, a
+**re-submit silently destroys work.** Full write-up in `docs/ROADMAP.md` Track 2.1. Three symptoms:
 
-**Verification that actually ran:** tsc clean · 248 tests · production build clean ·
-`scripts/mobile-audit.mjs` **152 combinations across 19 pages, no overflow, no clipping** — re-run
-after the copy changes because they altered text length in display type.
+1. **A partial questionnaire re-submit deactivates inventory loaded by script. [NEW]**
+   The form initialises its inventory field to **one blank row** and never prefills from
+   `client_inventory`. On submit, every item *not* in the posted list is set `active: false`
+   (`app/api/questionnaire/submit/route.ts:176-180`), and `loadInventory` returns only active rows.
+   **So the pilot re-opens the form months later to add one new bounce house, and her other 39 items
+   stop existing as far as Ava is concerned.** Silent, no error. A *fully blank* submit is safe —
+   the inner `unique.length > 0` guard catches it — so **the partial submit is the dangerous one,
+   and adding an item is the most natural reason anyone reopens that form.**
+2. **The AI-disclosure backstop line is stripped.** `mergePromptWithContext` slices from
+   `BUSINESS_CONTEXT_START` to the end (`lib/retell-kb-sync.ts:35`), discarding anything appended
+   after it. **Exposure is smaller than previously documented:** `set-ai-disclosure.mjs` writes the
+   proactive greeting into `begin_message`, a **separate field the slice never touches**, so the
+   Texas TRAIGA greeting survives — only the answer to "am I talking to a robot?" is lost.
+3. **`set-sms-consent.mjs` appends** (line 132) and is fully vulnerable.
+   `set-rental-tools.mjs` inserts *before* the marker and is immune.
 
-#### 🔴 The blocker this session found — Nova falls back to roofing
-`lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and
-roofing's `visitNoun` is `'inspection'`. **`NovaVertical` is the original nine only.**
+**Fix all three as one pass:** prefill the form from existing rows so a re-submit round-trips, and
+write compliance lines into the base prompt instead of appending after the marker.
+**Also: re-run `set-ai-disclosure.mjs` against Northside** — it is the one agent of eleven missing
+the backstop line.
 
-**This lands on the pilot.** She is an event-rental business, there is no `event-rentals` template
-agent, so she gets provisioned under one of the nine — and her customers' confirmation emails will
-describe a bounce-house hire as an **inspection**, with Nova introducing herself as writing for a
-roofing company. Nothing errors. A test call will not catch it unless somebody reads the
-confirmation email end to end.
+#### 🔴 Nova falls back to roofing — unchanged, still open (see open item 11)
+`lib/nova-templates.ts:78`, verified again this session. **The only item on the roadmap that reaches
+the pilot's *customers* rather than the pilot.** Roadmap Track 2.2.
 
-**The defect is the fallback, not the missing keys.** It converts an unknown vertical into a
-confidently wrong email instead of refusing — the opposite of the rule inventory matching already
-follows. Fix it before the pilot takes a real booking. Written up in `docs/DOSSIER-DESIGN.md`.
+#### Do not re-audit the ROI calculators or the rental page copy
+All **twelve** calculators were checked against each page's own slider defaults and `RECOVERY_RATE`
+on 2026-08-21 — every one is arithmetically correct, including the two on a monthly rather than
+weekly base (real-estate; roofing's $1.2M). Every `getElementById` on all 12 pages was checked for
+dangling refs; the only hit is `intake-error`, **correct by design** — `showIntakeFailure()` creates
+it if absent. The word-by-word copy pass is done and its six findings are shipped.
 
-#### What is on the branch (built 2026-08-20, unchanged by the copy pass)
-- **Three rental niches, both artifacts each** — Next.js intake routes and long-form `-leads` pages
-  with a six-category catalogue. `/{slug}/pricing` **redirects to `/book-demo`** on purpose:
-  `TEMPLATE_AGENT_IDS` has nine keys and a rental checkout would throw *after* the card was charged.
-- **Homepage repositioned** — hero leads with the job, AOS demoted to product name; split hero with
-  a live call panel; a primary CTA and the demo number above the fold.
-- **Every unprovable statistic is gone.** `RECOVERY_RATE` assumption lines stay — correct pattern.
-- **Audit picker rebuilt** — was 6 verticals with 2 dead anchors; now 11 + Not Listed, all verified.
-- **`scripts/mobile-audit.mjs`** — 19 pages × 8 widths. Playwright is a devDependency.
-  **Do not reason about breakpoints instead of running it.**
+**`scripts/mobile-audit.mjs`** — 19 pages × 8 widths, Playwright is a devDependency.
+**Do not reason about breakpoints instead of running it.**
 
 #### 🔴 Still in flight — the Operational Dossier
 `docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Design only, nothing built.**
@@ -142,12 +130,24 @@ Read `lib/audit-call.ts` before building — it already encodes the discipline.
 `saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which
 says an SDR is free. Not a fabricated stat, so it was left alone, but it is confusing.
 
-#### One doc error worth remembering
-`WHAT-CAN-I-DELIVER-TODAY.md` said the rental pages had **shipped**, and it is the doc read *before
-a chamber event*. They are on an unmerged branch. It also contradicted itself on row counts
-(55/27/21 in prose, 72/31/24 in the table). Production says **72/31/24**. Both corrected 2026-08-21
-by re-deriving from Supabase and `git ls-tree`, per that file's own rule: re-derive from the live
-system, never from the previous version of the doc.
+#### Doc corrections — the same rule caught two more this session
+`WHAT-CAN-I-DELIVER-TODAY.md` is the doc read *before a chamber event*, and re-deriving from the
+live system (rather than from its own previous version) has now caught **four** wrong claims in it
+across two sessions. The first two — "the rental pages have shipped" while they sat unmerged, and a
+row-count contradiction (55/27/21 in prose vs 72/31/24 in the table; production says **72/31/24**)
+— were fixed earlier on 2026-08-21. Two more, found and fixed this session by running the greps
+the doc itself cites:
+
+- **"`grep -rln client_inventory app components` returns nothing"** — it returns
+  `app/api/questionnaire/submit/route.ts`, which *writes* the table. The real gap is that **nothing
+  reads it back**, which is a different fix from the one the doc implied.
+- **"Both compliance scripts append their line to the end"** — `set-ai-disclosure.mjs` writes the
+  greeting into `begin_message`, a separate field the prompt-slice never touches. The Texas TRAIGA
+  disclosure was never at risk; only the in-prompt backstop is.
+
+**The lesson is not "that doc is unreliable" — it is that a cited command is a claim, and running
+it takes ten seconds.** Both errors survived because every reader trusted the grep output quoted in
+the prose instead of running the grep.
 ### Where the previous session ended — 2026-08-20 (overnight)
 
 **`master` is clean, nothing is open, everything below is deployed.** PRs #42–#47 merged; the rest
@@ -656,11 +656,15 @@ verified this app" interstitial and must click Advanced → Continue, and there 
      row changed at 9:00 is honoured on the 9:01 call. No sync, no redeploy, no agent update.
      Questionnaire *text* is different — it is COPIED into the agent prompt at submit time and is
      stale until re-synced. Do not confuse the two paths.
-   - **No UI reads or writes `client_inventory`.** `grep -rln client_inventory app components`
-     returns nothing. A client cannot see their stock, fix a mistyped quantity, or take a torn
-     bounce house out of service. The `active` column exists and is read live — it is simply
-     unreachable. And once `questionnaireCompleted` is true the dashboard checklist drops its
+   - **Nothing READS `client_inventory` back. [CORRECTED 2026-08-21]** This item used to say no UI
+     reads *or writes* it and that `grep -rln client_inventory app components` returns nothing. It
+     returns `app/api/questionnaire/submit/route.ts`, which **writes** the table — so a client can
+     set inventory once, at onboarding, and never see it again. They cannot fix a mistyped quantity
+     or take a torn bounce house out of service. The `active` column exists and is read live; it is
+     simply unreachable. And once `questionnaireCompleted` is true the dashboard checklist drops its
      link, so there is no route back to the questionnaire either; only the 90-day emailed link.
+     **The missing read is also what makes item 12 destructive** — a form that cannot show existing
+     rows cannot round-trip them.
    - **The real modelling gap is rental WINDOWS, not damage.** `quantity` is compared against
      bookings that overlap an appointment *slot*. A bounce house booked Saturday 10:00 for 90
      minutes reads as free at noon, while it is physically at a party until Sunday. `book_slot()`
@@ -685,8 +689,30 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    vertical into a confidently wrong email instead of refusing, which is the opposite of what
    inventory matching already does with an unknown key. Found in the 2026-08-21 copy pass; the
    page copy was softened, the product gap was not touched.
+12. 🔴 **A partial questionnaire re-submit deactivates inventory the client never typed in.**
+   Found 2026-08-21. The form starts from one blank row and never prefills from `client_inventory`
+   (`app/onboarding/questionnaire/[domain]/page.tsx:55`); on submit, every item **not** in the
+   posted list is set `active: false` (`app/api/questionnaire/submit/route.ts:176-180`), and
+   `loadInventory` returns only active rows. **The pilot's ~40 spreadsheet-loaded items are wiped
+   the first time she reopens the form to add one new unit.** A fully blank submit is safe (the
+   `unique.length > 0` guard); the partial submit is the dangerous one. The deactivation is
+   *correct* when the questionnaire is the only writer — it became wrong when a script became a
+   second writer. **Same root cause as the compliance-line stripping**; fix them as one pass, see
+   `docs/ROADMAP.md` Track 2.1.
 
 ### Lessons that each cost real time
+- **A command quoted in prose is a claim, and running it takes ten seconds.** Two wrong facts sat in
+  `WHAT-CAN-I-DELIVER-TODAY.md` for days because the doc said *"`grep -rln client_inventory app
+  components` returns nothing"* and every reader — human and model — believed the quoted output
+  instead of running the grep. It returns a file, and that file **writes** the table, which changes
+  what the fix is. The doc's own rule already covered this; the gap was that a pasted command
+  *looks* like evidence. **Re-run it.** Same failure shape as reconciling a copied value against
+  its source.
+- **Two writers, one of which thinks it is alone, is a data-loss bug waiting for a date.** The
+  questionnaire deactivates inventory it did not see, and `mergePromptWithContext` discards prompt
+  text it did not write. Both are *correct* in isolation and both are destructive the moment a
+  script writes the same state. When adding a second writer to anything, ask what the first one
+  does with rows it does not recognise — and expect the answer to be "deletes them."
 - **A page cloned from another page inherits its NUMBERS, and numbers do not look wrong.** The three
   rental pages were built from `wholesale-leads`. Four things came across unnoticed: the primary
   hero CTA still said *"Deploy Distribution Velocity AOS"*, the ROI fallbacks still read

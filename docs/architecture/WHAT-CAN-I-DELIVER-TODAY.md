@@ -3,18 +3,16 @@
 **Ground truth as of 2026-08-21.** Read this before a sales call, before a chamber event,
 before quoting a feature, before flipping Stripe to live.
 
-> 🔴 **The three rental pages are NOT on production — but the merge is decided and is the next
-> action.** They live on `feat/rental-vertical-pages`, unmerged: `master` has no `event-rentals`,
-> `dumpster-rental` or `equipment-rental` route and no `*-leads` page for any of them. Verified
-> against `git ls-tree master` on 2026-08-21.
+> ✅ **The three rental pages ARE on production as of 2026-08-21.** `feat/rental-vertical-pages`
+> merged (`--no-ff`, `299f60e`) and auto-deployed. Verified against the live site, not assumed:
+> `/event-rentals`, `/dumpster-rental` and `/equipment-rental` all serve 200, each `-leads` page
+> serves 200, and `/{slug}/pricing` returns **307 to `/book-demo`** on all three.
 >
-> **Until that merge lands, do not point anyone at those URLs — they 404 on the live site.**
-> The rental section below describes what is built and waiting, not what is servable.
-> **Everything else in this file refers to production and is accurate today.**
+> **Point people at those URLs — they work.** Merging did **not** make the pilot safe on its own:
+> see the Nova fallback in "Not built — do not sell", and step 0 of the pilot checklist.
 >
-> **When the merge lands, delete this banner** and move the rental section from "built" to
-> "deliverable" — but note that merging does **not** make the pilot safe on its own. See the Nova
-> fallback in "Not built — do not sell", and step 0 of the pilot checklist.
+> **For build order, see `docs/ROADMAP.md`** — the operational roadmap, written 2026-08-21. This
+> file stays the answer to "what can we sell today"; that one answers "what do we build next."
 
 > **Companion docs.** `369-SYSTEM-BLUEPRINT.md` explains the architecture; `ROADMAP-TO-REAL-AGENCY.md`
 > is the dated history. **Both are stale (Jul 16) and carry a banner saying so.** This file is the
@@ -130,7 +128,7 @@ sections below record only where a vertical **differs**.
 | **Text-to-Quote** | Needs SMS first. v1 must be draft → owner approves → send. Never auto-price. |
 | **Voice reliability on this account** | 🔴 **The current blocker.** Agents intermittently answer, play the greeting and never speak again — Retell reports a 3000ms first-token timeout. Ruled out on our side (model measures ~700ms, versions aligned, concurrency clear). Calls do get through, but not dependably. **Do not demo on a single call.** |
 | **Conversational latency** | Regressed to **llm p50 1438ms / e2e 1821ms** against a 964ms benchmark — noticeably less fluid. Cause is prefill growth in tool descriptions and the system prompt. Trimmed once; more warranted. |
-| **Inventory UI** | No screen reads or writes `client_inventory`. A client cannot fix a quantity or take a torn item out of service. |
+| **Inventory UI** | **Corrected 2026-08-21:** the questionnaire *writes* `client_inventory` (`app/api/questionnaire/submit/route.ts`), so the old claim that nothing under `app/` touches it was wrong. But **no screen ever reads it back** — the form starts from one blank row and never prefills — so a client cannot see their stock, fix a quantity, or take a torn item out of service. Worse, a partial re-submit **deactivates every item it omits**. See `ROADMAP.md` Track 2.1. |
 | **Bulk quantities** | Every booking consumes exactly 1 unit. "200 chairs" means 200 separate bookings, not one order of 200. |
 | **Deposits / waivers** | Nothing exists. Standard for bounce houses and equipment. |
 | **Owner SMS alerts** | `owner_phone` and `followup_method` are captured at onboarding and never read. |
@@ -204,20 +202,20 @@ sections below record only where a vertical **differs**.
 
 ---
 
-## The rental niches — three pages BUILT and UNMERGED, engine live behind them
+## The rental niches — three pages LIVE, engine live behind them
 
-This is where the *next* client comes from. **All three pages were built 2026-08-20 and are still
-on `feat/rental-vertical-pages`, unmerged** — Event & Party Rentals, Dumpster & Portable Restrooms,
-and Equipment Rental — grouped by who is buying, so one specific person can be pointed at one
-specific page. This **reversed** the older "do not add vertical pages" rule, written when nine pages
-were live with zero distribution. **That reversal does not extend to the original nine.**
+This is where the *next* client comes from. **All three pages were built 2026-08-20 and shipped to
+production 2026-08-21** — Event & Party Rentals, Dumpster & Portable Restrooms, and Equipment
+Rental — grouped by who is buying, so one specific person can be pointed at one specific page. This
+**reversed** the older "do not add vertical pages" rule, written when nine pages were live with
+zero distribution. **That reversal does not extend to the original nine.**
 
-> ⚠️ **None of this is servable today.** `master` has none of these files. The gate on merging is
-> Chris's own word-by-word copy pass; that pass ran on 2026-08-21 and produced five fix commits
-> (wholesale-template residue, a false audit promise on all 11 form pages, an overstated Nova claim,
-> pronouns and spelling, and a comment on an unscheduled cron). The branch is green — tsc clean,
-> 248 tests, mobile audit clean across 152 page/width combinations — but **merging is still a
-> decision nobody has taken.**
+> ✅ **Servable today, verified live.** The gate on merging was Chris's own word-by-word copy pass;
+> it ran on 2026-08-21 and produced five fix commits (wholesale-template residue, a false audit
+> promise on all 11 form pages, an overstated Nova claim, pronouns and spelling, and a comment on
+> an unscheduled cron). The branch was green at merge — tsc clean, 248 tests, production build
+> clean, mobile audit clean across 152 page/width combinations — and all of it was re-run
+> immediately before the merge rather than taken on trust.
 
 Each niche now has **two** artifacts, mirroring the original verticals:
 - A Next.js intake route — `/event-rentals`, `/dumpster-rental`, `/equipment-rental` — with the
@@ -229,9 +227,9 @@ Each niche now has **two** artifacts, mirroring the original verticals:
   actually rents. That catalogue is the sales material: it is what Chris reads before a chamber
   conversation, and it doubles as the argument for ambiguity refusal.
 
-Both are reachable from the homepage **on the branch**: Event & Party Rentals holds the **second
-featured card**, dumpster and equipment sit in the grid, and all three are in the footer. On
-production's homepage none of that exists yet.
+All three are reachable from the live homepage: Event & Party Rentals holds the **second featured
+card**, dumpster and equipment sit in the grid, and all three are in the footer. Every one of the
+homepage's 30 internal links was swept on production after the deploy and returns 200.
 
 **The engine they were waiting on shipped the same day.** Multi-day hire, per-item availability
 reachable by voice, ambiguity refusal, and a signed booking handle are all live and verified
@@ -299,19 +297,14 @@ detail to discover during a live onboarding either.
 
 ## What to finish, in order
 
-### Group 0 — do this first, it is one command
+> **`docs/ROADMAP.md` is the sequenced version of this list**, ordered against the two dates that
+> actually govern it (the pilot returning ~2026-09-02, the chamber event ~mid-September). What
+> follows is the same material grouped by *what blocks it*. Use this section to understand a gap;
+> use the roadmap to decide what to do on a given day.
 
-**Merge `feat/rental-vertical-pages` (`--no-ff`).** Clean fast-forward, zero conflicts, branch is
-green. It is not primarily about the rental pages: **production is currently telling prospects to
-"check your email in 2–5 minutes" for a dossier that has never existed**, and this branch is what
-takes that down, along with every unprovable statistic, two dead audit-picker links, and four real
-mobile bugs. Those fixes protect nobody while they sit on a branch. Merging auto-deploys.
-
----
-
-The rest is split deliberately: the first group **runs on calendar time** — filed once, then
-waiting — and the second is **build time that nothing blocks**. Start the first group, then work the
-second while it clears. Do not sit waiting on any of it.
+The split is deliberate: the first group **runs on calendar time** — filed once, then waiting — and
+the second is **build time that nothing blocks**. Start the first group, then work the second while
+it clears. Do not sit waiting on any of it.
 
 ### Group A — start these, then stop thinking about them
 
@@ -340,17 +333,28 @@ second while it clears. Do not sit waiting on any of it.
    unknown vertical into a confidently wrong confirmation email rather than a refusal. Blocks the
    pilot from sending correct confirmations, and it is a handful of lines. Do this before the
    inventory screen if the pilot is close.
-3. **An inventory screen.** `grep -rln client_inventory app components` returns nothing. A client
-   cannot see their stock, fix a mistyped quantity, or take a torn bounce house out of service —
-   the `active` column exists and is read live, it is simply unreachable. Pure Next.js, no vendor.
+3. **An inventory screen.** **Corrected 2026-08-21** — the old note here said
+   `grep -rln client_inventory app components` returns nothing; it returns
+   `app/api/questionnaire/submit/route.ts`, which *writes* the table. The real gap is that
+   **nothing reads it back**: the questionnaire form starts from a single blank row and never
+   prefills, so a client cannot see their stock, fix a mistyped quantity, or take a torn bounce
+   house out of service. The `active` column exists and is read live; it is simply unreachable.
+   A read/edit screen is also the durable fix for the destructive re-submit in Track 2.1 of
+   `ROADMAP.md`. Pure Next.js, no vendor.
 4. **`capture_lead` sends the wrong `vertical`.** It sent `"wholesale"` on a roofing-domain client
    on three separate calls, mislabelling every lead. Small fix, real data quality.
-5. **The compliance-line-stripping bug.** Both compliance scripts append their line to the **end**
-   of the prompt; `mergePromptWithContext` cuts from `BUSINESS_CONTEXT_START` to the end. Any line
-   appended **after** a client's context block is silently deleted by their next questionnaire
-   submit. A new client is safe; **a re-submit — editing hours or stock months later — strips it.**
-   `set-rental-tools.mjs` already inserts *before* the marker and is immune; the two compliance
-   scripts are not. Durable fix: write into the base, or preserve trailing content.
+5. **The compliance-line-stripping bug.** `mergePromptWithContext` cuts from
+   `BUSINESS_CONTEXT_START` to the end of the prompt, so any line appended **after** a client's
+   context block is silently deleted by their next questionnaire submit. A new client is safe;
+   **a re-submit — editing hours or stock months later — strips it.** `set-rental-tools.mjs`
+   inserts *before* the marker and is immune.
+   **Corrected 2026-08-21 — the exposure is smaller than this used to claim.**
+   `set-ai-disclosure.mjs` writes **two** fields: the proactive greeting into `begin_message`,
+   which is a separate field the prompt-slice never touches, and a backstop line into
+   `general_prompt`, which is appended and *is* stripped. **The Texas TRAIGA greeting survives; only
+   the answer to "am I talking to a robot?" is lost.** `set-sms-consent.mjs` appends and is fully
+   vulnerable. Durable fix: write into the base, or preserve trailing content. Same root cause as
+   the inventory loss above — see `ROADMAP.md` Track 2.1, which treats them as one defect.
 6. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
    and failed silently for months — nobody read its output, only that it ran. Assume siblings.
 7. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
