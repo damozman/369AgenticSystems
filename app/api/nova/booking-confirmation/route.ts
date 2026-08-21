@@ -10,7 +10,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const NOVA_VERTICALS: NovaVertical[] = ['roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental']
+// Verticals Nova has real copy for. `unknown` is deliberately NOT here — it is the fallback, not
+// something a caller can be classified as, and listing it would let an unrecognised value skip
+// the refusal above and quietly render neutral copy instead of being logged as unsupported.
+const NOVA_VERTICALS: NovaVertical[] = [
+  'roofing', 'hvac', 'plumbing', 'legal', 'real-estate', 'insurance', 'saas', 'wholesale', 'dental',
+  'event-rentals', 'dumpster-rental', 'equipment-rental',
+]
 
 export async function POST(request: NextRequest) {
   // Internal-only route (fired server-to-server by book-appointment). Guarded by
@@ -75,7 +81,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, status: 'skipped_unsupported_vertical' })
   }
 
-  const vertical: NovaVertical = isSupported ? (rawVertical as NovaVertical) : 'roofing'
+  /**
+   * Reached only when `rawVertical` is EMPTY — a real-but-unsupported vertical returned above.
+   * That case is common, not exotic: a third of `leads` rows have a null vertical, and the shared
+   * demo line has no `agent_subscriptions` row to fall back to while taking real prospect calls.
+   *
+   * This used to be `'roofing'`, which sent a stranger a confident email about their upcoming
+   * roof inspection. Now trade-neutral: it confirms the booking without naming an industry.
+   */
+  const vertical: NovaVertical = isSupported ? (rawVertical as NovaVertical) : 'unknown'
 
   // No address to send to. Recorded, not claimed — /api/capture-lead re-fires this route the
   // moment an email arrives, and claiming here would suppress that retry forever.

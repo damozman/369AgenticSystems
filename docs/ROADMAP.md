@@ -237,7 +237,18 @@ Either way, a live agent is missing it. **Re-run `set-ai-disclosure.mjs` against
 write — prefill the form from existing rows so a re-submit round-trips, and write compliance lines
 into the base prompt (or preserve trailing content) instead of appending after the marker.
 
-### 2.2 🔴 Nova's roofing fallback
+### 2.2 ✅ Nova's roofing fallback — DONE 2026-08-21
+
+**The diagnosis below was wrong about the mechanism, and is kept as a caution.** The route already
+refused real-but-unsupported verticals (`skipped_unsupported_vertical`, two rows in production).
+The live fallback was in `app/api/nova/booking-confirmation/route.ts` — `isSupported ? raw :
+'roofing'` — reached only when the vertical is **empty**, which is a third of all `leads` rows and
+every booking on the demo line. Fixed with three rental verticals plus a trade-neutral `unknown`
+template, verified by generating real emails. Northside's subscription row also still said
+`roofing` and was corrected to `event-rentals`.
+
+*Original write-up, preserved because the error is instructive — it was derived from one library
+file while the guard that changed everything sat two files away:*
 
 `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`
 ([nova-templates.ts:78](lib/nova-templates.ts#L78)), and roofing's `visitNoun` is `'inspection'`.

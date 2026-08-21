@@ -728,16 +728,28 @@ verified this app" interstitial and must click Advanced → Continue, and there 
 10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
-11. 🔴 **Nova falls back to roofing for any vertical outside the nine — fix before the pilot books.**
-   `lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and
-   roofing's `visitNoun` is `'inspection'`. The pilot is an event-rental business with no template
-   agent of its own, so she is provisioned under one of the nine and **her customers get a
-   bounce-house hire confirmed as an "inspection"**, from a Nova who says she writes for a roofing
-   company. Nothing errors; a test call will not surface it unless somebody reads the confirmation
-   email itself. **The defect is the fallback, not the three missing keys** — it turns an unknown
-   vertical into a confidently wrong email instead of refusing, which is the opposite of what
-   inventory matching already does with an unknown key. Found in the 2026-08-21 copy pass; the
-   page copy was softened, the product gap was not touched.
+11. ✅ **DONE 2026-08-21 — Nova's roofing fallback.** Kept here only because the original write-up
+   **named the wrong line**, and that error was copied into `WHAT-CAN-I-DELIVER-TODAY.md` and
+   `ROADMAP.md` before anyone read the route.
+   - The blamed line — `lib/nova-templates.ts` `?? VERTICAL_COPY.roofing` — is **not** how it fired.
+     `app/api/nova/booking-confirmation/route.ts` already **refuses** a real-but-unsupported
+     vertical and logs `skipped_unsupported_vertical`; production has two such rows, so the guard
+     demonstrably works.
+   - The live fallback was in the **route**: `isSupported ? raw : 'roofing'`, reached only when the
+     vertical is **empty**. Not exotic — **a third of `leads` rows have a null vertical**, and the
+     shared demo line has no `agent_subscriptions` row to fall back to while taking real prospect
+     calls. So a stranger could get a confident email about their upcoming roof inspection.
+   - **Northside's own subscription still said `vertical: 'roofing'`** after being converted to a
+     rental agent, so its confirmations described bounce houses as roofing. Row corrected to
+     `event-rentals`.
+   - Fixed: added `event-rentals` / `dumpster-rental` / `equipment-rental` with delivery-shaped
+     nouns, plus an **`unknown`** template that names no trade and restates the booking instead of
+     advising how to prepare for a visit it cannot know. Both fallbacks now point at `unknown`.
+     Verified by generating real emails, not by types: the neutral one names no industry, and the
+     rental one talks about clearing the setup area, water and power, and takedown.
+   **The lesson, and the reason this entry survives:** the write-up was derived by reading one
+   library file, and the guard that changed the whole diagnosis was two files away. *A bug derived
+   from reading code is a hypothesis until the calling path is read too.*
 12. 🔴 **A partial questionnaire re-submit deactivates inventory the client never typed in.**
    Found 2026-08-21. The form starts from one blank row and never prefills from `client_inventory`
    (`app/onboarding/questionnaire/[domain]/page.tsx:55`); on submit, every item **not** in the
