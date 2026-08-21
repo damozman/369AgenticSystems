@@ -384,22 +384,15 @@
     }
 
     /* ── ROI Calculator ──────────────────────────────────────────────────── */
-    .roi-slider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 2px;
-      background: rgba(139, 92, 246, 0.2);
-      outline: none;
-      border-radius: 2px;
-      cursor: pointer;
-    }
+    .roi-slider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; outline:none; cursor:pointer; }
+    .roi-slider::-webkit-slider-runnable-track { height:2px; background:rgba(139, 92, 246, 0.2); border-radius:2px; }
+    .roi-slider::-moz-range-track { height:2px; background:rgba(139, 92, 246, 0.2); border-radius:2px; }
     .roi-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 22px; height: 22px;
       background: var(--purple);
       border-radius: 50%;
-      box-shadow: 0 0 14px rgba(139, 92, 246, 0.55);
-    }
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.55); margin-top:-10px; }
     .roi-slider::-moz-range-thumb {
       width: 22px; height: 22px;
       background: var(--purple);
@@ -515,6 +508,24 @@
       color: var(--text-muted);
       font-family: 'Courier New', monospace;
       margin-top: 3px;
+    }
+
+    /* ── Mobile fixes ─────────────────────────────────────────────────────────
+       Found by scripts/mobile-audit.mjs rendering this page at 320/390/430.
+       Each of these was CLIPPED by an overflow:hidden ancestor, i.e. invisible
+       on a phone with no way to scroll to it. */
+    @media (max-width: 700px) {
+      .dash-split { grid-template-columns: 1fr !important; gap: 24px !important; }
+    }
+    @media (max-width: 520px) {
+      #btn-label { font-size: 0.72rem; letter-spacing: -0.01em; }
+    }
+    /* The slider readout sits opposite a long label in a flex row. On a phone the
+       label wins the space and the value wraps — "6 / wk" rendered as "wk". */
+    .roi-value { white-space: nowrap; flex-shrink: 0; padding-left: 12px; }
+    /* The wordmark wrapped to two lines beside the nav CTA on small phones. */
+    @media (max-width: 420px) {
+      .logo { font-size: 1.05rem; white-space: nowrap; }
     }
   </style>
 </head>
@@ -736,7 +747,7 @@
         <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(139,92,246,0.025) 100%); pointer-events:none; border-radius:16px;"></div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
+          <div class="dash-split" style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
             <div>
               <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
                 <div style="width:44px; height:44px; background:rgba(39,201,63,0.1); border:1px solid rgba(39,201,63,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">

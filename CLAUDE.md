@@ -708,6 +708,13 @@ node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs` — prefligh
 
 ### Verification scripts (all committed, all run against live systems)
 ```
+node scripts/mobile-audit.mjs            renders all 19 public pages at 5 widths in Chromium and
+                                         reports horizontal overflow, clipped content and
+                                         untappable targets. Needs `npm start` first.
+                                         --url <origin> to audit a deploy, --shots for PNGs.
+                                         DO NOT reason about breakpoints instead of running this:
+                                         a July session found 2 real bugs this way, the script was
+                                         never committed, and the next session guessed and missed 4.
 node scripts/audit-retell-webhooks.mjs   every inbound route can deliver its webhook
 node scripts/verify-booking.mjs [hours]  call -> lead -> booking chain
 node scripts/verify-audit-call.mjs       audit calls resolved + no leak into `calls`

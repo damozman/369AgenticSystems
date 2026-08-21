@@ -312,16 +312,13 @@
     }
 
     /* ── ROI Slider ───────────────────────────────────────────────────────── */
-    .roi-slider {
-      -webkit-appearance: none; width: 100%; height: 2px;
-      background: rgba(255, 69, 0, 0.2); outline: none;
-      border-radius: 2px; cursor: pointer;
-    }
+    .roi-slider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; outline:none; cursor:pointer; }
+    .roi-slider::-webkit-slider-runnable-track { height:2px; background:rgba(255, 69, 0, 0.2); border-radius:2px; }
+    .roi-slider::-moz-range-track { height:2px; background:rgba(255, 69, 0, 0.2); border-radius:2px; }
     .roi-slider::-webkit-slider-thumb {
       -webkit-appearance: none; width: 22px; height: 22px;
       background: var(--orange); border-radius: 50%;
-      box-shadow: 0 0 14px rgba(255, 69, 0, 0.55);
-    }
+      box-shadow: 0 0 14px rgba(255, 69, 0, 0.55); margin-top:-10px; }
     .roi-slider::-moz-range-thumb {
       width: 22px; height: 22px; background: var(--orange);
       border-radius: 50%; border: none;
@@ -406,6 +403,24 @@
       border-radius: 8px; padding: 14px 20px;
       display: flex; align-items: center; gap: 12px;
       font-family: 'Courier New', monospace; font-size: 0.82rem;
+    }
+
+    /* ── Mobile fixes ─────────────────────────────────────────────────────────
+       Found by scripts/mobile-audit.mjs rendering this page at 320/390/430.
+       Each of these was CLIPPED by an overflow:hidden ancestor, i.e. invisible
+       on a phone with no way to scroll to it. */
+    @media (max-width: 700px) {
+      .dash-split { grid-template-columns: 1fr !important; gap: 24px !important; }
+    }
+    @media (max-width: 520px) {
+      #btn-label { font-size: 0.72rem; letter-spacing: -0.01em; }
+    }
+    /* The slider readout sits opposite a long label in a flex row. On a phone the
+       label wins the space and the value wraps — "6 / wk" rendered as "wk". */
+    .roi-value { white-space: nowrap; flex-shrink: 0; padding-left: 12px; }
+    /* The wordmark wrapped to two lines beside the nav CTA on small phones. */
+    @media (max-width: 420px) {
+      .logo { font-size: 1.05rem; white-space: nowrap; }
     }
   </style>
 </head>
