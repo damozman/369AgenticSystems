@@ -542,18 +542,47 @@ arrived. It had never fired before because the demo line has no `agent_subscript
 - **The `calendar-sync` cron genuinely fires on Vercel.** At 13:02Z on 2026-08-05 it ran with nobody
   watching, found an expired access token, refreshed it, and recorded success without alerting
   anyone. That proves the OAuth refresh path.
-- **8 of 9 templates + Northside + the demo line run `claude-4.5-haiku`. [CORRECTED 2026-08-21]**
-  This used to claim all nine. A dry run of `set-client-model.mjs` shows **`dental` is still on
-  `claude-4.6-sonnet`** — drift from the 2026-08-04 rollout that nobody noticed because dental is
-  FUTURE and takes no traffic. Harmless today; it would be inherited by the first dental client, so
-  fix it whenever dental launches. Like-for-like on the same agent and number:
+- **⚠ SUPERSEDED 2026-08-21 — all 11 agents now run `gemini-3.5-flash`.** See "Model choice" below.
+  The table beneath is the 2026-08-04 Sonnet-vs-Haiku benchmark, kept because it is the reason the
+  fleet left Sonnet and because its method is the one to repeat. Like-for-like, same agent and
+  number:
 
   | | p50 | max | opening turns |
   |---|---|---|---|
   | `claude-4.6-sonnet` | 2399ms | 10098ms | 9714, 9676, 9511, 10098, 9962 |
   | **`claude-4.5-haiku`** | **964ms** | **1843ms** | 1274 |
 
-  Revert: `node --env-file=.env.local scripts/retell/set-client-model.mjs --model claude-4.6-sonnet --apply`
+### Model choice — `gemini-3.5-flash` on all 11, decided 2026-08-21 by measurement
+
+Retell confirmed the first-token failures were theirs and Anthropic-specific, and recommended
+switching models. GPT-5 fixed the blocker but ran hot and sounded wrong. **Gemini Flash is the best
+call this project has measured**, and Chris confirmed it by ear — "very quick and very fluid":
+
+| model | llm p50 | max | turns over 3000ms | LLM $/min |
+|---|---|---|---|---|
+| `claude-4.5-haiku` (benchmark) | 964ms | 1843ms | — | **$0.0251** |
+| `gpt-5` | 1707ms | 3881ms | **3 of 20** | $0.0400 |
+| **`gemini-3.5-flash`** | **935ms** | **1363ms** | **0 of 23** | $0.0811 |
+
+GPT-5 also abbreviated "August 24th" to "Aug", which TTS read aloud, and tacked ", right?" onto
+questions. Both vanished on Gemini. All-in cost per minute: Haiku **$0.131**, GPT-5 **$0.159**,
+Gemini **$0.197** — so the best-sounding model is also the dearest, ~3.2× Haiku on the LLM line.
+
+**🔴 Two things to do BEFORE going live, both easy to forget:**
+1. **Re-check whether Haiku works again.** Retell had not fixed it as of 2026-08-21 and Chris asked
+   them to confirm when they do. Haiku is 3× cheaper and sounded right; re-measure both then rather
+   than assuming either. Chris's call: *"stick with Gemini Flash for now and review it before we
+   pull the trigger."*
+2. **Re-check `OVERAGE_RATE_CENTS`.** Those rates (35/30/25¢) were set when the cost floor was
+   Haiku at 13.1¢/min. At Gemini's 19.7¢ the **Elite overage margin falls from ~12¢ to ~5¢/min**,
+   and that file's own comment says the rate is meant to cover "Retell plus the LLM plus margin".
+   Do this in the same move as flipping `USAGE_BILLING_ENABLED`.
+
+Spend to date, read from Retell's own per-call cost records: **$23.48 over 138 minutes all-time.**
+Retell exposes no balance endpoint — that number is dashboard-only.
+
+Change models with `set-client-model.mjs`. It prints a per-agent revert built from what was
+actually replaced, and `--only <agentId>` proves a model on one agent before the fleet moves.
 
 ### How the calendar integration is built
 - `lib/calendar/` is a provider seam. **`google.ts` is the only file that knows Google exists** —
