@@ -123,7 +123,7 @@ export default function PrivacyPolicy() {
           </LI>
           <LI>
             <strong>What we never do.</strong> We do not sell Google user data, transfer it to
-            anyone for advertising, use it for personalised advertising, use it to train any AI
+            anyone for advertising, use it for personalized advertising, use it to train any AI
             model, or allow a human to read it except where you have explicitly asked us to fix a
             problem, or where the law requires it.
           </LI>
