@@ -786,15 +786,16 @@
             <div class="success-msg" id="success-msg" aria-live="polite">
               <div id="process-stage">
                 <br>
-                <span style="color:#f59e0b;">[PROCESS] Onboarding Digital Employee to <span id="company-display"></span>...</span><br>
+                <span style="color:#f59e0b;">[PROCESS] Sending <span id="company-display"></span> to the 369 Command Center...</span><br>
                 <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar" style="background:linear-gradient(90deg,#6366F1,#A5B4FC);"></div></div>
               </div>
               <div id="success-stage" style="display:none;">
-                <span style="color:#27c93f;">[SUCCESS] 369 Core connected. Your Digital Employee is drafting your Onboarding Dossier now. Check your email in 2-5 minutes.</span><br>
-                <span style="color:var(--text-muted);">→ Submission received by the 369 Agentic Core.</span><br>
-                <span style="color:var(--text-muted);">→ Expect contact within 24 hours.</span><br>
-                <span style="color:var(--text-muted);">→ Skip the wait — <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now →</a></span><br>
-                <span style="color:var(--accent);">→ Your Equipment Yard Digital Employee is being configured.</span> <span class="blink">█</span>
+                <span style="color:#27c93f;">[SUCCESS] Request received for <span id="company-display-2"></span>.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">Your details are with Chris now.</strong></span><br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">He reviews every request personally</strong> and follows up within 24 hours.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; Skip the wait &mdash; <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now &rarr;</a></span> <span class="blink">&#9608;</span>
               </div>
             </div>
 
@@ -968,6 +969,8 @@
       success.style.display = 'block';
       const companyDisplay = document.getElementById('company-display');
       if (companyDisplay) companyDisplay.textContent = payload.client_company || 'your company';
+      const companyDisplay2 = document.getElementById('company-display-2');
+      if (companyDisplay2) companyDisplay2.textContent = payload.client_company || 'your company';
       const bar = document.getElementById('loading-bar');
       if (bar) {
         requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '100%'; }));
