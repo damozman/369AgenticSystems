@@ -32,6 +32,9 @@ const WIDTHS = [
   { w: 430,  h: 932,  name: 'iPhone Pro Max (430)' },
   { w: 768,  h: 1024, name: 'iPad portrait (768)' },
   { w: 1024, h: 768,  name: 'iPad landscape (1024)' },
+  { w: 1280, h: 800,  name: 'laptop (1280)' },
+  { w: 1440, h: 900,  name: 'desktop (1440)' },
+  { w: 1920, h: 1080, name: 'wide (1920)' },
 ]
 
 const PAGES = [
@@ -117,7 +120,44 @@ function probe() {
     }
   }
 
-  return { vw, docW, scrolls: docW > vw + 1, offenders: offenders.slice(0, 8), small: small.slice(0, 6) }
+  // Content escaping its own overflow:hidden box. The viewport check above cannot
+  // see this: a fixed-height card whose text spills out is clipped silently, and
+  // the page width never changes. This is what a two-line label in a 310px card
+  // looks like, and it only shows up at the widths where the label wraps.
+  const spills = []
+  for (const box of document.querySelectorAll('*')) {
+    const bs = getComputedStyle(box)
+    if (bs.overflow !== 'hidden' && bs.overflowY !== 'hidden') continue
+    const br = box.getBoundingClientRect()
+    if (br.height < 40 || br.width < 40) continue
+    for (const kid of box.querySelectorAll(':scope > *')) {
+      const ks = getComputedStyle(kid)
+      // Panels parked outside the box by a transform are hover states, not bugs.
+      if (ks.transform !== 'none' || ks.display === 'none' || ks.visibility === 'hidden') continue
+      let deepest = 0
+      for (const n of kid.querySelectorAll('*')) {
+        const ns = getComputedStyle(n)
+        if (ns.transform !== 'none' || ns.position === 'absolute') continue
+        const nr = n.getBoundingClientRect()
+        if (nr.height && nr.bottom > deepest) deepest = nr.bottom
+      }
+      const kr = kid.getBoundingClientRect()
+      const bottom = Math.max(deepest, kr.bottom)
+      const over = Math.round(bottom - br.bottom)
+      if (over > 2) {
+        spills.push({
+          box: (box.className || box.tagName).toString().split(/\s+/)[0],
+          over,
+          text: (kid.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 58),
+        })
+        break
+      }
+    }
+    if (spills.length >= 5) break
+  }
+
+  return { vw, docW, scrolls: docW > vw + 1, offenders: offenders.slice(0, 8),
+           small: small.slice(0, 6), spills }
 }
 
 const browser = await chromium.launch()
@@ -156,9 +196,10 @@ for (const path of PAGES) {
     const r = await page.evaluate(probe)
     checked++
 
-    if (r.scrolls || r.offenders.length || r.small.length) {
+    if (r.scrolls || r.offenders.length || r.small.length || r.spills.length) {
       const bits = []
       if (r.scrolls) bits.push(`page scrolls sideways (${r.docW}px in ${r.vw}px)`)
+      if (r.spills.length) bits.push(`${r.spills.length} element(s) spilling out of a clipped box`)
       if (r.small.length) bits.push(`${r.small.length} small tap target(s)`)
       lines.push(`   ${vp.name}: ${bits.join(', ') || 'overflow'}`)
       for (const o of r.offenders) {
@@ -169,7 +210,11 @@ for (const path of PAGES) {
       for (const s of r.small) {
         lines.push(`      tap ${s.w}x${s.h}  <${s.tag}> "${s.text}"`)
       }
-      if (r.scrolls || r.offenders.length) problems++
+      for (const sp of r.spills) {
+        lines.push(`      SPILL +${sp.over}px out of .${sp.box}
+         "${sp.text}"`)
+      }
+      if (r.scrolls || r.offenders.length || r.spills.length) problems++
       if (SHOTS) {
         await page.screenshot({
           path: `.mobile-audit/${path.replace(/\W+/g, '_') || 'home'}_${vp.w}.png`,
