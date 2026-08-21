@@ -186,6 +186,60 @@ const CONFIGS: Record<string, VerticalConfig> = {
       jobValue:     { label: 'Average order value ($)', placeholder: 'e.g. 2500' },
     },
   },
+  'event-rentals': {
+    name:     'Event & Party Rentals',
+    headline: 'Every "Is It Free Saturday?" Answered',
+    subtitle: '2-minute form — then we show you what unanswered booking calls cost per weekend.',
+    tickerLabel: 'bookings',
+    comparisonRole: 'Office Receptionist',
+    painPoints: [
+      'Availability calls arriving while you are setting up an event',
+      'Weekend and evening inquiries going to voicemail',
+      '"Is the princess castle free Saturday?" answered from memory',
+      'The same unit promised to two parties on the same day',
+    ],
+    fields: {
+      callsPerWeek: { label: 'Booking inquiry calls per week', placeholder: 'e.g. 25' },
+      answerRate:   { label: '% of calls you currently answer', placeholder: 'e.g. 40', hint: 'Most rental inquiries land on evenings and weekends — exactly when you are on a job.' },
+      jobValue:     { label: 'Average rental value ($)', placeholder: 'e.g. 350' },
+    },
+  },
+  'dumpster-rental': {
+    name:     'Dumpster & Portable Restrooms',
+    headline: 'Drop-Off Calls Answered While You Are on the Truck',
+    subtitle: '2-minute form — then we show you what missed hire calls cost per month.',
+    tickerLabel: 'hires',
+    comparisonRole: 'Order Desk Rep',
+    painPoints: [
+      'Hire calls missed while drivers are on route',
+      'Contractors calling three yards and booking the first to pick up',
+      'Multi-day hire dates tracked on a whiteboard',
+      'No follow-up after an inquiry goes quiet',
+    ],
+    fields: {
+      callsPerWeek: { label: 'Hire inquiry calls per week', placeholder: 'e.g. 30' },
+      answerRate:   { label: '% of calls you currently answer', placeholder: 'e.g. 50', hint: 'A contractor calls the next yard on the list within minutes.' },
+      jobValue:     { label: 'Average hire value ($)', placeholder: 'e.g. 450' },
+    },
+  },
+  'equipment-rental': {
+    name:     'Equipment & Heavy Machinery Rental',
+    headline: 'The Skid Steer Is Booked. Was the Call?',
+    subtitle: '2-minute form — then we show you what unanswered rental calls cost per month.',
+    tickerLabel: 'rentals',
+    comparisonRole: 'Rental Counter Clerk',
+    painPoints: [
+      'Rental calls missed while the counter is serving someone',
+      'Excavators, lifts and compaction all tracked in one operator\'s head',
+      'Contractors moving to the next yard when nobody picks up',
+      'Early-morning and weekend calls going unanswered',
+    ],
+    fields: {
+      callsPerWeek: { label: 'Rental inquiry calls per week', placeholder: 'e.g. 20' },
+      answerRate:   { label: '% of calls you currently answer', placeholder: 'e.g. 55', hint: 'Contractors start calling before the yard opens.' },
+      jobValue:     { label: 'Average rental value ($)', placeholder: 'e.g. 850' },
+    },
+  },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -205,7 +259,7 @@ interface FormData {
   painPoint:        string
 }
 
-type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
+type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale' | 'event-rentals' | 'dumpster-rental' | 'equipment-rental'
 
 interface Props {
   vertical:   Vertical
@@ -279,6 +333,12 @@ const DEMO_HINTS: Record<string, string> = {
   insurance:     'Say you need an insurance quote',
   saas:          'Say you want a product demo',
   wholesale:     'Say you need to place a bulk order',
+  // The shared demo line captures and books for any industry, but it has no
+  // inventory rows of its own — so these hints stay booking-shaped and never
+  // ask it to price or check a specific unit.
+  'event-rentals':    'Say you want to book a party for Saturday',
+  'dumpster-rental':  'Say you need a dumpster delivered this week',
+  'equipment-rental': 'Say you want to rent equipment this week',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

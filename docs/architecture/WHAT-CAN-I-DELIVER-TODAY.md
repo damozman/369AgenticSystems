@@ -1,7 +1,20 @@
 # What Can I Actually Deliver Today
 
-**Ground truth as of 2026-08-20 (overnight).** Read this before a sales call, before a chamber event,
+**Ground truth as of 2026-08-21.** Read this before a sales call, before a chamber event,
 before quoting a feature, before flipping Stripe to live.
+
+> 🔴 **The three rental pages are NOT on production — but the merge is decided and is the next
+> action.** They live on `feat/rental-vertical-pages`, unmerged: `master` has no `event-rentals`,
+> `dumpster-rental` or `equipment-rental` route and no `*-leads` page for any of them. Verified
+> against `git ls-tree master` on 2026-08-21.
+>
+> **Until that merge lands, do not point anyone at those URLs — they 404 on the live site.**
+> The rental section below describes what is built and waiting, not what is servable.
+> **Everything else in this file refers to production and is accurate today.**
+>
+> **When the merge lands, delete this banner** and move the rental section from "built" to
+> "deliverable" — but note that merging does **not** make the pilot safe on its own. See the Nova
+> fallback in "Not built — do not sell", and step 0 of the pilot checklist.
 
 > **Companion docs.** `369-SYSTEM-BLUEPRINT.md` explains the architecture; `ROADMAP-TO-REAL-AGENCY.md`
 > is the dated history. **Both are stale (Jul 16) and carry a banner saying so.** This file is the
@@ -9,10 +22,17 @@ before quoting a feature, before flipping Stripe to live.
 
 ## How this was verified
 
-Everything below was checked against the live system on 2026-08-19, not read out of a prior doc.
-Retell agent and number counts came from the Retell API; row counts from production Supabase; the
-Stripe mode and webhook state from the Stripe API; feature flags from env and code. Where
-something is **claimed but unverified**, it says so in place.
+Everything below was checked against the live system, not read out of a prior doc. Retell agent and
+number counts came from the Retell API; row counts from production Supabase; the Stripe mode and
+webhook state from the Stripe API; feature flags from env and code. Where something is **claimed but
+unverified**, it says so in place.
+
+**Re-derived 2026-08-21:** the Supabase row counts below (`calls` 72, `leads` 31, `bookings` 24,
+`agent_subscriptions` 2, `calendar_connections` 0, `client_schedules` 1, `client_inventory` 40) and
+the branch state of the rental pages (`git ls-tree master`). This pass corrected a **contradiction
+inside this file** — the summary said 55/27/21 while the table said 72/31/24; production says the
+table was right. Everything else dates from the 2026-08-19/20 sweep and was not re-checked here,
+including the Retell and Stripe state.
 
 **"Greenlit" here means three things at once:** the code is deployed, it is legally clear to use
 (AI disclosure, SMS consent), and it is not sitting behind an off switch. Something can be fully
@@ -43,12 +63,12 @@ Beyond that, three things are off, and two of them deliberately:
 3. **SMS does not exist in either direction.** No inbound route, Twilio unconfigured, A2P brand
    unregistered. Everything SMS-shaped is a promise, not a capability.
 
-**Zero paying clients. One subscription row (Northside, a test client). 55 calls, 27 leads, 21
+**Zero paying clients. One real subscription row (Northside, a test client). 72 calls, 31 leads, 24
 bookings all-time.** Nothing here has been proven at volume.
 
 ---
 
-## Live system state — 2026-08-20
+## Live system state — Supabase re-derived 2026-08-21, rest 2026-08-20
 
 | Thing | State |
 |---|---|
@@ -57,14 +77,14 @@ bookings all-time.** Nothing here has been proven at volume.
 | `agent_subscriptions` | **2** — Northside (test client, no Stripe anchor) + a leftover `review-sandbox` row with no agent |
 | `calendar_connections` | **0** |
 | `client_schedules` / `client_inventory` | **1** / **40** (38 active, 12 hired by the day) — all Northside's, see below |
-| `calls` / `leads` / `bookings` | 72 / 31 / 24 (all-time); **54 minutes in the last 30 days** |
+| `calls` / `leads` / `bookings` | **72 / 31 / 24** (all-time); **54 minutes in the last 30 days** |
+| Stripe | **test mode**; sole webhook `we_1Trrqk3nqoZlRtPEan18MmjD` **disabled** |
+| Pricing | $400 / $600 / $750 flat. `SETUP_FEE = 0`. No minute limits advertised. |
 
 > ⚠️ **Northside is no longer a roofing agent.** It was converted on 2026-08-20 into an
 > event/party-rental test agent: rental prompt, 40 mock inventory rows, weekend hours, 180-day
 > horizon. Original LLM config is backed up. It is the only client with inventory or a schedule,
 > and those rows are **test data, not a real yard**.
-| Stripe | **test mode**; sole webhook `we_1Trrqk3nqoZlRtPEan18MmjD` **disabled** |
-| Pricing | $400 / $600 / $750 flat. `SETUP_FEE = 0`. No minute limits advertised. |
 
 ---
 
@@ -83,7 +103,7 @@ sections below record only where a vertical **differs**.
 | **Lead capture** | `capture-lead`, writes `leads`, real-time owner email alert. |
 | **Real availability + booking** | `available-slots` / `book-appointment`, capacity-checked in one transaction behind an advisory lock. Cannot double-book. |
 | **Google Calendar awareness** | Reads owner freeBusy; refuses rather than offering a time it cannot verify. Writes the event back. **Requires the client to connect — nobody is connected today.** |
-| **Booking confirmations** (Nova) | Email + `.ics`. All 9 verticals. |
+| **Booking confirmations** (Nova) | Email + `.ics`. **The 9 verticals only** — `NovaVertical` in `lib/nova-templates.ts` has exactly those keys, and anything else silently falls back to roofing copy. Fine for all 9; a live landmine for a rental client, see below. |
 | **Follow-up sequences** (Rex) | 3-step, all 9 verticals, Pro/Elite gated. **Email only.** |
 | **Per-client personalization** | Questionnaire merges into the agent prompt. Proven on a real call. |
 | **Per-item rental inventory** | `client_inventory` + `bookings.inventory_item_key`. Read live on every call, and **reachable by voice as of 2026-08-20** — until then `check_availability` had no `item` parameter, so it shipped in August and no caller could ever name a unit. |
@@ -115,6 +135,7 @@ sections below record only where a vertical **differs**.
 | **Deposits / waivers** | Nothing exists. Standard for bounce houses and equipment. |
 | **Owner SMS alerts** | `owner_phone` and `followup_method` are captured at onboarding and never read. |
 | **Scout** (SaaS) | Marked DEPLOYING on the site. Not built. |
+| **Nova for any rental vertical** | 🔴 **Hits the pilot.** `lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and roofing's `visitNoun` is `'inspection'`. A party-rental client provisioned under one of the 9 gets their bounce-house hire confirmed to their customer as an **inspection**, and Nova introduces herself as writing for a roofing company. Silent, customer-facing, no error. The real defect is the fallback, not the missing keys — an unknown vertical should refuse, the way an unknown inventory key already does. |
 
 ---
 
@@ -183,19 +204,44 @@ sections below record only where a vertical **differs**.
 
 ---
 
-## The rental niches — three pages GREENLIT, and the engine is now ready
+## The rental niches — three pages BUILT and UNMERGED, engine live behind them
 
-This is where the *next* client comes from. **Three pages are greenlit** — Event & Party Rentals,
-Dumpster & Portable Restrooms, and Equipment Rental — grouped by who is buying, so one specific
-person can be pointed at one specific page. This **reverses** the older "do not add vertical pages"
-rule, written when nine pages were live with zero distribution; the chamber face-time changed it.
-**That reversal does not extend to the original nine.**
+This is where the *next* client comes from. **All three pages were built 2026-08-20 and are still
+on `feat/rental-vertical-pages`, unmerged** — Event & Party Rentals, Dumpster & Portable Restrooms,
+and Equipment Rental — grouped by who is buying, so one specific person can be pointed at one
+specific page. This **reversed** the older "do not add vertical pages" rule, written when nine pages
+were live with zero distribution. **That reversal does not extend to the original nine.**
 
-**The engine they were waiting on shipped 2026-08-20.** Multi-day hire, per-item availability
+> ⚠️ **None of this is servable today.** `master` has none of these files. The gate on merging is
+> Chris's own word-by-word copy pass; that pass ran on 2026-08-21 and produced five fix commits
+> (wholesale-template residue, a false audit promise on all 11 form pages, an overstated Nova claim,
+> pronouns and spelling, and a comment on an unscheduled cron). The branch is green — tsc clean,
+> 248 tests, mobile audit clean across 152 page/width combinations — but **merging is still a
+> decision nobody has taken.**
+
+Each niche now has **two** artifacts, mirroring the original verticals:
+- A Next.js intake route — `/event-rentals`, `/dumpster-rental`, `/equipment-rental` — with the
+  shared intake form and ROI calculator. **`/{slug}/pricing` redirects to `/book-demo`**, on
+  purpose: `TEMPLATE_AGENT_IDS` has nine keys and a rental checkout would throw
+  `No template agent configured` *after* the card was charged. Same guard as `/dental/pricing`.
+- A long-form cold-email page — `/event-rentals-leads/`, `/dumpster-rental-leads/`,
+  `/equipment-rental-leads/` — each carrying a six-category **catalogue** of what the niche
+  actually rents. That catalogue is the sales material: it is what Chris reads before a chamber
+  conversation, and it doubles as the argument for ambiguity refusal.
+
+Both are reachable from the homepage **on the branch**: Event & Party Rentals holds the **second
+featured card**, dumpster and equipment sit in the grid, and all three are in the footer. On
+production's homepage none of that exists yet.
+
+**The engine they were waiting on shipped the same day.** Multi-day hire, per-item availability
 reachable by voice, ambiguity refusal, and a signed booking handle are all live and verified
 against production. The constraint was Chris's own — *"we're not putting anything on the pages that
-isn't truthful"* — and two of the three pages could not honestly describe their core service until
-multi-day hire existed. **It does now, so all three are buildable and nothing blocks them.**
+isn't truthful"* — and two of the three could not honestly describe their core service until
+multi-day hire existed.
+
+**No page claims SMS, quoting, deposits, waivers or bulk quantities**, and none asserts an industry
+average job value — the figure in each ROI calculator is labelled a starting estimate the visitor
+moves, because there is no data behind an average for these niches.
 
 **All of these must be provisioned under one of the 9 existing verticals.** `TEMPLATE_AGENT_IDS` in
 `lib/retell-provisioning.ts` has exactly 9 keys, and `vertical` comes from Stripe's
@@ -213,6 +259,11 @@ detail to discover during a live onboarding either.
   not hired out for, and holds the unit for the whole span.
 - **Not deliverable:** bulk quantities, deposits, waivers, SMS, quoting.
 - **Needed to finish the pilot:**
+  0. 🔴 **Fix Nova's roofing fallback first.** Whichever of the 9 she is provisioned under, her
+     customers' confirmation emails describe the booking as an **inspection** and Nova writes as a
+     roofing company — `lib/nova-templates.ts:78`. Nothing errors, so this will not be caught by a
+     test call unless someone reads the confirmation email end to end. This is the one item on the
+     list that reaches her *customers* rather than her.
   1. Pick the vertical she is provisioned under — no `entertainment` template exists.
   2. Re-enable the Stripe webhook, then run a 100%-off checkout to get a real
      `stripe_subscription_id` — the billing anchor Northside can never have.
@@ -248,9 +299,19 @@ detail to discover during a live onboarding either.
 
 ## What to finish, in order
 
-Split deliberately: the first group **runs on calendar time** — filed once, then waiting — and the
-second is **build time that nothing blocks**. Start the first group, then work the second while it
-clears. Do not sit waiting on any of it.
+### Group 0 — do this first, it is one command
+
+**Merge `feat/rental-vertical-pages` (`--no-ff`).** Clean fast-forward, zero conflicts, branch is
+green. It is not primarily about the rental pages: **production is currently telling prospects to
+"check your email in 2–5 minutes" for a dossier that has never existed**, and this branch is what
+takes that down, along with every unprovable statistic, two dead audit-picker links, and four real
+mobile bugs. Those fixes protect nobody while they sit on a branch. Merging auto-deploys.
+
+---
+
+The rest is split deliberately: the first group **runs on calendar time** — filed once, then
+waiting — and the second is **build time that nothing blocks**. Start the first group, then work the
+second while it clears. Do not sit waiting on any of it.
 
 ### Group A — start these, then stop thinking about them
 
@@ -269,17 +330,16 @@ clears. Do not sit waiting on any of it.
 
 **Ordered by what helps the chamber event most.**
 
-1. **The three rental landing pages.** Greenlit 2026-08-19, and the engine they were waiting on
-   **shipped 2026-08-20** — multi-day hire, per-item availability by voice, ambiguity refusal. All
-   three can now describe their core service truthfully, which was the only thing holding them
-   back. Chris needs an artifact to point a specific person at; this is the highest-value unblocked
-   work and it touches neither Retell, SMS, nor Google.
-2. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
+1. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
    against a 964ms benchmark — audibly less fluid. Cause is prose in tool descriptions and the
    system prompt, re-sent every turn. Trimmed once (12,108 → 9,868 chars); `capture_lead` is still
    **2,571 chars** and is the fattest remaining target. **Measurable without a phone call** — send
    the live prompt and tools straight to the model and time to first token, but do it
    mid-conversation: a single-turn probe reads ~700ms while a real call averages 6,602 tokens.
+2. **Nova's vertical fallback.** `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing` turns any
+   unknown vertical into a confidently wrong confirmation email rather than a refusal. Blocks the
+   pilot from sending correct confirmations, and it is a handful of lines. Do this before the
+   inventory screen if the pilot is close.
 3. **An inventory screen.** `grep -rln client_inventory app components` returns nothing. A client
    cannot see their stock, fix a mistyped quantity, or take a torn bounce house out of service —
    the `active` column exists and is read live, it is simply unreachable. Pure Next.js, no vendor.

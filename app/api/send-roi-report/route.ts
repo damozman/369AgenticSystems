@@ -32,6 +32,9 @@ const VERTICAL_LABELS: Record<string, string> = {
   insurance:     'Insurance',
   saas:          'SaaS',
   wholesale:     'Wholesale',
+  'event-rentals':    'Event & Party Rentals',
+  'dumpster-rental':  'Dumpster & Portable Restrooms',
+  'equipment-rental': 'Equipment Rental',
 }
 
 const SETUP_LABELS: Record<string, string> = {

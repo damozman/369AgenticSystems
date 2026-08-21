@@ -37,6 +37,9 @@ const ROI_COPY: Record<string, string> = {
   insurance:     'Here\'s What Delayed Quotes Are Costing You',
   saas:          'Here\'s What Slow Demo Response Is Costing You',
   wholesale:     'Here\'s What Voicemail Delays Are Costing Your Business',
+  'event-rentals':    'Here\'s What Missed Booking Calls Cost You Per Weekend',
+  'dumpster-rental':  'Here\'s What Missed Hire Calls Are Costing You',
+  'equipment-rental': 'Here\'s What Unanswered Rental Calls Are Costing You',
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,7 +55,7 @@ interface ParsedData {
   primaryGoal:  string
 }
 
-type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale'
+type Vertical = 'roofing' | 'hvac' | 'plumbing' | 'dental' | 'legal' | 'real-estate' | 'insurance' | 'saas' | 'wholesale' | 'event-rentals' | 'dumpster-rental' | 'equipment-rental'
 
 interface Props {
   vertical: Vertical

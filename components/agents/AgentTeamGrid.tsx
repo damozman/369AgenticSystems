@@ -19,6 +19,9 @@ const VERTICAL_AGENTS: Record<Vertical, AgentName[]> = {
   saas:          ['ava', 'rex', 'nova', 'scout'],
   dental:        ['ava', 'rex', 'nova'],
   wholesale:     ['ava', 'rex', 'nova'],
+  'event-rentals':    ['ava', 'rex', 'nova'],
+  'dumpster-rental':  ['ava', 'rex', 'nova'],
+  'equipment-rental': ['ava', 'rex', 'nova'],
 }
 
 const VERTICAL_TAGLINES: Record<Vertical, string> = {
@@ -32,6 +35,9 @@ const VERTICAL_TAGLINES: Record<Vertical, string> = {
   saas:          'Your Growth Engine AOS crew. Four specialists — demos, trials, content, and intelligence.',
   dental:        'Your Patient Revenue AOS crew. Launching Year 2 with full HIPAA compliance.',
   wholesale:     'Your Distribution Velocity AOS crew. Orders captured, confirmed, and routed automatically.',
+  'event-rentals':    'Your Booking Velocity AOS crew. Availability answered, dates held, confirmations sent.',
+  'dumpster-rental':  'Your Hire Desk AOS crew. Drop-off calls answered, dates booked, follow-up handled.',
+  'equipment-rental': 'Your Rental Counter AOS crew. Machine availability answered and booked around the clock.',
 }
 
 // ── Dental Waitlist ───────────────────────────────────────────────────────────

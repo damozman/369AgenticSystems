@@ -312,16 +312,13 @@
     }
 
     /* ── ROI Slider ───────────────────────────────────────────────────────── */
-    .roi-slider {
-      -webkit-appearance: none; width: 100%; height: 2px;
-      background: rgba(255, 69, 0, 0.2); outline: none;
-      border-radius: 2px; cursor: pointer;
-    }
+    .roi-slider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; outline:none; cursor:pointer; }
+    .roi-slider::-webkit-slider-runnable-track { height:2px; background:rgba(255, 69, 0, 0.2); border-radius:2px; }
+    .roi-slider::-moz-range-track { height:2px; background:rgba(255, 69, 0, 0.2); border-radius:2px; }
     .roi-slider::-webkit-slider-thumb {
       -webkit-appearance: none; width: 22px; height: 22px;
       background: var(--orange); border-radius: 50%;
-      box-shadow: 0 0 14px rgba(255, 69, 0, 0.55);
-    }
+      box-shadow: 0 0 14px rgba(255, 69, 0, 0.55); margin-top:-10px; }
     .roi-slider::-moz-range-thumb {
       width: 22px; height: 22px; background: var(--orange);
       border-radius: 50%; border: none;
@@ -406,6 +403,24 @@
       border-radius: 8px; padding: 14px 20px;
       display: flex; align-items: center; gap: 12px;
       font-family: 'Courier New', monospace; font-size: 0.82rem;
+    }
+
+    /* ── Mobile fixes ─────────────────────────────────────────────────────────
+       Found by scripts/mobile-audit.mjs rendering this page at 320/390/430.
+       Each of these was CLIPPED by an overflow:hidden ancestor, i.e. invisible
+       on a phone with no way to scroll to it. */
+    @media (max-width: 700px) {
+      .dash-split { grid-template-columns: 1fr !important; gap: 24px !important; }
+    }
+    @media (max-width: 520px) {
+      #btn-label { font-size: 0.72rem; letter-spacing: -0.01em; }
+    }
+    /* The slider readout sits opposite a long label in a flex row. On a phone the
+       label wins the space and the value wraps — "6 / wk" rendered as "wk". */
+    .roi-value { white-space: nowrap; flex-shrink: 0; padding-left: 12px; }
+    /* The wordmark wrapped to two lines beside the nav CTA on small phones. */
+    @media (max-width: 420px) {
+      .logo { font-size: 1.05rem; white-space: nowrap; }
     }
   </style>
 </head>
@@ -525,9 +540,9 @@
         <!-- Left: The number -->
         <div class="reveal">
           <div style="margin-bottom:6px;">
-            <span class="leak-number">One&nbsp;job.</span>
+            <span class="leak-number">One job.</span>
           </div>
-          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">That's what a single unanswered call can cost — whatever your average job is worth, handed to whoever picked up instead.</p>
+          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">That's what a single unanswered call can cost — whatever that job is worth, handed to whoever picked up instead. Put your own numbers into the calculator below.</p>
           <div class="urgency-ticker" style="margin-bottom:32px;">
             <span class="storm-dot" aria-hidden="true"></span>
             <span style="color:var(--text-muted);">A voicemail is a callback you have to earn. After a storm, most homeowners just call the next roofer on the list.</span>
@@ -854,7 +869,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">Initiate Deployment</span>
         <h2 id="handoff-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">Get Your Free Roofing Audit</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:480px; margin:0 auto; line-height:1.65;">Run a free automated audit — no call required. We'll map your exact lead capture opportunity and show you exactly what the AOS recovers.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:480px; margin:0 auto; line-height:1.65;">No call required. Tell us how your calls come in today — Chris reviews every request personally and follows up within 24 hours.</p>
       </div>
 
       <div class="reveal d1">
@@ -929,7 +944,7 @@
             <div class="success-msg" id="success-msg" aria-live="polite">
               <div id="process-stage">
                 <br>
-                <span style="color:#f59e0b;">[PROCESS] Onboarding Digital Employee to <span id="company-display"></span>...</span><br>
+                <span style="color:#f59e0b;">[PROCESS] Sending <span id="company-display"></span> to the 369 Command Center...</span><br>
                 <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar" style="background:linear-gradient(90deg,#FF4500,#FF6533);"></div></div>
               </div>
               <div id="success-stage" style="display:none;">

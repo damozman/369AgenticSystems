@@ -171,8 +171,10 @@
 
     .check-item { background: rgba(20,184,166,0.05); border: 1px solid rgba(20,184,166,0.14); border-radius: 8px; padding: 11px 16px; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
 
-    .roi-slider { -webkit-appearance: none; width: 100%; height: 2px; background: rgba(20,184,166,0.2); outline: none; border-radius: 2px; cursor: pointer; }
-    .roi-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; background: var(--teal); border-radius: 50%; box-shadow: 0 0 14px rgba(20,184,166,0.55); }
+    .roi-slider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; outline:none; cursor:pointer; }
+    .roi-slider::-webkit-slider-runnable-track { height:2px; background:rgba(20,184,166,0.2); border-radius:2px; }
+    .roi-slider::-moz-range-track { height:2px; background:rgba(20,184,166,0.2); border-radius:2px; }
+    .roi-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; background: var(--teal); border-radius: 50%; box-shadow: 0 0 14px rgba(20,184,166,0.55); margin-top:-10px; }
     .roi-slider::-moz-range-thumb { width: 22px; height: 22px; background: var(--teal); border-radius: 50%; border: none; box-shadow: 0 0 14px rgba(20,184,166,0.55); }
     .roi-value { font-family: 'Instrument Sans', sans-serif; font-weight: 600; }
 
@@ -211,6 +213,24 @@
     .roi-glow { box-shadow: 0 0 80px rgba(20,184,166,0.06), 0 0 160px rgba(20,184,166,0.03); }
 
     .urgency-ticker { background: rgba(20,184,166,0.06); border: 1px solid rgba(20,184,166,0.14); border-radius: 8px; padding: 14px 20px; display: flex; align-items: center; gap: 12px; font-family: 'Courier New', monospace; font-size: 0.82rem; }
+
+    /* ── Mobile fixes ─────────────────────────────────────────────────────────
+       Found by scripts/mobile-audit.mjs rendering this page at 320/390/430.
+       Each of these was CLIPPED by an overflow:hidden ancestor, i.e. invisible
+       on a phone with no way to scroll to it. */
+    @media (max-width: 700px) {
+      .dash-split { grid-template-columns: 1fr !important; gap: 24px !important; }
+    }
+    @media (max-width: 520px) {
+      #btn-label { font-size: 0.72rem; letter-spacing: -0.01em; }
+    }
+    /* The slider readout sits opposite a long label in a flex row. On a phone the
+       label wins the space and the value wraps — "6 / wk" rendered as "wk". */
+    .roi-value { white-space: nowrap; flex-shrink: 0; padding-left: 12px; }
+    /* The wordmark wrapped to two lines beside the nav CTA on small phones. */
+    @media (max-width: 420px) {
+      .logo { font-size: 1.05rem; white-space: nowrap; }
+    }
   </style>
 </head>
 <body>
@@ -319,9 +339,9 @@
 
         <div class="reveal">
           <div style="margin-bottom:6px;">
-            <span class="leak-number">$280k</span>
+            <span class="leak-number">One policy.</span>
           </div>
-          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">The annual premium revenue a busy agency loses to missed calls, slow-answered claims, and quote requests that went to voicemail.</p>
+          <p style="color:var(--text-secondary); font-size:1.05rem; margin-bottom:12px;">That's what a quote request left on voicemail can cost — whatever that premium is worth, renewing with somebody else every year after. Put your own numbers into the calculator below.</p>
           <div class="urgency-ticker" style="margin-bottom:32px;">
             <span class="pulse-dot" aria-hidden="true"></span>
             <span style="color:var(--teal);">FACT:</span>
@@ -453,7 +473,7 @@
         <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(20,184,166,0.02) 100%); pointer-events:none; border-radius:16px;" aria-hidden="true"></div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
+          <div class="dash-split" style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
             <div>
               <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
                 <div style="width:44px; height:44px; background:rgba(39,201,63,0.1); border:1px solid rgba(39,201,63,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;" aria-hidden="true">
@@ -535,11 +555,11 @@
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
-            <div id="monthly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$14k</div>
+            <div id="weekly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$14k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
-            <div id="quarterly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$62k</div>
+            <div id="monthly-lapse" class="font-display" style="font-size:2rem; font-weight:600; color:var(--teal);">$62k</div>
           </div>
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Premium</div>
@@ -634,7 +654,7 @@
         <div class="accent-line" aria-hidden="true"></div>
         <span class="section-label">Initiate Deployment</span>
         <h2 id="handoff-heading" class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em; line-height:1.1;">Get Your Free Agency Audit</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:480px; margin:0 auto; line-height:1.65;">Run a free automated audit — no call required. We'll map your exact call-answering opportunity and show you precisely what the AOS recovers.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:480px; margin:0 auto; line-height:1.65;">No call required. Tell us how your quote calls come in today — Chris reviews every request personally and follows up within 24 hours.</p>
       </div>
 
       <div class="reveal d1">
@@ -703,15 +723,16 @@
             <div class="success-msg" id="success-msg" aria-live="polite">
               <div id="process-stage">
                 <br>
-                <span style="color:#f59e0b;">[PROCESS] Onboarding Digital Employee to <span id="company-display"></span>...</span><br>
+                <span style="color:#f59e0b;">[PROCESS] Sending <span id="company-display"></span> to the 369 Command Center...</span><br>
                 <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar" style="background:linear-gradient(90deg,#14B8A6,#5EEAD4);"></div></div>
               </div>
               <div id="success-stage" style="display:none;">
-                <span style="color:#27c93f;">[SUCCESS] 369 Core connected. Your Digital Employee is drafting your Onboarding Dossier now. Check your email in 2-5 minutes.</span><br>
-                <span style="color:var(--text-muted);">→ Submission received by the 369 Agentic Core.</span><br>
-                <span style="color:var(--text-muted);">→ Expect contact within 24 hours.</span><br>
-                <span style="color:var(--text-muted);">→ Skip the wait — <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now →</a></span><br>
-                <span style="color:var(--teal);">→ Your Insurance Digital Employee is being configured.</span> <span class="blink">█</span>
+                <span style="color:#27c93f;">[SUCCESS] Request received for <span id="company-display-2"></span>.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">Your details are with Chris now.</strong></span><br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">He reviews every request personally</strong> and follows up within 24 hours.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; Skip the wait &mdash; <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now &rarr;</a></span> <span class="blink">&#9608;</span>
               </div>
             </div>
 
@@ -788,8 +809,8 @@
     const premiumSlider  = document.getElementById('premium-slider');
     const renewalsDisp   = document.getElementById('renewals-display');
     const premiumDisp    = document.getElementById('premium-display');
-    const mlEl = document.getElementById('monthly-lapse');
-    const qlEl = document.getElementById('quarterly-lapse');
+    const wkEl = document.getElementById('weekly-lapse');
+    const moEl = document.getElementById('monthly-lapse');
     const alEl = document.getElementById('annual-lapse');
 
     function fmt(n) {
@@ -808,8 +829,8 @@
       const annual    = Math.round(weekly * 52);
       renewalsDisp.textContent = missedCalls + ' / wk';
       premiumDisp.textContent  = '$' + premium.toLocaleString();
-      mlEl.textContent = fmt(Math.round(weekly));
-      qlEl.textContent = fmt(monthly);
+      wkEl.textContent = fmt(Math.round(weekly));
+      moEl.textContent = fmt(monthly);
       alEl.textContent = fmt(annual);
     }
     renewalsSlider.addEventListener('input', updateROI);
@@ -884,6 +905,8 @@
       success.style.display = 'block';
       const companyDisplay = document.getElementById('company-display');
       if (companyDisplay) companyDisplay.textContent = payload.client_company || 'your agency';
+      const companyDisplay2 = document.getElementById('company-display-2');
+      if (companyDisplay2) companyDisplay2.textContent = payload.client_company || 'your company';
       const bar = document.getElementById('loading-bar');
       if (bar) {
         requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '100%'; }));

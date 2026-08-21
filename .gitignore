@@ -41,3 +41,4 @@ desktop.ini
 
 # Lead scraper output (CSV files contain prospect data — keep local)
 scripts/output/
+.mobile-audit/

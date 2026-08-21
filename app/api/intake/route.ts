@@ -66,6 +66,9 @@ const VERTICAL_BY_TAG: Record<string, string> = {
   '369AS_SAAS_INTAKE':        'saas',
   '369AS_DENTAL_INTAKE':      'dental',
   '369AS_WHOLESALE_INTAKE':   'wholesale',
+  '369AS_EVENT_RENTALS_INTAKE':    'event-rentals',
+  '369AS_DUMPSTER_RENTAL_INTAKE':  'dumpster-rental',
+  '369AS_EQUIPMENT_RENTAL_INTAKE': 'equipment-rental',
 }
 
 function verticalFrom(sourceTag: string): string {

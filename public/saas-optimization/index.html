@@ -384,22 +384,15 @@
     }
 
     /* ── ROI Calculator ──────────────────────────────────────────────────── */
-    .roi-slider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 2px;
-      background: rgba(139, 92, 246, 0.2);
-      outline: none;
-      border-radius: 2px;
-      cursor: pointer;
-    }
+    .roi-slider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; outline:none; cursor:pointer; }
+    .roi-slider::-webkit-slider-runnable-track { height:2px; background:rgba(139, 92, 246, 0.2); border-radius:2px; }
+    .roi-slider::-moz-range-track { height:2px; background:rgba(139, 92, 246, 0.2); border-radius:2px; }
     .roi-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 22px; height: 22px;
       background: var(--purple);
       border-radius: 50%;
-      box-shadow: 0 0 14px rgba(139, 92, 246, 0.55);
-    }
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.55); margin-top:-10px; }
     .roi-slider::-moz-range-thumb {
       width: 22px; height: 22px;
       background: var(--purple);
@@ -515,6 +508,24 @@
       color: var(--text-muted);
       font-family: 'Courier New', monospace;
       margin-top: 3px;
+    }
+
+    /* ── Mobile fixes ─────────────────────────────────────────────────────────
+       Found by scripts/mobile-audit.mjs rendering this page at 320/390/430.
+       Each of these was CLIPPED by an overflow:hidden ancestor, i.e. invisible
+       on a phone with no way to scroll to it. */
+    @media (max-width: 700px) {
+      .dash-split { grid-template-columns: 1fr !important; gap: 24px !important; }
+    }
+    @media (max-width: 520px) {
+      #btn-label { font-size: 0.72rem; letter-spacing: -0.01em; }
+    }
+    /* The slider readout sits opposite a long label in a flex row. On a phone the
+       label wins the space and the value wraps — "6 / wk" rendered as "wk". */
+    .roi-value { white-space: nowrap; flex-shrink: 0; padding-left: 12px; }
+    /* The wordmark wrapped to two lines beside the nav CTA on small phones. */
+    @media (max-width: 420px) {
+      .logo { font-size: 1.05rem; white-space: nowrap; }
     }
   </style>
 </head>
@@ -736,7 +747,7 @@
         <div class="glass bento-card reveal d3" style="grid-column:1/-1; padding:40px; position:relative; overflow:hidden;">
           <div style="position:absolute; inset:0; background:linear-gradient(135deg, transparent 0%, rgba(139,92,246,0.025) 100%); pointer-events:none; border-radius:16px;"></div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
+          <div class="dash-split" style="display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;">
             <div>
               <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
                 <div style="width:44px; height:44px; background:rgba(39,201,63,0.1); border:1px solid rgba(39,201,63,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">
@@ -930,7 +941,7 @@
         <div class="purple-line"></div>
         <span class="section-label">Initiate Deployment</span>
         <h2 class="font-display" style="font-size:clamp(2rem, 5vw, 3.2rem); font-weight:600; margin-top:12px; margin-bottom:16px; letter-spacing:-0.02em;">Get Your Free Growth Audit</h2>
-        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">Run a free automated audit — no call required. We'll map your exact keyword opportunity and content gap. No pitch. Just the numbers.</p>
+        <p style="color:var(--text-secondary); font-size:0.975rem; max-width:460px; margin:0 auto; line-height:1.65;">No call required. Tell us how your leads come in today — Chris reviews every request personally and follows up within 24 hours.</p>
       </div>
 
       <div class="reveal d1">
@@ -1010,15 +1021,16 @@
             <div class="success-msg" id="success-msg">
               <div id="process-stage">
                 <br>
-                <span style="color:#f59e0b;">[PROCESS] Onboarding Digital Employee to <span id="company-display"></span>...</span><br>
+                <span style="color:#f59e0b;">[PROCESS] Sending <span id="company-display"></span> to the 369 Command Center...</span><br>
                 <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar" style="background:linear-gradient(90deg,#8B5CF6,#C4B5FD);"></div></div>
               </div>
               <div id="success-stage" style="display:none;">
-                <span style="color:#27c93f;">[SUCCESS] 369 Core connected. Your Digital Employee is drafting your Onboarding Dossier now. Check your email in 2-5 minutes.</span><br>
-                <span style="color:var(--text-muted);">→ Submission received by the 369 Agentic Core.</span><br>
-                <span style="color:var(--text-muted);">→ Expect contact within 24 hours.</span><br>
-                <span style="color:var(--text-muted);">→ Skip the wait — <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now →</a></span><br>
-                <span style="color:var(--purple-light);">→ Your SaaS Digital Employee is being configured.</span> <span class="blink">█</span>
+                <span style="color:#27c93f;">[SUCCESS] Request received for <span id="company-display-2"></span>.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">Your details are with Chris now.</strong></span><br>
+                <span style="color:var(--text-muted);">&rarr; <strong style="color:#F0F0F0;">He reviews every request personally</strong> and follows up within 24 hours.</span><br>
+                <br>
+                <span style="color:var(--text-muted);">&rarr; Skip the wait &mdash; <a href="https://cal.com/369agentic/30min" target="_blank" rel="noopener" style="color:#D4AF37; text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.4);">book your 30-min call now &rarr;</a></span> <span class="blink">&#9608;</span>
               </div>
             </div>
 
@@ -1212,6 +1224,8 @@
       success.style.display = 'block';
       const companyDisplay = document.getElementById('company-display');
       if (companyDisplay) companyDisplay.textContent = payload.client_company || 'your company';
+      const companyDisplay2 = document.getElementById('company-display-2');
+      if (companyDisplay2) companyDisplay2.textContent = payload.client_company || 'your company';
       const bar = document.getElementById('loading-bar');
       if (bar) {
         requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '100%'; }));
