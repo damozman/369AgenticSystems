@@ -3,11 +3,18 @@
 **Ground truth as of 2026-08-21.** Read this before a sales call, before a chamber event,
 before quoting a feature, before flipping Stripe to live.
 
-> 🔴 **The three rental pages are NOT on production.** They live on `feat/rental-vertical-pages`,
-> which is **unmerged** — `master` has no `event-rentals`, `dumpster-rental` or `equipment-rental`
-> route and no `*-leads` page for any of them. Verified against `git ls-tree master` on 2026-08-21.
-> **Do not point anyone at those URLs yet; they 404 on the live site.** The section below describes
-> what is built and waiting, not what is servable. Everything else in this file refers to production.
+> 🔴 **The three rental pages are NOT on production — but the merge is decided and is the next
+> action.** They live on `feat/rental-vertical-pages`, unmerged: `master` has no `event-rentals`,
+> `dumpster-rental` or `equipment-rental` route and no `*-leads` page for any of them. Verified
+> against `git ls-tree master` on 2026-08-21.
+>
+> **Until that merge lands, do not point anyone at those URLs — they 404 on the live site.**
+> The rental section below describes what is built and waiting, not what is servable.
+> **Everything else in this file refers to production and is accurate today.**
+>
+> **When the merge lands, delete this banner** and move the rental section from "built" to
+> "deliverable" — but note that merging does **not** make the pilot safe on its own. See the Nova
+> fallback in "Not built — do not sell", and step 0 of the pilot checklist.
 
 > **Companion docs.** `369-SYSTEM-BLUEPRINT.md` explains the architecture; `ROADMAP-TO-REAL-AGENCY.md`
 > is the dated history. **Both are stale (Jul 16) and carry a banner saying so.** This file is the
@@ -292,9 +299,19 @@ detail to discover during a live onboarding either.
 
 ## What to finish, in order
 
-Split deliberately: the first group **runs on calendar time** — filed once, then waiting — and the
-second is **build time that nothing blocks**. Start the first group, then work the second while it
-clears. Do not sit waiting on any of it.
+### Group 0 — do this first, it is one command
+
+**Merge `feat/rental-vertical-pages` (`--no-ff`).** Clean fast-forward, zero conflicts, branch is
+green. It is not primarily about the rental pages: **production is currently telling prospects to
+"check your email in 2–5 minutes" for a dossier that has never existed**, and this branch is what
+takes that down, along with every unprovable statistic, two dead audit-picker links, and four real
+mobile bugs. Those fixes protect nobody while they sit on a branch. Merging auto-deploys.
+
+---
+
+The rest is split deliberately: the first group **runs on calendar time** — filed once, then
+waiting — and the second is **build time that nothing blocks**. Start the first group, then work the
+second while it clears. Do not sit waiting on any of it.
 
 ### Group A — start these, then stop thinking about them
 

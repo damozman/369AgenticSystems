@@ -26,7 +26,42 @@ is the only reason it is trustworthy. The three other docs in `docs/architecture
 
 ### Where this session ended — 2026-08-21
 
-**🔶 `feat/rental-vertical-pages` is UNMERGED — 23 commits, `master` untouched. Nothing below is on
+## ▶ START HERE NEXT SESSION — two things, in this order
+
+**1 · MERGE `feat/rental-vertical-pages`. Chris has decided to; he wants to do it first and watch
+the deploy.** It is a **clean fast-forward** — `git log HEAD..master` is empty and `git merge-tree`
+reports zero conflicts (checked 2026-08-21). **Use `--no-ff`**: 25 commits flattened into master
+give no single undo point, whereas a merge commit means one `git revert -m 1` restores everything.
+
+```
+git checkout master && git merge --no-ff feat/rental-vertical-pages
+```
+
+**Merging auto-deploys to production.** Afterwards, walk the live site with him — the homepage is
+substantially rebuilt and the three rental pages will be public for the first time.
+
+*Why merge, in one line: production is currently telling prospects "check your email in 2–5
+minutes" for a dossier that has never existed, and this branch is what fixes that.* The branch is
+green — tsc, 248 tests, production build, `mobile-audit` 152 combinations with no overflow.
+
+**2 · Then build the full roadmap.** Chris asked for this explicitly as the next session's work.
+The raw material already exists and should be consolidated, not re-derived:
+- `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md` → **Groups A / B / C** is the real operational
+  roadmap. A = calendar time (A2P, Google verification, the Retell ticket); B = buildable now;
+  C = gated on a real client.
+- **CLAUDE.md "Open items" 0–11** below — the durable list. Item 11 (Nova's roofing fallback) is
+  the one that reaches a customer.
+- `docs/DOSSIER-DESIGN.md` → build order 0–7 for the dossier feature.
+- `docs/PHASE-2-ROADMAP.md` → **planning reference only, dated 2026-07-16, and it says so itself.**
+  Future *paid add-ons* (Quinn the quoting agent, `PREMIUM_ADDONS`), not operational work. Do not
+  confuse it with the roadmap being asked for; do read it before deciding what comes after the pilot.
+
+**The forcing function for ordering is the pilot**, not the backlog: she is back ~2026-09-02 and the
+chamber event is ~mid-September.
+
+---
+
+**🔶 `feat/rental-vertical-pages` is UNMERGED — 25 commits, `master` untouched. Nothing below is on
 production.** Verified, not assumed: `git ls-tree master` has no `event-rentals`, `dumpster-rental`
 or `equipment-rental` route and no `*-leads` page for any of them.
 
@@ -45,6 +80,14 @@ fixes. **Five commits**, split by root cause rather than by file:
 - `72ac66e` **Nova claim softened + three homepage badges → STANDBY.** See the blocker below.
 - `69fbbb4` neutral pronouns (two were H1s) and one spelling standard (US).
 - `4ccc514` a banner on the unscheduled monthly-ROI cron.
+- `42b571f` the same id/label mismatch on `insurance-leads`, missed first time because it uses
+  `-lapse` not `-loss`.
+
+**Do not re-audit the ROI calculators.** All **twelve** were checked against each page's own slider
+defaults and `RECOVERY_RATE` on 2026-08-21 — every one is arithmetically correct, including the two
+on a monthly rather than weekly base (real-estate; roofing's $1.2M). The three rental pages were the
+only wrong ones. Every `getElementById` on all 12 pages was also checked for dangling refs: the only
+hit is `intake-error`, which is **correct by design** — `showIntakeFailure()` creates it if absent.
 
 **Verification that actually ran:** tsc clean · 248 tests · production build clean ·
 `scripts/mobile-audit.mjs` **152 combinations across 19 pages, no overflow, no clipping** — re-run
