@@ -22,83 +22,89 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-20 (evening).
+**Last updated:** 2026-08-21.
 
-### Where this session ended — 2026-08-20 (evening)
+### Where this session ended — 2026-08-21
 
-**🔶 `feat/rental-vertical-pages` is UNMERGED, preview green, `master` untouched.** (Commit count
-rots on every push — ask git, not this file.)
-**Nothing below is on production.** Preview:
-`https://369-agentic-systems-git-feat-rental-vertical-pages-3six9mm.vercel.app`
-(Vercel SSO 302s *every* path, so a 302 there proves nothing — verify against a local
-`npm run build && npm start`.)
+**🔶 `feat/rental-vertical-pages` is UNMERGED — 23 commits, `master` untouched. Nothing below is on
+production.** Verified, not assumed: `git ls-tree master` has no `event-rentals`, `dumpster-rental`
+or `equipment-rental` route and no `*-leads` page for any of them.
 
-**Chris still wants a word-by-word copy pass over everything written today.** Nothing has had one.
-That is the gate on merging.
+#### The copy pass is DONE — it was the gate on merging, and that gate is now clear
+Chris asked for the word-by-word pass, verified all six findings independently, and directed the
+fixes. **Five commits**, split by root cause rather than by file:
 
-#### What shipped on the branch
-- **The three rental niches got both artifacts each** — Next.js intake routes (`/event-rentals`,
-  `/dumpster-rental`, `/equipment-rental`) and long-form `-leads` cold-email pages, each with a
-  six-category **catalogue** of what the niche actually rents. Closes Group B #1.
-  `/{slug}/pricing` **redirects to `/book-demo`** on purpose — `TEMPLATE_AGENT_IDS` has nine keys
-  and a rental checkout would throw *after* the card was charged.
-- **Homepage repositioned.** AOS demoted from positioning statement to product name: hero leads
-  with the job ("Never Miss the Call. Never Lose the Job.") and the mechanism; AOS reappears at the
-  catalog where it earns the $400. Untouched everywhere else.
-- **Split hero with a live call panel** (scripted booking flow, captioned as a dramatisation),
-  plus the two things the hero never had: a primary CTA and the demo number above the fold.
-- **Every unprovable statistic is gone from the site.** Seven pages asserted a dollar average as
-  fact; percentage claims sat on HVAC, dental and legal. All replaced with roofing's own device —
-  "One job." / "One call." / "One booking." — where the big line names the thing lost and the
-  caption names the call that lost it. **`RECOVERY_RATE` assumption lines stay** — those are
-  labelled assumptions and are the correct pattern.
-- **Audit picker rebuilt.** It had six verticals and **two dead destinations**: `dental/#handoff`
-  and `real-estate/#handoff` point at Next.js routes with no such anchor. Now 11 industries plus
-  Not Listed, every destination browser-verified.
-- **The intake success screen no longer promises an email that never sends.** It claimed a dossier
-  was being drafted and told the prospect to check their email in 2–5 minutes. `/api/intake` emails
-  the **owner only**. roofing/hvac/plumbing already had honest copy; it never propagated. It has now.
+- `61ecf0d` **the wholesale template leaked into all three rental pages.** The PRIMARY hero button
+  read *"Deploy Distribution Velocity AOS"* — wholesale's product — on all three. The ROI fallbacks
+  read `$12k / $53k / $640k`, which are **correct for wholesale** (5/wk × $8,200) and ~20× wrong for
+  a rental yard. Also Nova's `alt` text and readout ids that never matched their labels.
+- `5f6b61b` **the audit promise that was never kept.** All 11 pages with a form said *"Run a free
+  automated audit… we'll map your exact X and show you precisely what the AOS recovers."* Nothing is
+  mapped and nothing is sent. b90e5a2 fixed the screen shown AFTER submitting; the promise one
+  paragraph ABOVE the button was left standing, so each page contradicted itself in one section.
+- `72ac66e` **Nova claim softened + three homepage badges → STANDBY.** See the blocker below.
+- `69fbbb4` neutral pronouns (two were H1s) and one spelling standard (US).
+- `4ccc514` a banner on the unscheduled monthly-ROI cron.
 
-#### New capability: `scripts/mobile-audit.mjs` (committed, listed in the scripts section)
-Renders all 19 public pages at **eight** widths, 320 → 1920, and reports overflow, content clipped
-by an `overflow:hidden` ancestor, spills out of fixed-height boxes, and untappable targets. It
-opens modals before probing. **Playwright is now a devDependency.**
-It found four real bugs (dashboard card never collapsing, clipped button label, a 2px slider hit
-area, and system cards one line short). **Do not reason about breakpoints instead of running it** —
-that is exactly how a July session's findings were lost.
+**Verification that actually ran:** tsc clean · 248 tests · production build clean ·
+`scripts/mobile-audit.mjs` **152 combinations across 19 pages, no overflow, no clipping** — re-run
+after the copy changes because they altered text length in display type.
 
-#### 🔴 In flight — the Operational Dossier
-**`docs/DOSSIER-DESIGN.md` is written and Chris approved it: "get it rolling."** Design only,
-nothing built. Read it first. Two blockers it records, both found during review:
+#### 🔴 The blocker this session found — Nova falls back to roofing
+`lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and
+roofing's `visitNoun` is `'inspection'`. **`NovaVertical` is the original nine only.**
+
+**This lands on the pilot.** She is an event-rental business, there is no `event-rentals` template
+agent, so she gets provisioned under one of the nine — and her customers' confirmation emails will
+describe a bounce-house hire as an **inspection**, with Nova introducing herself as writing for a
+roofing company. Nothing errors. A test call will not catch it unless somebody reads the
+confirmation email end to end.
+
+**The defect is the fallback, not the missing keys.** It converts an unknown vertical into a
+confidently wrong email instead of refusing — the opposite of the rule inventory matching already
+follows. Fix it before the pilot takes a real booking. Written up in `docs/DOSSIER-DESIGN.md`.
+
+#### What is on the branch (built 2026-08-20, unchanged by the copy pass)
+- **Three rental niches, both artifacts each** — Next.js intake routes and long-form `-leads` pages
+  with a six-category catalogue. `/{slug}/pricing` **redirects to `/book-demo`** on purpose:
+  `TEMPLATE_AGENT_IDS` has nine keys and a rental checkout would throw *after* the card was charged.
+- **Homepage repositioned** — hero leads with the job, AOS demoted to product name; split hero with
+  a live call panel; a primary CTA and the demo number above the fold.
+- **Every unprovable statistic is gone.** `RECOVERY_RATE` assumption lines stay — correct pattern.
+- **Audit picker rebuilt** — was 6 verticals with 2 dead anchors; now 11 + Not Listed, all verified.
+- **`scripts/mobile-audit.mjs`** — 19 pages × 8 widths. Playwright is a devDependency.
+  **Do not reason about breakpoints instead of running it.**
+
+#### 🔴 Still in flight — the Operational Dossier
+`docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Design only, nothing built.**
+Two blockers it records:
 
 1. **`/api/intake` persists six columns** — domain, email, name, industry, status, created_at.
    **Company, pain point and volume are never stored**, and **average job value is not collected at
-   all.** A dossier generator reading the DB today has a domain, an email and a name. This is
-   **step 0** and everything depends on it. Note `supabase/migrations/2026-07-22-system-audits-prospect-context.sql`
-   fixed the same class of bug before — "already being received … but never persisted."
-2. **There is no audit agent.** `lib/audit-call-dial.ts` falls back to the shared demo agent when
-   `RETELL_AUDIT_AGENT_ID` is unset, so a prospect answering would be greeted as their own
-   receptionist.
+   all.** This is **step 0**; everything depends on it.
+2. **There is no audit agent.** `lib/audit-call-dial.ts` falls back to the shared demo agent, so a
+   prospect answering would be greeted as their own receptionist.
 
-**The governing rule for the whole feature:** *the model may write the prose, the model may never
-invent a number.* The Gumloop dossier it replaces returned `security_score: 41` for all 19 rows
-because the prompt said "estimate". `lib/audit-call.ts` already encodes this discipline — read it
-before building.
+**The governing rule:** *the model may write the prose, the model may never invent a number.*
+Read `lib/audit-call.ts` before building — it already encodes the discipline.
 
 **Chris's decisions:** late-evening call, **disclose that we call, never when**; **two calls**
-(business hours + evening) because the comparison isolates the problem; recording attached but
-**human-reviewed** (AI cannot vouch for a recording's content — `disconnection_reason` is
-mechanical, a transcript is ASR); **approval gate on** until he is confident.
+(business hours + evening); recording attached but **human-reviewed**; **approval gate on**.
 
-**Build order:** 0 persist the intake payload · 1 send the prospect a real email from `/api/intake`
-· 2 form changes (pain-point checkboxes replacing "All of the above", average value, the call
-disclosure) · 3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule ·
-6 approval queue · 7 delete `lib/email-templates.ts`.
+**Build order:** 0 persist the intake payload · 1 send the prospect a real email · 2 form changes ·
+3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule · 6 approval queue ·
+7 delete `lib/email-templates.ts`.
 
 #### Raised, NOT fixed — Chris's call
 `saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which
 says an SDR is free. Not a fabricated stat, so it was left alone, but it is confusing.
 
+#### One doc error worth remembering
+`WHAT-CAN-I-DELIVER-TODAY.md` said the rental pages had **shipped**, and it is the doc read *before
+a chamber event*. They are on an unmerged branch. It also contradicted itself on row counts
+(55/27/21 in prose, 72/31/24 in the table). Production says **72/31/24**. Both corrected 2026-08-21
+by re-deriving from Supabase and `git ls-tree`, per that file's own rule: re-derive from the live
+system, never from the previous version of the doc.
 ### Where the previous session ended — 2026-08-20 (overnight)
 
 **`master` is clean, nothing is open, everything below is deployed.** PRs #42–#47 merged; the rest
@@ -626,8 +632,33 @@ verified this app" interstitial and must click Advanced → Continue, and there 
 10. **Three Anthropic call sites still pin `claude-sonnet-4-6`** (`email-ingest`,
    `felix/conflict-check`, `nova-templates`). Deliberately left alone — the latter two run mid-call
    on live Retell traffic. Measure before changing any of them.
+11. 🔴 **Nova falls back to roofing for any vertical outside the nine — fix before the pilot books.**
+   `lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and
+   roofing's `visitNoun` is `'inspection'`. The pilot is an event-rental business with no template
+   agent of its own, so she is provisioned under one of the nine and **her customers get a
+   bounce-house hire confirmed as an "inspection"**, from a Nova who says she writes for a roofing
+   company. Nothing errors; a test call will not surface it unless somebody reads the confirmation
+   email itself. **The defect is the fallback, not the three missing keys** — it turns an unknown
+   vertical into a confidently wrong email instead of refusing, which is the opposite of what
+   inventory matching already does with an unknown key. Found in the 2026-08-21 copy pass; the
+   page copy was softened, the product gap was not touched.
 
 ### Lessons that each cost real time
+- **A page cloned from another page inherits its NUMBERS, and numbers do not look wrong.** The three
+  rental pages were built from `wholesale-leads`. Four things came across unnoticed: the primary
+  hero CTA still said *"Deploy Distribution Velocity AOS"*, the ROI fallbacks still read
+  `$12k / $53k / $640k`, Nova's `alt` text still said "Order Confirmation", and the readout ids
+  still said `monthly`/`quarterly`. **The numbers were the hardest to see, because they were
+  internally consistent and correct — for wholesale.** 5/wk × $8,200 × 0.30 genuinely is $640k a
+  year. Prose gets reread when a vertical changes; a figure in a `<div>` does not. **After cloning a
+  page, diff it against its source and read every literal that survived**, and check each one
+  against the new page's own inputs rather than against whether it looks plausible.
+- **A doc that says "shipped" is making a claim about production, and needs the same proof as code.**
+  `WHAT-CAN-I-DELIVER-TODAY.md` — the file whose header says to read it *before a chamber event* —
+  described three rental pages as shipped and reachable from the homepage while they sat on an
+  unmerged branch. It also disagreed with itself on row counts. `git ls-tree master` and one
+  Supabase count settled both in under a minute. Its own rule was already right: **re-derive from
+  the live system, never from the doc's previous version.**
 - **A bug derived from documentation is a hypothesis, not a finding.** On 2026-08-18 a careful
   reading of the Stripe webhook produced a confident, specific, plausible claim: a 100%-off
   checkout sends `payment_status: 'no_payment_required'`, the gate only accepts `'paid'`, so the
