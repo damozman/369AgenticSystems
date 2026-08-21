@@ -1,3 +1,26 @@
+// ⚠️ DELIBERATELY NOT SCHEDULED. Do not add this path to vercel.json without
+// first replacing JOB_VALUE below.
+//
+// This route is absent from vercel.json's `crons` array, so it never fires. That
+// is not an oversight — it is the fix. The JOB_VALUE table is a set of invented
+// per-vertical industry averages, exactly the class of number stripped off every
+// public page on 2026-08-20 because we cannot prove any of them. Nothing measures
+// these; they were typed in. Schedule this as-is and it emails a named client a
+// dollar figure derived from a made-up average, once a month, in writing — the
+// same mistake as the Gumloop dossier's `security_score: 41`, which returned the
+// identical score for all 19 rows because the prompt said "estimate".
+//
+// Three things must be true before this is turned on:
+//   1. JOB_VALUE is replaced by the client's OWN average job value, read from
+//      their record — the intake form does not collect it yet (see
+//      docs/DOSSIER-DESIGN.md, build step 0).
+//   2. Every figure in the email states its assumption on screen, as the on-page
+//      calculators do with RECOVERY_RATE (lib/roi.ts).
+//   3. The rental verticals exist here at all. There are nine keys; event-rentals,
+//      dumpster-rental and equipment-rental are not among them.
+//
+// The governing rule, from the dossier design: the model may write the prose, the
+// model may never invent a number.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendMonthlyROIReport } from '@/lib/email-sequences'
@@ -14,7 +37,9 @@ const MONTHLY_COST: Record<string, number> = {
   Elite: 750,
 }
 
-// Job values per vertical
+// ⚠️ INVENTED NUMBERS — see the banner at the top of this file. Nothing measured
+// these. They must be replaced with each client's own figure before this route is
+// ever scheduled.
 const JOB_VALUE: Record<string, number> = {
   roofing: 2500,
   hvac: 350,
