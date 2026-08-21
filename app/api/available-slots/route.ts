@@ -179,18 +179,40 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  if (wantedItem?.kind === 'none') {
+  const rentalItems = inventory.filter(isRental)
+
+  /**
+   * An unknown item used to return the WHOLE catalogue as `options`, with nothing checked against
+   * the calendar. Ava read that list out as if it were an offer, the caller picked one, and only
+   * then did she discover every one of them was busy — observed on a real call 2026-08-21, where
+   * "Unicorn" produced four suggestions and all four came back unavailable a turn later.
+   *
+   * Reciting stock is not answering "what can I have on Saturday". So when the yard hires things
+   * out, fall through to the rental pass below instead of returning early: it already computes
+   * real availability across every rental item and reports which item each window belongs to.
+   * The caller then hears only things they can actually book.
+   *
+   * A business with no rental items has no such pass to fall into, so it keeps the old reply —
+   * but even then the list is capped, because reading a long catalogue down the phone is its own
+   * failure. `describeChoices` already refuses past MAX_SPOKEN_CHOICES.
+   */
+  const notStocked = wantedItem?.kind === 'none' ? (requestedItem ?? 'that') : null
+
+  if (notStocked && rentalItems.length === 0) {
     console.log(`[SLOTS] ⚠  "${requestedItem}" is not stocked — ${clientDomain}`)
     return NextResponse.json({
       slots: [],
       timezone: schedule.timezone,
       error: 'item_unknown',
-      message: `That is not something this business stocks. What they do have is ${describeChoices(inventory)}.`,
+      message: `That is not something this business stocks. What they do have is ${describeChoices(inventory)}. `
+        + 'Do not present any of these as available until you have checked one.',
       options: inventory.map(c => c.label),
     })
   }
 
-  const rentalItems = inventory.filter(isRental)
+  if (notStocked) {
+    console.log(`[SLOTS] ⚠  "${requestedItem}" is not stocked — offering what is actually free — ${clientDomain}`)
+  }
 
   if (rentalItems.length > 0) {
     // Answer with windows when the caller named a rental item, or when everything in stock is
@@ -200,7 +222,10 @@ export async function POST(request: NextRequest) {
     const namedRental = wantedItem?.kind === 'match' && isRental(wantedItem.item)
     const allRental = rentalItems.length === inventory.length
 
-    if (namedRental || allRental) {
+    // `notStocked` joins these two because the caller HAS named a hire item — it just is not one
+    // this yard carries. On a mixed yard that is still a rental question, so answering with
+    // intra-day appointment slots would offer times to come in rather than units they can take.
+    if (namedRental || allRental || notStocked) {
       const forItems = namedRental ? [wantedItem.item] : rentalItems
 
       // How long they want it. Absent is the common case on a first question — fall back to the
@@ -248,12 +273,35 @@ export async function POST(request: NextRequest) {
         const why = outOfRange.length > 0
           ? `That length is not one they hire out — ${outOfRange.join(', and ')}. Tell them the minimum and ask if that works.`
           : 'Nothing is free for those dates. Offer to take their details and have someone call back.'
+        const prefix = notStocked ? `They do not stock "${notStocked}". ` : ''
         console.log(`[SLOTS] No rental window — ${clientDomain}${outOfRange.length ? ' (length out of range)' : ''}`)
-        return NextResponse.json({ slots: [], timezone: schedule.timezone, message: why })
+        return NextResponse.json({ slots: [], timezone: schedule.timezone, message: prefix + why })
       }
 
-      const chosenWindows = offers.slice(0, 4)
-      const spokenWindows = chosenWindows.map(o => formatRentalWindow(o.slot, schedule.timezone))
+      // Offers are sorted by time, so the earliest four can all be the SAME unit — which answers
+      // "when is the Castle Combo free" when the caller asked "what do you have on Saturday".
+      // When several items are in play, take each item's earliest window first, then backfill.
+      // One item still gets its next-best times, because there is nothing else to show.
+      const chosenWindows = (() => {
+        if (forItems.length <= 1) return offers.slice(0, 4)
+        const seen = new Set<string>()
+        const spread = offers.filter(o => {
+          const key = o.items[0]?.item_key ?? ''
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        return [...spread, ...offers.filter(o => !spread.includes(o))].slice(0, 4)
+      })()
+      // When the caller named one item, the window alone is the answer — they know what it is for.
+      // When several items are in play (a vague question, or one we do not stock) a bare "Saturday
+      // at 10" does not say *of what*, so Ava either guesses or re-checks item by item — which is
+      // what produced seven check_availability calls on one real call. Name the item inline.
+      const spokenWindows = chosenWindows.map(o => {
+        const window = formatRentalWindow(o.slot, schedule.timezone)
+        const label = o.items[0]?.label
+        return forItems.length > 1 && label ? `${label} — ${window}` : window
+      })
 
       console.log(`[SLOTS] ✓  ${chosenWindows.length} rental window(s) — ${clientDomain}`)
 
@@ -261,6 +309,15 @@ export async function POST(request: NextRequest) {
         slots: spokenWindows,
         suggested: spokenWindows.length > 1 ? `${spokenWindows[0]} or ${spokenWindows[1]}` : spokenWindows[0],
         timezone: schedule.timezone,
+        // Named only when the caller asked for something not carried. Every window below IS free,
+        // so Ava can decline and offer in one breath instead of reciting stock she has not checked.
+        ...(notStocked
+          ? {
+              error: 'item_unknown',
+              message: `They do not stock "${notStocked}". Say so, then offer ONLY from the windows below — `
+                + 'each one names the item that is actually free. Do not read out the rest of the catalogue.',
+            }
+          : {}),
         // booking_token carries the item and the exact hire interval, so book_appointment does
         // not depend on Ava re-supplying them. See lib/security/booking-token.ts.
         slot_details: chosenWindows.map((o, i) => ({
