@@ -26,53 +26,77 @@ is the only reason it is trustworthy. The three other docs in `docs/architecture
 
 ### Where this session ended — 2026-08-20 (evening)
 
-**🔶 There is an UNMERGED branch: `feat/rental-vertical-pages`.** Three commits, pushed, preview
-green. `master` is untouched. **Nothing below is on production until that branch merges.**
+**🔶 `feat/rental-vertical-pages` is UNMERGED — 14 commits, preview green, `master` untouched.**
+**Nothing below is on production.** Preview:
+`https://369-agentic-systems-git-feat-rental-vertical-pages-3six9mm.vercel.app`
+(Vercel SSO 302s *every* path, so a 302 there proves nothing — verify against a local
+`npm run build && npm start`.)
 
-Preview: `https://369-agentic-systems-git-feat-rental-vertical-pages-3six9mm.vercel.app`
-(Vercel SSO 302s *every* path including nonsense ones, so a 302 there proves nothing — everything
-was verified against a local production build instead.)
+**Chris still wants a word-by-word copy pass over everything written today.** Nothing has had one.
+That is the gate on merging.
 
-**What is on the branch**
-- **The three rental niches now have two artifacts each**, mirroring the original verticals:
-  Next.js intake routes (`/event-rentals`, `/dumpster-rental`, `/equipment-rental`) plus long-form
-  cold-email pages (`/event-rentals-leads/`, `/dumpster-rental-leads/`, `/equipment-rental-leads/`).
-  This closes Group B #1. The static pages carry a six-category **catalogue** each — that is the
-  artifact Chris asked for so he can talk to any of the three buyers without missing selling points.
-- **`/{slug}/pricing` redirects to `/book-demo` on purpose.** `TEMPLATE_AGENT_IDS` has nine keys and
-  `vertical` reaches it as Stripe's `client_reference_id`, so a rental checkout would throw
-  `No template agent configured` **after** the card was charged — the dental funnel bug exactly.
-  `VerticalPricing`'s own union was deliberately left at nine so the compiler blocks a re-wiring.
-- **Homepage repositioned.** AOS demoted from positioning statement to product name: the hero now
-  leads with the job ("Never Miss the Call. Never Lose the Job.") and the mechanism, and AOS is
-  reintroduced at the catalog where it earns the $400 against a $250 answering service. AOS is
-  **untouched** on the nine vertical pages, the three rental pages, the agent pages and the footer.
-- **Five overclaims removed** — "runs your firm autonomously" (meta), "run your business for you"
-  (og), "run your business without adding headcount" (why-369), pillar 01's "not a generic template
-  retrofitted" (provisioning *does* clone a per-vertical template), and the CUSTOM card's "any
-  repetitive process — eliminated in 48h deploy". Plus four instances of "autonomous AI workforce"
-  on `/founding`.
-- **Homepage grid restructured.** Event & Party Rentals takes the second featured slot (live pilot +
-  chamber network); HVAC moves into the grid; dumpster and equipment get cards. `SYSTEM_` numbering
-  restarted mid-page (01,02 then 01–07) and is now one sequence, 01–12.
+#### What shipped on the branch
+- **The three rental niches got both artifacts each** — Next.js intake routes (`/event-rentals`,
+  `/dumpster-rental`, `/equipment-rental`) and long-form `-leads` cold-email pages, each with a
+  six-category **catalogue** of what the niche actually rents. Closes Group B #1.
+  `/{slug}/pricing` **redirects to `/book-demo`** on purpose — `TEMPLATE_AGENT_IDS` has nine keys
+  and a rental checkout would throw *after* the card was charged.
+- **Homepage repositioned.** AOS demoted from positioning statement to product name: hero leads
+  with the job ("Never Miss the Call. Never Lose the Job.") and the mechanism; AOS reappears at the
+  catalog where it earns the $400. Untouched everywhere else.
+- **Split hero with a live call panel** (scripted booking flow, captioned as a dramatisation),
+  plus the two things the hero never had: a primary CTA and the demo number above the fold.
+- **Every unprovable statistic is gone from the site.** Seven pages asserted a dollar average as
+  fact; percentage claims sat on HVAC, dental and legal. All replaced with roofing's own device —
+  "One job." / "One call." / "One booking." — where the big line names the thing lost and the
+  caption names the call that lost it. **`RECOVERY_RATE` assumption lines stay** — those are
+  labelled assumptions and are the correct pattern.
+- **Audit picker rebuilt.** It had six verticals and **two dead destinations**: `dental/#handoff`
+  and `real-estate/#handoff` point at Next.js routes with no such anchor. Now 11 industries plus
+  Not Listed, every destination browser-verified.
+- **The intake success screen no longer promises an email that never sends.** It claimed a dossier
+  was being drafted and told the prospect to check their email in 2–5 minutes. `/api/intake` emails
+  the **owner only**. roofing/hvac/plumbing already had honest copy; it never propagated. It has now.
 
-**Two things to know before touching any of this**
-- **The rental palette changed and the homepage is why.** The grid already spent amber on roofing
-  (`.ic-roofing --cr: 245,158,11`) and a near-identical teal on insurance, so events went
-  amber → **violet #A855F7** and dumpster emerald → **true green #22C55E**. Equipment keeps
-  **#6366F1** — `.ic-saas` defines it but no SaaS card is rendered. Card and page now agree.
-- **The static pages were generated, not hand-written**, from `public/wholesale-leads/index.html`,
-  so they inherit its fixes. The generator lived in a scratchpad and is **not committed** — the
-  committed artifact is the HTML, edited directly from here on, per the Zero-Touch Policy.
+#### New capability: `scripts/mobile-audit.mjs` (committed, listed in the scripts section)
+Renders all 19 public pages at **eight** widths, 320 → 1920, and reports overflow, content clipped
+by an `overflow:hidden` ancestor, spills out of fixed-height boxes, and untappable targets. It
+opens modals before probing. **Playwright is now a devDependency.**
+It found four real bugs (dashboard card never collapsing, clipped button label, a 2px slider hit
+area, and system cards one line short). **Do not reason about breakpoints instead of running it** —
+that is exactly how a July session's findings were lost.
 
-**⚠ Raised and deliberately NOT fixed — Chris's call.** The HVAC featured card claimed *"Over 60% of
-HVAC emergency calls come in after hours — every one that hits voicemail costs an average of $8,400
-a month"*. That is a borrowed stat of exactly the kind that is banned, and it is now in the grid
-rather than the featured row, but **the sentence is still on the page**. Either source it or cut it.
+#### 🔴 In flight — the Operational Dossier
+**`docs/DOSSIER-DESIGN.md` is written and Chris approved it: "get it rolling."** Design only,
+nothing built. Read it first. Two blockers it records, both found during review:
 
-**Still open from this session:** Chris wants a **word-by-word copy pass** over everything written
-today — the three static pages, the three Next.js pages, and the new homepage copy. Nothing has had
-one. He also has not decided whether the homepage card grid is still the right organising idea.
+1. **`/api/intake` persists six columns** — domain, email, name, industry, status, created_at.
+   **Company, pain point and volume are never stored**, and **average job value is not collected at
+   all.** A dossier generator reading the DB today has a domain, an email and a name. This is
+   **step 0** and everything depends on it. Note `supabase/migrations/2026-07-22-system-audits-prospect-context.sql`
+   fixed the same class of bug before — "already being received … but never persisted."
+2. **There is no audit agent.** `lib/audit-call-dial.ts` falls back to the shared demo agent when
+   `RETELL_AUDIT_AGENT_ID` is unset, so a prospect answering would be greeted as their own
+   receptionist.
+
+**The governing rule for the whole feature:** *the model may write the prose, the model may never
+invent a number.* The Gumloop dossier it replaces returned `security_score: 41` for all 19 rows
+because the prompt said "estimate". `lib/audit-call.ts` already encodes this discipline — read it
+before building.
+
+**Chris's decisions:** late-evening call, **disclose that we call, never when**; **two calls**
+(business hours + evening) because the comparison isolates the problem; recording attached but
+**human-reviewed** (AI cannot vouch for a recording's content — `disconnection_reason` is
+mechanical, a transcript is ASR); **approval gate on** until he is confident.
+
+**Build order:** 0 persist the intake payload · 1 send the prospect a real email from `/api/intake`
+· 2 form changes (pain-point checkboxes replacing "All of the above", average value, the call
+disclosure) · 3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule ·
+6 approval queue · 7 delete `lib/email-templates.ts`.
+
+#### Raised, NOT fixed — Chris's call
+`saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which
+says an SDR is free. Not a fabricated stat, so it was left alone, but it is confusing.
 
 ### Where the previous session ended — 2026-08-20 (overnight)
 
