@@ -244,6 +244,39 @@ until there is something to sell.
 
 ---
 
+---
+
+## 🔴 Separate product gap, logged here 2026-08-20: Nova has no rental verticals
+
+Found during the copy pass on `feat/rental-vertical-pages`. **This is not a copy problem and it is
+not fixed on that branch** — the copy was softened, the product gap stands.
+
+`lib/nova-templates.ts:13` defines `NovaVertical` as exactly the original nine. Line 78 is:
+
+```ts
+const vc = VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing
+```
+
+A vertical outside the nine **silently falls back to roofing**, and roofing's `visitNoun` is
+`'inspection'`. So a party-rental client's booking confirmation would tell their customer to
+prepare for an **inspection**, and Nova's system prompt would introduce her as writing "for a
+roofing company."
+
+**Why this is urgent rather than theoretical:** the pilot is the cousin's **entertainment
+business** — an event-rental company — and the chamber event is ~mid-September 2026. She cannot be
+provisioned under `event-rentals` (no template agent) so she will be provisioned under one of the
+nine, which means she hits this fallback on her first confirmed booking. The failure is silent and
+customer-facing: nothing errors, the email simply describes the wrong business.
+
+**The fix is not just adding three keys.** The `?? VERTICAL_COPY.roofing` fallback is the actual
+defect — it converts an unknown vertical into a confidently wrong email instead of a refusal. Same
+shape as the inventory-matching rule this repo already settled: *refuse rather than guess.* An
+unknown vertical should raise, exactly as an unknown inventory key does.
+
+Do this before the pilot takes a real booking, not as part of the dossier.
+
+---
+
 ## Build order
 
 0. **Persist the intake payload.** Company, pain points, volume, average value. Nothing works
