@@ -215,17 +215,28 @@ export async function POST(request: NextRequest) {
   }
 
   if (rentalItems.length > 0) {
-    // Answer with windows when the caller named a rental item, or when everything in stock is
-    // hired by the day. A mixed yard asked a vague question still gets the slot path below,
-    // because "when can I come in" and "how long can I keep it" are different questions and
-    // guessing which one was meant is how a caller ends up booking the wrong shape entirely.
     const namedRental = wantedItem?.kind === 'match' && isRental(wantedItem.item)
     const allRental = rentalItems.length === inventory.length
 
-    // `notStocked` joins these two because the caller HAS named a hire item — it just is not one
-    // this yard carries. On a mixed yard that is still a rental question, so answering with
-    // intra-day appointment slots would offer times to come in rather than units they can take.
-    if (namedRental || allRental || notStocked) {
+    /**
+     * `notStocked` — the caller named a hire item this yard does not carry.
+     * `vague` — they named nothing at all ("what have you got for Saturday?").
+     *
+     * Both used to fall through to intra-day appointment slots on a MIXED yard, on the reasoning
+     * that "when can I come in" and "how long can I keep it" are different questions and guessing
+     * between them books the wrong shape. Reversed 2026-08-21 at Chris's direction, after a real
+     * call: for a yard that hires anything out, the overwhelmingly common vague question is about
+     * UNITS, and answering it with appointment times sends the caller away from the thing they
+     * actually wanted. Answer with units.
+     *
+     * Known limit: this pass only considers items with `min_rental_days` set, so a mixed yard's
+     * non-hire stock (tables, chairs) is invisible to a vague question. That is the right trade
+     * while hire items are the scarce, identity-shaped ones — but it is why the pilot's inventory
+     * should mark everything she hires out as a rental item.
+     */
+    const vague = !requestedItem
+
+    if (namedRental || allRental || notStocked || vague) {
       const forItems = namedRental ? [wantedItem.item] : rentalItems
 
       // How long they want it. Absent is the common case on a first question — fall back to the
