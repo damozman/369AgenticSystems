@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { syncQuestionnaireToKB } from '@/lib/retell-kb-sync'
 import { deriveItemKey } from '@/lib/inventory'
 import { createClient as createUserClient } from '@/lib/supabase-server'
-import { onboardingAuthEnforced, verifyOnboardingToken } from '@/lib/security/onboarding-token'
+import { authorizeQuestionnaire, questionnaireAuthFailure } from '@/lib/security/questionnaire-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,38 +50,9 @@ export async function POST(request: NextRequest) {
      *     long after that email is buried.
      */
     const token = onboarding_token ?? new URL(request.url).searchParams.get('t')
-    let authorizedBy: 'signed-link' | 'owner-session' | null =
-      verifyOnboardingToken(token, client_domain).valid ? 'signed-link' : null
-
-    if (!authorizedBy) {
-      try {
-        const userClient = await createUserClient()
-        const { data: { user } } = await userClient.auth.getUser()
-        const owner = String(subscription.user_email ?? '').toLowerCase()
-        if (user?.email && owner && user.email.toLowerCase() === owner) authorizedBy = 'owner-session'
-      } catch (e) {
-        // No session cookie at all is the normal case for the emailed-link path, not an error.
-        console.warn('[QUESTIONNAIRE] session lookup failed:', e instanceof Error ? e.message : e)
-      }
-    }
-
-    if (!authorizedBy) {
-      // Reporting-only until ONBOARDING_AUTH_ENFORCED is 'true'. Arming a gate blind has twice
-      // broken producers that never got the new secret — the funnel outage and the ten-day call
-      // outage — so this logs first, both link producers get verified against real links, and
-      // only then does it start refusing.
-      const detail = `${client_domain} (token: ${verifyOnboardingToken(token, client_domain).valid ? 'ok' : (token ? 'invalid' : 'absent')})`
-      if (onboardingAuthEnforced()) {
-        console.error(`[QUESTIONNAIRE] REFUSED unauthorised submit for ${detail}`)
-        return NextResponse.json(
-          { error: 'This link is no longer valid. Ask us for a fresh one, or sign in first.' },
-          { status: 403 },
-        )
-      }
-      console.warn(`[QUESTIONNAIRE] ⚠ WOULD REFUSE unauthorised submit for ${detail} — set ONBOARDING_AUTH_ENFORCED=true to enforce`)
-    } else {
-      console.log(`[QUESTIONNAIRE] authorised via ${authorizedBy} for ${client_domain}`)
-    }
+    const authorizedBy = await authorizeQuestionnaire(client_domain, subscription.user_email, token)
+    const refusal = questionnaireAuthFailure(authorizedBy, client_domain, token)
+    if (refusal) return refusal
 
     // Upsert questionnaire
     const { error: questError } = await supabase

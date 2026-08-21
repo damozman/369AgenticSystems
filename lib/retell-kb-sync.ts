@@ -25,16 +25,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const CONTEXT_MARKER_START = '\n\n<!-- BUSINESS_CONTEXT_START -->\n'
-const CONTEXT_MARKER_END = '\n<!-- BUSINESS_CONTEXT_END -->'
-
-// Replaces any previously-synced context block (idempotent — safe to call
-// repeatedly, e.g. if the client updates their questionnaire answers later).
-function mergePromptWithContext(basePrompt: string, contextSection: string): string {
-  const startIdx = basePrompt.indexOf(CONTEXT_MARKER_START)
-  const cleanBase = startIdx === -1 ? basePrompt : basePrompt.slice(0, startIdx)
-  return `${cleanBase}${CONTEXT_MARKER_START}${contextSection}${CONTEXT_MARKER_END}`
-}
+import { mergePromptWithContext } from '@/lib/prompt-merge'
 
 export async function syncQuestionnaireToKB(clientDomain: string): Promise<boolean> {
   try {

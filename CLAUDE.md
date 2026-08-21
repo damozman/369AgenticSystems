@@ -76,7 +76,26 @@ leads pages, no wholesale residue on any rental page, and **all 30 internal home
 `public/index.html`. The file is 2,007 lines and the repo copy is CRLF — content hashes match
 exactly once line endings are normalised. Don't re-investigate it.
 
-#### 🔴 NEW this session — one defect class with three symptoms, and it lands on the pilot
+#### ✅ FIXED 2026-08-21 — the questionnaire had no read path, so every re-submit was destructive
+The write-up below stands as the diagnosis; all of it is now fixed and verified end to end by
+`scripts/verify-questionnaire-roundtrip.mjs` (15 checks, against a real client, cleans up after
+itself). **It was worse than first described:** the form prefilled *nothing*, so the damage was
+never limited to inventory — hours, horizon and lead time reverted to the form's hardcoded
+defaults on **any** re-submit, no typing required.
+
+What changed: a new `GET /api/questionnaire/current` returns the saved answers, schedule and
+active inventory; the form loads it on mount and **the submit button stays disabled until it
+does** (and stays disabled if the load fails, showing the form's defaults being the whole danger);
+auth was extracted to `lib/security/questionnaire-auth.ts` so the read cannot drift weaker than
+the write; and `mergePromptWithContext` now **preserves trailing content** instead of slicing to
+the end, with seven tests in `lib/prompt-merge.test.ts` covering the compliance-line case.
+
+**Deliberately unchanged:** removing an item in the form still retires it. That is the feature.
+What was wrong was retiring items the form had never shown anyone.
+
+*Original diagnosis, kept because the defect class keeps recurring:*
+
+#### One defect class with three symptoms, and it lands on the pilot
 **The questionnaire submit path assumes it is the only writer of a client's configuration. It is
 not** — scripts write the same state out of band, and every place those assumptions meet, a
 **re-submit silently destroys work.** Full write-up in `docs/ROADMAP.md` Track 2.1. Three symptoms:
@@ -940,6 +959,13 @@ node --env-file=.env.local scripts/review-sandbox-client.mjs --create|--show|--d
                                          USE THIS, never a real client's domain.
 ONBOARDING_TOKEN_SECRET=<same as server> node --env-file=.env.local --import ./scripts/test-resolver.mjs   scripts/verify-questionnaire-auth.mjs  proves the ownership gate; reports whether the server is
                                          ENFORCING or reporting-only rather than assuming
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-questionnaire-roundtrip.mjs
+                                         proves a RE-SUBMIT preserves what the form was not shown:
+                                         weekend hours, horizon, lead time and inventory all
+                                         survive, while an item deliberately removed still
+                                         retires. Runs against the review sandbox and REFUSES any
+                                         client with a retell_agent_id. Needs the dev server;
+                                         BASE_URL to point at another port.
 node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-questionnaire-inventory.mjs
                                          questionnaire -> schedule + inventory, end to end against
                                          a throwaway client. Buys nothing. Needs the dev server.

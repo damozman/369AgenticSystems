@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, use } from 'react'
+import { useState, useCallback, use, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { deriveItemKey, describeChoices, matchItem } from '@/lib/inventory'
 
@@ -70,6 +70,87 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
   const quantityOf = (row: ItemRow) => Math.max(1, parseInt(row.quantity, 10) || 1)
 
   const filledItems = inventory.filter(r => r.label.trim() !== '')
+
+  /**
+   * Load what this client already told us, and show it back to them.
+   *
+   * Every piece of state above is a hardcoded default — Mon–Fri, 08:00–17:00, a 60-day horizon,
+   * rental stock off, one blank row. Without this, opening the form a second time and saving
+   * **silently replaced a client's real configuration with those defaults**, and the submit path
+   * additionally deactivated every inventory item the form had not been told about.
+   *
+   * `loaded` gates the submit button. Posting the form before this resolves is exactly the
+   * destructive save we are removing, so it must not be reachable, however briefly.
+   */
+  const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [wasCompleted, setWasCompleted] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const token = new URLSearchParams(window.location.search).get('t')
+    const qs = new URLSearchParams({ client_domain: domain, ...(token ? { t: token } : {}) })
+
+    fetch(`/api/questionnaire/current?${qs}`)
+      .then(async res => {
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Could not load your saved answers.')
+        return data
+      })
+      .then(data => {
+        if (cancelled) return
+
+        if (data.answers) {
+          // Only overwrite keys the form actually owns, so a column added to the table later
+          // cannot inject an unexpected field into form state.
+          setFormData(prev => {
+            const next = { ...prev }
+            for (const k of Object.keys(prev) as (keyof typeof prev)[]) {
+              const v = (data.answers as Record<string, unknown>)[k as string]
+              if (v !== null && v !== undefined) (next[k] as unknown) = v
+            }
+            return next
+          })
+        }
+        setWasCompleted(Boolean(data.completedAt))
+
+        if (data.schedule) {
+          const s = data.schedule
+          // business_hours is a per-day map; the form offers one open/close pair applied to the
+          // ticked days, so read the days back from which entries are non-null and take the hours
+          // from the first real one rather than assuming Monday exists.
+          const hours = (s.business_hours ?? {}) as Record<string, { open?: string; close?: string } | null>
+          const openDays = Object.entries(hours).filter(([, v]) => v && v.open && v.close)
+          setSchedule(prev => ({
+            ...prev,
+            timezone: s.timezone || prev.timezone,
+            days: openDays.length ? openDays.map(([d]) => d) : prev.days,
+            open: openDays.length ? (openDays[0][1]!.open as string) : prev.open,
+            close: openDays.length ? (openDays[0][1]!.close as string) : prev.close,
+            slot_duration_minutes: s.slot_duration_minutes ?? prev.slot_duration_minutes,
+            max_concurrent_per_slot: s.max_concurrent_per_slot ?? prev.max_concurrent_per_slot,
+            booking_horizon_days: s.booking_horizon_days ?? prev.booking_horizon_days,
+            lead_time_hours: s.lead_time_hours ?? prev.lead_time_hours,
+          }))
+        }
+
+        if (Array.isArray(data.inventory) && data.inventory.length > 0) {
+          // Switching this on matters as much as the rows: `rentsItems` gates whether inventory is
+          // sent at all, so leaving it off would post nothing and strand the stock they can see.
+          setRentsItems(true)
+          setInventory(
+            data.inventory.map((r: { label: string; quantity: number }) => ({
+              label: r.label,
+              quantity: String(r.quantity ?? 1),
+            })),
+          )
+        }
+      })
+      .catch(err => { if (!cancelled) setLoadError(err instanceof Error ? err.message : String(err)) })
+      .finally(() => { if (!cancelled) setLoaded(true) })
+
+    return () => { cancelled = true }
+  }, [domain])
 
   /**
    * Which names would leave Ava unable to tell two items apart.
@@ -646,9 +727,27 @@ export default function QuestionnaireForm({ params }: { params: Promise<{ domain
           onChange={handleChange}
         />
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : 'Save & Activate Agent'}
+        {/*
+          Disabled until the saved answers have loaded. Submitting before then posts the form's
+          hardcoded defaults over a client's real configuration — the exact destructive save this
+          change exists to remove — so the button must not be reachable, however briefly.
+        */}
+        <button type="submit" disabled={loading || !loaded || Boolean(loadError)}>
+          {!loaded ? 'Loading your answers…' : loading ? 'Saving...' : wasCompleted ? 'Save Changes' : 'Save & Activate Agent'}
         </button>
+
+        {/*
+          A failed load leaves the form showing defaults, not this client's answers, so saving is
+          blocked rather than merely warned about. Enabling the button here would reintroduce the
+          destructive save at exactly the moment we know the data is missing.
+        */}
+        {loadError && (
+          <p role="alert" style={{ marginTop: 12, color: '#F87171', fontSize: 14, lineHeight: 1.6 }}>
+            {loadError}{' '}
+            <strong>Saving is disabled until this loads.</strong> The form is showing defaults, not
+            your saved settings — submitting would overwrite your hours and stock. Please reload.
+          </p>
+        )}
       </form>
     </div>
   )

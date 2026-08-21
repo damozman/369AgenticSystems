@@ -185,7 +185,19 @@ Neither blocks any build below.
 
 ## Track 2 — Before the pilot arrives (the ~12-day window)
 
-### 2.1 🔴 One defect class, three symptoms: the questionnaire assumes it is the only writer
+### 2.1 ✅ DONE 2026-08-21 — the questionnaire assumed it was the only writer
+
+Fixed and verified by `scripts/verify-questionnaire-roundtrip.mjs` — 15 checks against a real
+client. **It was worse than diagnosed below:** the form prefilled *nothing*, so hours, horizon and
+lead time reverted to hardcoded defaults on **any** re-submit, not just when inventory was typed.
+For the pilot that meant Saturdays closing and the horizon dropping to 60 days, after which Ava
+refuses every weekend booking.
+
+New `GET /api/questionnaire/current` feeds the form; the submit button is disabled until it loads,
+and stays disabled if the load fails. Auth lives in one module so the read cannot drift weaker
+than the write. `mergePromptWithContext` preserves trailing content, with seven tests.
+
+*Original diagnosis, kept because the defect class keeps recurring:*
 
 This is the most valuable finding of this session and it is **not on any existing list**. Three
 separate known bugs turn out to share one root cause, and fixing them as one pass is cheaper and
