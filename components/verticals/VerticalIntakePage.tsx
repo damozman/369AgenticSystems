@@ -237,7 +237,7 @@ const CONFIGS: Record<string, VerticalConfig> = {
     fields: {
       callsPerWeek: { label: 'Rental inquiry calls per week', placeholder: 'e.g. 20' },
       answerRate:   { label: '% of calls you currently answer', placeholder: 'e.g. 55', hint: 'Contractors start calling before the yard opens.' },
-      jobValue:     { label: 'Average rental value ($)', placeholder: 'e.g. 600' },
+      jobValue:     { label: 'Average rental value ($)', placeholder: 'e.g. 850' },
     },
   },
 }

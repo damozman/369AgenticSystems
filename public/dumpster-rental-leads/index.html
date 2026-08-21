@@ -285,7 +285,7 @@
       </p>
 
       <div class="reveal d3" style="display:flex; gap:20px; flex-wrap:wrap; align-items:center; margin-bottom:72px;">
-        <a href="#handoff" class="btn-primary">Deploy Distribution Velocity AOS →</a>
+        <a href="#handoff" class="btn-primary">Deploy Hire Desk AOS →</a>
         <a href="#bundle" style="color:var(--text-secondary); text-decoration:none; font-size:0.9rem; font-weight:500; display:flex; align-items:center; gap:8px; transition:color 0.3s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
           See the AOS Bundle
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -618,15 +618,15 @@
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
-            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--accent);">$12k</div>
+            <div id="weekly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--accent);">$1k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
-            <div id="quarterly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--accent);">$53k</div>
+            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--accent);">$5k</div>
           </div>
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Revenue</div>
-            <div id="annual-loss" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--accent);">$640k</div>
+            <div id="annual-loss" class="font-display" style="font-size:2.5rem; font-weight:600; color:var(--accent);">$56k</div>
           </div>
         </div>
 
@@ -669,7 +669,7 @@
         </div></a>
         <a href="/agents/nova" style="text-decoration:none;display:block;"><div style="padding:24px 20px;text-align:center;background:rgba(255,255,255,0.03);border:1px solid rgba(34,197,94,0.18);border-radius:14px;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(34,197,94,0.4)';this.style.boxShadow='0 12px 40px rgba(34,197,94,0.12)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(34,197,94,0.18)';this.style.boxShadow=''">
           <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);margin-bottom:16px;"><span style="width:5px;height:5px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="color:#4ADE80;font-size:0.62rem;font-family:'Courier New',monospace;letter-spacing:0.18em;text-transform:uppercase;">LIVE</span></div>
-          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(34,197,94,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/nova/nova_original.jpg" alt="Nova — Order Confirmation" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(34,197,94,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
+          <div style="width:140px;height:175px;border-radius:10px;overflow:hidden;border:1px solid rgba(34,197,94,0.15);margin:0 auto 16px;position:relative;"><img src="/img/agents/nova/nova_original.jpg" alt="Nova — Booking Confirmation" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(34,197,94,0.3) 0%,transparent 55%);pointer-events:none;"></div></div>
           <p style="margin:0 0 4px;font-family:'Instrument Sans',sans-serif;font-size:1.05rem;font-weight:700;color:#22C55E;letter-spacing:-0.01em;">Nova</p>
           <p style="margin:0 0 10px;font-family:'Courier New',monospace;font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.15em;">Booking Confirmation</p>
           <p style="margin:0 0 14px;font-size:0.8rem;color:#475569;line-height:1.5;">"Confirms every hire automatically"</p>
@@ -873,8 +873,8 @@
     const orderValueSlider = document.getElementById('order-value-slider');
     const ordersDisp       = document.getElementById('orders-display');
     const orderValueDisp   = document.getElementById('order-value-display');
-    const mlEl = document.getElementById('monthly-loss');
-    const qlEl = document.getElementById('quarterly-loss');
+    const wkEl = document.getElementById('weekly-loss');
+    const moEl = document.getElementById('monthly-loss');
     const alEl = document.getElementById('annual-loss');
 
     function fmt(n) {
@@ -893,8 +893,8 @@
       const annual  = Math.round(weekly * 52);
       ordersDisp.textContent     = missedCalls + ' / wk';
       orderValueDisp.textContent = '$' + orderValue.toLocaleString();
-      mlEl.textContent = fmt(weekly);
-      qlEl.textContent = fmt(monthly);
+      wkEl.textContent = fmt(weekly);
+      moEl.textContent = fmt(monthly);
       alEl.textContent = fmt(annual);
     }
     ordersSlider.addEventListener('input', updateROI);

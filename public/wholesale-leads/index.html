@@ -554,11 +554,11 @@
         <div class="stat-row-3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px; text-align:center; margin-bottom:44px;">
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Weekly Recoverable</div>
-            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$12k</div>
+            <div id="weekly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$12k</div>
           </div>
           <div style="border-left:1px solid var(--glass-border); border-right:1px solid var(--glass-border);">
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Monthly Recoverable</div>
-            <div id="quarterly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$53k</div>
+            <div id="monthly-loss" class="font-display" style="font-size:2rem; font-weight:600; color:var(--lime);">$53k</div>
           </div>
           <div>
             <div style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:10px;">Annual Recoverable Revenue</div>
@@ -808,8 +808,8 @@
     const orderValueSlider = document.getElementById('order-value-slider');
     const ordersDisp       = document.getElementById('orders-display');
     const orderValueDisp   = document.getElementById('order-value-display');
-    const mlEl = document.getElementById('monthly-loss');
-    const qlEl = document.getElementById('quarterly-loss');
+    const wkEl = document.getElementById('weekly-loss');
+    const moEl = document.getElementById('monthly-loss');
     const alEl = document.getElementById('annual-loss');
 
     function fmt(n) {
@@ -828,8 +828,8 @@
       const annual  = Math.round(weekly * 52);
       ordersDisp.textContent     = missedCalls + ' / wk';
       orderValueDisp.textContent = '$' + orderValue.toLocaleString();
-      mlEl.textContent = fmt(weekly);
-      qlEl.textContent = fmt(monthly);
+      wkEl.textContent = fmt(weekly);
+      moEl.textContent = fmt(monthly);
       alEl.textContent = fmt(annual);
     }
     ordersSlider.addEventListener('input', updateROI);
