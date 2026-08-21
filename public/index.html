@@ -535,13 +535,16 @@
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 24px 28px;
     }
+    /* Matched to the Company / Deploy Now headers so all five align. */
     .footer-subhead {
-      color: var(--text-secondary); font-size: 0.66rem; letter-spacing: 0.14em;
-      text-transform: uppercase; margin-bottom: 10px; opacity: 0.75;
+      color: var(--text-muted); font-size: 0.7rem; letter-spacing: 0.15em;
+      text-transform: uppercase; margin-bottom: 14px;
     }
+    /* 1.25 line-height + 10px gap reproduces the Company column's row pitch, so
+       links line up across columns rather than drifting out of step. */
     .footer-link {
       display: block; color: var(--text-muted); text-decoration: none;
-      font-size: 0.83rem; line-height: 1.5; margin-bottom: 9px;
+      font-size: 0.83rem; line-height: 1.25; margin-bottom: 10px;
     }
     .footer-link:last-child { margin-bottom: 0; }
 
@@ -1362,8 +1365,11 @@
       <!-- Grouped into three sub-columns rather than one 11-item stack. Every link is
            still here — the AOS names are the search terms — but grouping them by who
            is buying cuts the height roughly in half and makes the list scannable. -->
+      <!-- No parent "Systems" label: it pushed these three headers a row below
+           Company and Deploy Now. The group names are the column headers now, so
+           every header in the footer sits on one baseline. The nav's aria-label
+           still carries the grouping for screen readers. -->
       <nav aria-label="Systems navigation" class="footer-systems">
-        <p style="color:var(--text-muted); font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:14px;">Systems</p>
         <div class="footer-systems-grid">
 
           <div>
