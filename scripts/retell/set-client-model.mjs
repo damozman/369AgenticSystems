@@ -188,4 +188,20 @@ if (failures) {
   process.exit(1)
 }
 console.log(`✓ Every target agent resolves to ${MODEL}.`)
-console.log(`\nRevert with: --model claude-4.6-sonnet --apply\n`)
+
+// The revert line is built from what was ACTUALLY replaced, not from a hardcoded model. It used to
+// print `--model claude-4.6-sonnet --apply` unconditionally, which by 2026-08-21 was wrong twice
+// over: the fleet had been on claude-4.5-haiku since the 2026-08-04 benchmark, so following it
+// would have moved agents to Sonnet's 2399ms p50 — sitting on Retell's 3000ms cliff — and it
+// dropped any --only, quietly widening a one-agent test into a fleet-wide write.
+const priors = [...new Set(toChange.map(p => p.before))]
+const onlyFlag = ONLY ? ` --only ${ONLY}` : ''
+if (priors.length === 1) {
+  console.log(`\nRevert with: --model ${priors[0]}${onlyFlag} --apply\n`)
+} else {
+  console.log(`\nRevert: these agents were NOT all on one model, so there is no single revert.`)
+  for (const p of toChange) {
+    console.log(`  --model ${p.before} --only ${p.agentId} --apply   # ${p.label}`)
+  }
+  console.log('')
+}
