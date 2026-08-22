@@ -42,7 +42,8 @@ mails a real dossier. What remains is not code:
    submitters we call. Nothing dials while the switch is unset, and it must stay that way until the
    line is on the page.
 2. **A number for the callback line**, which also settles what audit calls dial FROM.
-3. **Step 7** — delete `lib/email-templates.ts`. Trivial, still not done.
+3. ~~Step 7 — delete `lib/email-templates.ts`~~ — **done 2026-08-22.** 469 lines, every export
+   verified unreferenced first.
 
 **⚠️ Check `ONBOARDING_TOKEN_SECRET` is set in Vercel before the first real dossier.** The review
 links are signed with it (falling back from `DOSSIER_TOKEN_SECRET`). It is **not** in the local env
@@ -82,8 +83,8 @@ that was a test convenience, not a decision, and `RETELL_AUDIT_FROM_NUMBER` is u
 filed for the SMS number: *"A customer who saves the texting number and later calls it gets dead
 air today."* Do not ship the same shape twice.
 
-**Also queued, smaller:** audit the other five crons' real output (open item 5), the Scout badge,
-and deleting `lib/email-templates.ts`.
+**Also queued, smaller:** audit the other five crons' real output (open item 5), and the Scout
+badge — it says DEPLOYING for something that does not exist.
 
 ---
 
@@ -314,9 +315,11 @@ Read `lib/audit-call.ts` before building — it already encodes the discipline.
 
 **Chris's decisions:** late-evening call, **disclose that we call, never when**; **two calls**
 (business hours + evening); recording attached but **human-reviewed**; **approval gate on**.
-**Build order:** ~~0 persist the intake payload~~ · ~~1 send the prospect a real email~~ · **2 form
-changes (next)** · 3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule ·
-6 approval queue · 7 delete `lib/email-templates.ts`.
+**Build order — ALL SEVEN BUILT as of 2026-08-22:** ~~0 persist the intake payload~~ · ~~1 email
+the prospect~~ · ~~2 form contract~~ · ~~3 website measurement~~ · ~~4 renderer~~ · ~~5 audit agent
++ two-call schedule~~ · ~~6 approval queue + send~~ · ~~7 delete `lib/email-templates.ts`~~.
+**Step 5 is built but SWITCHED OFF** — see the disclosure note above; it is the only step whose
+completion is a decision rather than code.
 
 #### Raised, NOT fixed — Chris's call
 `saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which
@@ -353,34 +356,33 @@ grep below; and the compliance-script claim below.
 line is a hypothesis.** Running the grep takes ten seconds; reading the calling path takes a minute.
 Both errors above survived multiple readings because a pasted command and a file:line *look* like
 evidence.
-### Live production state — re-derived 2026-08-21
+### Live production state — re-derived 2026-08-22 (end of session)
 
-- **Retell: 11 agents, 2 numbers.** All 11 run `gemini-3.5-flash`. Nothing was provisioned this
-  session; **$23.48 spent all-time across 138 minutes.** Retell exposes no balance endpoint.
-- **Supabase:** `agent_subscriptions` **2** (Northside + a leftover `review-sandbox` row with no
-  agent — harmless, `review-sandbox-client.mjs --delete` removes it), `client_inventory` **38
-  active**, `client_schedules` **1**, `calendar_connections` **0**, `system_audits` **23**.
+Counted directly, not copied forward.
+
+- **Retell: 12 agents, 2 numbers.** The twelfth is **`369 Audit Caller`
+  (`agent_3a2b5f444d24c21f9f3c35470d`)** — outbound only, no number bound, `end_call` its only
+  tool, `voice_speed` 1.1. **No number was bought this session.** All client agents remain on
+  `gemini-3.5-flash`.
+- **Supabase:** `system_audits` **23**, `audit_calls` **2**, `audit_suppressions` **0**,
+  `dossiers` **0**, `calls` **75**, `leads` **33**, `bookings` **26**, `agent_subscriptions` **2**,
+  `client_inventory` **40**, `client_schedules` **1**, `calendar_connections` **0**.
+  Every verification row written today was swept.
+- **`AUDIT_CALLS_ENABLED` is UNSET** — nothing schedules and nothing dials.
+- **`USAGE_BILLING_ENABLED` is UNSET** — nobody is billed.
 - **Stripe: test mode**, sole webhook **disabled**. A checkout on the live site provisions nothing.
-- **Twilio: unconfigured.** All four env vars missing, A2P brand unregistered. No SMS in either
+- **Twilio: unconfigured.** All four env vars verified missing this session. No SMS in either
   direction, and nothing may promise one.
 
-**⚠ Northside is a RENTAL test agent, not a roofing agent.** Converted 2026-08-20 and it will
-confuse anyone who does not know: rental prompt, 38 active mock inventory rows, weekend hours,
-180-day horizon. Its `agent_subscriptions.vertical` was corrected to **`event-rentals`** this
-session — it still said `roofing`, which is why its Nova confirmations described bounce houses in
-roofing language. The greeting still said "Northside Roofing Company" until this session too; it
-now says "Northside Event Rentals". The original LLM config is backed up as
-`northside-llm-backup-2026-08-20.json` in that session's scratchpad.
+**Five migrations applied by Chris today**, all verified against production:
+`2026-08-22-intake-pain-points.sql`, `-intake-phone.sql`, `-audit-call-schedule.sql`,
+`-audit-suppressions.sql`, `-dossiers.sql`.
 
-**Proven on real calls, do not re-verify:** the calendar chain (a caller threaded a single free
-hour between two Google Calendar blocks and booked it), owner alerts, per-item inventory by voice,
-multi-day hire, ambiguity refusal, SMS consent capture, and — **first observed this session** —
-`booking_token` carried end to end, storing the right `inventory_item_key` on a real booking. Every
-prior booking stored null.
+**⚠ Northside is still a RENTAL test agent, not a roofing agent** — rental prompt, 40 active mock
+inventory rows, weekend hours, 180-day horizon, `vertical: 'event-rentals'`. Its published domain
+`Northsideroofing.com` serves a 114-byte JavaScript redirect stub, which is how the website module's
+biggest defect was found.
 
-**Three things still untested by voice** were fixed after the last connected call: the availability
-changes above, the post-booking promise, and the `other` vertical escape. Watch for them on the
-next call.
 ### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
 Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
 top-ten Texas roofing company, and **owner of an entertainment business** — mobile casino, DJ,
@@ -802,8 +804,6 @@ verified this app" interstitial and must click Advanced → Continue, and there 
 6. **Phase 2b bulk runner — NOT built, deliberately.** Blocked on a decision only Chris can make:
    cold-calling businesses that never made contact is a different legal posture from calling a form
    submitter. Do not build this unprompted.
-7. **`lib/email-templates.ts` is unreferenced dead code.** All four templates lost their only caller
-   when `/api/update-dossier` was deleted.
 8. **The test-mode Stripe webhook to production is DISABLED — re-enable it for the next full
    E2E.** Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` → `https://369agenticsystems.com/api/stripe-webhook`,
    `checkout.session.completed`, created 2026-07-11, **disabled 2026-08-18** at Chris's request
@@ -887,6 +887,26 @@ verified this app" interstitial and must click Advanced → Continue, and there 
   what the fix is. The doc's own rule already covered this; the gap was that a pasted command
   *looks* like evidence. **Re-run it.** Same failure shape as reconciling a copied value against
   its source.
+- **A list endpoint's silence is not evidence of absence.** The audit agent shipped with no
+  webhook because a comment in its own creation script said no agent sets one — derived from
+  `agent.list()`, which does not return `webhook_url`. `agent.retrieve()` does, and every live
+  agent carries one. The first real call rang, was answered, cost money and **established nothing**,
+  because `describeAuditCall()` classifies from a webhook that reached nobody. Same shape as
+  believing a quoted grep instead of running it: the API answered the question it was asked, not
+  the question being relied on.
+- **Prose is where a truthfulness rule leaks, not logic.** Three separate times in one session a
+  module broke its own first rule in a sentence rather than a branch: *"no answer, no voicemail"*
+  asserted a business had no voicemail when a real call proved it did; *"better than most of the
+  businesses we call"* and *"the reverse of what we usually find"* were population claims with no
+  population behind them. Every one read naturally and passed review. **Assert on the generated
+  sentences, not only on the decisions** — and scan the prose, not `JSON.stringify` of the
+  structure, which matches its own field names and fails on correct output.
+- **A default that costs nothing to change can silently degrade the finding.** Retell rings for 30
+  seconds by default, which races a carrier's voicemail: the same ignored phone returned
+  `dial_no_answer` at 30s and `voicemail_reached` at 60s. "It rang out" and "it went to voicemail"
+  are not equally useful — the second is the stronger evidence, is what the dossier's comparison is
+  built on, and is the only one that lets an agent leave a message. Ringing is not billed, so the
+  default was costing the product its best artifact for nothing.
 - **One field name reused across pages will come to mean a different thing on each one, and the
   schema will pick the wrong meaning and look fine.** Twelve intake forms all posted
   `industry_specific_field`. On three pages it was a service area; on the others it was a monthly

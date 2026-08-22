@@ -271,8 +271,6 @@ sounds like a person and one that sounds like software, in front of buyers.
   siblings until proven otherwise.
 - **Fix the SaaS Scout badge.** It says DEPLOYING for something that does not exist. Either build
   Scout or tell the truth on the badge; the honest move is the badge.
-- **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
-  `/api/update-dossier` was removed. Dead code that reads as a live integration.
 
 ---
 
@@ -419,7 +417,9 @@ emergency — but intake submitters still get **silence**, and that is still a l
    a re-render — plus what the builder left out and why. The nudge names the count **and the age of
    the oldest**, and sends nothing when the queue is empty, because a daily "nothing to do" trains
    its reader to ignore the one message that must not be ignored.
-7. Delete `lib/email-templates.ts` (also listed in Track 2.4 — do it in whichever arrives first).
+7. ✅ **DONE 2026-08-22 — `lib/email-templates.ts` deleted.** 469 lines whose four templates
+   lost their only caller when `/api/update-dossier` was removed. Every exported symbol was
+   checked for references individually before deleting, not just the module path.
 
 **Chris's decisions, already made:** late-evening call, **disclose that we call, never when**; two
 calls (business hours + evening); recording attached but **human-reviewed**; approval gate **on**.
