@@ -134,12 +134,28 @@ function sectionWebsite(input: DossierInput): Section | null {
   const observations = reportableObservations(site)
   if (!observations.length) return null
 
+  /**
+   * `html_weight` is measured but NOT shown to the prospect.
+   *
+   * Chris read a real dossier and the line "your homepage's HTML is 128 KB before images, fonts or
+   * scripts are counted" was the only one in the document a reader can do nothing with. Every other
+   * observation names something they can look at and act on; this one states a number with no
+   * consequence attached, and we cannot honestly attach one — we fetch a single document, so we
+   * have not measured what "page weight" actually means, and we have no benchmark that would let us
+   * call 128 KB good or bad without inventing it.
+   *
+   * So it stays in `observations` as evidence for whoever is reading the queue, and out of the
+   * prospect's copy. A line that gives the reader nothing costs the ones beside it their credibility.
+   */
+  const shown = observations.filter(o => o.id !== 'html_weight')
+  if (!shown.length) return null
+
   return {
     id: 'your_website',
     title: 'What we found on your website',
     blocks: [
       { kind: 'paragraph', text: 'Everything below is something you can check yourself in a few seconds.' },
-      { kind: 'list', items: observations.map(o => o.sentence) },
+      { kind: 'list', items: shown.map(o => o.sentence) },
     ],
   }
 }

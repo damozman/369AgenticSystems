@@ -10,7 +10,7 @@ const pairAnsweredThenVoicemail: AuditPair = {
   sentences: [
     'We called your main line Saturday at 12:35am. Someone picked up.',
     'We called your main line Saturday at 1:26am. It went to voicemail.',
-    'Same number, same day. The difference was the hour.',
+    'Same number. The difference was the time of day.',
   ],
   closing: 'We only called twice, so this is two moments rather than a pattern — how often it happens is something only you can say.',
   detail: 'Business hours reached a person; the evening call did not.',
@@ -229,4 +229,28 @@ test('when both calls were answered the arithmetic does not imply they miss call
   }
   const d = buildDossier({ ...full, calls: bothAnswered })
   assert.ok(!/we know it happened at least once/i.test(text(d)))
+})
+
+test('the html weight is measured but never shown to the prospect', () => {
+  // It is the one observation a reader can do nothing with, and we have no benchmark that would
+  // let us call a number good or bad without inventing one.
+  const withWeight: WebsiteAudit = {
+    reportable: true, detail: 'read', clientRendered: false,
+    observations: [
+      { id: 'phone_published', finding: 'present', sentence: 'Your phone number is published on your homepage.' },
+      { id: 'html_weight', finding: 'present', sentence: "Your homepage's HTML is 128 KB before images, fonts or scripts are counted." },
+    ],
+  }
+  const d = buildDossier({ ...full, site: withWeight })
+  assert.ok(!/128 KB|HTML is/.test(text(d)))
+  assert.match(text(d), /phone number is published/)
+})
+
+test('a site whose only observation is the weight prints no website section', () => {
+  const onlyWeight: WebsiteAudit = {
+    reportable: true, detail: 'read', clientRendered: false,
+    observations: [{ id: 'html_weight', finding: 'present', sentence: "Your homepage's HTML is 9 KB." }],
+  }
+  const d = buildDossier({ ...full, site: onlyWeight })
+  assert.ok(!d.sections.some(s => s.id === 'your_website'))
 })

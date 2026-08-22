@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
   const ids = rows.map(r => r.id)
   const [{ data: calls }, { data: existing }] = await Promise.all([
     supabaseAdmin.from('audit_calls')
-      .select('audit_id, slot, status, reportable, outcome, unreportable, sentence, detail')
+      .select('audit_id, slot, status, reportable, outcome, unreportable, sentence, detail, called_at')
       .in('audit_id', ids),
     supabaseAdmin.from('dossiers').select('audit_id').in('audit_id', ids),
   ])
@@ -104,10 +104,14 @@ export async function GET(request: NextRequest) {
     // Only calls that actually resolved carry a finding; anything else is excluded rather than
     // softened, which is what makes the section omit rather than say "we could not reach you".
     const resolved = mine.filter(c => c.status === 'resolved')
-    const pair = describeAuditPair(
-      toResult(resolved.find(c => c.slot === 'business')),
-      toResult(resolved.find(c => c.slot === 'evening')),
-    )
+    const bizCall = resolved.find(c => c.slot === 'business')
+    const eveCall = resolved.find(c => c.slot === 'evening')
+    // The times matter: the comparison line may only say "same day" when the calls WERE on the
+    // same day, and an evening submission on a Friday puts them three days apart.
+    const pair = describeAuditPair(toResult(bizCall), toResult(eveCall), {
+      businessAt: bizCall?.called_at ? new Date(bizCall.called_at) : null,
+      eveningAt:  eveCall?.called_at ? new Date(eveCall.called_at) : null,
+    })
 
     // Best-effort: an unreachable homepage costs that section, never the dossier.
     const site = audit.website_url ? await fetchHomepage(audit.website_url).catch(() => null) : null

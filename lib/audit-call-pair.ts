@@ -55,6 +55,27 @@ function reachedPerson(r: AuditCallResult): boolean {
   return r.reportable && r.outcome === 'answered_human'
 }
 
+/**
+ * Were the two calls actually on the same day?
+ *
+ * Caught by Chris reading a real dossier. The comparison line used to assert "same day"
+ * unconditionally, and the scheduler does not guarantee it: an evening submission on a Friday puts
+ * the evening call that night and the business-hours call on **Monday**. The document would have
+ * told a prospect two calls happened on one day when they were three days apart — the same defect
+ * as claiming a line had no voicemail, in the sentence rather than the logic.
+ *
+ * Unknown times fall back to the weaker, always-true wording. Comparing in the buyer's own
+ * timezone, because 8:41pm Friday and 12:15am Saturday are different days to them even when they
+ * are hours apart.
+ */
+function sameDay(a?: Date | null, b?: Date | null): boolean {
+  if (!a || !b) return false
+  const day = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d)
+  return day(a) === day(b)
+}
+
 const HANDBACK =
   'We only called twice, so this is two moments rather than a pattern — how often it happens is ' +
   'something only you can say.'
@@ -69,6 +90,7 @@ const HANDBACK =
 export function describeAuditPair(
   business: AuditCallResult | null,
   evening: AuditCallResult | null,
+  when: { businessAt?: Date | null; eveningAt?: Date | null } = {},
 ): AuditPair {
   const b = business?.reportable ? business : null
   const e = evening?.reportable ? evening : null
@@ -121,7 +143,9 @@ export function describeAuditPair(
       sentences: [
         b.sentence,
         e.sentence,
-        'Same number, same day. The difference was the hour.',
+        sameDay(when.businessAt, when.eveningAt)
+          ? 'Same number, same day. The difference was the hour.'
+          : 'Same number. The difference was the time of day.',
       ],
       closing: HANDBACK,
       detail: 'Business hours reached a person; the evening call did not. The comparison stands.',

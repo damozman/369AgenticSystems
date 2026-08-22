@@ -49,7 +49,11 @@ test('a missed call hands the frequency back to the prospect', () => {
 // ── The comparison, which is the whole artifact ─────────────────────────────
 
 test('answered in hours, voicemail in the evening is the comparison', () => {
-  const p = describeAuditPair(answered('Tuesday at 10:32am'), voicemail('Tuesday at 8:41pm'))
+  // Same-day timestamps, because that is the case the strong wording is for.
+  const p = describeAuditPair(
+    answered('Tuesday at 10:32am'), voicemail('Tuesday at 8:41pm'),
+    { businessAt: new Date('2026-08-25T15:32:00Z'), eveningAt: new Date('2026-08-26T01:41:00Z') },
+  )
   assert.equal(p.verdict, 'business_only')
   assert.match(all(p), /Someone picked up/)
   assert.match(all(p), /went to voicemail/)
@@ -136,4 +140,31 @@ test('an automated menu does not count as answering', () => {
   const p = describeAuditPair(answered('Tuesday at 10:32am'), ivr)
   assert.equal(p.verdict, 'business_only')
   assert.ok(p.closing, 'a menu answering still leaves the caller unreached')
+})
+
+// ── "Same day" is a claim, and it can be false ──────────────────────────────
+// Caught by Chris reading a real dossier. The scheduler puts a Friday-evening submission's evening
+// call that night and its business-hours call on MONDAY.
+
+test('same day is only claimed when the calls were on the same day', () => {
+  const p = describeAuditPair(
+    answered('Monday at 10:32am'), voicemail('Monday at 8:41pm'),
+    { businessAt: new Date('2026-08-24T15:32:00Z'), eveningAt: new Date('2026-08-25T01:41:00Z') },
+  )
+  // 10:32am and 8:41pm on the 24th in America/Chicago — the UTC dates differ, the local one does not.
+  assert.match(all(p), /same day/)
+})
+
+test('calls on different days never claim same day', () => {
+  const p = describeAuditPair(
+    answered('Monday at 10:32am'), voicemail('Friday at 8:41pm'),
+    { businessAt: new Date('2026-08-24T15:32:00Z'), eveningAt: new Date('2026-08-28T01:41:00Z') },
+  )
+  assert.doesNotMatch(all(p), /same day/)
+  assert.match(all(p), /The difference was the time of day/)
+})
+
+test('unknown times fall back to the wording that is always true', () => {
+  const p = describeAuditPair(answered('a'), voicemail('b'))
+  assert.doesNotMatch(all(p), /same day/)
 })

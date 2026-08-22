@@ -890,6 +890,14 @@ verified this app" interstitial and must click Advanced → Continue, and there 
   what the fix is. The doc's own rule already covered this; the gap was that a pasted command
   *looks* like evidence. **Re-run it.** Same failure shape as reconciling a copied value against
   its source.
+- **Read the artifact, not the code that made it.** Chris read one real dossier end to end and
+  found two things every test had passed over: the comparison line asserted *"same number, same
+  day"* unconditionally, which the scheduler does not guarantee (a Friday-evening submission puts
+  the two calls three days apart), and the page-weight line was the only sentence in the document a
+  reader could do nothing with. Neither is visible from inside a unit test, because a test asks
+  whether the code did what it was told — **only a reader asks whether the result is worth
+  reading.** Print the output and read it as its recipient before shipping anything that gets sent
+  to a person.
 - **A list endpoint's silence is not evidence of absence.** The audit agent shipped with no
   webhook because a comment in its own creation script said no agent sets one — derived from
   `agent.list()`, which does not return `webhook_url`. `agent.retrieve()` does, and every live
