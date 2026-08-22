@@ -139,11 +139,14 @@ it if absent. The word-by-word copy pass is done and its six findings are shippe
 `docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Steps 0 and 1 are DONE
 2026-08-21; steps 2–7 are still design only.**
 
-**⚠ ONE THING NEEDS CHRIS: apply `supabase/migrations/2026-08-21-intake-payload.sql`** in the
-Supabase SQL editor. There is no `DATABASE_URL` or `pg` package in this repo, so DDL cannot be run
-from a script. **Until it is applied the intake route degrades on purpose** — it catches the
-missing-column error, saves the lead with the original six columns, and logs the migration
-filename. Nothing is lost either way; the new fields simply stay unstored.
+**✅ `supabase/migrations/2026-08-21-intake-payload.sql` is APPLIED** (Chris, 2026-08-21). Verified
+against production: all six columns present, and a real submission persisted company, pain point,
+service area and website with **zero** degrade warnings — it took the direct path, not the
+fallback. `system_audits` is back to 23 rows; every test row was swept.
+
+**The fallback stays in the route on purpose.** It costs nothing now and it is what makes the next
+migration safe to deploy in either order. DDL cannot be run from a script here — no `DATABASE_URL`,
+no `pg` package — so schema and code will always go live separately.
 
 - **Step 0 — the intake payload is persisted.** `client_company`, `pain_point`, `service_area`,
   `website_url` are now written; `monthly_volume` and `avg_job_value` have columns but are **not

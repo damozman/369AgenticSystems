@@ -279,7 +279,7 @@ Do this before the pilot takes a real booking, not as part of the dossier.
 
 ## Build order
 
-0. ✅ **DONE 2026-08-21 — persist the intake payload.** `2026-08-21-intake-payload.sql` adds
+0. ✅ **DONE 2026-08-21 — persist the intake payload.** Migration **applied to production**; adds
    `client_company`, `pain_point`, `service_area`, `website_url`, `monthly_volume` and
    `avg_job_value` to `system_audits`, and `/api/intake` now writes the first four.
    **The migration is applied by hand, so the route degrades rather than fails:** an insert naming
