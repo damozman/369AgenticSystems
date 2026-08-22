@@ -22,27 +22,93 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-21 (second session that day).
+**Last updated:** 2026-08-22.
 
-### Where this session ended — 2026-08-21 (third session)
+### Where this session ended — 2026-08-22
 
-**A long build session. Everything below is merged, deployed and verified against production.**
-`master` is clean, tsc passes, **255 tests**, production build clean.
+**Dossier step 2 is done.** tsc clean, **264 tests**, production build clean, mobile audit clean.
+**Not yet committed — the working tree holds it all.**
 
 ## ▶ START HERE NEXT SESSION
 
 **Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
 the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
 
-**▶ NEXT TASK: dossier step 2 — intake form changes.** Add **monthly volume**, **average job
-value** and pain-point checkboxes to the intake form. The columns already exist (step 0 applied),
-so this is a form change only. **It unlocks the real ROI report**: `/api/send-roi-report` is built
-and working but unreachable from intake today because it needs `callsPerWeek` / `answerRate` /
-`jobValue`, which nothing collects. **It touches all 11 static pages**, so start it fresh rather
-than tacking it onto other work, and remember the Zero-Touch rule — edit those as HTML.
+**🔴 FIRST ACTION: apply `supabase/migrations/2026-08-22-intake-pain-points.sql`** in the Supabase
+SQL editor. There is no direct Postgres connection in `.env.local`, only the REST API, so this
+cannot be scripted. **Nothing breaks while it is unapplied** — the route degrades one rung at a
+time and keeps every other field — but `pain_points` stays null and the dossier loses the ordered
+list it is meant to lead with. Re-run `verify-intake-payload.mjs` afterwards: it detects the
+column and switches those checks on by itself.
+
+**▶ NEXT TASK: dossier step 3 — the website measurement module.** A pure function over a fetched
+page (contact form present, hours published, after-hours affordance, mobile viewport, page weight),
+which makes it the easiest thing on the list to test. Step 2 unblocked the arithmetic; step 3 is
+the other half of what the dossier actually reports.
+
+**Read the note under step 5 before touching the form again.** The intake **disclosure line was
+deliberately not shipped** — there is no audit agent, so nobody gets called, and putting *"we place
+a test call to your published number"* on the form would promise every submitter a call that never
+comes. It ships with the calls, not before.
 
 **Also queued, smaller:** audit the other five crons' real output (open item 5), the Scout badge,
 and deleting `lib/email-templates.ts`.
+
+---
+
+#### ✅ Dossier step 2 — and it was NOT "a form change only"
+
+The roadmap said add two fields to 11 pages. What the pages actually needed was a **payload
+contract**, and the reason is the kind of thing that only shows up when you read all twelve forms
+side by side rather than one and assuming the rest match.
+
+**Every page posted a single overloaded slot, `industry_specific_field`, that meant something
+different on almost every page** — a service area on roofing/HVAC/plumbing, monthly volume on the
+four rental and wholesale pages, a book size on insurance, leads per month on real estate, an MRR
+band on SaaS, and the company name again on legal and the homepage. **Step 0 wrote all of it into a
+column named `service_area`.** The dossier would have reported a prospect's service area as "400".
+And six pages were *already asking* the volume question step 2 wanted — under the wrong name.
+
+All **12** forms now post the same four things under their own names: `service_area`,
+`monthly_volume`, `avg_job_value`, `pain_points[]`. Ids are uniform (`f-area`, `f-volume`,
+`f-value`, `f-pain`), so the next edit is one pass rather than twelve. Every page gained a real
+service-area question — **Chris's call**, so the dossier has a location for a local-business audit.
+The bottleneck `<select>` became checkboxes and **"All of the above" is gone**: it was the option
+that destroyed the most information, since picking it says nothing about priority.
+
+**Two live data bugs found on the way, both by reading rather than assuming:**
+- **`real-estate-leads` posted `369AS_REALESTATE_INTAKE`** while the route mapped
+  `369AS_REAL_ESTATE_INTAKE`. The key never matched, so every real-estate lead was filed under a
+  third spelling, `realestate` — the exact "useless for grouping" problem that map exists to
+  prevent. `getVerticalConfig` tolerates both, so nothing downstream broke and nothing looked
+  wrong. Both spellings now map; the page posts the right one.
+- **The homepage modal asked for a business TYPE and stored it as the company NAME**, so
+  `client_company` read "Med Spa". It now asks for both and files the row under the prospect's own
+  trade instead of the literal `unlisted`.
+
+**⚠ `monthly_volume` is TOTAL inbound volume, not the missed portion.** Multiplying it by
+`RECOVERY_RATE` claims 30% of every call a prospect receives is recoverable revenue — a fabricated
+number wearing a real one's clothes. **The missed rate has to come from the measured audit call.**
+This is written into the column comment, the route, `lib/intake-payload.ts` and the tests, because
+it is the easiest way for the step-4 renderer to quietly reintroduce the Gumloop failure.
+
+**Step 0's write path had never actually run.** Its "verified against production" meant the
+migration was applied; the newest `system_audits` row predated the deploy by a day and every
+payload column was null on all 23 rows. Both halves are now proven by script, against the live
+route and the live table.
+
+**Verification — two scripts, both committed, because the producer and the consumer are different
+questions.** `item` and `sms_consent` were each defined, described and simply never sent, because
+every test called the API directly:
+- `verify-intake-payload.mjs` — 18 checks through the real route into production Supabase.
+  Proves unreadable numbers become **null, never 0**, out-of-range becomes **null, never clamped**,
+  the old cached-page shape still submits, and cleans up every row it writes.
+- `verify-intake-forms.mjs` — **66 checks in a real browser across all 11 leads pages.** Proves
+  each form actually *sends* the contract, and that a submit with no bottleneck checked is blocked.
+  Intercepts `/api/intake`, so it writes nothing and sends no mail.
+
+`lib/intake-payload.ts` holds the parsing, with 9 tests — it was briefly duplicated in the route,
+which is the two-writers trap this file already warns about; the route imports it now.
 
 **Not blocked on us:** Retell has not fixed the Anthropic routing. Chris asked them to confirm when
 they do — see "Model choice" for the two things to re-check before going live.
@@ -731,6 +797,15 @@ verified this app" interstitial and must click Advanced → Continue, and there 
   what the fix is. The doc's own rule already covered this; the gap was that a pasted command
   *looks* like evidence. **Re-run it.** Same failure shape as reconciling a copied value against
   its source.
+- **One field name reused across pages will come to mean a different thing on each one, and the
+  schema will pick the wrong meaning and look fine.** Twelve intake forms all posted
+  `industry_specific_field`. On three pages it was a service area; on the others it was a monthly
+  volume, a book size, an MRR band, or the company name repeated. Step 0 gave that slot a column
+  called `service_area` — a perfectly reasonable name for what **one page** meant — and from then
+  on the database confidently held a prospect's service area as "400". **Nothing errored, nothing
+  looked wrong, and reading any single page would have confirmed the schema was right.** The bug
+  only exists in the space *between* the pages. When a shared key feeds a shared column, read every
+  producer before naming the column, and prefer several honest names over one flexible one.
 - **Two writers, one of which thinks it is alone, is a data-loss bug waiting for a date.** The
   questionnaire deactivates inventory it did not see, and `mergePromptWithContext` discards prompt
   text it did not write. Both are *correct* in isolation and both are destructive the moment a
@@ -909,6 +984,18 @@ node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-q
                                          retires. Runs against the review sandbox and REFUSES any
                                          client with a retell_agent_id. Needs the dev server;
                                          BASE_URL to point at another port.
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-intake-payload.mjs
+                                         the intake payload contract, through the REAL route into
+                                         production Supabase: every field in its own column,
+                                         unreadable numbers NULL rather than 0, out-of-range NULL
+                                         rather than clamped, and the old cached-page shape still
+                                         accepted. Deletes every row it writes. Needs the dev
+                                         server; BASE_URL to point at another port.
+node scripts/verify-intake-forms.mjs     the other half — 66 checks in a real BROWSER that all 11
+                                         leads pages actually SEND that contract, and that a submit
+                                         with no bottleneck checked is blocked. Intercepts
+                                         /api/intake, so it writes nothing and mails nobody.
+                                         Needs a server running.
 node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-questionnaire-inventory.mjs
                                          questionnaire -> schedule + inventory, end to end against
                                          a throwaway client. Buys nothing. Needs the dev server.

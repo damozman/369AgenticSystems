@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { escapeHtml } from '@/lib/security/sanitize'
 import { resendFrom } from '@/lib/email-from'
+import { monthlyVolumeFrom, avgJobValueFrom, painPointsFrom } from '@/lib/intake-payload'
 
 /**
  * First-party intake for the static cold-email landing pages.
@@ -61,6 +62,11 @@ const VERTICAL_BY_TAG: Record<string, string> = {
   '369AS_HVAC_INTAKE':        'hvac',
   '369AS_PLUMBING_INTAKE':    'plumbing',
   '369AS_LEGAL_INTAKE':       'legal',
+  // The real-estate page has always posted REALESTATE (no underscore), so the key below it never
+  // matched and the regex fallback stored 'realestate' — the exact "useless for grouping" problem
+  // this map exists to prevent. The page now posts REAL_ESTATE; both are kept because a browser
+  // holding the old page cached must not start a third spelling.
+  '369AS_REALESTATE_INTAKE':  'real-estate',
   '369AS_REAL_ESTATE_INTAKE': 'real-estate',
   '369AS_INSURANCE_INTAKE':   'insurance',
   '369AS_SAAS_INTAKE':        'saas',
@@ -94,6 +100,9 @@ interface Lead {
   name: string; company: string; email: string
   website: string; area: string; pain: string
   vertical: string; receivedAt: string
+  painPoints: string[]
+  monthlyVolume: number | null
+  avgJobValue: number | null
 }
 
 /**
@@ -108,8 +117,9 @@ interface Lead {
  * only in Vercel logs that nobody was reading. A 500 that reaches no human is the same as
  * a silent success — the defect was never the pipeline, it was the silence.
  *
- * `system_audits` has no column for company / pain / service area either, so the full
- * payload rides in this email in both modes until a proper intake table exists.
+ * The payload rides in this email in both modes. On the success path that is now duplication —
+ * `system_audits` persists all of it since step 0 — but on the failure path there is no row, so
+ * this is still the only copy and must stay complete.
  *
  * Never throws: the caller's response must not depend on the mail provider.
  */
@@ -126,8 +136,13 @@ interface Lead {
  * `jobValue`, `monthlyLost`, `annualLost`, `breakEvenDays` and `yearOneProfit`, and the intake form
  * collects none of them — it would either throw on `undefined.toLocaleString()` or need those
  * figures invented. **Inventing them is exactly the Gumloop failure the dossier exists to replace**
- * (a security score of 41 returned for every business it ever saw). Collecting real ROI inputs on
- * the form is step 2; until then this email carries no arithmetic at all.
+ * (a security score of 41 returned for every business it ever saw).
+ *
+ * Step 2 has since added monthly volume and average value to every form, so the inputs now exist —
+ * and this email still carries no arithmetic, deliberately. `monthly_volume` is TOTAL inbound
+ * volume, not the missed portion, so multiplying it by `RECOVERY_RATE` would claim 30% of every
+ * call they receive is recoverable revenue. That is a fabricated number wearing a real one's
+ * clothes. The missed rate has to come from the measured audit call, which is step 5.
  *
  * So it promises precisely what the page already promises — a personal reply within 24 hours —
  * restates what they submitted so they can correct it, and gives them the two ways to reach us
@@ -173,7 +188,10 @@ async function acknowledgeProspect(lead: Lead): Promise<void> {
     <p style="margin:0 0 10px;font-size:10px;font-family:monospace;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What you sent us</p>
     <table style="width:100%;border-collapse:collapse;">
       ${row('Name', lead.name)}${row('Company', lead.company)}${row('Website', lead.website)}
-      ${row('Service area', lead.area)}${row('Biggest problem', lead.pain)}
+      ${row('Service area', lead.area)}
+      ${row('Monthly volume', lead.monthlyVolume === null ? '' : lead.monthlyVolume.toLocaleString())}
+      ${row('Average value', lead.avgJobValue === null ? '' : `$${lead.avgJobValue.toLocaleString()}`)}
+      ${row('Biggest problems', lead.painPoints.join(', '))}
     </table>
     <p style="margin:12px 0 0;font-size:12px;color:#64748B;line-height:1.6;">
       Anything wrong there? Just reply to this email and we'll fix it.
@@ -250,7 +268,9 @@ async function alertOwner(lead: Lead, dbFailure?: string): Promise<void> {
                 ${row('Email', lead.email)}
                 ${row('Website', lead.website)}
                 ${row('Service area', lead.area)}
-                ${row('Pain point', lead.pain)}
+                ${row('Monthly volume', lead.monthlyVolume === null ? '' : lead.monthlyVolume.toLocaleString())}
+                ${row('Avg job value', lead.avgJobValue === null ? '' : `$${lead.avgJobValue.toLocaleString()}`)}
+                ${row('Bottlenecks', lead.painPoints.join(', '))}
               </table>
               <p style="margin:20px 0 0;font-size:11px;color:#334155;">${failed ? 'Submitted' : 'Captured'} ${escapeHtml(lead.receivedAt)}. Reply to this email to reach them directly.</p>
             </div>
@@ -285,8 +305,27 @@ export async function POST(request: Request) {
   const company   = str('client_company')
   const email     = str('client_email')
   const website   = str('website_content')
-  const pain      = str('pain')
-  const area      = str('industry_specific_field')
+
+  /**
+   * `service_area` is now its own field, and `industry_specific_field` is only a fallback.
+   *
+   * That single slot used to mean something different on almost every page — a service area on
+   * roofing, HVAC and plumbing, but monthly order volume on the rental and wholesale pages, a book
+   * size on insurance, leads per month on real estate, an MRR band on SaaS, and the company name
+   * again on legal and the homepage. Step 0 then wrote all of it into a column called
+   * `service_area`, so a dossier reading it back would report a prospect's service area as "400".
+   *
+   * The pages now post each thing under its own name. The fallback stays because a cached page
+   * keeps posting the old shape, and on those pages the slot really was the service area.
+   */
+  const area = str('service_area') || str('industry_specific_field')
+
+  const painPoints    = painPointsFrom(body)
+  // Legacy singular representation, and the one that survives when the pain_points column is not
+  // there yet. Same writer, same values — see 2026-08-22-intake-pain-points.sql.
+  const pain          = painPoints.join(', ')
+  const monthlyVolume = monthlyVolumeFrom(body.monthly_volume)
+  const avgJobValue   = avgJobValueFrom(body.avg_job_value)
 
   // The email is what makes a lead actionable — without it there is nothing to follow up.
   if (!email || !email.includes('@')) {
@@ -297,60 +336,91 @@ export async function POST(request: Request) {
   const domain     = domainFrom(website)
   const receivedAt = new Date().toISOString()
 
+  /**
+   * For the homepage's "Not Listed?" modal, file the row under what the prospect actually does.
+   *
+   * That modal is the catch-all for a business with no page of its own, and its tag resolves to
+   * the literal `unlisted` — the one fact about an unlisted lead that helps nobody. It now also
+   * asks what kind of business it is, so use that instead. Known verticals are untouched and keep
+   * their clean grouping keys; only `unlisted` is replaced, and only when there is something to
+   * replace it with.
+   */
+  const industryDetail = str('client_industry_detail')
+  const industry = vertical === 'unlisted' && industryDetail
+    ? industryDetail.slice(0, 60)
+    : vertical
+
   // ── Capture first. Everything else is best-effort. ─────────────────────────
   //
   // The full row, including the prospect context that until now existed only inside the owner's
   // notification email. Persisting it is step 0 of the dossier: a generator reading this table
   // previously found a domain, an email and a name — nothing to reflect back to a prospect and
   // no numbers to work from.
-  const fullRow = {
-    client_domain:   domain,
-    client_email:    email,
-    client_name:     name || null,
-    client_industry: vertical,
-    payload_status:  'intake_received',
-    created_at:      receivedAt,
-    client_company:  company || null,
-    pain_point:      pain    || null,
-    service_area:    area    || null,
-    website_url:     website || null,
-  }
-
-  // The six columns that have always existed. Used only if the ones above do not.
+  // The six columns that have always existed. The last rung of the ladder below.
   const legacyRow = {
     client_domain:   domain,
     client_email:    email,
     client_name:     name || null,
-    client_industry: vertical,
+    client_industry: industry,
     payload_status:  'intake_received',
     created_at:      receivedAt,
   }
 
-  let { error: dbError } = await supabaseAdmin.from('system_audits').insert(fullRow)
-
-  /**
-   * If the new columns are not there yet, save the lead anyway.
-   *
-   * `2026-08-21-intake-payload.sql` is applied by hand, so code and schema can go live in either
-   * order. An insert naming a missing column fails as a whole, which would turn a deploy that
-   * merely ran ahead of a migration into **lost prospects** — the one outcome this route exists
-   * to prevent, and a failure this project has already had: nine days of submissions were dropped
-   * in 2026-07 and nobody noticed.
-   *
-   * So a missing column degrades to the old six and shouts about it. The prospect is still
-   * captured, and the extra fields still ride in the owner email exactly as they did before.
-   * 42703 is Postgres's undefined_column; PGRST204 is PostgREST's schema-cache equivalent.
-   */
-  if (dbError && (dbError.code === '42703' || dbError.code === 'PGRST204')) {
-    console.error(
-      `[369 INTAKE] ⚠ system_audits is missing the intake-payload columns — saving the lead ` +
-      `WITHOUT company/pain/area/website. Apply supabase/migrations/2026-08-21-intake-payload.sql. ` +
-      `(${dbError.message})`,
-    )
-    ;({ error: dbError } = await supabaseAdmin.from('system_audits').insert(legacyRow))
+  // Step 0's columns: the prospect context that used to exist only inside the owner's email.
+  const step0Row = {
+    ...legacyRow,
+    client_company:  company || null,
+    pain_point:      pain    || null,
+    service_area:    area    || null,
+    website_url:     website || null,
+    monthly_volume:  monthlyVolume,
+    avg_job_value:   avgJobValue,
   }
 
-  const lead = { name, company, email, website, area, pain, vertical, receivedAt }
+  // Step 2 adds the ordered array. Everything the form collects.
+  const fullRow = {
+    ...step0Row,
+    pain_points: painPoints.length > 0 ? painPoints : null,
+  }
+
+  /**
+   * Save the lead even if a migration has not been applied yet — one rung at a time.
+   *
+   * Migrations here are applied by hand, so code and schema can go live in either order. An insert
+   * naming a missing column fails **as a whole**, which would turn a deploy that merely ran ahead
+   * of a migration into **lost prospects** — the one outcome this route exists to prevent, and a
+   * failure this project has already had: nine days of submissions were dropped in 2026-07 and
+   * nobody noticed.
+   *
+   * The ladder has three rungs rather than two on purpose. With a single "full or legacy" fallback,
+   * a missing `pain_points` column would throw away company, pain, area, website, volume and value
+   * as well — six fields that are present in the schema — because they happened to share an insert
+   * with the one that was missing. Each rung drops only what the rung above it added.
+   *
+   * 42703 is Postgres's undefined_column; PGRST204 is PostgREST's schema-cache equivalent.
+   */
+  const rungs: Array<{ row: object; missing: string; fix: string }> = [
+    { row: fullRow,  missing: 'pain_points',                    fix: '2026-08-22-intake-pain-points.sql' },
+    { row: step0Row, missing: 'the intake-payload columns',     fix: '2026-08-21-intake-payload.sql' },
+    { row: legacyRow, missing: '',                              fix: '' },
+  ]
+
+  let dbError: { code?: string; message: string } | null = null
+  for (let i = 0; i < rungs.length; i++) {
+    ;({ error: dbError } = await supabaseAdmin.from('system_audits').insert(rungs[i].row))
+    if (!dbError) break
+    const schemaGap = dbError.code === '42703' || dbError.code === 'PGRST204'
+    if (!schemaGap || i === rungs.length - 1) break
+    console.error(
+      `[369 INTAKE] ⚠ system_audits is missing ${rungs[i].missing} — retrying without it. ` +
+      `Apply supabase/migrations/${rungs[i].fix}. (${dbError.message})`,
+    )
+  }
+
+  const lead = {
+    name, company, email, website, area, pain, vertical, receivedAt,
+    painPoints, monthlyVolume, avgJobValue,
+  }
 
   if (dbError) {
     // The lead is not in the database and will not be retried — the page shows a fallback
@@ -389,7 +459,12 @@ export async function POST(request: Request) {
           client_email: email,
           website_content: website,
           pain,
+          pain_points: painPoints,
+          service_area: area,
+          // Kept so an existing consumer of the old single-slot shape does not break.
           industry_specific_field: area,
+          monthly_volume: monthlyVolume,
+          avg_job_value: avgJobValue,
           timestamp: receivedAt,
         }),
         signal: AbortSignal.timeout(8000),

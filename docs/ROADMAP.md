@@ -300,15 +300,56 @@ emergency — but intake submitters still get **silence**, and that is still a l
    `acknowledgeProspect()` sends a plain confirmation with **no arithmetic**: what they submitted,
    the 24-hour personal reply the success screen already promises, the demo line and the booking
    link. The ROI report becomes reachable at step 2.
-2. **▶ NEXT — intake form changes:** monthly volume, average job value, pain-point checkboxes,
-   disclosure. **A form change only** — step 0 already added the columns — but it **touches all 11
-   static pages**, so treat them as HTML per the Zero-Touch rule. **This is what unlocks the real
-   ROI report.**
+2. ✅ **DONE 2026-08-22 — intake form changes.** **It was not "a form change only".**
+
+   The plan assumed the pages just needed two new fields. What they actually needed was a payload
+   contract, because every page posted a single overloaded slot called `industry_specific_field`
+   that meant something different on almost every one of them — a service area on roofing, HVAC and
+   plumbing, but monthly volume on the four rental/wholesale pages, a book size on insurance, leads
+   per month on real estate, an MRR band on SaaS, and the company name again on legal and the
+   homepage. **Step 0 then wrote all of it into a column named `service_area`**, so the dossier
+   would have reported a prospect's service area as "400". Six of the pages were already asking the
+   volume question step 2 wanted; they were posting it under the wrong name.
+
+   All **12** forms (11 leads pages + the homepage modal) now post the same four things under their
+   own names: `service_area`, `monthly_volume`, `avg_job_value`, `pain_points[]`. Field ids are
+   uniform (`f-area`, `f-volume`, `f-value`, `f-pain`) so the next edit is one pass, not twelve.
+   Every page gained a real service-area question — Chris's call, so the dossier has a location for
+   a local-business audit.
+
+   Also fixed in the same pass, both found by reading rather than assumed:
+   - **`real-estate-leads` posted `369AS_REALESTATE_INTAKE`** while the route mapped
+     `369AS_REAL_ESTATE_INTAKE`. The key never matched, so the regex fallback filed those leads
+     under a third spelling, `realestate` — the exact "useless for grouping" problem that map
+     exists to prevent. Both spellings are now accepted; the page posts the right one.
+   - **The homepage modal asked for a business TYPE and stored it as the company NAME**, so
+     `client_company` read "Med Spa". It now asks for both, and files the row under the prospect's
+     own trade instead of the literal `unlisted`.
+
+   **The disclosure line was deliberately NOT shipped** — see the note under step 5.
+
+   **`monthly_volume` is TOTAL inbound volume, not the missed portion.** Multiplying it by
+   `RECOVERY_RATE` would claim 30% of every call a prospect receives is recoverable revenue, which
+   is a fabricated number wearing a real one's clothes. The missed rate has to come from the
+   measured audit call. This is written into the column comments, the route and the tests, because
+   it is the single easiest way for the renderer at step 4 to reintroduce the Gumloop failure.
+
+   **Needs applying:** `supabase/migrations/2026-08-22-intake-pain-points.sql` (adds `pain_points
+   TEXT[]`). The route degrades one rung at a time without it and keeps every other field, so code
+   and schema can go live in either order.
 3. Website measurement module — a pure function over a fetched page, easy to test.
 4. Dossier renderer — six sections, per-vertical config.
 5. Dedicated audit agent, then the two-call schedule. **There is no audit agent today** —
    `lib/audit-call-dial.ts` falls back to the shared demo agent, so a prospect who answered would
    be greeted as their own receptionist.
+
+   **▶ The intake disclosure ships HERE, not at step 2.** The design puts *"As part of your audit
+   we place a test call to your published number"* on the form, and step 2 built everything else on
+   that list. It was held back on purpose: **there is no audit agent, so nobody gets called.**
+   Shipping the line now would tell every single submitter we are about to call them and then never
+   call — advertising a capability that does not exist, which is the one thing this repo has a
+   standing rule against and has already got wrong once. The markup is trivial; add it in the same
+   change that turns the calls on, and the legal posture is correct from the first real call.
 6. Approval queue + send.
 7. Delete `lib/email-templates.ts` (also listed in Track 2.4 — do it in whichever arrives first).
 

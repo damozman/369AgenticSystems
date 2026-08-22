@@ -440,6 +440,31 @@
     .term-input:focus { border-color: var(--purple); }
     .term-input::placeholder { color: rgba(139, 92, 246, 0.35); }
 
+    /* Bottleneck checkboxes - dossier step 2.
+       Replaced a single-choice <select> whose last option was "All of the above", the option
+       that destroyed the most information: someone who picked it had told us nothing about
+       priority. Three of five tells the dossier what to lead with.
+       --pain-accent is set on the fieldset to whichever accent this vertical uses, so this
+       block is byte-identical on every page. */
+    .pain-grid { display:flex; flex-direction:column; gap:2px; border:none; padding:0; margin:0; min-width:0; }
+    .pain-opt {
+      display:flex; align-items:flex-start; gap:11px; cursor:pointer;
+      padding:12px; margin:0 -12px; border-radius:6px;
+      font-family:'Courier New', monospace; font-size:0.9rem; line-height:1.45;
+      color:#94A3B8; transition:background 0.2s ease, color 0.2s ease;
+    }
+    .pain-opt:hover { background:rgba(255,255,255,0.035); color:#F0F0F0; }
+    .pain-opt:focus-within { background:rgba(255,255,255,0.05); }
+    .pain-opt input {
+      accent-color:var(--pain-accent); width:16px; height:16px;
+      margin:1px 0 0; flex-shrink:0; cursor:pointer;
+    }
+    .pain-opt input:checked ~ span { color:var(--pain-accent); }
+    .pain-legend {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+    }
+
     .blink { animation: blink 1.1s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
     .loading-bar-wrap { width:100%; height:3px; background:rgba(255,255,255,0.08); border-radius:2px; margin:12px 0 6px; overflow:hidden; }
@@ -988,27 +1013,29 @@
               </div>
 
               <div style="margin-bottom:30px;">
-                <div class="term-label"><span style="color:#27c93f;">$</span> --monthly-mrr</div>
-                <select class="term-input" id="f-mrr" required aria-label="Monthly MRR range" style="cursor:pointer; font-size:0.95rem;">
-                  <option value="" disabled selected style="background:#111; color:rgba(139,92,246,0.35);">Select your MRR range</option>
-                  <option value="pre"  style="background:#111; color:var(--purple-light);">Pre-revenue / Early stage</option>
-                  <option value="10k"  style="background:#111; color:var(--purple-light);">$1k – $10k MRR</option>
-                  <option value="50k"  style="background:#111; color:var(--purple-light);">$10k – $50k MRR</option>
-                  <option value="100k" style="background:#111; color:var(--purple-light);">$50k – $100k MRR</option>
-                  <option value="100k+" style="background:#111; color:var(--purple-light);">$100k+ MRR</option>
-                </select>
+                <div class="term-label"><span style="color:#27c93f;">$</span> --primary-market</div>
+                <input type="text" class="term-input" id="f-area" placeholder="Primary market or region" required aria-label="Primary market" />
+              </div>
+
+              <div style="margin-bottom:30px;">
+                <div class="term-label"><span style="color:#27c93f;">$</span> --monthly-inbound</div>
+                <input type="text" inputmode="numeric" class="term-input" id="f-volume" placeholder="Avg demo/trial requests per month (e.g. 70)" required aria-label="Demo and trial requests per month" />
+              </div>
+
+              <div style="margin-bottom:30px;">
+                <div class="term-label"><span style="color:#27c93f;">$</span> --avg-contract-value</div>
+                <input type="text" inputmode="numeric" class="term-input" id="f-value" placeholder="Average annual contract value in dollars (e.g. 12000)" required aria-label="Average annual contract value in dollars" />
               </div>
 
               <div style="margin-bottom:40px;">
-                <div class="term-label"><span style="color:#27c93f;">$</span> --growth-blocker</div>
-                <select class="term-input" id="f-blocker" required aria-label="Primary growth blocker" style="cursor:pointer; font-size:0.95rem;">
-                  <option value="" disabled selected style="background:#111; color:rgba(139,92,246,0.35);">Select your primary growth blocker</option>
-                  <option value="afterhours" style="background:#111; color:var(--purple-light);">Missed calls after hours &amp; weekends</option>
-                  <option value="slow"       style="background:#111; color:var(--purple-light);">Demo requests answered too slowly</option>
-                  <option value="team"       style="background:#111; color:var(--purple-light);">No dedicated SDR to field inbound calls</option>
-                  <option value="followup"   style="background:#111; color:var(--purple-light);">No follow-up on trial signups &amp; inquiries</option>
-                  <option value="all"        style="background:#111; color:var(--purple-light);">All of the above</option>
-                </select>
+                <div class="term-label"><span style="color:#27c93f;">$</span> --bottlenecks <span style="color:var(--text-muted); font-size:0.74rem; font-weight:400;">(check all that apply)</span></div>
+                <fieldset class="pain-grid" id="f-pain" style="--pain-accent: var(--purple-light);">
+                  <legend class="pain-legend">Which bottlenecks apply to your business?</legend>
+                  <label class="pain-opt"><input type="checkbox" name="pain" value="afterhours" /><span>Missed calls after hours &amp; weekends</span></label>
+                  <label class="pain-opt"><input type="checkbox" name="pain" value="slow" /><span>Demo requests answered too slowly</span></label>
+                  <label class="pain-opt"><input type="checkbox" name="pain" value="team" /><span>No dedicated SDR to field inbound calls</span></label>
+                  <label class="pain-opt"><input type="checkbox" name="pain" value="followup" /><span>No follow-up on trial signups &amp; inquiries</span></label>
+                </fieldset>
               </div>
 
               <button type="submit" class="btn-primary" style="width:100%; font-family:'Courier New',monospace; font-size:0.95rem; text-align:center; padding:16px; border-radius:8px;">
@@ -1191,6 +1218,21 @@
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    /* Bottlenecks are checkboxes now, and a checkbox group cannot be `required` in HTML -
+       putting required on one box would demand that exact box. So the group's validity is
+       carried on the first input, which keeps it inside the form's own
+       checkValidity()/reportValidity() pass rather than inventing a second error path this
+       page would have to style, scroll to and keep in sync. */
+    const painBoxes = Array.prototype.slice.call(
+      document.querySelectorAll('#f-pain input[type="checkbox"]'));
+    const painPoints = () => painBoxes.filter(b => b.checked).map(b => b.value);
+    function syncPainValidity() {
+      if (!painBoxes.length) return;
+      painBoxes[0].setCustomValidity(painPoints().length ? '' : 'Please choose at least one bottleneck.');
+    }
+    painBoxes.forEach(b => b.addEventListener('change', syncPainValidity));
+    syncPainValidity();
+
     form.addEventListener('submit', async e => {
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -1202,8 +1244,10 @@
         client_company:          document.getElementById('f-company').value.trim(),
         client_email:            document.getElementById('f-email').value.trim(),
         website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
-        pain:                    document.getElementById('f-blocker').value,
-        industry_specific_field: document.getElementById('f-mrr').value,
+        service_area:            document.getElementById('f-area').value.trim(),
+        monthly_volume:          document.getElementById('f-volume').value.trim(),
+        avg_job_value:           document.getElementById('f-value').value.trim(),
+        pain_points:             painPoints(),
         timestamp:               new Date().toISOString(),
       };
       btnLbl.textContent = '[INFO] Transmitting to 369 Agentic Core...';

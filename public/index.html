@@ -668,6 +668,29 @@
     #audit-step-2 { display: none; }
     #audit-step-2.visible { display: block; }
     #audit-step-1.hidden  { display: none; }
+    .pain-grid { display:flex; flex-direction:column; gap:2px; border:none; padding:0; margin:0 0 12px; min-width:0; }
+    .pain-opt {
+      display:flex; align-items:flex-start; gap:11px; cursor:pointer;
+      padding:11px 12px; margin:0 -12px; border-radius:8px;
+      font-family:'Inter', sans-serif; font-size:0.84rem; line-height:1.45;
+      color:var(--text-secondary); transition:background 0.2s ease, color 0.2s ease;
+    }
+    .pain-opt:hover { background:rgba(255,255,255,0.04); color:var(--text-primary); }
+    .pain-opt:focus-within { background:rgba(255,255,255,0.06); }
+    .pain-opt input {
+      accent-color:var(--pain-accent); width:16px; height:16px;
+      margin:1px 0 0; flex-shrink:0; cursor:pointer;
+    }
+    .pain-opt input:checked ~ span { color:var(--pain-accent); }
+    .pain-legend {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+    }
+    .audit-field-label {
+      font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase;
+      color:var(--text-muted); margin:2px 0 7px;
+    }
+
     .audit-input {
       width: 100%;
       background: rgba(255,255,255,0.04);
@@ -1679,10 +1702,23 @@
 
         <form id="audit-custom-form" style="text-align:left;">
           <input type="text"  name="name"     class="audit-input" placeholder="Your name"          required />
-          <input type="text"  name="business" class="audit-input" placeholder="Business type (e.g. HVAC, Med Spa...)" required />
+          <input type="text"  name="business" class="audit-input" placeholder="Business name" required autocomplete="organization" />
+          <input type="text"  name="industry" class="audit-input" placeholder="What kind of business? (e.g. HVAC, Med Spa)" required aria-label="Type of business" />
           <input type="email" name="email"    class="audit-input" placeholder="Your email address" required />
           <input type="text"  id="modal-url" name="website_url" class="audit-input" placeholder="https://yoursite.com  (or leave blank)" autocomplete="url" />
           <div id="modal-url-info" style="font-family:'Courier New',monospace; font-size:0.75rem; color:#94A3B8; margin-top:-8px; margin-bottom:14px; padding-left:2px;">[INFO] No website found. Initializing Digital Employee Foundation Blueprint...</div>
+          <input type="text" inputmode="numeric" name="volume"   class="audit-input" placeholder="Roughly how many calls a month? (e.g. 120)" aria-label="Inbound calls per month" />
+          <input type="text" inputmode="numeric" name="value"    class="audit-input" placeholder="Average value of one job in dollars (e.g. 2500)" aria-label="Average job value in dollars" />
+          <input type="text" name="area" class="audit-input" placeholder="Primary city or service area" aria-label="Service area" />
+          <p class="audit-field-label">Where does the phone hurt? (check all that apply)</p>
+          <fieldset class="pain-grid" id="f-pain" style="--pain-accent: var(--gold);">
+            <legend class="pain-legend">Which bottlenecks apply to your business?</legend>
+            <label class="pain-opt"><input type="checkbox" name="pain" value="afterhours" /><span>Missed calls after hours &amp; weekends</span></label>
+            <label class="pain-opt"><input type="checkbox" name="pain" value="busy" /><span>Calls come in while we are working</span></label>
+            <label class="pain-opt"><input type="checkbox" name="pain" value="voicemail" /><span>Callers hit voicemail and ring a competitor</span></label>
+            <label class="pain-opt"><input type="checkbox" name="pain" value="tracking" /><span>No record of who called and did not connect</span></label>
+            <label class="pain-opt"><input type="checkbox" name="pain" value="followup" /><span>Follow-up that never happens</span></label>
+          </fieldset>
           <button type="submit" class="btn-gold" style="width:100%; font-size:0.9rem; padding:14px; margin-top:4px;">
             <span id="modal-btn-label">Request My Free Audit →</span>
           </button>
@@ -1962,10 +1998,15 @@
         source_tag:              '369AS_UNLISTED_INTAKE',
         client_name:             (data.get('name')     || '').trim(),
         client_company:          (data.get('business') || '').trim(),
+        client_industry_detail:  (data.get('industry') || '').trim(),
         client_email:            (data.get('email')    || '').trim(),
         website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
-        pain:                    null,
-        industry_specific_field: (data.get('business') || '').trim(),
+        service_area:            (data.get('area')   || '').trim(),
+        monthly_volume:          (data.get('volume') || '').trim(),
+        avg_job_value:           (data.get('value')  || '').trim(),
+        pain_points:             Array.prototype.slice
+                                   .call(auditForm.querySelectorAll('#f-pain input:checked'))
+                                   .map(b => b.value),
         timestamp:               new Date().toISOString(),
       };
       modalBtnLbl.textContent = '[INFO] Transmitting to 369 Agentic Core...';
