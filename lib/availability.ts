@@ -44,7 +44,7 @@ export interface Slot {
 /** Sunday-indexed, matching `Date.prototype.getUTCDay()`. */
 const WEEKDAY_KEYS: Weekday[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
-interface CivilDate {
+export interface CivilDate {
   year: number
   month: number // 1-12
   day: number
