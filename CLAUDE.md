@@ -45,11 +45,14 @@ mails a real dossier. What remains is not code:
 3. ~~Step 7 — delete `lib/email-templates.ts`~~ — **done 2026-08-22.** 469 lines, every export
    verified unreferenced first.
 
-**⚠️ Check `ONBOARDING_TOKEN_SECRET` is set in Vercel before the first real dossier.** The review
-links are signed with it (falling back from `DOSSIER_TOKEN_SECRET`). It is **not** in the local env
-file — local verification passes a throwaway value to both the dev server and the script. If it is
-unset in production the nudge still sends but every link is dead; the cron logs that loudly rather
-than pretending.
+**✅ `ONBOARDING_TOKEN_SECRET` IS set in Vercel** — confirmed by Chris 2026-08-22. Dossier review
+links are signed with it (falling back from `DOSSIER_TOKEN_SECRET` if that is ever added). Do not
+re-check this.
+
+It is deliberately **not** in the local env file, so local verification passes a throwaway value to
+both the dev server and the script — they only need to agree. That is why
+`verify-dossier-pipeline.mjs` is run with `ONBOARDING_TOKEN_SECRET=<anything>` in front of it, and
+why a run without one fails at "a token could be minted" rather than anywhere interesting.
 
 **Also outstanding: the callback agent** — the inbound side of the audit number. Design agreed with
 Chris: disclose → offer to put him on → warm transfer to his mobile → on no answer, `capture_lead`
