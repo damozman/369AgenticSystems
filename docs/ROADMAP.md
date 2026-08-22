@@ -407,7 +407,18 @@ emergency — but intake submitters still get **silence**, and that is still a l
    call — advertising a capability that does not exist, which is the one thing this repo has a
    standing rule against and has already got wrong once. The markup is trivial; add it in the same
    change that turns the calls on, and the legal posture is correct from the first real call.
-6. Approval queue + send.
+6. ✅ **DONE 2026-08-22 — approval queue + send.** Proven end to end against production by
+   `verify-dossier-pipeline.mjs`: 27 checks from submission through build, review page, approval
+   and a real email.
+
+   **Approval is a POST, never a link.** Mail scanners fetch every URL in a message, so a one-click
+   `?approve=1` would have sent every dossier the moment the nudge arrived, unread. The signed
+   token opens the review page; sending needs a button on it. GET on the approve route answers 405.
+
+   The review page shows the **stored HTML** in a sandboxed iframe — what will actually arrive, not
+   a re-render — plus what the builder left out and why. The nudge names the count **and the age of
+   the oldest**, and sends nothing when the queue is empty, because a daily "nothing to do" trains
+   its reader to ignore the one message that must not be ignored.
 7. Delete `lib/email-templates.ts` (also listed in Track 2.4 — do it in whichever arrives first).
 
 **Chris's decisions, already made:** late-evening call, **disclose that we call, never when**; two

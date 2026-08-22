@@ -34,11 +34,21 @@ Everything is committed and pushed to `master`; the last commit is the voice-spe
 **Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
 the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
 
-**▶ NEXT TASK: dossier step 6 — the approval queue and the send.** Steps 0–5 are built. Nothing
-yet puts a dossier in front of Chris to approve, and nothing sends it. `buildDossier()` and
-`renderDossierEmail()` are pure and ready; what is missing is the queue, the approval, and the
-Resend call. **⚠️ Chris's own warning stands: an approval queue nobody clears is where this dies.**
-It needs a daily nudge and a visible count.
+**▶ NEXT TASK: turn it on.** Steps 0–6 are built and proven end to end against production —
+`verify-dossier-pipeline.mjs` runs submission → build → review → approve → send in 27 checks and
+mails a real dossier. What remains is not code:
+
+1. **The disclosure line + `AUDIT_CALLS_ENABLED`, in ONE commit.** The form still does not tell
+   submitters we call. Nothing dials while the switch is unset, and it must stay that way until the
+   line is on the page.
+2. **A number for the callback line**, which also settles what audit calls dial FROM.
+3. **Step 7** — delete `lib/email-templates.ts`. Trivial, still not done.
+
+**⚠️ Check `ONBOARDING_TOKEN_SECRET` is set in Vercel before the first real dossier.** The review
+links are signed with it (falling back from `DOSSIER_TOKEN_SECRET`). It is **not** in the local env
+file — local verification passes a throwaway value to both the dev server and the script. If it is
+unset in production the nudge still sends but every link is dead; the cron logs that loudly rather
+than pretending.
 
 **Also outstanding: the callback agent** — the inbound side of the audit number. Design agreed with
 Chris: disclose → offer to put him on → warm transfer to his mobile → on no answer, `capture_lead`
