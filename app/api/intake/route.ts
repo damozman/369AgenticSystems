@@ -113,6 +113,97 @@ interface Lead {
  *
  * Never throws: the caller's response must not depend on the mail provider.
  */
+
+/**
+ * Tell the prospect we have them. Dossier build order step 1.
+ *
+ * **Nobody ever emailed the person who filled the form.** Every message this route sends goes to
+ * the owner; the submitter saw a success screen and then heard nothing until Chris got to them by
+ * hand. That silence is the leak this closes.
+ *
+ * The design doc's step 1 was *"wire the static intake form to the existing /api/send-roi-report"*.
+ * That route cannot be used here: it is built entirely around `callsPerWeek`, `answerRate`,
+ * `jobValue`, `monthlyLost`, `annualLost`, `breakEvenDays` and `yearOneProfit`, and the intake form
+ * collects none of them — it would either throw on `undefined.toLocaleString()` or need those
+ * figures invented. **Inventing them is exactly the Gumloop failure the dossier exists to replace**
+ * (a security score of 41 returned for every business it ever saw). Collecting real ROI inputs on
+ * the form is step 2; until then this email carries no arithmetic at all.
+ *
+ * So it promises precisely what the page already promises — a personal reply within 24 hours —
+ * restates what they submitted so they can correct it, and gives them the two ways to reach us
+ * sooner. No audit, no report, no score, no recoverable-revenue figure.
+ *
+ * Never throws: a mail failure must not affect a captured lead or the caller's response.
+ */
+async function acknowledgeProspect(lead: Lead): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[369 INTAKE] ⚠ RESEND_API_KEY unset — prospect NOT acknowledged')
+    return
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const greeting = lead.name ? `Hi ${escapeHtml(lead.name.split(' ')[0])},` : 'Hi,'
+
+  const row = (label: string, value: string) =>
+    value
+      ? `<tr><td style="padding:6px 0;font-size:12px;color:#64748B;width:130px;">${label}</td>` +
+        `<td style="padding:6px 0;font-size:13px;color:#E2E8F0;">${escapeHtml(value)}</td></tr>`
+      : ''
+
+  try {
+    const { error } = await resend.emails.send({
+      from:    resendFrom('369 Agentic Systems'),
+      to:      lead.email,
+      replyTo: OWNER_EMAIL,
+      subject: 'We got your request — 369 Agentic Systems',
+      html: `
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0A0A0A;font-family:Inter,Arial,sans-serif;">
+<div style="max-width:560px;margin:0 auto;padding:32px 24px;">
+  <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#D4AF37;font-family:monospace;">369 Agentic Systems</p>
+  <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#FFFFFF;letter-spacing:-0.02em;">We got your request</h1>
+
+  <p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.7;">${greeting}</p>
+  <p style="margin:0 0 16px;font-size:15px;color:#CBD5E1;line-height:1.7;">
+    Thanks for getting in touch. Your details are with Chris now — he reads every one of these
+    himself and will follow up <strong style="color:#FFFFFF;">within 24 hours</strong>.
+  </p>
+
+  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:18px 20px;margin:0 0 24px;">
+    <p style="margin:0 0 10px;font-size:10px;font-family:monospace;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What you sent us</p>
+    <table style="width:100%;border-collapse:collapse;">
+      ${row('Name', lead.name)}${row('Company', lead.company)}${row('Website', lead.website)}
+      ${row('Service area', lead.area)}${row('Biggest problem', lead.pain)}
+    </table>
+    <p style="margin:12px 0 0;font-size:12px;color:#64748B;line-height:1.6;">
+      Anything wrong there? Just reply to this email and we'll fix it.
+    </p>
+  </div>
+
+  <p style="margin:0 0 12px;font-size:15px;color:#CBD5E1;line-height:1.7;">Two ways to skip the wait:</p>
+  <p style="margin:0 0 10px;font-size:15px;color:#CBD5E1;line-height:1.7;">
+    <strong style="color:#FFFFFF;">Call our own AI receptionist on
+    <a href="tel:8176350220" style="color:#D4AF37;text-decoration:none;">(817) 635-0220</a>.</strong>
+    She answers 24/7. It is the same system we build for clients — the quickest way to judge it is
+    to be a caller yourself.
+  </p>
+  <p style="margin:0 0 28px;font-size:15px;color:#CBD5E1;line-height:1.7;">
+    Or <a href="https://369agenticsystems.com/book-demo" style="color:#D4AF37;">book a 30-minute call</a> at a time that suits you.
+  </p>
+
+  <p style="margin:0;font-size:12px;color:#475569;line-height:1.6;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
+    You're getting this because you submitted the form on 369agenticsystems.com. No list, no
+    sequence — just this one email and a reply from Chris.
+  </p>
+</div></body></html>`,
+    })
+
+    if (error) console.error(`[369 INTAKE] ⚠ prospect ack failed — ${lead.email} — ${error.message}`)
+    else console.log(`[369 INTAKE] ✓ prospect acknowledged — ${lead.email}`)
+  } catch (e) {
+    console.error('[369 INTAKE] ⚠ prospect ack threw:', e instanceof Error ? e.message : e)
+  }
+}
 async function alertOwner(lead: Lead, dbFailure?: string): Promise<void> {
   const failed = dbFailure !== undefined
   const tag    = failed ? '✗ INTAKE FAILURE' : '⚠ Owner notify'
@@ -207,16 +298,57 @@ export async function POST(request: Request) {
   const receivedAt = new Date().toISOString()
 
   // ── Capture first. Everything else is best-effort. ─────────────────────────
-  const { error: dbError } = await supabaseAdmin
-    .from('system_audits')
-    .insert({
-      client_domain:   domain,
-      client_email:    email,
-      client_name:     name || null,
-      client_industry: vertical,
-      payload_status:  'intake_received',
-      created_at:      receivedAt,
-    })
+  //
+  // The full row, including the prospect context that until now existed only inside the owner's
+  // notification email. Persisting it is step 0 of the dossier: a generator reading this table
+  // previously found a domain, an email and a name — nothing to reflect back to a prospect and
+  // no numbers to work from.
+  const fullRow = {
+    client_domain:   domain,
+    client_email:    email,
+    client_name:     name || null,
+    client_industry: vertical,
+    payload_status:  'intake_received',
+    created_at:      receivedAt,
+    client_company:  company || null,
+    pain_point:      pain    || null,
+    service_area:    area    || null,
+    website_url:     website || null,
+  }
+
+  // The six columns that have always existed. Used only if the ones above do not.
+  const legacyRow = {
+    client_domain:   domain,
+    client_email:    email,
+    client_name:     name || null,
+    client_industry: vertical,
+    payload_status:  'intake_received',
+    created_at:      receivedAt,
+  }
+
+  let { error: dbError } = await supabaseAdmin.from('system_audits').insert(fullRow)
+
+  /**
+   * If the new columns are not there yet, save the lead anyway.
+   *
+   * `2026-08-21-intake-payload.sql` is applied by hand, so code and schema can go live in either
+   * order. An insert naming a missing column fails as a whole, which would turn a deploy that
+   * merely ran ahead of a migration into **lost prospects** — the one outcome this route exists
+   * to prevent, and a failure this project has already had: nine days of submissions were dropped
+   * in 2026-07 and nobody noticed.
+   *
+   * So a missing column degrades to the old six and shouts about it. The prospect is still
+   * captured, and the extra fields still ride in the owner email exactly as they did before.
+   * 42703 is Postgres's undefined_column; PGRST204 is PostgREST's schema-cache equivalent.
+   */
+  if (dbError && (dbError.code === '42703' || dbError.code === 'PGRST204')) {
+    console.error(
+      `[369 INTAKE] ⚠ system_audits is missing the intake-payload columns — saving the lead ` +
+      `WITHOUT company/pain/area/website. Apply supabase/migrations/2026-08-21-intake-payload.sql. ` +
+      `(${dbError.message})`,
+    )
+    ;({ error: dbError } = await supabaseAdmin.from('system_audits').insert(legacyRow))
+  }
 
   const lead = { name, company, email, website, area, pain, vertical, receivedAt }
 
@@ -232,8 +364,11 @@ export async function POST(request: Request) {
 
   console.log(`[369 INTAKE] ✓ Lead captured — ${vertical} — ${email} — ${domain}`)
 
-  // Best-effort: a mail failure must not lose a captured lead.
-  await alertOwner(lead)
+  // Best-effort, and independent: the owner alert and the prospect acknowledgement are sent in
+  // parallel because neither should be delayed or lost by the other failing. `allSettled` rather
+  // than `all` for the same reason — a rejected acknowledgement must not skip the owner alert.
+  // Both already swallow their own errors; this is belt and braces on a captured lead.
+  await Promise.allSettled([alertOwner(lead), acknowledgeProspect(lead)])
 
   // ── Optional enrichment hand-off. Dormant until GUMLOOP_WEBHOOK_URL is set, so this
   // ships without changing behaviour and without the API key living in public HTML.

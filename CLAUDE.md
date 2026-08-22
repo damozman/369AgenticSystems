@@ -136,24 +136,40 @@ it if absent. The word-by-word copy pass is done and its six findings are shippe
 **Do not reason about breakpoints instead of running it.**
 
 #### 🔴 Still in flight — the Operational Dossier
-`docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Design only, nothing built.**
-Two blockers it records:
+`docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Steps 0 and 1 are DONE
+2026-08-21; steps 2–7 are still design only.**
 
-1. **`/api/intake` persists six columns** — domain, email, name, industry, status, created_at.
-   **Company, pain point and volume are never stored**, and **average job value is not collected at
-   all.** This is **step 0**; everything depends on it.
-2. **There is no audit agent.** `lib/audit-call-dial.ts` falls back to the shared demo agent, so a
-   prospect answering would be greeted as their own receptionist.
+**⚠ ONE THING NEEDS CHRIS: apply `supabase/migrations/2026-08-21-intake-payload.sql`** in the
+Supabase SQL editor. There is no `DATABASE_URL` or `pg` package in this repo, so DDL cannot be run
+from a script. **Until it is applied the intake route degrades on purpose** — it catches the
+missing-column error, saves the lead with the original six columns, and logs the migration
+filename. Nothing is lost either way; the new fields simply stay unstored.
+
+- **Step 0 — the intake payload is persisted.** `client_company`, `pain_point`, `service_area`,
+  `website_url` are now written; `monthly_volume` and `avg_job_value` have columns but are **not
+  collected yet** (that is step 2). Null means "never asked", and a dossier section with no number
+  must be omitted rather than estimated.
+- **Step 1 — the prospect finally gets an email.** Nobody had ever emailed the person who filled
+  the form; every message went to the owner. `acknowledgeProspect()` restates what they submitted,
+  promises the same 24-hour personal reply the success screen already promises, and offers the demo
+  line and booking link. **No arithmetic in it at all.**
+  **The doc's original step 1 was wrong and is corrected in place:** it said to wire the form to
+  `/api/send-roi-report`, but that route is built around `callsPerWeek` / `answerRate` / `jobValue`
+  / `annualLost` / `breakEvenDays`, none of which the intake form collects. It would have thrown on
+  `undefined.toLocaleString()` or needed the numbers invented — the exact Gumloop failure the
+  dossier replaces. The ROI report becomes reachable at step 2.
+
+**Still blocking the rest:** there is no audit agent. `lib/audit-call-dial.ts` falls back to the
+shared demo agent, so a prospect answering would be greeted as their own receptionist.
 
 **The governing rule:** *the model may write the prose, the model may never invent a number.*
 Read `lib/audit-call.ts` before building — it already encodes the discipline.
 
 **Chris's decisions:** late-evening call, **disclose that we call, never when**; **two calls**
 (business hours + evening); recording attached but **human-reviewed**; **approval gate on**.
-
-**Build order:** 0 persist the intake payload · 1 send the prospect a real email · 2 form changes ·
-3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule · 6 approval queue ·
-7 delete `lib/email-templates.ts`.
+**Build order:** ~~0 persist the intake payload~~ · ~~1 send the prospect a real email~~ · **2 form
+changes (next)** · 3 website measurement · 4 dossier renderer · 5 audit agent + two-call schedule ·
+6 approval queue · 7 delete `lib/email-templates.ts`.
 
 #### Raised, NOT fixed — Chris's call
 `saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which

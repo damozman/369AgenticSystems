@@ -279,18 +279,35 @@ Do this before the pilot takes a real booking, not as part of the dossier.
 
 ## Build order
 
-0. **Persist the intake payload.** Company, pain points, volume, average value. Nothing works
-   without it.
-1. **Wire the static intake form to the existing `/api/send-roi-report`.** It already emails the
-   prospect a personalised report and copies the owner — it is simply wired only to the Next.js ROI
-   calculator today. Closes the silence immediately, no new machinery.
-2. Intake form changes — checkboxes, average value, disclosure.
+0. ✅ **DONE 2026-08-21 — persist the intake payload.** `2026-08-21-intake-payload.sql` adds
+   `client_company`, `pain_point`, `service_area`, `website_url`, `monthly_volume` and
+   `avg_job_value` to `system_audits`, and `/api/intake` now writes the first four.
+   **The migration is applied by hand, so the route degrades rather than fails:** an insert naming
+   a missing column would fail as a whole and lose the prospect, so a `42703`/`PGRST204` falls back
+   to the original six columns and logs the migration filename. Verified by submitting a real lead
+   against the un-migrated table — captured, HTTP 200, nothing lost.
+   `monthly_volume` and `avg_job_value` stay null until step 2 collects them. **Null means "never
+   asked", and a section with no number is omitted, never estimated.**
+1. ✅ **DONE 2026-08-21 — send the prospect a real email.**
+   **The original plan here does not work and was replaced.** It read *"wire the static intake form
+   to the existing `/api/send-roi-report`"*, but that route is built entirely around
+   `callsPerWeek`, `answerRate`, `jobValue`, `monthlyLost`, `annualLost`, `breakEvenDays` and
+   `yearOneProfit` — **none of which the intake form collects.** Wiring it would either throw on
+   `undefined.toLocaleString()` or require those figures to be invented, which is precisely the
+   Gumloop failure this document exists to replace.
+   So `acknowledgeProspect()` in `/api/intake` sends a plain confirmation instead: it restates what
+   they submitted, promises the same personal reply within 24 hours the success screen already
+   promises, and offers the demo line and the booking link. **No arithmetic at all.** Nobody had
+   ever emailed the person who filled the form — every message went to the owner — and that
+   silence was the leak.
+   The ROI report becomes reachable once step 2 collects real inputs; it is not abandoned.
+2. Intake form changes — checkboxes, average value, disclosure. **This is what unlocks the ROI
+   report**, and the columns for it already exist from step 0.
 3. Website measurement module — pure function over a fetched page, easy to test.
 4. Dossier renderer, six sections, per-vertical config.
 5. **Dedicated audit agent** with the script above, then the two-call schedule.
 6. Approval queue + send.
 7. Delete `lib/email-templates.ts` — its `dossierHtml` is the Gumloop template being replaced.
-
 ---
 
 ## Per-vertical content plan
