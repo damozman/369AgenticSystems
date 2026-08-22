@@ -1705,6 +1705,7 @@
           <input type="text"  name="business" class="audit-input" placeholder="Business name" required autocomplete="organization" />
           <input type="text"  name="industry" class="audit-input" placeholder="What kind of business? (e.g. HVAC, Med Spa)" required aria-label="Type of business" />
           <input type="email" name="email"    class="audit-input" placeholder="Your email address" required />
+          <input type="tel"   name="phone"    class="audit-input" placeholder="The number customers call" required autocomplete="tel" aria-label="Main business phone line" />
           <input type="text"  id="modal-url" name="website_url" class="audit-input" placeholder="https://yoursite.com  (or leave blank)" autocomplete="url" />
           <div id="modal-url-info" style="font-family:'Courier New',monospace; font-size:0.75rem; color:#94A3B8; margin-top:-8px; margin-bottom:14px; padding-left:2px;">[INFO] No website found. Initializing Digital Employee Foundation Blueprint...</div>
           <input type="text" inputmode="numeric" name="volume"   class="audit-input" placeholder="Roughly how many calls a month? (e.g. 120)" aria-label="Inbound calls per month" />
@@ -2000,6 +2001,7 @@
         client_company:          (data.get('business') || '').trim(),
         client_industry_detail:  (data.get('industry') || '').trim(),
         client_email:            (data.get('email')    || '').trim(),
+        client_phone:            (data.get('phone')    || '').trim(),
         website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
         service_area:            (data.get('area')   || '').trim(),
         monthly_volume:          (data.get('volume') || '').trim(),

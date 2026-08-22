@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { escapeHtml } from '@/lib/security/sanitize'
 import { resendFrom } from '@/lib/email-from'
 import { monthlyVolumeFrom, avgJobValueFrom, painPointsFrom } from '@/lib/intake-payload'
+import { enrolAuditCalls } from '@/lib/audit-enrol'
 
 /**
  * First-party intake for the static cold-email landing pages.
@@ -97,7 +98,7 @@ function domainFrom(websiteContent: string): string {
 }
 
 interface Lead {
-  name: string; company: string; email: string
+  name: string; company: string; email: string; phone: string
   website: string; area: string; pain: string
   vertical: string; receivedAt: string
   painPoints: string[]
@@ -187,7 +188,7 @@ async function acknowledgeProspect(lead: Lead): Promise<void> {
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:18px 20px;margin:0 0 24px;">
     <p style="margin:0 0 10px;font-size:10px;font-family:monospace;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What you sent us</p>
     <table style="width:100%;border-collapse:collapse;">
-      ${row('Name', lead.name)}${row('Company', lead.company)}${row('Website', lead.website)}
+      ${row('Name', lead.name)}${row('Company', lead.company)}${row('Phone', lead.phone)}${row('Website', lead.website)}
       ${row('Service area', lead.area)}
       ${row('Monthly volume', lead.monthlyVolume === null ? '' : lead.monthlyVolume.toLocaleString())}
       ${row('Average value', lead.avgJobValue === null ? '' : `$${lead.avgJobValue.toLocaleString()}`)}
@@ -266,6 +267,7 @@ async function alertOwner(lead: Lead, dbFailure?: string): Promise<void> {
                 ${row('Name', lead.name)}
                 ${row('Company', lead.company)}
                 ${row('Email', lead.email)}
+                ${row('Phone', lead.phone)}
                 ${row('Website', lead.website)}
                 ${row('Service area', lead.area)}
                 ${row('Monthly volume', lead.monthlyVolume === null ? '' : lead.monthlyVolume.toLocaleString())}
@@ -305,6 +307,7 @@ export async function POST(request: Request) {
   const company   = str('client_company')
   const email     = str('client_email')
   const website   = str('website_content')
+  const phone     = str('client_phone')
 
   /**
    * `service_area` is now its own field, and `industry_specific_field` is only a fallback.
@@ -377,9 +380,13 @@ export async function POST(request: Request) {
     avg_job_value:   avgJobValue,
   }
 
+  // 2026-08-22-intake-phone.sql. Its own rung: it and pain_points come from different migrations
+  // and either can be missing independently, so neither may take the other down with it.
+  const phoneRow = { ...step0Row, client_phone: phone || null }
+
   // Step 2 adds the ordered array. Everything the form collects.
   const fullRow = {
-    ...step0Row,
+    ...phoneRow,
     pain_points: painPoints.length > 0 ? painPoints : null,
   }
 
@@ -400,14 +407,17 @@ export async function POST(request: Request) {
    * 42703 is Postgres's undefined_column; PGRST204 is PostgREST's schema-cache equivalent.
    */
   const rungs: Array<{ row: object; missing: string; fix: string }> = [
-    { row: fullRow,  missing: 'pain_points',                    fix: '2026-08-22-intake-pain-points.sql' },
-    { row: step0Row, missing: 'the intake-payload columns',     fix: '2026-08-21-intake-payload.sql' },
-    { row: legacyRow, missing: '',                              fix: '' },
+    { row: fullRow,   missing: 'pain_points',                fix: '2026-08-22-intake-pain-points.sql' },
+    { row: phoneRow,  missing: 'client_phone',               fix: '2026-08-22-intake-phone.sql' },
+    { row: step0Row,  missing: 'the intake-payload columns', fix: '2026-08-21-intake-payload.sql' },
+    { row: legacyRow, missing: '',                           fix: '' },
   ]
 
   let dbError: { code?: string; message: string } | null = null
+  let inserted: { id?: string }[] | null = null
   for (let i = 0; i < rungs.length; i++) {
-    ;({ error: dbError } = await supabaseAdmin.from('system_audits').insert(rungs[i].row))
+    ;({ data: inserted, error: dbError } =
+      await supabaseAdmin.from('system_audits').insert(rungs[i].row).select('id'))
     if (!dbError) break
     const schemaGap = dbError.code === '42703' || dbError.code === 'PGRST204'
     if (!schemaGap || i === rungs.length - 1) break
@@ -418,7 +428,7 @@ export async function POST(request: Request) {
   }
 
   const lead = {
-    name, company, email, website, area, pain, vertical, receivedAt,
+    name, company, email, phone, website, area, pain, vertical, receivedAt,
     painPoints, monthlyVolume, avgJobValue,
   }
 
@@ -433,6 +443,27 @@ export async function POST(request: Request) {
   }
 
   console.log(`[369 INTAKE] ✓ Lead captured — ${vertical} — ${email} — ${domain}`)
+
+  /**
+   * Enrol them in the two-call audit. Best-effort, after the row is committed, never throws.
+   *
+   * Dormant until AUDIT_CALLS_ENABLED is exactly 'true' — which flips in the same change that puts
+   * the disclosure on the form, because calling someone who was never told is the version that
+   * costs a customer.
+   */
+  const auditRowId = (inserted as { id?: string }[] | null)?.[0]?.id
+  if (auditRowId) {
+    const enrolled = await enrolAuditCalls(supabaseAdmin, {
+      auditId:      auditRowId,
+      phone,
+      businessName: company,
+      domain,
+      vertical,
+      submittedAt:  new Date(receivedAt),
+    })
+    if (enrolled.scheduled) console.log(`[369 INTAKE] ✓ ${enrolled.scheduled} audit call(s) scheduled`)
+    else if (enrolled.skipped) console.log(`[369 INTAKE] · no audit calls — ${enrolled.skipped}`)
+  }
 
   // Best-effort, and independent: the owner alert and the prospect acknowledgement are sent in
   // parallel because neither should be delayed or lost by the other failing. `allSettled` rather

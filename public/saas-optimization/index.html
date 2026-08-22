@@ -1007,6 +1007,11 @@
               </div>
 
               <div style="margin-bottom:30px;">
+                <div class="term-label"><span style="color:#27c93f;">$</span> --main-line</div>
+                <input type="tel" class="term-input" id="f-phone" placeholder="The number prospects call (e.g. 817-555-0100)" required autocomplete="tel" aria-label="Main business phone line" />
+              </div>
+
+              <div style="margin-bottom:30px;">
                 <div class="term-label"><span style="color:#27c93f;">$</span> --website-url <span style="color:var(--text-muted); font-size:0.74rem; font-weight:400;">(optional)</span></div>
                 <input type="text" class="term-input" id="f-url" placeholder="https://yourapp.com  (or leave blank)" autocomplete="url" aria-label="Website URL (optional)" />
                 <div id="url-info" style="font-family:'Courier New',monospace; font-size:0.76rem; color:#94A3B8; margin-top:8px; padding-left:2px;">[INFO] No website found. Initializing Digital Employee Foundation Blueprint...</div>
@@ -1243,6 +1248,7 @@
         client_name:             document.getElementById('f-name').value.trim(),
         client_company:          document.getElementById('f-company').value.trim(),
         client_email:            document.getElementById('f-email').value.trim(),
+        client_phone:            document.getElementById('f-phone').value.trim(),
         website_content:         (urlVal === '' || urlVal.toLowerCase() === 'none') ? '' : urlVal,
         service_area:            document.getElementById('f-area').value.trim(),
         monthly_volume:          document.getElementById('f-volume').value.trim(),
