@@ -174,6 +174,23 @@ async function main() {
     // Nobody is waiting on this call; a normal cadence sounds less like a robocall.
     responsiveness: 1,
     interruption_sensitivity: 1,
+    /**
+     * Slightly faster than default, chosen by ear on a real call rather than by reasoning.
+     *
+     * This agent delivers a scripted ~25-second monologue and then hangs up, so a brisker read
+     * respects the time of someone who did not ask to be interrupted. It is not pushed further:
+     * the script only works because it sounds like a person being straight with you, and past
+     * roughly 1.2 that starts to read as a robocall — which would defeat the disclosure it opens
+     * with.
+     *
+     * Independent of the latency work: 935ms p50 is time-to-first-token, this is TTS playback
+     * rate. Raising it costs nothing and does not touch the model.
+     *
+     * The other 11 agents deliberately stay at 1.0. They hold conversations with real customers,
+     * which is a different judgement from a one-way script, and nobody has listened to them at
+     * anything else.
+     */
+    voice_speed: 1.1,
     voicemail_option: { action: { type: 'static_text', text: VOICEMAIL_MESSAGE } },
     // Generous, but this agent should never be on a call this long.
     max_call_duration_ms: 120_000,

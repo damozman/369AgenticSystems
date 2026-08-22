@@ -22,37 +22,109 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-22.
+**Last updated:** 2026-08-22 (second session that day).
 
 ### Where this session ended — 2026-08-22
 
-**Dossier step 2 is done.** tsc clean, **264 tests**, production build clean, mobile audit clean.
-**Not yet committed — the working tree holds it all.**
+**Dossier steps 2, 3 and 5 are done or built.** tsc clean, **338 tests**, production build clean.
+Everything is committed and pushed to `master`; the last commit is the voice-speed change.
 
 ## ▶ START HERE NEXT SESSION
 
 **Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
 the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
 
-**🔴 FIRST ACTION: apply `supabase/migrations/2026-08-22-intake-pain-points.sql`** in the Supabase
-SQL editor. There is no direct Postgres connection in `.env.local`, only the REST API, so this
-cannot be scripted. **Nothing breaks while it is unapplied** — the route degrades one rung at a
-time and keeps every other field — but `pain_points` stays null and the dossier loses the ordered
-list it is meant to lead with. Re-run `verify-intake-payload.mjs` afterwards: it detects the
-column and switches those checks on by itself.
+**▶ NEXT TASK: dossier step 4 — the renderer.** Every input it needs now exists: the intake payload
+(step 2), the website observations (step 3), and the call pair (step 5). Six sections, per-vertical
+config, and **a section with no number is omitted rather than estimated**.
 
-**▶ NEXT TASK: dossier step 3 — the website measurement module.** A pure function over a fetched
-page (contact form present, hours published, after-hours affordance, mobile viewport, page weight),
-which makes it the easiest thing on the list to test. Step 2 unblocked the arithmetic; step 3 is
-the other half of what the dossier actually reports.
+**🔴 The one thing that must ship as a single change: the disclosure line + `AUDIT_CALLS_ENABLED`.**
+The intake form still does not tell submitters we place a test call to their published line. Until
+it does, **nothing may dial** — calling someone who was never told is the version that costs a
+customer. The switch is unset, and `lib/audit-dispatch.ts` refuses everything while it is. Adding
+the line and flipping the switch in one commit is what completes step 5.
 
-**Read the note under step 5 before touching the form again.** The intake **disclosure line was
-deliberately not shipped** — there is no audit agent, so nobody gets called, and putting *"we place
-a test call to your published number"* on the form would promise every submitter a call that never
-comes. It ships with the calls, not before.
+**Still unproven on the audit call:** the **voicemail** path and `describeAuditPair`. Every test
+call so far was answered by Chris, so `voicemail_reached` classification and the two-call
+comparison have never met real data. Also **nothing decides whether a prospect should be dialled at
+all** — there is no suppression or approval path in front of the dialler.
+
+**🔴 DECISION NEEDED before the switch flips: which number do audit calls dial FROM?**
+The test calls used the demo line **(817) 635-0220** because it is one of only two numbers we own —
+that was a test convenience, not a decision, and `RETELL_AUDIT_FROM_NUMBER` is unset everywhere.
+**Do not leave it on the demo line.** Two reasons, in order of cost:
+1. **Carrier spam-flagging.** Outbound calls to people who did not dial us are exactly what gets a
+   number marked as spam — `marked_as_spam` and `scam_detected` are already in
+   `UNREPORTABLE_BY_REASON`. If the demo line gets flagged, the artifact Chris hands to buyers at a
+   chamber event degrades or stops connecting. That is the highest-value asset in the room.
+2. **Callbacks land in the wrong conversation.** A prospect who rings the number back reaches the
+   shared demo agent, which classifies their industry and offers to book them — not "you just
+   called me about my audit".
+**Whatever number is chosen must answer when called back.** This repo already has this exact bug
+filed for the SMS number: *"A customer who saves the texting number and later calls it gets dead
+air today."* Do not ship the same shape twice.
 
 **Also queued, smaller:** audit the other five crons' real output (open item 5), the Scout badge,
 and deleting `lib/email-templates.ts`.
+
+---
+
+#### ✅ Dossier step 5 — the audit agent, and what three real calls found
+
+**`369 Audit Caller` — `agent_3a2b5f444d24c21f9f3c35470d`.** Outbound only (no number bound,
+reachable solely via `override_agent_id`), **`end_call` is its only tool**, discloses it is an AI in
+its first sentence, voicemail message configured, `voice_speed` **1.1** — chosen by ear on a real
+call. Creating a Retell agent is free and **no number was bought**; the account still holds 2.
+
+`lib/audit-schedule.ts` plans the pair, `lib/audit-call-pair.ts` decides what two calls may claim,
+`lib/audit-dispatch.ts` guards the dialling, `/api/cron/audit-calls` places them every 15 minutes.
+
+**Two defects that only real calls could find:**
+- **The agent had no webhook, so its first call resolved to nothing.** It rang, was answered, cost
+  money and established nothing — `describeAuditCall()` classifies from `call_ended`. The cause was
+  a confident comment saying no agent sets `webhook_url`, derived from **`agent.list()`, which does
+  not return that field**. `agent.retrieve()` does, and every live agent carries one with a shared
+  secret in the query string. **A list endpoint's silence is not evidence of absence.**
+- **TTS read "369" as "three hundred and sixty-nine."** Chris caught it. It was hitting the **demo
+  agent** too, in a line it says verbatim before ending every call — the demo handed to buyers at a
+  chamber event. Both fixed; the brand is now spoken **"three six nine Agentic Systems"**.
+  `scripts/retell/fix-brand-pronunciation.mjs` is committed, idempotent, dry-run first.
+  Retell's `pronunciation_dictionary` was rejected: it needs IPA/CMU phonemes and the SDK says to
+  check which providers support it — a brand name is not the place for a setting that silently
+  does nothing on some voices.
+
+**Verified through the phone numbers' view, not the agents'** — a number pinned to an older agent
+version would still serve the old text, which is exactly how the demo line once went ten days
+recording nothing. Both lines resolve the corrected text; the demo line's v18 pin is still current.
+
+**The `calls` table did not grow across any audit call** (75 before, 75 after). An outbound audit
+call must never be filed as a client's inbound call, where it would inflate a dashboard, an ROI
+figure and a weekly digest for a business whose agent never took it. The `metadata.purpose` tag
+holds.
+
+**`voice_speed` is 1.1 on the audit agent only.** The other 11 stay at 1.0 deliberately — they hold
+conversations with real customers, which is a different judgement from a one-way script, and nobody
+has listened to them at anything else.
+
+---
+
+#### ✅ Dossier step 3 — website measurement
+
+`lib/website-audit.ts`, the sibling of `lib/audit-call.ts`, under the same two rules plus a third
+this one needs: **absence of evidence is not evidence of absence.** We fetch HTML and never run
+JavaScript, so on a client-rendered page every negative degrades to `undetermined`, never `absent`.
+`analysePage()` is pure; `fetchHomepage()` is the only part that touches the network.
+
+**Both of its defects were found by running it against real sites**, which is why
+`scripts/verify-website-audit.mjs` is committed:
+- **`Northsideroofing.com` serves 114 bytes of JavaScript redirect to `/lander`.** The module read
+  that stub and produced **six confident negatives** about a page the prospect has never seen. Now
+  `no_content`, and the redirect is followed once.
+- **A lone `<input type="email">` matched as a "contact form"** on homedepot.com and stripe.com,
+  where it is a newsletter signup. A form now needs a message field or a stated purpose; an
+  unlabelled email box is `undetermined`.
+
+---
 
 ---
 

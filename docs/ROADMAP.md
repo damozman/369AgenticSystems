@@ -337,11 +337,52 @@ emergency — but intake submitters still get **silence**, and that is still a l
    **Needs applying:** `supabase/migrations/2026-08-22-intake-pain-points.sql` (adds `pain_points
    TEXT[]`). The route degrades one rung at a time without it and keeps every other field, so code
    and schema can go live in either order.
-3. Website measurement module — a pure function over a fetched page, easy to test.
+3. ✅ **DONE 2026-08-22 — the website measurement module.** `lib/website-audit.ts`, the sibling of
+   `lib/audit-call.ts`, under the same two rules plus a third this one needs: **absence of evidence
+   is not evidence of absence.** We fetch HTML and never run JavaScript, so on a client-rendered
+   site every negative degrades to `undetermined` rather than `absent`.
+
+   `analysePage()` is pure over an already-fetched page; `fetchHomepage()` is the only function
+   that touches the network. **Two defects were found by running it against real sites, neither
+   visible in a fixture** — see `scripts/verify-website-audit.mjs`, committed for that reason:
+   - **Northsideroofing.com serves 114 bytes of JavaScript redirect.** The module read that stub
+     and produced six confident negatives about a page the prospect has never seen. Now
+     `no_content`, with the redirect followed once.
+   - **A lone `<input type="email">` matched as a "contact form"** on homedepot.com and
+     stripe.com, where it is a newsletter signup. Now needs a message field or a stated purpose.
 4. Dossier renderer — six sections, per-vertical config.
-5. Dedicated audit agent, then the two-call schedule. **There is no audit agent today** —
-   `lib/audit-call-dial.ts` falls back to the shared demo agent, so a prospect who answered would
-   be greeted as their own receptionist.
+5. 🟡 **BUILT 2026-08-22, SWITCHED OFF — the audit agent and the two-call schedule.**
+
+   **The agent exists and is proven on real calls.** `369 Audit Caller`
+   (`agent_3a2b5f444d24c21f9f3c35470d`) — outbound only, no number bound, `end_call` as its only
+   tool, discloses it is an AI in its first sentence, `voice_speed` 1.1 (chosen by ear, the other
+   11 agents deliberately stay at 1.0). `lib/audit-schedule.ts` plans the pair, `lib/audit-call-pair.ts`
+   decides what two calls may claim, `lib/audit-dispatch.ts` guards the dialling, and
+   `/api/cron/audit-calls` places them every 15 minutes.
+
+   **🔴 `AUDIT_CALLS_ENABLED` is unset and must stay unset until the disclosure is on the form.**
+   Nothing schedules and nothing dials while it is off. The intake form still does not tell
+   submitters we place a test call — **calling someone who was never told is the version that costs
+   a customer.** The switch and the disclosure line flip in one change, and that change is what
+   completes this step.
+
+   **Real calls found what code review could not:**
+   - **The agent had no webhook**, so its first call resolved to nothing — it rang, was answered,
+     cost money and established nothing. Cause was a confident comment derived from `agent.list()`,
+     which does not return `webhook_url`; `agent.retrieve()` does. *A list endpoint's silence is
+     not evidence of absence.* The creation script now retrieves, and aborts if the reference has
+     no webhook.
+   - **TTS read "369" as "three hundred and sixty-nine."** Caught by Chris on the first call. It
+     was hitting the **demo agent** too, in a line it says verbatim before ending every call — the
+     demo handed to buyers at a chamber event. Fixed on both;
+     `scripts/retell/fix-brand-pronunciation.mjs` is committed and idempotent.
+
+   **Still unproven:** the voicemail path and `describeAuditPair` have never met a real call —
+   every test so far was answered.
+
+   **Also still missing before a prospect is called:** an approval/suppression path. Chris's
+   decision was an approval gate on the dossier; nothing yet decides whether a given prospect
+   should be dialled at all.
 
    **▶ The intake disclosure ships HERE, not at step 2.** The design puts *"As part of your audit
    we place a test call to your published number"* on the form, and step 2 built everything else on
