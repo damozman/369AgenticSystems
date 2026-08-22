@@ -29,6 +29,22 @@ if (!RETELL_API_KEY) {
 
 const client = new Retell({ apiKey: RETELL_API_KEY })
 
+/**
+ * How long to let the line ring before giving up.
+ *
+ * **Retell's default is 30 seconds, and that demonstrably races a carrier's voicemail.** Proven on
+ * two real calls to the same phone, ignored both times: at the default it came back
+ * `dial_no_answer` at 0ms, and at 60s the same phone returned `voicemail_reached` after 28s. The
+ * difference was entirely the ring window.
+ *
+ * That matters because the two outcomes are not equally useful. "It rang out" is weak and, as the
+ * first attempt showed, easy to overstate. "It went to voicemail" is the stronger finding, it is
+ * what the dossier's comparison is built on, and it is the one that lets Ava leave a message —
+ * a second touch at no extra cost. Ringing is not billed as connected time, so the longer window
+ * costs nothing.
+ */
+export const AUDIT_RING_MS = 60_000
+
 export interface AuditCallTarget {
   phone:        string
   businessName?: string
@@ -61,6 +77,7 @@ export async function placeAuditCall(target: AuditCallTarget): Promise<PlacedAud
     from_number: fromNumber,
     to_number:   to,
     override_agent_id: agentId,
+    agent_override: { agent: { ring_duration_ms: AUDIT_RING_MS } },
     metadata: {
       purpose:       AUDIT_CALL_PURPOSE,
       business_name: target.businessName ?? '',
