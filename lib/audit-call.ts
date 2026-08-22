@@ -49,7 +49,7 @@ export type AuditOutcome =
   | 'answered_human'    // a person picked up
   | 'voicemail'         // rang out to voicemail
   | 'ivr'               // an automated menu answered
-  | 'no_answer'         // rang, nobody picked up, no voicemail
+  | 'no_answer'         // rang out without being answered. Says NOTHING about voicemail.
   | 'busy'              // line was busy
 
 /** Why a call told us nothing about the business. Never shown as a finding. */
@@ -87,6 +87,11 @@ export interface RetellCallRecord {
 const OUTCOME_BY_REASON: Record<string, AuditOutcome> = {
   voicemail_reached: 'voicemail',
   ivr_reached:       'ivr',
+  // `dial_no_answer` means WE stopped ringing — it does not mean they have no voicemail.
+  // Proven on a real call: Chris let one ring through to voicemail deliberately and Retell
+  // reported dial_no_answer at 0ms, having given up before his carrier answered. The sentence
+  // used to read "no answer, no voicemail", which asserted something about his phone setup that
+  // the call never established and that was demonstrably false.
   dial_no_answer:    'no_answer',
   dial_busy:         'busy',
   // A human picked up and one side hung up. Either way, someone answered.
@@ -184,7 +189,7 @@ export function describeAuditCall(
   // Each sentence states the observation and stops. No inference, no adjectives.
   const sentence = {
     voicemail:      `We called ${line}${at}. It went to voicemail.`,
-    no_answer:      `We called ${line}${at}. It rang out — no answer, no voicemail.`,
+    no_answer:      `We called ${line}${at}. It rang out without being answered.`,
     busy:           `We called ${line}${at}. The line was busy.`,
     ivr:            `We called ${line}${at}. An automated menu answered.`,
     answered_human: `We called ${line}${at}. Someone picked up.`,

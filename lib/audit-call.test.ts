@@ -50,7 +50,10 @@ test('ringing out is distinguished from reaching voicemail', () => {
   assert.equal(r.outcome, 'no_answer')
   assert.match(r.sentence, /rang out/)
   // It may mention voicemail only to rule it out, never to claim one was reached.
-  assert.match(r.sentence, /no voicemail/)
+  // Must NOT claim anything about voicemail: dial_no_answer means we stopped ringing, and a real
+  // call proved Retell reports it even when the line does have voicemail.
+  assert.match(r.sentence, /rang out without being answered/)
+  assert.doesNotMatch(r.sentence, /voicemail/)
   assert.doesNotMatch(r.sentence, /went to voicemail/)
 })
 
