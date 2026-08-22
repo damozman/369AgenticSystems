@@ -1,6 +1,7 @@
 # The Roadmap
 
-**Written 2026-08-21, the day `feat/rental-vertical-pages` merged to production.**
+**Written 2026-08-21. Updated the same day** — Tracks 2.1, 2.2 and the Retell blocker all closed,
+and dossier steps 0 and 1 shipped. Tracks 2.3 (cost half), 2.4, 3 and 4 remain.
 
 This is the **operational** roadmap: what to build, in what order, and why that order. It
 consolidates material that was scattered across four places and does not replace any of them:
@@ -40,7 +41,7 @@ them on work that has to be done *before* she arrives, not on work that can happ
 
 ---
 
-## What just changed today
+## What changed on 2026-08-21
 
 `feat/rental-vertical-pages` merged (`--no-ff`, commit `299f60e`) and auto-deployed. Verified on
 production, not assumed:
@@ -57,9 +58,8 @@ production, not assumed:
 **Undo, if the deploy ever needs reversing:** `git revert -m 1 299f60e`. That is the whole reason
 for `--no-ff`.
 
-**One consequence to act on:** `WHAT-CAN-I-DELIVER-TODAY.md` still carries a 🔴 banner saying the
-rental pages are not on production. That is now false and it is the doc read before a chamber
-event. **Delete the banner and move the rental section from "built" to "deliverable."**
+**Done since:** `WHAT-CAN-I-DELIVER-TODAY.md` was updated the same day — banner removed, rental
+section moved from "built" to "deliverable".
 
 ---
 
@@ -71,7 +71,7 @@ Read this backwards from the chamber event.
 
 | # | Must be true | State today |
 |---|---|---|
-| 1 | **A demo that works on demand** — hand someone the phone, Ava books *them*, the calendar entry and confirmation email land in front of them | 🟡 **Workaround in hand, unproven.** Retell says switch off Anthropic models; the switch is staged and ready but no call has been placed on it yet. See below. |
+| 1 | **A demo that works on demand** — hand someone the phone, Ava books *them*, the calendar entry and confirmation email land in front of them | ✅ **Working, and better than before.** All 11 agents on `gemini-3.5-flash`: llm p50 **935ms**, max 1363ms, **0 of 23 turns** over Retell's 3000ms cliff. Proven on real calls. |
 | 2 | **Something specific to point each buyer at** | ✅ **Done today.** Eleven verticals + three rental pages, all live. |
 | 3 | **A capture path in the room** — card or QR → the demo number, `/api/intake` catches the follow-up | 🔴 **Not built, and not on any engineering list.** See Track 4. |
 | 4 | **The ability to actually close** | 🔴 **Nobody can buy.** Stripe is in test mode and its only webhook is disabled. See Track 4. |
@@ -80,86 +80,49 @@ Read this backwards from the chamber event.
 
 | # | Must be true | State today |
 |---|---|---|
-| 0 | Nova stops describing a bounce-house hire as an **inspection** | 🔴 Track 2 |
-| 1 | Her questionnaire re-submits stop silently destroying her setup | 🔴 Track 2 — **new finding, see below** |
+| 0 | Nova stops describing a bounce-house hire as an **inspection** | ✅ Done 2026-08-21 |
+| 1 | Her questionnaire re-submits stop silently destroying her setup | ✅ Done 2026-08-21 |
 | 2 | A vertical chosen to provision her under (no `entertainment` template exists) | Decision, Track 4 |
 | 3 | Stripe webhook on, 100%-off checkout run → a real `stripe_subscription_id` | Track 4 |
 | 4 | `client_schedules` written **explicitly** — defaults close Sat/Sun and cap the horizon at 14 days | Track 4 |
 | 5 | Real inventory rows loaded, then `set-rental-tools.mjs --apply` | Track 4 |
 | 6 | Calendar connected (she sees the unverified-app warning until Google clears) | Track 1 + Track 4 |
-| 7 | A real test call | 🟡 Unblocked *if* the model switch works — that is now the first thing to test |
+| 7 | A real test call | ✅ Unblocked — several placed 2026-08-21, including a full booking that stored the right `inventory_item_key` for the first time ever |
 
 ---
 
-## 🔴 The Retell blocker — ANSWERED 2026-08-20, and the answer is "change model"
+## ✅ The Retell blocker — RESOLVED 2026-08-21
 
-**Retell replied to the ticket on 2026-08-20 20:32.** Verbatim:
+Retell confirmed on 2026-08-20 that the first-token failures were theirs and specific to Anthropic
+models **in their routing**, and recommended switching. All 11 agents now run `gemini-3.5-flash`
+and the symptom is gone.
 
-> *"There seems to be some issue with Anthropic models for the moment. While we are investigating,
-> I would suggest switch to some other models (e.g. GPT 5) for now."*
+**Measured, not assumed** — each on a real call:
 
-**This confirms the diagnosis exactly.** The fault is inside Retell's request path and is specific
-to Anthropic models *as routed by them* — which is why their own log showed Vertex, Anthropic
-direct and Bedrock all failing identically while the same prompt sent straight to Anthropic
-answered at **p50 571ms**. Our configuration is exonerated, on the vendor's own word. **Stop
-re-testing it.** No ETA was given, so treat the fix as indefinite and route around it.
+| model | llm p50 | max | turns over 3000ms | LLM $/min |
+|---|---|---|---|---|
+| `claude-4.5-haiku` (old benchmark) | 964ms | 1843ms | — | **$0.0251** |
+| `gpt-5` | 1707ms | 3881ms | **3 of 20** | $0.0400 |
+| **`gemini-3.5-flash`** | **935ms** | **1363ms** | **0 of 23** | $0.0811 |
 
-### Scope the blast radius before touching anything
+GPT-5 also abbreviated "August 24th" to "Aug" — which TTS read aloud — and tacked ", right?" onto
+questions. Both vanished on Gemini. Chris's verdict: *"very quick and very fluid."*
 
-**Retell's problem is Retell's routing, not Anthropic.** Three call sites in this repo talk to
-Anthropic **directly** and are entirely unaffected: `nova-templates`, `felix/conflict-check` and
-`email-ingest`, all pinned to `claude-sonnet-4-6`. **Do not "fix" those** — the last two run
-mid-call on live traffic, and changing them chases a bug they never had.
+**Scope it correctly if this ever recurs: it was Retell's ROUTING, not Anthropic.** The three call
+sites that talk to Anthropic **directly** — `nova-templates`, `felix/conflict-check`,
+`email-ingest` — were never affected and must not be changed; two run mid-call on live traffic.
 
-Only the **11 Retell LLMs** are affected.
+**Two things to re-check before going live**, both easy to forget:
+1. **Whether Haiku works again.** It is ~3.2x cheaper on the LLM line and sounded right for months.
+   Chris's call: *"stick with Gemini Flash for now and review it before we pull the trigger."*
+2. **`OVERAGE_RATE_CENTS`.** Set when the cost floor was Haiku at 13.1c/min. At Gemini's 19.7c
+   all-in, **Elite overage margin falls from ~12c to ~5c/min.** Do it in the same move as flipping
+   `USAGE_BILLING_ENABLED`.
 
-### The staged switch — prove it on one agent first
-
-`scripts/retell/set-client-model.mjs` does this, and **it was patched on 2026-08-21 before being
-trusted**, for two reasons found by dry-running it:
-
-- **It never touched the shared demo line.** That agent is neither a template nor a subscription,
-  so both of the script's lookups skipped it — and it is the number handed out at chamber events
-  and the one that takes real prospect calls. A fleet-wide migration would have left **the one
-  agent prospects actually reach** on the broken model. Now added by id, as the two compliance
-  scripts already did. *(Third time this exact gap has bitten: it is what let the demo line answer
-  calls and record none for ten days.)*
-- **There was no way to change one agent.** The smallest possible action was "every template and
-  every client at once," which is not how you evaluate an unproven model. Added `--only <agentId>`,
-  plus up-front validation of the model string against Retell's supported set so a typo fails
-  before the first write instead of halfway through, leaving the fleet split across two models.
-
-**Do this in order:**
-
-1. **Northside only** — it is the test agent and takes no real traffic:
-   ```
-   node --env-file=.env.local scripts/retell/set-client-model.mjs --model gpt-5 --only agent_d39a1b13cfd8fb2e3c9c12f06e --apply
-   ```
-2. **Place real calls and measure three things**, not one:
-   - **Does it answer after the greeting?** That is the actual bug.
-   - **Latency.** Haiku benchmarked at **964ms p50**; anything near Sonnet's old **2399ms p50** sits
-     on Retell's 3000ms cliff and trades one failure mode for another. Read the spread, not the
-     median.
-   - **Do the fragile tools fire?** `item`, `sms_consent` and `booking_token` were each defined,
-     described in the prompt, and simply **not sent** until they were made required with a truthful
-     escape — and that shape was tuned against Haiku. **A different model family is exactly the
-     event that re-opens it.** `booking_token` has never been carried by any connected call, so
-     this is the first chance to observe it at all.
-3. **If it holds, move the demo line next** — that is what the chamber needs, and it is one
-   `--only` run.
-4. **Templates last.** They decide what every future client inherits, and no client is provisioning
-   this week. `--model claude-4.5-haiku --apply` reverts the lot when Retell fixes theirs.
-
-**On model choice:** GPT-5 is the support tech's suggestion, not a measured result. Retell also
-offers `gpt-5-mini`, `gpt-5-nano` and `gemini-3.5-flash`, and **a flash/mini tier is the closer
-latency match to Haiku than full GPT-5.** If GPT-5's p50 comes back materially above ~1000ms,
-benchmark those before accepting it — this repo has settled a model question with a four-minute
-benchmark before, and the whole reason the fleet is on Haiku is that somebody measured instead of
-reasoning.
-
-**What is no longer needed:** the fresh-account test, and the "demo without a live call" fallback.
-Both were contingencies for a vendor who had not replied. Keep escalating only if GPT-5 also fails,
-because that would mean the fault is not model-specific after all.
+`scripts/retell/set-client-model.mjs` was patched before being trusted: it never targeted the
+**shared demo line** (neither a template nor a subscription, so both lookups skipped it — the third
+time that gap has bitten), and it had no way to change a single agent. Both fixed; it now prints a
+per-agent revert built from what was actually replaced.
 
 ---
 
@@ -279,7 +242,13 @@ confidently wrong email instead of refusing — the exact opposite of the rule i
 already follows, where an unknown key raises rather than guessing. Add the rental keys *and* make
 the unknown case refuse.
 
-### 2.3 Cut per-turn prefill — this is the chamber demo's fluidity
+### 2.3 ✅ Cut per-turn prefill — the QUALITY half is done, the COST half is not
+
+The model change solved the fluidity problem outright: **llm p50 935ms, max 1363ms, 0 of 23 turns
+over 3000ms**, confirmed by ear. What remains is cost — prefill is ~7,900 chars, `capture_lead`
+2,148 of it, and Gemini is ~3.2x Haiku on the LLM line. Worth trimming, no longer urgent.
+
+*Original write-up:*
 
 Latency regressed to **llm p50 1438ms / e2e 1821ms** against a **964ms** benchmark; Chris called it
 "not very fluid," and one turn crossed Retell's 3000ms cliff during a working call. Cause is prose
@@ -319,14 +288,22 @@ emergency — but intake submitters still get **silence**, and that is still a l
 
 **Steps 0 and 1 are worth doing in the solo window; the rest can wait until after the chamber.**
 
-0. **Persist the intake payload.** `/api/intake` stores six columns; **company, pain point and
-   volume are never stored, and average job value is not collected at all.** The route's own
-   comments say so. Nothing downstream works without this — it is step 0 for a reason.
-1. **Wire the static intake form to the existing `/api/send-roi-report`.** It already emails the
-   prospect a personalised report and copies the owner; it is simply wired only to the Next.js ROI
-   calculator today. **Closes the silence immediately with no new machinery** — the cheapest real
-   win on this roadmap.
-2. Intake form changes — checkboxes, average value, disclosure.
+0. ✅ **DONE — the intake payload is persisted.** `2026-08-21-intake-payload.sql` is **applied to
+   production**; `/api/intake` writes company, pain point, service area and website.
+   `monthly_volume` and `avg_job_value` have columns but are not collected yet — that is step 2.
+   The route **degrades rather than fails** if a column is missing, because an insert naming one
+   fails as a whole and would cost a prospect.
+1. ✅ **DONE — the prospect finally gets an email.** **The original plan here did not work.**
+   `/api/send-roi-report` is built around `callsPerWeek` / `answerRate` / `jobValue` / `annualLost`
+   / `breakEvenDays`, and the intake form collects **none** of them — it would have thrown, or
+   needed the numbers invented, which is the exact Gumloop failure the dossier replaces. So
+   `acknowledgeProspect()` sends a plain confirmation with **no arithmetic**: what they submitted,
+   the 24-hour personal reply the success screen already promises, the demo line and the booking
+   link. The ROI report becomes reachable at step 2.
+2. **▶ NEXT — intake form changes:** monthly volume, average job value, pain-point checkboxes,
+   disclosure. **A form change only** — step 0 already added the columns — but it **touches all 11
+   static pages**, so treat them as HTML per the Zero-Touch rule. **This is what unlocks the real
+   ROI report.**
 3. Website measurement module — a pure function over a fetched page, easy to test.
 4. Dossier renderer — six sections, per-vertical config.
 5. Dedicated audit agent, then the two-call schedule. **There is no audit agent today** —

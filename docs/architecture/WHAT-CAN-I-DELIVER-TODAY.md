@@ -25,12 +25,16 @@ number counts came from the Retell API; row counts from production Supabase; the
 webhook state from the Stripe API; feature flags from env and code. Where something is **claimed but
 unverified**, it says so in place.
 
-**Re-derived 2026-08-21:** the Supabase row counts below (`calls` 72, `leads` 31, `bookings` 24,
-`agent_subscriptions` 2, `calendar_connections` 0, `client_schedules` 1, `client_inventory` 40) and
-the branch state of the rental pages (`git ls-tree master`). This pass corrected a **contradiction
-inside this file** — the summary said 55/27/21 while the table said 72/31/24; production says the
-table was right. Everything else dates from the 2026-08-19/20 sweep and was not re-checked here,
-including the Retell and Stripe state.
+**Re-derived 2026-08-21 (third session):** every agent's model and AI-disclosure state via the
+Retell API, per-call latency and cost from Retell's own call records, `system_audits` columns and
+counts from production Supabase, and the live rental pages by fetching them. Earlier that day:
+Supabase row counts and the branch state of the rental pages.
+
+**Four wrong claims in this file have now been caught by re-deriving rather than trusting it** —
+"the rental pages have shipped" while unmerged, a row-count contradiction (production says
+**72/31/24**), a quoted `grep` whose output was wrong, and a compliance claim that overstated the
+exposure. **A command quoted in prose is a claim; run it.** Stripe state was not re-checked this
+session and still dates from the 2026-08-19/20 sweep.
 
 **"Greenlit" here means three things at once:** the code is deployed, it is legally clear to use
 (AI disclosure, SMS consent), and it is not sitting behind an off switch. Something can be fully
@@ -43,12 +47,14 @@ built and still not deliverable — usage billing is the clearest example.
 **The product works. The path to being paid for it does not, right now.**
 
 Ava answers calls 24/7, qualifies, captures leads, checks real availability against the owner's
-Google Calendar, books, and sends confirmations — proven on real calls, at 964ms p50. That is
+Google Calendar, books, and sends confirmations — proven on real calls, at **935ms p50** on
+`gemini-3.5-flash` (2026-08-21, the best this project has measured). That is
 genuinely deliverable in **8 verticals** today (all but dental).
 
-**And as of 2026-08-20 the phone line itself is unreliable** — agents intermittently answer, play
-the greeting, and never speak again (Retell-side first-token timeout, ruled out on our side).
-Calls do get through, but not on demand. **Do not stake a live demo on a single call.**
+**The phone line is reliable again as of 2026-08-21.** Agents used to answer, play the greeting and
+never speak again — Retell confirmed the fault was theirs and specific to Anthropic models in their
+routing. Moving all 11 agents to `gemini-3.5-flash` fixed it, and the calls since have been the
+best-measured this project has run.
 
 Beyond that, three things are off, and two of them deliberately:
 
@@ -96,17 +102,17 @@ sections below record only where a vertical **differs**.
 
 | Capability | Notes |
 |---|---|
-| **24/7 call answering** (Ava) | Dedicated agent + number per client. `claude-4.5-haiku`, 964ms p50. |
-| **AI disclosure** | Greeting names Ava as an AI assistant — **verified on all 11**. Texas TRAIGA. The in-prompt backstop line is present on 10 of 11 (Northside lost it, see item 5). |
+| **24/7 call answering** (Ava) | Dedicated agent + number per client. **`gemini-3.5-flash`**, **935ms p50, max 1363ms, 0 turns over Retell's 3000ms cliff**. Moved off `claude-4.5-haiku` on 2026-08-21 because Retell's routing to Anthropic models was failing; re-check Haiku before going live, it is 3x cheaper on the LLM line. |
+| **AI disclosure** | Greeting names Ava as an AI assistant, **and** she answers plainly if asked outright. **Both verified on all 11** (2026-08-21 — Northside was the last one missing the in-prompt backstop and now has it). Texas TRAIGA. |
 | **Lead capture** | `capture-lead`, writes `leads`, real-time owner email alert. |
 | **Real availability + booking** | `available-slots` / `book-appointment`, capacity-checked in one transaction behind an advisory lock. Cannot double-book. |
 | **Google Calendar awareness** | Reads owner freeBusy; refuses rather than offering a time it cannot verify. Writes the event back. **Requires the client to connect — nobody is connected today.** |
-| **Booking confirmations** (Nova) | Email + `.ics`. **The 9 verticals only** — `NovaVertical` in `lib/nova-templates.ts` has exactly those keys, and anything else silently falls back to roofing copy. Fine for all 9; a live landmine for a rental client, see below. |
+| **Booking confirmations** (Nova) | Email + `.ics`. **12 verticals** as of 2026-08-21 — the original 9 plus `event-rentals`, `dumpster-rental` and `equipment-rental`, whose copy talks about delivery, setup area, power and takedown rather than a visit. An **unknown** vertical now gets a trade-neutral template that names no industry, instead of the roofing copy it used to send. |
 | **Follow-up sequences** (Rex) | 3-step, all 9 verticals, Pro/Elite gated. **Email only.** |
 | **Per-client personalization** | Questionnaire merges into the agent prompt. Proven on a real call. |
 | **Per-item rental inventory** | `client_inventory` + `bookings.inventory_item_key`. Read live on every call, and **reachable by voice as of 2026-08-20** — until then `check_availability` had no `item` parameter, so it shipped in August and no caller could ever name a unit. |
 | **Multi-day rental windows** | Shipped 2026-08-20. Ava offers "Friday through Monday — 3 days", refuses a hire shorter or longer than the item allows, and the unit is held for the **whole** span, not one slot. Verified against production. |
-| **Ambiguity refusal** | A name matching several items ("bounce house") is answered with "which one?", never with a guess or with appointment times. Over four candidates she asks them to narrow rather than reciting a catalogue. |
+| **Ambiguity refusal, then availability** | A name matching several items ("bounce house") is never resolved by guessing — that would send the wrong van to a child's party. As of 2026-08-21 she narrows by **availability** rather than by interrogation: she offers the matching units that are genuinely free, by name, and the caller picks. An unknown item and a vague "what have you got Saturday?" answer the same way. |
 | **Per-client hours / horizon** | `client_schedules`. Read live. |
 | **Client dashboard** | Calls, leads, bookings, transcripts, billing portal, CSV export. |
 | **Usage metering** | Reconciled exactly against Retell for the first closed period. |
@@ -127,13 +133,13 @@ sections below record only where a vertical **differs**.
 | **Outbound SMS** | `lib/twilio-sms.ts` sends only; **Twilio unconfigured**; A2P brand unregistered. |
 | **Text-to-Quote** | Needs SMS first. v1 must be draft → owner approves → send. Never auto-price. |
 | **Voice reliability on this account** | 🔴 **The current blocker.** Agents intermittently answer, play the greeting and never speak again — Retell reports a 3000ms first-token timeout. Ruled out on our side (model measures ~700ms, versions aligned, concurrency clear). Calls do get through, but not dependably. **Do not demo on a single call.** |
-| **Conversational latency** | Regressed to **llm p50 1438ms / e2e 1821ms** against a 964ms benchmark — noticeably less fluid. Cause is prefill growth in tool descriptions and the system prompt. Trimmed once; more warranted. |
-| **Inventory UI** | **Corrected 2026-08-21:** the questionnaire *writes* `client_inventory` (`app/api/questionnaire/submit/route.ts`), so the old claim that nothing under `app/` touches it was wrong. But **no screen ever reads it back** — the form starts from one blank row and never prefills — so a client cannot see their stock, fix a quantity, or take a torn item out of service. Worse, a partial re-submit **deactivates every item it omits**. See `ROADMAP.md` Track 2.1. |
+| ~~**Conversational latency**~~ | **FIXED 2026-08-21 by the model change** — llm p50 **935ms**, max 1363ms, **0 of 23 turns over 3000ms**, confirmed by ear ("very quick and very fluid"). Prefill is still fat (`capture_lead` 2,148 chars of ~7,900) and still worth trimming for cost, but it is no longer a quality problem. |
+| **Inventory UI** | A client still has no *screen* for their stock — no way to fix a quantity or take a torn item out of service outside the questionnaire. **No longer destructive, though:** as of 2026-08-21 the questionnaire prefills from `client_inventory`, so a re-submit round-trips instead of deactivating everything it was never shown. |
 | **Bulk quantities** | Every booking consumes exactly 1 unit. "200 chairs" means 200 separate bookings, not one order of 200. |
 | **Deposits / waivers** | Nothing exists. Standard for bounce houses and equipment. |
 | **Owner SMS alerts** | `owner_phone` and `followup_method` are captured at onboarding and never read. |
 | **Scout** (SaaS) | Marked DEPLOYING on the site. Not built. |
-| **Nova for any rental vertical** | 🔴 **Hits the pilot.** `lib/nova-templates.ts:78` is `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing`, and roofing's `visitNoun` is `'inspection'`. A party-rental client provisioned under one of the 9 gets their bounce-house hire confirmed to their customer as an **inspection**, and Nova introduces herself as writing for a roofing company. Silent, customer-facing, no error. The real defect is the fallback, not the missing keys — an unknown vertical should refuse, the way an unknown inventory key already does. |
+
 
 ---
 
@@ -323,17 +329,12 @@ it clears. Do not sit waiting on any of it.
 
 **Ordered by what helps the chamber event most.**
 
-1. **Cut per-turn prefill.** Conversational latency regressed to **llm p50 1438ms / e2e 1821ms**
-   against a 964ms benchmark — audibly less fluid. Cause is prose in tool descriptions and the
-   system prompt, re-sent every turn. Trimmed once (12,108 → 9,868 chars); `capture_lead` is still
-   **2,571 chars** and is the fattest remaining target. **Measurable without a phone call** — send
-   the live prompt and tools straight to the model and time to first token, but do it
-   mid-conversation: a single-turn probe reads ~700ms while a real call averages 6,602 tokens.
-2. **Nova's vertical fallback.** `VERTICAL_COPY[input.vertical] ?? VERTICAL_COPY.roofing` turns any
-   unknown vertical into a confidently wrong confirmation email rather than a refusal. Blocks the
-   pilot from sending correct confirmations, and it is a handful of lines. Do this before the
-   inventory screen if the pilot is close.
-3. **An inventory screen.** **Corrected 2026-08-21** — the old note here said
+1. **Cut per-turn prefill — now a COST item, not a quality one.** The model change fixed the
+   fluidity problem (935ms p50, 0 turns over 3000ms). Prefill is still fat — `capture_lead` is
+   2,148 chars of roughly 7,900 total — and Gemini is ~3.2x Haiku on the LLM line, so trimming
+   still pays. **Measurable without a phone call**, but do it mid-conversation: a single-turn probe
+   reads ~700ms while a real call averages 5,000–6,800 tokens.
+2. **An inventory screen.** **Corrected 2026-08-21** — the old note here said
    `grep -rln client_inventory app components` returns nothing; it returns
    `app/api/questionnaire/submit/route.ts`, which *writes* the table. The real gap is that
    **nothing reads it back**: the questionnaire form starts from a single blank row and never
@@ -341,24 +342,10 @@ it clears. Do not sit waiting on any of it.
    house out of service. The `active` column exists and is read live; it is simply unreachable.
    A read/edit screen is also the durable fix for the destructive re-submit in Track 2.1 of
    `ROADMAP.md`. Pure Next.js, no vendor.
-4. **`capture_lead` sends the wrong `vertical`.** It sent `"wholesale"` on a roofing-domain client
-   on three separate calls, mislabelling every lead. Small fix, real data quality.
-5. **The compliance-line-stripping bug.** `mergePromptWithContext` cuts from
-   `BUSINESS_CONTEXT_START` to the end of the prompt, so any line appended **after** a client's
-   context block is silently deleted by their next questionnaire submit. A new client is safe;
-   **a re-submit — editing hours or stock months later — strips it.** `set-rental-tools.mjs`
-   inserts *before* the marker and is immune.
-   **Corrected 2026-08-21 — the exposure is smaller than this used to claim.**
-   `set-ai-disclosure.mjs` writes **two** fields: the proactive greeting into `begin_message`,
-   which is a separate field the prompt-slice never touches, and a backstop line into
-   `general_prompt`, which is appended and *is* stripped. **The Texas TRAIGA greeting survives; only
-   the answer to "am I talking to a robot?" is lost.** `set-sms-consent.mjs` appends and is fully
-   vulnerable. Durable fix: write into the base, or preserve trailing content. Same root cause as
-   the inventory loss above — see `ROADMAP.md` Track 2.1, which treats them as one defect.
-6. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
+3. **Audit the other five crons' real output.** `silence-check` selected a column that never existed
    and failed silently for months — nobody read its output, only that it ran. Assume siblings.
-7. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
-8. **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
+4. **Fix the SaaS Scout badge** (or build Scout). It claims DEPLOYING for something that does not exist.
+5. **Delete `lib/email-templates.ts`.** All four templates lost their only caller when
    `/api/update-dossier` was removed. Dead code that reads as a live integration.
 
 ### Group C — gated on a real client, not on time

@@ -24,106 +24,95 @@ is the only reason it is trustworthy. The three other docs in `docs/architecture
 
 **Last updated:** 2026-08-21 (second session that day).
 
-### Where this session ended — 2026-08-21 (second session)
+### Where this session ended — 2026-08-21 (third session)
 
-**Both items the previous session queued are DONE.** The branch is merged and deployed, and the
-roadmap is written.
+**A long build session. Everything below is merged, deployed and verified against production.**
+`master` is clean, tsc passes, **255 tests**, production build clean.
 
 ## ▶ START HERE NEXT SESSION
 
-**Read `docs/ROADMAP.md`.** It is the sequenced build order, written this session against the two
-dates that actually govern the work — the pilot returning **~2026-09-02** and the chamber event
-**~mid-September**. It consolidates Groups A/B/C from `WHAT-CAN-I-DELIVER-TODAY.md`, the open items
-below, and the dossier build order.
+**Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
+the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
 
-**▶ FIRST ACTION: switch Northside to GPT-5 and place real calls.** Retell replied and confirmed
-the fault is theirs and Anthropic-model-specific (see the section below). Everything voice-shaped —
-the pilot's test call, the chamber demo, `booking_token`'s first-ever live observation — is queued
-behind proving this works. The script is patched and dry-run; the command is:
+**▶ NEXT TASK: dossier step 2 — intake form changes.** Add **monthly volume**, **average job
+value** and pain-point checkboxes to the intake form. The columns already exist (step 0 applied),
+so this is a form change only. **It unlocks the real ROI report**: `/api/send-roi-report` is built
+and working but unreachable from intake today because it needs `callsPerWeek` / `answerRate` /
+`jobValue`, which nothing collects. **It touches all 11 static pages**, so start it fresh rather
+than tacking it onto other work, and remember the Zero-Touch rule — edit those as HTML.
 
-```
-node --env-file=.env.local scripts/retell/set-client-model.mjs --model gpt-5 --only agent_d39a1b13cfd8fb2e3c9c12f06e --apply
-```
+**Also queued, smaller:** audit the other five crons' real output (open item 5), the Scout badge,
+and deleting `lib/email-templates.ts`.
 
-**Measure three things on the calls, not one:** does it answer after the greeting (the actual bug);
-latency against the **964ms** Haiku benchmark (Sonnet's 2399ms sat on Retell's 3000ms cliff — do not
-trade one failure mode for another); and **whether `item`, `sms_consent` and `booking_token`
-actually fire.** Those three were each defined-but-not-sent until they were made required with a
-truthful escape, and that shape was tuned against Haiku — **a different model family is exactly the
-event that re-opens it.** Then the demo line, then the templates.
-
-**Highest-value build work, in order** (all detailed in the roadmap):
-1. **Track 2.1 — the questionnaire re-submit defect.** Three known bugs, one root cause. **New this
-   session**, see below.
-2. **Track 2.2 — Nova's roofing fallback** (open item 11). The only item that reaches the pilot's
-   *customers*.
-3. **Track 2.3 — cut per-turn prefill.** This is the chamber demo's fluidity.
-4. **Dossier steps 0 and 1.** Step 1 in particular is the cheapest real win on the list.
+**Not blocked on us:** Retell has not fixed the Anthropic routing. Chris asked them to confirm when
+they do — see "Model choice" for the two things to re-check before going live.
 
 ---
 
-**✅ `feat/rental-vertical-pages` is MERGED and DEPLOYED** — `--no-ff`, merge commit `299f60e`,
-pushed `1f88528..299f60e`. Undo with `git revert -m 1 299f60e`; that single undo point is the whole
-reason for `--no-ff`.
+### What shipped this session
 
-**Re-verified immediately before merging rather than trusted:** tsc clean, **248/248** tests,
-production build clean, all three rental verticals present in the route table.
-**Verified on production after the deploy:** all three routes 200, all three `-leads` pages 200,
-`/{slug}/pricing` → **307 `/book-demo`** on all three, the false audit promise gone from **all 12**
-leads pages, no wholesale residue on any rental page, and **all 30 internal homepage links 200**.
+**Voice — all 11 agents moved to `gemini-3.5-flash`** after Retell confirmed the Anthropic fault
+was theirs. **Best latency this project has measured: llm p50 935ms, max 1363ms, 0 of 23 turns over
+3000ms** — better than the Haiku benchmark, and Chris confirmed by ear ("very quick and very
+fluid"). Details and the cost trade in "Model choice" below.
 
-*One thing that looks like a bug and is not:* production's homepage is 2,007 bytes smaller than
-`public/index.html`. The file is 2,007 lines and the repo copy is CRLF — content hashes match
-exactly once line endings are normalised. Don't re-investigate it.
+**Ava stopped offering things she had not checked.** Two real calls exposed the same defect in two
+paths of `/api/available-slots`, both fixed:
+- An **unknown** item ("do you have a Unicorn?") returned the *entire catalogue* as options with
+  nothing checked against the calendar. She read it out, the caller picked, all four were busy.
+- An **ambiguous** name ("you guys rent bounce houses?") did the same with its candidates, then
+  answered *"I need to check each specific one to confirm"*.
+- A **vague** question on a mixed yard returned intra-day appointment times instead of units.
+  Reversed at Chris's direction: any yard that hires things out now answers with units.
+All three now return **named units that are genuinely free**. The ambiguity *refusal* is unchanged
+and still correct — offering the free ones by name is not guessing between them.
 
-#### ✅ FIXED 2026-08-21 — the questionnaire had no read path, so every re-submit was destructive
-The write-up below stands as the diagnosis; all of it is now fixed and verified end to end by
-`scripts/verify-questionnaire-roundtrip.mjs` (15 checks, against a real client, cleans up after
-itself). **It was worse than first described:** the form prefilled *nothing*, so the damage was
-never limited to inventory — hours, horizon and lead time reverted to the form's hardcoded
-defaults on **any** re-submit, no typing required.
+**Four truthfulness fixes, all customer-facing:**
+- **Nova no longer confirms a stranger's booking as a roof inspection.** See open item 11 — the
+  original write-up named the wrong line, and that error had been copied into two other docs.
+- **Nobody promises to send a quote.** Quoting is not built. Two of the three hits were
+  **templates**, so every future insurance and wholesale client would have inherited it.
+- **Nobody promises a text.** Twilio is unconfigured; she said "we'll text updates to 817-…".
+  Asking *"is it alright if we text you updates?"* stays — that is consent capture, not a promise.
+- **All 11 agents now state the real post-booking process**: the team verifies shortly and gets in
+  touch **by email or phone**. No payment page is mentioned, because none exists.
 
-What changed: a new `GET /api/questionnaire/current` returns the saved answers, schedule and
-active inventory; the form loads it on mount and **the submit button stays disabled until it
-does** (and stays disabled if the load fails, showing the form's defaults being the whole danger);
-auth was extracted to `lib/security/questionnaire-auth.ts` so the read cannot drift weaker than
-the write; and `mergePromptWithContext` now **preserves trailing content** instead of slicing to
-the end, with seven tests in `lib/prompt-merge.test.ts` covering the compliance-line case.
+**`capture_lead` can finally answer "none of the nine".** `vertical` was a required enum of the
+nine original verticals, so Northside — an event-rental business — filed **every** lead as
+`wholesale`. Added `other` on all 11; the route already maps it to null.
+
+**The questionnaire stopped destroying configuration on re-submit** (was open item 12). It had
+**no read path at all**, so every field was a hardcoded default and a client editing one answer
+silently overwrote the rest. Full write-up below.
+
+**Dossier steps 0 and 1 shipped.** The intake payload is persisted and the prospect finally gets
+an email. See the dossier section.
+
+---
+
+#### ✅ FIXED — the questionnaire had no read path, so every re-submit was destructive
+**It was worse than open item 12 described.** The form prefilled *nothing*, so the damage was never
+limited to inventory: hours, horizon and lead time reverted to the form's hardcoded defaults on
+**any** re-submit, no typing required. For a weekend business that means **Ava refuses every
+Saturday**, which reads as a booking-engine bug rather than as configuration.
+
+What changed: a new **`GET /api/questionnaire/current`** returns saved answers, schedule and active
+inventory; the form loads it on mount and **the submit button stays disabled until it does** — and
+stays disabled if the load *fails*, since defaults on screen is exactly when saving is most
+destructive. Auth moved to `lib/security/questionnaire-auth.ts` so the read cannot drift weaker
+than the write. `mergePromptWithContext` now **preserves trailing content** instead of slicing to
+the end, with seven tests in `lib/prompt-merge.test.ts` — it was silently deleting the Texas TRAIGA
+backstop line that `set-ai-disclosure.mjs` appends.
 
 **Deliberately unchanged:** removing an item in the form still retires it. That is the feature.
-What was wrong was retiring items the form had never shown anyone.
+The bug was retiring items the form had never shown anyone.
 
-*Original diagnosis, kept because the defect class keeps recurring:*
+Verified by `scripts/verify-questionnaire-roundtrip.mjs` — 15 checks against a real client, refuses
+any client with a `retell_agent_id`, cleans up after itself.
 
-#### One defect class with three symptoms, and it lands on the pilot
-**The questionnaire submit path assumes it is the only writer of a client's configuration. It is
-not** — scripts write the same state out of band, and every place those assumptions meet, a
-**re-submit silently destroys work.** Full write-up in `docs/ROADMAP.md` Track 2.1. Three symptoms:
-
-1. **A partial questionnaire re-submit deactivates inventory loaded by script. [NEW]**
-   The form initialises its inventory field to **one blank row** and never prefills from
-   `client_inventory`. On submit, every item *not* in the posted list is set `active: false`
-   (`app/api/questionnaire/submit/route.ts:176-180`), and `loadInventory` returns only active rows.
-   **So the pilot re-opens the form months later to add one new bounce house, and her other 39 items
-   stop existing as far as Ava is concerned.** Silent, no error. A *fully blank* submit is safe —
-   the inner `unique.length > 0` guard catches it — so **the partial submit is the dangerous one,
-   and adding an item is the most natural reason anyone reopens that form.**
-2. **The AI-disclosure backstop line is stripped.** `mergePromptWithContext` slices from
-   `BUSINESS_CONTEXT_START` to the end (`lib/retell-kb-sync.ts:35`), discarding anything appended
-   after it. **Exposure is smaller than previously documented:** `set-ai-disclosure.mjs` writes the
-   proactive greeting into `begin_message`, a **separate field the slice never touches**, so the
-   Texas TRAIGA greeting survives — only the answer to "am I talking to a robot?" is lost.
-3. **`set-sms-consent.mjs` appends** (line 132) and is fully vulnerable.
-   `set-rental-tools.mjs` inserts *before* the marker and is immune.
-
-**Fix all three as one pass:** prefill the form from existing rows so a re-submit round-trips, and
-write compliance lines into the base prompt instead of appending after the marker.
-**Also: re-run `set-ai-disclosure.mjs` against Northside** — it is the one agent of eleven missing
-the backstop line.
-
-#### 🔴 Nova falls back to roofing — unchanged, still open (see open item 11)
-`lib/nova-templates.ts:78`, verified again this session. **The only item on the roadmap that reaches
-the pilot's *customers* rather than the pilot.** Roadmap Track 2.2.
+**The durable lesson, now paid for four times:** `item`, `sms_consent`, `booking_token`, `vertical`.
+**A required value with no truthful option produces a false one.** Reach for the escape
+(`not_asked`, `"none"`, `other`, `unknown`) before reaching for firmer wording.
 
 #### Do not re-audit the ROI calculators or the rental page copy
 All **twelve** calculators were checked against each page's own slider defaults and `RECOVERY_RATE`
@@ -134,7 +123,6 @@ it if absent. The word-by-word copy pass is done and its six findings are shippe
 
 **`scripts/mobile-audit.mjs`** — 19 pages × 8 widths, Playwright is a devDependency.
 **Do not reason about breakpoints instead of running it.**
-
 #### 🔴 Still in flight — the Operational Dossier
 `docs/DOSSIER-DESIGN.md` is written and approved ("get it rolling"). **Steps 0 and 1 are DONE
 2026-08-21; steps 2–7 are still design only.**
@@ -178,97 +166,65 @@ changes (next)** · 3 website measurement · 4 dossier renderer · 5 audit agent
 `saas-optimization`'s leak-number reads "$0 — the monthly cost of hiring a dedicated SDR", which
 says an SDR is free. Not a fabricated stat, so it was left alone, but it is confusing.
 
-#### Doc corrections — the same rule caught two more this session
-`WHAT-CAN-I-DELIVER-TODAY.md` is the doc read *before a chamber event*, and re-deriving from the
-live system (rather than from its own previous version) has now caught **four** wrong claims in it
-across two sessions. The first two — "the rental pages have shipped" while they sat unmerged, and a
-row-count contradiction (55/27/21 in prose vs 72/31/24 in the table; production says **72/31/24**)
-— were fixed earlier on 2026-08-21. Two more, found and fixed this session by running the greps
-the doc itself cites:
+#### Doc corrections — six now, across three sessions
+Re-deriving from the live system rather than from a doc's previous version has now caught **six**
+wrong claims. **Four were in `WHAT-CAN-I-DELIVER-TODAY.md`** — the doc read *before a chamber
+event*: "the rental pages have shipped" while they sat unmerged; a row-count contradiction
+(55/27/21 in prose vs 72/31/24 in the table; production says **72/31/24**); the `client_inventory`
+grep below; and the compliance-script claim below.
 
 - **"`grep -rln client_inventory app components` returns nothing"** — it returns
-  `app/api/questionnaire/submit/route.ts`, which *writes* the table. The real gap is that **nothing
-  reads it back**, which is a different fix from the one the doc implied.
+  `app/api/questionnaire/submit/route.ts`, which *writes* the table. The real gap was that **nothing
+  read it back**, which is a different fix from the one the doc implied. Now fixed.
 - **"Both compliance scripts append their line to the end"** — `set-ai-disclosure.mjs` writes the
   greeting into `begin_message`, a separate field the prompt-slice never touches. The Texas TRAIGA
-  disclosure was never at risk; only the in-prompt backstop is.
+  greeting was never at risk; only the in-prompt backstop was.
 
-**The lesson is not "that doc is unreliable" — it is that a cited command is a claim, and running
-it takes ten seconds.** Both errors survived because every reader trusted the grep output quoted in
-the prose instead of running the grep.
-### Where the previous session ended — 2026-08-20 (overnight)
+**Two more this session, and these were in docs written by this project about its own code:**
 
-**`master` is clean, nothing is open, everything below is deployed.** PRs #42–#47 merged; the rest
-went straight to master. 248 tests pass.
+- **Nova's fallback — the wrong line was blamed, in three docs at once.** CLAUDE.md, the delivery
+  doc and `ROADMAP.md` all named `lib/nova-templates.ts`. The route two files away already refused
+  unsupported verticals (`skipped_unsupported_vertical`, two rows in production prove it). The live
+  fallback was elsewhere and fired only on an **empty** vertical — a third of `leads` rows. Fixing
+  the blamed line would have fixed nothing.
+- **`DOSSIER-DESIGN.md` step 1 was unbuildable.** It said to wire the intake form to
+  `/api/send-roi-report`. That route is built around `callsPerWeek` / `answerRate` / `jobValue` /
+  `annualLost` / `breakEvenDays`, and the intake form collects **none** of them — it would have
+  thrown, or needed the numbers invented, which is the exact Gumloop failure the dossier replaces.
+  Corrected in place; the honest version shipped instead.
 
-**🔴 The one blocker: Northside stops responding after the greeting.** See the UNRESOLVED section
-below — a Retell-side first-token timeout, extensively ruled out on our side, and it is what
-stopped testing. **Calls DO get through intermittently** (four worked tonight), so this is a
-support ticket, not a code change.
+**The lesson is not "these docs are unreliable" — it is that a cited command is a claim and a named
+line is a hypothesis.** Running the grep takes ten seconds; reading the calling path takes a minute.
+Both errors above survived multiple readings because a pasted command and a file:line *look* like
+evidence.
+### Live production state — re-derived 2026-08-21
 
-**Northside has been converted into a RENTAL test agent. It is no longer a roofing agent.**
-Deliberate and reversible, and it will confuse anyone who does not know:
-- `general_prompt` swapped to an event/party-rental receptionist. **The original LLM config —
-  greeting, prompt, all tools — is backed up** as `northside-llm-backup-2026-08-20.json` in that
-  session's scratchpad. If it is gone, re-clone from the roofing template.
-- **40 `client_inventory` rows** loaded from `templates/mock-event-rental-inventory.csv`.
-- A `client_schedules` row on the **entertainment profile** — Sat 08:00–20:00, Sun 10:00–18:00,
-  180-day horizon, written by `setup-client-schedule.mjs`.
-- To undo: delete its `client_inventory` rows and restore the prompt from the backup.
+- **Retell: 11 agents, 2 numbers.** All 11 run `gemini-3.5-flash`. Nothing was provisioned this
+  session; **$23.48 spent all-time across 138 minutes.** Retell exposes no balance endpoint.
+- **Supabase:** `agent_subscriptions` **2** (Northside + a leftover `review-sandbox` row with no
+  agent — harmless, `review-sandbox-client.mjs --delete` removes it), `client_inventory` **38
+  active**, `client_schedules` **1**, `calendar_connections` **0**, `system_audits` **23**.
+- **Stripe: test mode**, sole webhook **disabled**. A checkout on the live site provisions nothing.
+- **Twilio: unconfigured.** All four env vars missing, A2P brand unregistered. No SMS in either
+  direction, and nothing may promise one.
 
-**Production state, verified rather than assumed:**
-- Retell: **11 agents**, **2 numbers** — unchanged all night, nothing was provisioned.
-- Supabase: **2 `agent_subscriptions`** — Northside plus a **leftover `review-sandbox`** row (no
-  `retell_agent_id`, harmless; `review-sandbox-client.mjs --delete` removes it).
-- `client_inventory` **40**, `client_schedules` **1**, `bookings` **24**, `leads` **31**,
-  `calendar_connections` **0**.
-- The test-mode Stripe webhook is still **DISABLED**. Nothing provisions from a checkout.
+**⚠ Northside is a RENTAL test agent, not a roofing agent.** Converted 2026-08-20 and it will
+confuse anyone who does not know: rental prompt, 38 active mock inventory rows, weekend hours,
+180-day horizon. Its `agent_subscriptions.vertical` was corrected to **`event-rentals`** this
+session — it still said `roofing`, which is why its Nova confirmations described bounce houses in
+roofing language. The greeting still said "Northside Roofing Company" until this session too; it
+now says "Northside Event Rentals". The original LLM config is backed up as
+`northside-llm-backup-2026-08-20.json` in that session's scratchpad.
 
-**What shipped tonight**
-- **Multi-day rental windows.** `generateRentalWindows` + `formatRentalWindow`, migration applied,
-  `verify-rental-windows.mjs` green against production — including the check that matters: a real
-  three-night hire booked, then the same unit refused **mid-hire**.
-- **`book-appointment` holds the unit for the whole hire.** `endsAt` stays one slot long (right for
-  the owner's-calendar check and the confirmation text); `book_slot` now receives a `holdEndsAt`
-  spanning the hire, because `available-slots` reads `bookings.ends_at` to decide if a unit is out.
-- **Per-item inventory is reachable by voice at last.** `check_availability` and `book_appointment`
-  had **no `item` parameter at all** — shipped 2026-08-16 and unreachable by phone the entire time,
-  because every test called the API directly. Verify through the consumer, not the producer.
-- **Ambiguous and unknown items are refused** by `available-slots` rather than falling through to
-  intra-day slots. "Do you have a bounce house?" used to answer "8:00 AM or 9:00 AM".
-- **`sms_consent` is a required enum** (`granted` / `declined` / `not_asked`) on **all 11 agents**,
-  and is **proven on a real call** — asked, answered, stored `true`.
-- **`booking_token`** — `available-slots` mints a signed handle carrying the item and the exact
-  interval; `book_appointment` spends it. Verified against production: tampered and invented
-  tokens 409, a valid one books the right unit for the right window with nothing else supplied.
-- Docs: `WHAT-CAN-I-DELIVER-TODAY.md` rewritten from live state, the other three
-  `docs/architecture/` files bannered STALE, `docs/README.md` corrected.
+**Proven on real calls, do not re-verify:** the calendar chain (a caller threaded a single free
+hour between two Google Calendar blocks and booked it), owner alerts, per-item inventory by voice,
+multi-day hire, ambiguity refusal, SMS consent capture, and — **first observed this session** —
+`booking_token` carried end to end, storing the right `inventory_item_key` on a real booking. Every
+prior booking stored null.
 
-**⚠ Latency regressed and is NOT fixed.** This agent benchmarked at **964ms p50**; the last working
-call measured **llm p50 1438ms, e2e 1821ms, max 3129ms**. Chris called it "not very fluid", and one
-turn crossed Retell's 3000ms cliff *during a working call*. Cause is prefill growth — prose written
-into tool descriptions and the system prompt, which are re-sent every turn. Trimmed once
-(12,108 → 9,868 chars); **more is still warranted**, `capture_lead` alone is 2,571 chars.
-**Measuring trap:** a single-turn probe reads ~700ms while a real call averages **6,602
-tokens/request**, so measure mid-conversation or the number flatters.
-
-**Next session: do NOT sit waiting on Retell.** `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md`
-now splits its finish list into **Group A** (calendar time — A2P, Google verification, the Retell
-ticket), **Group B** (buildable right now, nothing blocks it), and **Group C** (gated on a real
-client). Group B is the queue: **the three rental pages first** — greenlit, and the engine they
-waited on shipped last night — then cutting per-turn prefill, then an inventory screen.
-
-**Three changes are untested by voice** — they landed after the last connected call:
-`booking_token` **required** with `"none"` as the escape, and the trimmed descriptions. On the next
-call that connects, watch whether `book_appointment` finally carries a token: the booking has
-stored `inventory_item_key: null` on every attempt so far.
-
-**The lesson the night kept teaching: optional means omittable.** `item`, then `sms_consent`, then
-`booking_token` were each defined on the tool, described in the prompt, and simply not sent.
-Strengthening the wording failed twice. What worked was making the parameter **required with a
-truthful escape** — `not_asked`, `"none"` — so the model is never cornered into inventing an
-answer. Reach for that shape before reaching for firmer wording.
-
+**Three things still untested by voice** were fixed after the last connected call: the availability
+changes above, the post-booking promise, and the `other` vertical escape. Watch for them on the
+next call.
 ### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
 Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
 top-ten Texas roofing company, and **owner of an entertainment business** — mobile casino, DJ,
@@ -326,66 +282,34 @@ unit is out. The calendar check deliberately stays on the short window, because 
 the owner is free for three solid days would refuse almost every hire over an unrelated meeting
 on day two. A hire outside the item's stated range is **refused**, not re-priced.
 
-### ⚠ UNRESOLVED: Northside stops responding after the greeting — it is NOT our config
-As of 2026-08-20 07:00 the agent answers, plays its greeting, and never speaks again. Retell logs
-`3000ms timeout reached for first token`, three attempts, then `Failed to get response from any
-LLM provider`. `llm_token_usage` is absent — no request ever completed, nothing billed.
+### ✅ RESOLVED — Northside stopped responding after the greeting. It was Retell's, not ours.
 
-**Two theories were formed and BOTH were disproved. Do not re-derive either.**
-1. *"The first call after a config write dies — burn one."* Held 5-for-5 for a while, then broke:
-   calls kept failing with **no config change in between**. It was coincidence — config writes and
-   test calls were simply interleaved all evening.
-2. *"Our prefill payload got too big."* Trimmed 12,108 → 9,868 chars and **calls kept failing
-   identically**, so payload does not explain a death on the FIRST turn, where context is small.
-   **But do not over-read that retraction:** a later working call measured **llm p50 1438ms
-   against a 964ms benchmark, max 3129ms** — so prefill growth is real, costs fluidity, and does
-   push the tail across the 3000ms cliff mid-call. The original "~700ms, nothing to see" probe was
-   unrepresentative: it measured a **single turn** while a real call averages **6,602
-   tokens/request**. Payload is a live fluidity problem; it is just not the first-turn cause.
+Agents answered, played the greeting, and never spoke again; Retell logged `3000ms timeout reached
+for first token` across **three independent providers** (Vertex, Anthropic direct, Bedrock) while
+the identical prompt and tools sent straight to Anthropic answered at **p50 571ms**.
 
-**DECISIVE EVIDENCE — 2026-08-20 21:11. Retell's own log names three providers:**
-```
-triedKeys: [ vertex-anthropic-global:claude-4.5-haiku,
-             anthropic-default:claude-4.5-haiku,
-             bedrock-runtime-claude-global:claude-4.5-haiku ]
-errorMsgs: [3000ms timeout, 3000ms timeout, 3000ms timeout]
-```
-Retell failed to get a first token from **Google Vertex, Anthropic direct, and AWS Bedrock** —
-three independent vendors, identical failure. Minutes later, the **exact same `general_prompt` and
-tool schemas**, read live off that agent and sent straight to Anthropic: **p50 571ms, max 940ms,
-0/6 over 3000ms.**
+**Retell confirmed it on 2026-08-20 20:32:** *"There seems to be some issue with Anthropic models
+for the moment… I would suggest switch to some other models (e.g. GPT 5) for now."* No ETA. The
+fleet moved off Anthropic and the symptom is gone — see "Model choice".
 
-Three independent providers do not degrade simultaneously and identically, and the payload that
-allegedly could not produce a token in 3s answers one of those same providers in half a second.
-**The fault is inside Retell's request path. Our configuration is exonerated — stop re-testing it.**
+**Scope it correctly: this was Retell's ROUTING, not Anthropic.** The three call sites that talk to
+Anthropic **directly** — `nova-templates`, `felix/conflict-check`, `email-ingest` — were never
+affected and **must not be changed** (open item 10; two run mid-call on live traffic).
 
-Also ruled out, each checked directly: agent/LLM version pinning (agent v0 resolves LLM v0),
-concurrency (1/20), tool schema validity (all three tools verified against production),
-`model_high_priority` (false), and `/api/available-slots` itself (200 in ~600ms, minting tokens).
+**Two theories were formed and BOTH disproved. Do not re-derive either:** "the first call after a
+config write dies" (coincidence — calls kept failing with no config change between) and "our
+prefill payload got too big" (trimmed 12,108 → 9,868 chars, calls failed identically). Also ruled
+out and not worth re-testing: version pinning, concurrency, tool-schema validity,
+`model_high_priority`, and `/api/available-slots` itself.
 
-**Do NOT reach for the obvious levers.** `model_high_priority` is 4x worse by this repo's own
-measurement and Sonnet's 2399ms p50 sits on the cliff — both make it MORE likely, not less.
-
-**✅ RETELL REPLIED 2026-08-20 20:32 — and confirmed it is theirs.** Verbatim: *"There seems to be
-some issue with Anthropic models for the moment. While we are investigating, I would suggest switch
-to some other models (e.g. GPT 5) for now."* No ETA. **Our config is exonerated on the vendor's own
-word — stop re-testing it.** The workaround is a model switch; the staged plan is in
-`docs/ROADMAP.md` and the script is patched and ready.
-
-**Scope it correctly: this is Retell's ROUTING, not Anthropic.** The three call sites that talk to
-Anthropic **directly** — `nova-templates`, `felix/conflict-check`, `email-ingest` — are unaffected
-and **must not be changed** (open item 10 still stands; two of them run mid-call on live traffic).
-Only the 11 Retell LLMs are in scope.
-
-**Original note, kept for the evidence list:** Evidence to send: agent
-`agent_d39a1b13cfd8fb2e3c9c12f06e`, the `public_log_url` of any dead call, and the point that the
-same model, prompt and tools answer in ~700ms when called directly. The 3000ms first-token budget
-is Retell's setting and is not exposed to us.
+**Do NOT reach for the obvious levers if anything like this recurs.** `model_high_priority` is 4x
+worse by this repo's own measurement, and Sonnet's 2399ms p50 sits on the 3000ms cliff — both make
+a first-token timeout MORE likely, not less.
 
 **When a call misbehaves, read `public_log_url` on the call object FIRST.** It named the cause in
-one request tonight after five tool calls of circling.
-
-### The three rental pages — BUILT 2026-08-20 (on `feat/rental-vertical-pages`)
+one request after five tool calls of circling. `scripts/retell/inspect-call.mjs` prints the tool
+calls and their arguments; `scripts/retell/call-latency.mjs` prints the per-stage spread.
+### The three rental pages — MERGED and LIVE since 2026-08-21
 
 **Decision:** three separate pages, not one combined — grouped by **who is buying**, so Chris can
 point one specific person at one specific page and target ads tightly.
@@ -438,7 +362,7 @@ moves. **This deliberately differs from the nine**, which do assert an "avg job 
   (verified in the SDK types and Retell's own custom-telephony docs; the only alternative, "dial to
   SIP URI", means building the telephony yourself). That would put a SIP trunk between every caller
   and Ava, and Retell's community reports a Twilio trunk "connects about 50% of the time".
-  Consolidation saves **$2/month per client**. The voice path is proven, measured at 964ms p50, and
+  Consolidation saves **$2/month per client**. The voice path is proven, measured at 935ms p50, and
   is the product. Not worth it.
 - If ever revisited: buy **one** number, trunk it, point it at a throwaway agent, call it twenty
   times, and decide on data rather than a forum post. **Never migrate a live client's number** — it
@@ -1140,8 +1064,12 @@ Any figure derived from it must state the assumption on-screen. `lib/roi.test.ts
   to sit there are gone, as is "Claude Sonnet" from Ava's tech list — but `/book-demo` still
   embeds a genuine Cal.com widget for Chris's own discovery calls, and that one is correct. Do
   not "clean it up".
-- Every client agent runs `claude-4.5-haiku`, chosen by measurement. Ava's tech list says
-  "Claude" without a model name on purpose — naming one goes stale the moment it changes.
+- Every client agent runs `gemini-3.5-flash` as of 2026-08-21, chosen by measurement. **Ava's tech
+  list on `/agents/ava` names no vendor at all**, corrected the same day: it said "Claude Sonnet"
+  while she ran Haiku, then "Claude" while she ran Gemini — wrong twice for the same reason. Her
+  voice model has changed three times and is picked by measurement, so any name there is a claim
+  that expires unnoticed. **Rex, Nova and Felix still say "Claude" and are correct** — they call
+  the Anthropic API directly and are unaffected by Retell's routing.
 - **Pricing is still flat: $400 / $600 / $750, no minute limits advertised anywhere.** The meter
   measures and the biller is built, but the switch is off. Do not put minutes or overage on the
   pricing page until `USAGE_BILLING_ENABLED` is `'true'`.

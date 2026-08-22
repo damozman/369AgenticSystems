@@ -59,9 +59,13 @@ const AGENTS: Record<AgentSlug, AgentData> = {
       { vertical: 'Wholesale',    label: 'Wholesale',    role: 'Order Intelligence',      what: 'Captures order details and inventory urgency. Knows wholesale pricing and SKU routing. Live in minutes + ROI tracking.', color: '#84CC16', slug: 'wholesale'    },
       { vertical: 'Dental',       label: 'Dental',       role: 'Appointment Booking',     what: 'Captures new patient inquiries and books appointments. Knows insurance questions and common patient concerns. Live in minutes + monthly ROI.', color: '#EC4899', slug: 'dental'       },
     ],
-    // "Claude" without a model name, matching every other agent below. Naming one goes stale the
-    // moment the model changes — this said "Claude Sonnet" while Ava was already running Haiku.
-    tech: ['Retell AI', 'Claude (voice intelligence)', 'Google Calendar (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
+    // No vendor named, and that is the durable fix. This said "Claude Sonnet" while Ava was
+    // already running Haiku, then "Claude" while she moved to gemini-3.5-flash on 2026-08-21 —
+    // wrong twice for the same reason. Ava's voice model is chosen by MEASUREMENT and has changed
+    // three times; whatever is named here is a claim that expires without anyone noticing.
+    // Rex, Nova and Felix below still say "Claude" and are correct: they call the Anthropic API
+    // directly and are unaffected by which model Retell routes Ava's voice through.
+    tech: ['Retell AI (voice)', 'Frontier language model (conversation)', 'Google Calendar (booking)', 'Supabase (lead storage)', 'Resend (confirmations)'],
   },
 
   rex: {
