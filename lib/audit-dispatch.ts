@@ -42,6 +42,7 @@ export type SkipReason =
   | 'no_phone'          // nothing dialable on the row
   | 'no_slot'           // not part of a pair; the single-call path owns it
   | 'too_late'          // its window passed while we were not looking
+  | 'suppressed'        // this number asked not to be called
 
 export interface DispatchDecision {
   call: ScheduledCall
@@ -69,11 +70,19 @@ export function auditCallsEnabled(env: NodeJS.ProcessEnv = process.env): boolean
  */
 export const MAX_LATENESS_MS = 90 * 60_000
 
-/** Decides one call. */
+/**
+ * Decides one call.
+ *
+ * `suppressed` is the set of E.164 numbers that have asked not to be called. It is checked HERE,
+ * at the moment of dialling, rather than only when the refusal arrives — a refusal that only
+ * cancels the rows it can see would be silently undone by anything that schedules a new one.
+ * The dialler is the last gate before someone's phone rings, so it is the one that has to hold.
+ */
 export function decideOne(
   call: ScheduledCall,
   now: Date,
   env: NodeJS.ProcessEnv = process.env,
+  suppressed: ReadonlySet<string> = new Set(),
 ): DispatchDecision {
   if (!auditCallsEnabled(env)) return { call, place: false, reason: 'disabled' }
   if (call.status !== 'scheduled' || call.call_id) {
@@ -81,6 +90,11 @@ export function decideOne(
   }
   if (!call.slot) return { call, place: false, reason: 'no_slot' }
   if (!call.target_phone?.trim()) return { call, place: false, reason: 'no_phone' }
+
+  // Before anything about timing. A suppressed number is never dialled, however due it is.
+  if (suppressed.has(call.target_phone.trim())) {
+    return { call, place: false, reason: 'suppressed' }
+  }
   if (!call.scheduled_for) return { call, place: false, reason: 'not_due' }
 
   const due = new Date(call.scheduled_for).getTime()
@@ -105,6 +119,7 @@ export function decideBatch(
   calls: ScheduledCall[],
   now: Date,
   env: NodeJS.ProcessEnv = process.env,
+  suppressed: ReadonlySet<string> = new Set(),
 ): DispatchDecision[] {
   const seen = new Set<string>()
   const decisions: DispatchDecision[] = []
@@ -114,7 +129,7 @@ export function decideBatch(
     (a.scheduled_for ?? '').localeCompare(b.scheduled_for ?? ''))
 
   for (const call of ordered) {
-    const d = decideOne(call, now, env)
+    const d = decideOne(call, now, env, suppressed)
     if (d.place && call.audit_id) {
       if (seen.has(call.audit_id)) {
         decisions.push({ call, place: false, reason: 'not_due' })

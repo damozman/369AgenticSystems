@@ -42,6 +42,19 @@ export async function enrolAuditCalls(
     // A number we cannot dial is not a finding about them — there is simply nothing to place.
     if (!to) return { scheduled: 0, skipped: 'no dialable phone number' }
 
+    /**
+     * Someone who has asked not to be called does not get re-enrolled by submitting the form
+     * again. The dispatcher checks this too — that is the gate that actually protects the phone —
+     * but scheduling rows we would refuse to dial leaves the table looking like we intend to call
+     * a person who told us not to.
+     */
+    const { data: sup } = await db
+      .from('audit_suppressions')
+      .select('phone')
+      .eq('phone', to)
+      .limit(1)
+    if (sup?.length) return { scheduled: 0, skipped: 'number is suppressed' }
+
     const plan = planAuditCalls(input.submittedAt, input.auditId)
 
     const rows = [plan.first, plan.second].map(call => ({

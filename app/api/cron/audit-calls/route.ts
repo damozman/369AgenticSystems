@@ -62,7 +62,27 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = data ?? []
-  const decisions = decideBatch(rows, now)
+
+  /**
+   * Load the suppression list and hand it to the decider.
+   *
+   * Refusals are honoured here, at the last gate before a phone rings, and not only when they
+   * arrive. `/api/audit/suppress` also cancels the rows it can see, but a refusal that relied on
+   * that alone would be silently undone by anything that schedules a new call afterwards.
+   *
+   * A failure to read it stops the run rather than dialling. Someone who asked not to be called
+   * and gets called anyway is a worse outcome than an audit that runs fifteen minutes late.
+   */
+  const { data: sup, error: supErr } = await supabaseAdmin
+    .from('audit_suppressions')
+    .select('phone')
+  if (supErr) {
+    console.error(`[369 AUDIT-CALLS] ✗ could not read suppressions — placing nothing: ${supErr.message}`)
+    return NextResponse.json({ error: 'Could not read suppression list' }, { status: 500 })
+  }
+  const suppressed = new Set((sup ?? []).map(r => r.phone as string))
+
+  const decisions = decideBatch(rows, now, process.env, suppressed)
   const due = toPlace(decisions)
   console.log(`[369 AUDIT-CALLS] ${rows.length} candidate(s) · ${summarise(decisions)}`)
 

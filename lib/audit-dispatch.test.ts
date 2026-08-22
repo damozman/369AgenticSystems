@@ -133,3 +133,39 @@ test('a run that did nothing says why', () => {
   assert.match(summarise(decideBatch([call()], NOW, ON)), /placing=1/)
   assert.equal(summarise([]), 'no scheduled audit calls')
 })
+
+// ── Suppression: the gate that makes the opt-out honest ─────────────────────
+
+test('a suppressed number is never dialled, however due it is', () => {
+  const sup = new Set(['+18175551212'])
+  const d = decideOne(call(), NOW, ON, sup)
+  assert.equal(d.place, false)
+  assert.equal(d.reason, 'suppressed')
+})
+
+test('suppression beats timing, not the other way round', () => {
+  // Checked before any due/late arithmetic, so no schedule can slip past it.
+  const sup = new Set(['+18175551212'])
+  const late = new Date(NOW.getTime() - 60_000).toISOString()
+  assert.equal(decideOne(call({ scheduled_for: late }), NOW, ON, sup).reason, 'suppressed')
+})
+
+test('suppression is applied across a batch', () => {
+  const sup = new Set(['+18175551212'])
+  const decisions = decideBatch([
+    call({ id: 'c1', audit_id: 'a1', target_phone: '+18175551212' }),
+    call({ id: 'c2', audit_id: 'a2', target_phone: '+18175559999' }),
+  ], NOW, ON, sup)
+  const placing = toPlace(decisions)
+  assert.equal(placing.length, 1)
+  assert.equal(placing[0].target_phone, '+18175559999')
+})
+
+test('an empty suppression list changes nothing', () => {
+  assert.equal(decideOne(call(), NOW, ON, new Set()).place, true)
+})
+
+test('the run summary names suppression, so a silent skip is visible', () => {
+  const sup = new Set(['+18175551212'])
+  assert.match(summarise(decideBatch([call()], NOW, ON, sup)), /suppressed=1/)
+})
