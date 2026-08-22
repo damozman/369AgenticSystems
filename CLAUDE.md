@@ -34,9 +34,17 @@ Everything is committed and pushed to `master`; the last commit is the voice-spe
 **Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
 the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
 
-**▶ NEXT TASK: dossier step 4 — the renderer.** Every input it needs now exists: the intake payload
-(step 2), the website observations (step 3), and the call pair (step 5). Six sections, per-vertical
-config, and **a section with no number is omitted rather than estimated**.
+**▶ NEXT TASK: dossier step 6 — the approval queue and the send.** Steps 0–5 are built. Nothing
+yet puts a dossier in front of Chris to approve, and nothing sends it. `buildDossier()` and
+`renderDossierEmail()` are pure and ready; what is missing is the queue, the approval, and the
+Resend call. **⚠️ Chris's own warning stands: an approval queue nobody clears is where this dies.**
+It needs a daily nudge and a visible count.
+
+**Also outstanding: the callback agent** — the inbound side of the audit number. Design agreed with
+Chris: disclose → offer to put him on → warm transfer to his mobile → on no answer, `capture_lead`
+with high urgency plus the owner email → or take them off the list via `/api/audit/suppress`.
+**It must never say it will text him: Twilio is unconfigured in every environment** (all four env
+vars missing, verified live). It needs a number, which is a real purchase and Chris's call.
 
 **🔴 The one thing that must ship as a single change: the disclosure line + `AUDIT_CALLS_ENABLED`.**
 The intake form still does not tell submitters we place a test call to their published line. Until

@@ -350,7 +350,23 @@ emergency — but intake submitters still get **silence**, and that is still a l
      `no_content`, with the redirect followed once.
    - **A lone `<input type="email">` matched as a "contact form"** on homedepot.com and
      stripe.com, where it is a newsletter signup. Now needs a message field or a stated purpose.
-4. Dossier renderer — six sections, per-vertical config.
+4. ✅ **DONE 2026-08-22 — the dossier renderer.** `lib/dossier.ts` builds a structured document;
+   `lib/dossier-html.ts` renders the email. Split so every truthfulness rule is testable without
+   parsing markup, and so a styling change can never quietly alter a claim.
+
+   **The only arithmetic is `avg_job_value × RECOVERY_RATE`** — what one missed call is worth.
+   `monthly_volume` is never multiplied by it, and a test asserts the forbidden products appear
+   nowhere. The figure carries `RECOVERY_RATE_NOTE` directly beneath it, because a number that
+   escapes its caveat is how a conservative estimate becomes a claim. The section then hands the
+   frequency back: *"how often it happens is the one number we cannot see from outside — but you
+   can."*
+
+   **Sections are omitted, never estimated**, and `omitted[]` records why for the operator. An
+   unreportable call or an unreachable site is dropped, never softened into "we could not reach
+   you". `lib/dossier-labels.ts` is generated from the twelve pages and guarded by a drift test, so
+   the dossier quotes a prospect the words they actually read.
+
+   Verified by rendering against the two real calls placed to Chris's phone, not fixtures.
 5. 🟡 **BUILT 2026-08-22, SWITCHED OFF — the audit agent and the two-call schedule.**
 
    **The agent exists and is proven on real calls.** `369 Audit Caller`
