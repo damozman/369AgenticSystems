@@ -38,6 +38,26 @@ const client = new Retell({ apiKey: KEY })
 const AGENT_NAME = '369 Audit Caller'
 
 /**
+ * The company name is SPOKEN as "three six nine Agentic Systems", never written "369" in anything
+ * an agent says aloud.
+ *
+ * Caught by Chris on the first real audit call: TTS expands "369" as a cardinal number, so the
+ * brand was read as "three hundred and sixty-nine" — the one thing on a call that has to sound
+ * right. Retell's pronunciation_dictionary was considered and rejected: it needs IPA or CMU
+ * phonemes and the SDK's own comment says to check which providers support it. A brand name is
+ * not the place for a setting that silently does nothing on some voices.
+ *
+ * `begin_message` is spoken verbatim rather than generated, so it must carry the spelled-out form
+ * literally. The prompt also carries an explicit rule, because anything the model composes
+ * mid-call is its own output and no static replacement can reach it.
+ */
+const PRONUNCIATION_RULE = `
+
+SAYING THE COMPANY NAME: always say it aloud as "three six nine Agentic Systems". Never say
+"three hundred and sixty-nine", and never write it as "369" in anything you say - the digits get
+read out as a number, which is not the company name.`
+
+/**
  * The whole script. Short on purpose.
  *
  * It states who is calling, why, that the thing being checked has just been checked, and that the
@@ -45,19 +65,19 @@ const AGENT_NAME = '369 Audit Caller'
  * inside fifteen seconds having learned something true.
  */
 const BEGIN_MESSAGE =
-  "Hi — this is Ava, an AI assistant with 369 Agentic Systems. " +
+  "Hi — this is Ava, an AI assistant with three six nine Agentic Systems. " +
   "You asked us for a system audit a little earlier, and part of that is a quick test call to " +
   "your published line. Someone answered, which is exactly what we were checking — nothing else " +
   "is needed. Your results are on the way by email. Thanks for your time."
 
 /** Shorter, and honest that nobody picked up. A second touch at no extra cost. */
 const VOICEMAIL_MESSAGE =
-  "Hi — this is Ava, an AI assistant with 369 Agentic Systems. " +
+  "Hi — this is Ava, an AI assistant with three six nine Agentic Systems. " +
   "You asked us for a system audit earlier today, and part of that is a test call to your " +
   "published line. This one reached voicemail. That's in your results, which are on the way by " +
   "email. No need to call back. Thanks."
 
-const GENERAL_PROMPT = `You are Ava, an AI assistant calling on behalf of 369 Agentic Systems.
+const GENERAL_PROMPT = `You are Ava, an AI assistant calling on behalf of three six nine Agentic Systems.
 
 This is a TEST CALL, placed because the person on the other end submitted a request for a system
 audit on 369agenticsystems.com. The only purpose of this call is to establish whether a human
@@ -67,7 +87,7 @@ Your opening message says everything that needs saying. After it:
 
 - If they say anything at all — "ok", "thanks", "who is this?" — answer in ONE short sentence and
   then end the call with the end_call tool.
-- If they ask who you are or what this is about: you are an AI assistant with 369 Agentic Systems,
+- If they ask who you are or what this is about: you are an AI assistant with three six nine Agentic Systems,
   this was the test call that forms part of the audit they requested, and their results are coming
   by email. Then end the call.
 - If they ask a question you cannot answer from the above — pricing, what the system does, when
@@ -86,6 +106,7 @@ NEVER:
 - Stay on the line longer than the exchange above requires.
 
 Keep every sentence short. End the call as soon as the exchange is complete.`
+  + PRONUNCIATION_RULE
 
 async function main() {
   console.log(`\n369 · audit agent — ${APPLY ? 'APPLY' : 'DRY RUN'}\n`)
