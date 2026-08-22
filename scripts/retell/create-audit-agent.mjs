@@ -109,9 +109,18 @@ async function main() {
   }
 
   // ── Copy model and voice from the live fleet ─────────────────────────────
-  const reference = agents.find(a => a.agent_id === process.env.RETELL_AGENT_ID) ?? agents[0]
-  if (!reference) {
+  const summary = agents.find(a => a.agent_id === process.env.RETELL_AGENT_ID) ?? agents[0]
+  if (!summary) {
     console.error('No existing agent to copy voice and model settings from.')
+    process.exit(1)
+  }
+  // Retrieve, never the list summary: `agent.list()` omits webhook_url, and copying from the
+  // summary is what shipped an audit agent whose calls resolved to nothing.
+  const reference = await client.agent.retrieve(summary.agent_id)
+  if (!reference.webhook_url) {
+    console.error(
+      `✗ Reference agent ${summary.agent_id} has no webhook_url. The audit agent would never be ` +
+      `told how its calls ended, so every call would cost money and establish nothing. Aborting.`)
     process.exit(1)
   }
   const refLlmId = reference.response_engine?.llm_id
@@ -147,11 +156,22 @@ async function main() {
     voicemail_option: { action: { type: 'static_text', text: VOICEMAIL_MESSAGE } },
     // Generous, but this agent should never be on a call this long.
     max_call_duration_ms: 120_000,
-    // No webhook_url on purpose. Checked against the live account: not one of the 11 agents sets
-    // one, because Retell is configured account-level and every agent inherits it. Setting it here
-    // would make this the only agent whose webhook is pinned per-agent, which is exactly how the
-    // demo line went ten days recording nothing. The `call_ended` webhook is load-bearing —
-    // describeAuditCall() classifies from it — so it must arrive by the same route as every other.
+    /**
+     * Copied from the reference agent, and this line is load-bearing.
+     *
+     * An earlier version of this script set no webhook, on the reasoning that Retell was
+     * configured account-level "because not one of the 11 agents sets one". That was derived from
+     * `agent.list()`, which does not return the field. `agent.retrieve()` does: every live agent
+     * carries a per-agent `webhook_url` with a shared secret in the query string.
+     *
+     * The first real test call proved it — the audit agent answered, was picked up, and its
+     * `audit_calls` row sat in `placed` for ever because `call_ended` reached nobody.
+     * `describeAuditCall()` classifies from that webhook, so without it an audit call establishes
+     * nothing and the dossier section can never be written.
+     *
+     * A list endpoint's silence is not evidence of absence.
+     */
+    webhook_url: reference.webhook_url,
   }
 
   console.log('LLM to create:')
@@ -195,6 +215,7 @@ async function main() {
   console.log(`   model:       ${llmBack.model}`)
   console.log(`   tools:       ${(llmBack.general_tools ?? []).map(t => t.name).join(', ') || '(none)'}`)
   console.log(`   voicemail:   ${readBack.voicemail_option ? 'configured' : 'NOT SET'}`)
+  console.log(`   webhook:     ${readBack.webhook_url ? 'set' : '✗ NOT SET — calls will resolve to nothing'}`)
 
   console.log(`\n── Set these in Vercel (and .env.local), then redeploy ──`)
   console.log(`RETELL_AUDIT_AGENT_ID=${agent.agent_id}`)
