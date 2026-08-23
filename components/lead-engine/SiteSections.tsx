@@ -142,8 +142,11 @@ const SITE_CSS = `
 .le-tel:hover { text-decoration: underline; }
 .le-band .le-tel { color: var(--le-paper); }
 
-/* Services: an asymmetric ladder, never three equal cards in a row. The first item is wider and
-   carries the ladder; the rest alternate. */
+/* Services: an asymmetric ladder, never three equal cards in a row.
+   The spans MUST tile exactly, or CSS grid leaves holes and the empty cells show this container's
+   background as grey rectangles — which is what happened first time round, on every site. A
+   4-item cycle of 4·2·2·4 sums to 6 twice, so every pair completes a row whatever the item count;
+   an odd final item spans the full width rather than leaving half a row empty. */
 .le-ladder { display: grid; gap: 1px; background: var(--le-edge); border-top: 1px solid var(--le-edge); }
 .le-ladder > * {
   background: var(--le-paper); padding: 28px 24px;
@@ -151,11 +154,11 @@ const SITE_CSS = `
 }
 @media (min-width: 721px) {
   .le-ladder { grid-template-columns: repeat(6, 1fr); }
-  .le-ladder > *:nth-child(3n+1) { grid-column: span 4; }
-  .le-ladder > *:nth-child(3n+2) { grid-column: span 2; }
-  .le-ladder > *:nth-child(3n+3) { grid-column: span 3; }
-  .le-ladder > *:nth-child(3n+1):last-child,
-  .le-ladder > *:nth-child(3n+3):last-child { grid-column: 1 / -1; }
+  .le-ladder > *:nth-child(4n+1) { grid-column: span 4; }
+  .le-ladder > *:nth-child(4n+2) { grid-column: span 2; }
+  .le-ladder > *:nth-child(4n+3) { grid-column: span 2; }
+  .le-ladder > *:nth-child(4n+4) { grid-column: span 4; }
+  .le-ladder > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 .le-facts { display: flex; flex-wrap: wrap; gap: 20px 48px; }
@@ -174,14 +177,20 @@ const SITE_CSS = `
 .le-figure { margin: 0; }
 .le-figure figcaption { font-size: var(--le-utility); opacity: 0.75; margin-top: 8px; }
 
-/* Gallery: deliberately not a uniform 3-up. Two columns of unequal weight, alternating. */
-.le-gallery { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
-.le-gallery > * { aspect-ratio: 4 / 3; }
-.le-gallery > *:nth-child(5n+1) { grid-column: span 4; }
-.le-gallery > *:nth-child(5n+2) { grid-column: span 2; }
-.le-gallery > *:nth-child(5n+3) { grid-column: span 2; }
-.le-gallery > *:nth-child(5n+4) { grid-column: span 2; }
-.le-gallery > *:nth-child(5n+5) { grid-column: span 2; }
+/* Gallery: deliberately not a uniform 3-up, but it must still tile.
+   Same 4·2·2·4 cycle as the ladder, and a FIXED row height rather than a per-item aspect ratio —
+   with aspect-ratio, a wide item and a narrow item in the same row resolve to different heights,
+   the row takes the taller, and the short one leaves a gap under it. Uniform rows with varied
+   widths is what reads as designed; varied heights reads as broken. */
+.le-gallery {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;
+  grid-auto-rows: clamp(200px, 22vw, 300px);
+}
+.le-gallery > *:nth-child(4n+1) { grid-column: span 4; }
+.le-gallery > *:nth-child(4n+2) { grid-column: span 2; }
+.le-gallery > *:nth-child(4n+3) { grid-column: span 2; }
+.le-gallery > *:nth-child(4n+4) { grid-column: span 4; }
+.le-gallery > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
 /* Full-bleed photo band — Ironclad's signature, available to any kit that asks for it. */
 .le-bleed { width: 100%; height: clamp(280px, 42vw, 520px); overflow: hidden; }
@@ -195,6 +204,29 @@ const SITE_CSS = `
   background: var(--le-paper); border: 1px solid var(--le-edge);
   border-radius: var(--le-radius-card); box-shadow: var(--le-shadow-card);
   padding: 24px;
+}
+
+/* The Phase 4 form stub, drawn as a wireframe rather than a filled card.
+   It sits on the terminal CTA's --le-structure band, where a --le-paper card renders as a grey
+   blob with its fields invisible inside it — it read as a broken image, not as a form. Everything
+   here inherits currentColor, so it is legible on paper and on a band without knowing which. */
+.le-formstub {
+  max-width: 560px; border: 1px dashed currentColor; border-radius: var(--le-radius-card);
+  padding: 24px; background: transparent;
+}
+.le-formstub .le-eyebrow { color: currentColor; opacity: 0.65; }
+.le-formstub-label { font-size: var(--le-utility); font-weight: 600; margin-bottom: 6px; opacity: 0.8; }
+.le-formstub-field {
+  border: 1px solid currentColor; border-radius: var(--le-radius-card);
+  background: transparent; opacity: 0.35;
+}
+.le-formstub-send {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid currentColor; border-radius: var(--le-radius-button);
+  padding: 14px 28px; min-height: 48px; opacity: 0.5;
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
 }
 
 .le-foot { border-top: 1px solid var(--le-edge); padding: 40px 0 56px; }
@@ -212,7 +244,7 @@ const SITE_CSS = `
   .le-hero { padding: 56px 0 40px; }
   .le-hero-split { grid-template-columns: 1fr; gap: 32px; }
   .le-hero-media { height: clamp(240px, 60vw, 340px); }
-  .le-gallery { grid-template-columns: repeat(2, 1fr); }
+  .le-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
   .le-gallery > * { grid-column: span 1 !important; }
   .le-btn { width: 100%; }
   .le-facts { gap: 20px 32px; }
@@ -411,20 +443,15 @@ export function Footer({ content }: { content: SiteContent }) {
  */
 export function LeadFormPlaceholder() {
   return (
-    <div className="le-card" style={{ maxWidth: 560, borderStyle: 'dashed', opacity: 0.8 }} aria-hidden="true">
+    <div className="le-formstub" aria-hidden="true">
       <p className="le-eyebrow" style={{ marginBottom: 18 }}>Lead form — activates in Phase 4</p>
       {['Your name', 'Phone', 'Email', 'How can we help?'].map(label => (
         <div key={label} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 'var(--le-utility)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-          <div style={{
-            height: label.startsWith('How') ? 84 : 48,
-            background: 'var(--le-paper)',
-            border: '1px solid var(--le-edge)',
-            borderRadius: 'var(--le-radius-card)',
-          }} />
+          <div className="le-formstub-label">{label}</div>
+          <div className="le-formstub-field" style={{ height: label.startsWith('How') ? 84 : 48 }} />
         </div>
       ))}
-      <div className="le-btn" style={{ opacity: 0.5, pointerEvents: 'none' }}>Send</div>
+      <div className="le-formstub-send">Send</div>
     </div>
   )
 }
