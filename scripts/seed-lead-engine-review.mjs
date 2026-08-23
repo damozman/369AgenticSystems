@@ -22,6 +22,7 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { contentFrom } from '@/lib/lead-engine/content'
 import { PHOTO_BUCKET } from '@/lib/lead-engine/site'
+import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 
 const APPLY   = process.argv.includes('--apply')
 const CLEANUP = process.argv.includes('--cleanup')
@@ -35,65 +36,109 @@ const supabase = createClient(
 )
 
 /**
- * Three real-shaped businesses, deliberately different in how COMPLETE their answers are.
+ * Four businesses. The first three are answered to 100% of the agreed contract — every one of the
+ * eleven questions, plus both operational fields, and the full 12-photo allowance — because the
+ * design has to be judged at full data before anyone changes the design. A layout critiqued on a
+ * half-filled record is a critique of the record.
  *
- * The middle one leaves several questions blank, because a half-filled questionnaire is the normal
- * case and "does the page still look finished when the customer skipped four questions" is the
- * thing a seed with three perfect records would never show.
+ * What "100%" does NOT include, and this matters when reading the pages: there is no logo and no
+ * brand colour, because the questionnaire does not ask for either. Both are absent by contract
+ * rather than by oversight.
+ *
+ * The fourth is deliberately sparse and is kept as the regression case — a real customer will
+ * skip questions, and "does it still look finished" has to stay answerable.
  */
 const SITES = [
   {
     slug: `${PREFIX}trade-classic`,
     template: 'trade_classic',
-    photos: 5,
+    photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Northside Roofing Company',
       phone: '(817) 612-6757',
-      services: ['Roof replacement', 'Storm damage repair', 'Gutter installation', 'Free roof inspections'],
-      service_areas: 'Fort Worth, Arlington, Keller, Southlake',
-      differentiator: 'We answer the phone at nine at night, and we show up when we say we will.',
-      credentials: 'Licensed and insured in Texas',
+      // The full 8 the contract allows, not the 4 a hurried owner would type.
+      services: [
+        'Roof replacement', 'Storm damage repair', 'Gutter installation', 'Free roof inspections',
+        'Emergency tarping', 'Skylight repair', 'Metal roofing', 'Insurance claim support',
+      ],
+      service_areas: 'Fort Worth, Arlington, Keller, Southlake, Grapevine, Colleyville',
+      differentiator: 'We answer the phone at nine at night, and we show up when we say we will. Every roof we replace is inspected by the owner before we ask you for the final payment.',
+      credentials: 'Licensed and insured in Texas · GAF Master Elite · BBB A+',
       years_in_business: '12 years',
       primary_cta: 'call',
       google_profile_url: 'g.page/northside-roofing',
       has_photos: true,
-      visitor_message: 'Most people call us after a storm, worried about what it will cost. We will tell you straight whether you need a repair or a replacement.',
+      visitor_message: 'Most people call us after a storm, worried about what it will cost. We will tell you straight whether you need a repair or a replacement, and we will put it in writing before anyone climbs on your roof.',
       pain_points: 'WE MISS HALF OUR CALLS — this must never appear on the page.',
+      notify_email: OWNER,
+      preferred_slug: 'northside-roofing',
     },
   },
   {
-    // The sparse one. Four questions unanswered on purpose.
     slug: `${PREFIX}service-clean`,
     template: 'service_clean',
-    photos: 0,
+    photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Hallam & Reed Legal',
       phone: '(817) 555-0142',
-      services: ['Wills and probate', 'Family law', 'Small business contracts'],
-      service_areas: 'Tarrant County',
+      services: [
+        'Wills and probate', 'Family law', 'Small business contracts', 'Real estate closings',
+        'Estate planning', 'Guardianship', 'Business formation', 'Contract disputes',
+      ],
+      service_areas: 'Tarrant County, Dallas County, Denton County, Parker County',
+      differentiator: 'You will speak to the attorney handling your matter, not a case manager. We quote a flat fee before we start, so you are never surprised by an invoice.',
+      credentials: 'Licensed by the State Bar of Texas · Board Certified in Estate Planning and Probate',
+      years_in_business: '18 years',
       // 'other' on purpose, and it is the realistic answer: "Get a Free Estimate" is a trades
       // phrase that reads wrong over a law firm. It also exercises the free-text CTA path, which
       // nothing else in this seed reaches.
       primary_cta: 'other',
       primary_cta_other: 'Request a Consultation',
-      has_photos: false,
+      google_profile_url: 'g.page/hallam-reed-legal',
+      has_photos: true,
+      visitor_message: 'Most people come to us at a difficult moment and want to know what happens next. We will explain it in plain English and tell you honestly whether you need a lawyer at all.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      notify_email: OWNER,
+      preferred_slug: 'hallam-reed-legal',
     },
   },
   {
     slug: `${PREFIX}showcase-grid`,
     template: 'showcase_grid',
-    photos: 6,
+    photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Lone Star Party Rentals',
       phone: '(817) 555-0199',
-      services: ['Bounce houses', 'Mobile casino tables', 'DJ and sound', 'Party bus', 'Tables and chairs'],
-      service_areas: 'Fort Worth and Dallas',
-      differentiator: 'Everything is cleaned and checked between every hire.',
+      services: [
+        'Bounce houses', 'Mobile casino tables', 'DJ and sound', 'Party bus',
+        'Tables and chairs', 'Water slides', 'Concession machines', 'Tents and marquees',
+      ],
+      service_areas: 'Fort Worth, Dallas, Arlington, Plano, Frisco, Denton',
+      differentiator: 'Everything is cleaned and checked between every hire, and we set up and take down so you never touch a thing.',
+      credentials: 'Fully insured · Texas Department of Insurance inspected · Background-checked crew',
       years_in_business: 'Since 2019',
       primary_cta: 'availability',
+      google_profile_url: 'g.page/lone-star-party-rentals',
       has_photos: true,
-      visitor_message: 'Tell us the date and how many people, and we will tell you what is free.',
+      visitor_message: 'Tell us the date and how many people, and we will tell you what is free. Most weekends book out three weeks ahead, so the earlier you ask the better we can do.',
+      pain_points: 'INTERNAL ONLY — should not render.',
+      notify_email: OWNER,
+      preferred_slug: 'lone-star-party-rentals',
+    },
+  },
+  {
+    // The regression case, kept deliberately thin: a real customer WILL skip questions, and
+    // "does it still look finished" has to stay answerable after every design change.
+    slug: `${PREFIX}sparse`,
+    template: 'service_clean',
+    photos: 0,
+    answers: {
+      business_name: 'Bell Avenue Plumbing',
+      phone: '(817) 555-0175',
+      services: ['Drain cleaning', 'Water heaters', 'Leak repair'],
+      service_areas: 'Fort Worth',
+      primary_cta: 'call',
+      has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',
     },
   },
