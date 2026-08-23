@@ -26,8 +26,9 @@ export default function ShowcaseGrid({ content, photos }: { content: SiteContent
         </div>
       </header>
 
-      {/* The whole point of this template: what we have, before who we are. */}
-      <Gallery photos={photos} heading="What we have" />
+      {/* The whole point of this template: what we have, before who we are.
+          "Our range", not the default "Our work" — a rental business hires things out. */}
+      <Gallery photos={photos} eyebrow="Our range" heading="What we have" />
 
       <Services content={content} />
 
@@ -35,6 +36,8 @@ export default function ShowcaseGrid({ content, photos }: { content: SiteContent
           top border, which reads as a stray rule across the page. */}
       {(content.yearsInBusiness || content.credentials || content.serviceAreas?.length) ? (
         <Section id="details">
+          {/* An eyebrow so the bar is not an orphaned row of stats between two headed sections. */}
+          <p className="le-eyebrow">Good to know</p>
           <TrustBar content={content} />
         </Section>
       ) : null}

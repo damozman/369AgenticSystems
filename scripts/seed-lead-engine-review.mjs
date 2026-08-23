@@ -71,7 +71,11 @@ const SITES = [
       phone: '(817) 555-0142',
       services: ['Wills and probate', 'Family law', 'Small business contracts'],
       service_areas: 'Tarrant County',
-      primary_cta: 'estimate',
+      // 'other' on purpose, and it is the realistic answer: "Get a Free Estimate" is a trades
+      // phrase that reads wrong over a law firm. It also exercises the free-text CTA path, which
+      // nothing else in this seed reaches.
+      primary_cta: 'other',
+      primary_cta_other: 'Request a Consultation',
       has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',
     },

@@ -103,8 +103,25 @@ export function siteStyles(accent: string = DEFAULT_ACCENT): string {
     .le-hero h1 { font-size: 44px; line-height: 1.08; margin: 0 0 16px; font-weight: 800; letter-spacing: -0.03em; }
     .le-hero-split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
 
+    /* The phone number is the highest-intent tap on the whole page, and as a bare inline <a> it
+       measured 107x19 — well under the 44px minimum — at every width, on every template.
+       scripts/mobile-audit.mjs found it; reasoning about the layout had not. */
+    .le-tel {
+      display: inline-flex; align-items: center; min-height: 44px;
+      padding: 6px 10px; margin: -6px -10px; border-radius: 6px;
+      color: var(--accent); font-weight: 600; text-decoration: none;
+      font-size: 19px; letter-spacing: -0.01em;
+    }
+    .le-tel:hover { background: var(--surface); text-decoration: underline; }
+
     .le-foot { border-top: 1px solid var(--line); padding: 32px 0 44px; font-size: 15px; color: var(--ink-soft); }
-    .le-foot a { color: var(--accent); }
+    /* Same 44px rule as .le-tel, applied to every footer link. The Google Business Profile link
+       measured 168x19 — a footer link is still a link someone taps on a phone. */
+    .le-foot a {
+      color: var(--accent); display: inline-block;
+      padding: 13px 8px; margin: -13px -8px; min-height: 44px;
+    }
+    .le-foot .le-tel { font-size: 15px; }
     .le-credit { margin-top: 18px; font-size: 13px; color: #8A93A3; }
 
     /* Mobile first in practice: one column and larger touch targets under 720px.
@@ -183,11 +200,20 @@ export function Services({ content }: { content: SiteContent }) {
   )
 }
 
-export function Gallery({ photos, heading = 'Recent work' }: { photos: SitePhoto[]; heading?: string }) {
+/**
+ * Both labels are overridable because "Our work / Recent work" is a TRADES phrase. A party-rental
+ * business does not do work, it hires things out, and a gallery titled "Our work" over a row of
+ * bounce houses reads as a template nobody adapted. Caught by reading the rendered page.
+ */
+export function Gallery({
+  photos,
+  eyebrow = 'Our work',
+  heading = 'Recent work',
+}: { photos: SitePhoto[]; eyebrow?: string; heading?: string }) {
   if (photos.length === 0) return null
   return (
     <Section id="work">
-      <p className="le-eyebrow">Our work</p>
+      <p className="le-eyebrow">{eyebrow}</p>
       <h2 className="le-h2">{heading}</h2>
       <div className="le-grid le-grid-3">
         {photos.map(p => (
@@ -233,14 +259,20 @@ export function About({
  * than a form that looks live and silently discards a lead.
  */
 export function Contact({ content, children }: { content: SiteContent; children?: ReactNode }) {
+  // A form CTA scrolls HERE, so repeating its label as the heading confirms the visitor arrived at
+  // the right place. A `call` CTA dials instead — it never lands here — so using its label would be
+  // the word "Call Now" printed twice on a short page for no reason. Found by reading the page.
+  const heading = content.cta.kind === 'form' ? content.cta.label : 'Send us a message'
+
   return (
     <Section id="contact">
       <p className="le-eyebrow">Get in touch</p>
-      <h2 className="le-h2">{content.cta.label}</h2>
+      <h2 className="le-h2">{heading}</h2>
       {content.phone ? (
+        // Deliberately no "— serving X" here. Areas already appear in the trust bar or in their own
+        // section; a third printing of the same list reads as padding.
         <p className="le-p">
-          Call <a href={telHref(content.phone)} style={{ color: 'var(--accent)', fontWeight: 600 }}>{content.phone}</a>
-          {content.serviceAreas?.length ? ` — serving ${content.serviceAreas.join(', ')}.` : '.'}
+          Call <a className="le-tel" href={telHref(content.phone)}>{content.phone}</a>
         </p>
       ) : null}
       {children}
@@ -253,7 +285,7 @@ export function Footer({ content }: { content: SiteContent }) {
     <footer className="le-foot">
       <div className="le-wrap">
         <strong style={{ color: 'var(--ink)' }}>{content.businessName}</strong>
-        {content.phone ? <> · <a href={telHref(content.phone)}>{content.phone}</a></> : null}
+        {content.phone ? <> · <a className="le-tel" href={telHref(content.phone)}>{content.phone}</a></> : null}
         {content.googleProfileUrl ? (
           <> · <a href={content.googleProfileUrl} rel="noopener noreferrer" target="_blank">Google Business Profile</a></>
         ) : null}
