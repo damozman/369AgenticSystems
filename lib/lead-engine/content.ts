@@ -145,21 +145,3 @@ export function contentFrom(answers: QuestionnaireAnswers, fallbackBusinessName:
     intro:            text(answers.visitor_message),
   }
 }
-
-/**
- * Which template to render.
- *
- * `showcase_grid` leads with a photo grid and `trade_classic` opens on a photo — so a site with no
- * photos falls back to the copy-forward layout rather than rendering empty frames. Absence of a
- * photo is not a reason to show a placeholder; it is a reason to show a different page.
- */
-export function effectiveTemplate(
-  template: string | null | undefined,
-  photoCount: number,
-): 'trade_classic' | 'service_clean' | 'showcase_grid' {
-  if (photoCount === 0) return 'service_clean'
-  if (template === 'trade_classic' || template === 'showcase_grid' || template === 'service_clean') {
-    return template
-  }
-  return 'service_clean'
-}

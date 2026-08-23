@@ -1,171 +1,271 @@
 /**
- * The shared building blocks all three Lead Engine templates are made of.
+ * The shared primitives all five Lead Engine templates are built from, plus the theme wrapper.
  *
- * The templates differ in section ORDER and emphasis, not in capability. That is what keeps three
- * designs maintainable by one person: a fix to how services render fixes it everywhere, and no
- * template can quietly gain a feature the others lack.
+ * The design reference is `.claude/skills/site-design-system/SKILL.md`. Its rules are not repeated
+ * here — where a value looks arbitrary, that file is why.
  *
- * ── Why these are inline styles and not Tailwind classes ──
- * `app/globals.css` sets `body { background: var(--bg-base) }` — our dark portal theme — on every
- * Next-rendered route, and `app/layout.tsx` toggles `html.light` from a `portal-theme` value in
- * **the visitor's own localStorage**. A stranger reading a roofer's website would get our dark
- * admin theme; a portal user reading the same page would get the light one. That file also carries
- * a wall of `html.light .text-slate-400 { ... !important }` rules that would reach straight into
- * customer markup.
+ * ── The hard rule this file exists to hold ──
+ * No hex literal, no `font-family` with a literal value, no hardcoded radius or shadow anywhere in
+ * this file or in any template. Every one comes from a `var(--le-*)` emitted by `tokensFor()`.
+ * `scripts/verify-lead-engine.mjs` checks it mechanically, because `ignoreBuildErrors: true` means
+ * nothing else will, and one stray `#0A0A0A` is how a themed system quietly stops being one.
  *
- * So the mini-sites opt out entirely: their own custom properties, their own explicit colours, and
- * none of the portal's utility class names. `app/dossier/review/[id]/page.tsx` already does the
- * same thing for the same reason.
- *
- * ── The rule every section obeys ──
- * A section with no data renders NOTHING. Not a placeholder, not "Coming soon", not a stock photo.
- * A mini-site is what a stranger judges a real business by, and filler is a claim made on that
- * business's behalf.
+ * ── Why the sites opt out of the portal's CSS entirely ──
+ * `app/globals.css` paints `body` with our dark admin theme on every Next-rendered route, and
+ * `app/layout.tsx` toggles `html.light` from a `portal-theme` key in **the visitor's own
+ * localStorage** — so a stranger reading a roofer's website would get our dark Command Center
+ * palette, while someone who had used our portal would get a different page. That file also carries
+ * a wall of `html.light .text-slate-400 { … !important }` rules that reach into any markup using
+ * those class names. Hence: own class names, own tokens, nothing borrowed.
  */
 
 import type { ReactNode } from 'react'
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import type { Brand, Theme } from '@/lib/lead-engine/theme'
+import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
 
 /**
- * One accent, shared by all three templates.
+ * The one place a theme becomes CSS.
  *
- * Deliberately a single token rather than a per-template colour: when a per-site accent picker
- * arrives it sets this one variable and all three designs follow. A colour hardcoded into each
- * template is three places to miss.
+ * Sets every token as an inline custom property on a single element; templates render inside it.
+ * There are deliberately **no per-theme component variants** — one set of components, six token
+ * sets. A per-theme variant is how six copies of a bug get born.
  */
-export const DEFAULT_ACCENT = '#17457A'
-
-export function siteStyles(accent: string = DEFAULT_ACCENT): string {
-  return `
-    .le-site {
-      --accent: ${accent};
-      --ink: #14161A;
-      --ink-soft: #4A5261;
-      --paper: #FFFFFF;
-      --surface: #F6F7F9;
-      --line: #E2E5EA;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.6;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-    .le-site *, .le-site *::before, .le-site *::after { box-sizing: border-box; }
-    .le-wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
-    .le-section { padding: 56px 0; border-top: 1px solid var(--line); }
-    .le-section:first-child { border-top: 0; }
-    .le-eyebrow {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--accent); margin: 0 0 10px;
-    }
-    .le-h2 { font-size: 28px; line-height: 1.2; margin: 0 0 18px; font-weight: 700; letter-spacing: -0.02em; }
-    .le-p { margin: 0 0 14px; color: var(--ink-soft); font-size: 17px; max-width: 62ch; }
-
-    .le-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      background: var(--accent); color: #fff; text-decoration: none;
-      font-weight: 600; font-size: 17px; padding: 15px 28px; border-radius: 8px;
-      min-height: 52px; border: 0; cursor: pointer;
-    }
-    .le-btn:hover { filter: brightness(1.08); }
-    .le-btn-ghost {
-      background: transparent; color: var(--accent); border: 1.5px solid var(--accent);
-    }
-
-    .le-grid { display: grid; gap: 16px; }
-    .le-grid-3 { grid-template-columns: repeat(3, 1fr); }
-    .le-grid-2 { grid-template-columns: repeat(2, 1fr); }
-
-    .le-card {
-      background: var(--surface); border: 1px solid var(--line);
-      border-radius: 10px; padding: 20px;
-    }
-    .le-card h3 { margin: 0; font-size: 17px; font-weight: 650; }
-
-    .le-trust { display: flex; flex-wrap: wrap; gap: 12px 32px; padding: 22px 0; }
-    .le-trust div { min-width: 0; }
-    .le-trust dt {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--ink-soft); margin: 0 0 3px;
-    }
-    .le-trust dd { margin: 0; font-size: 16px; font-weight: 600; }
-
-    .le-photo {
-      width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-      border-radius: 10px; display: block; background: var(--surface);
-    }
-    .le-figure { margin: 0; }
-    .le-figure figcaption { font-size: 14px; color: var(--ink-soft); margin-top: 8px; }
-
-    .le-hero { padding: 64px 0 48px; }
-    .le-hero h1 { font-size: 44px; line-height: 1.08; margin: 0 0 16px; font-weight: 800; letter-spacing: -0.03em; }
-    .le-hero-split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
-
-    /* The phone number is the highest-intent tap on the whole page, and as a bare inline <a> it
-       measured 107x19 — well under the 44px minimum — at every width, on every template.
-       scripts/mobile-audit.mjs found it; reasoning about the layout had not. */
-    .le-tel {
-      display: inline-flex; align-items: center; min-height: 44px;
-      padding: 6px 10px; margin: -6px -10px; border-radius: 6px;
-      color: var(--accent); font-weight: 600; text-decoration: none;
-      font-size: 19px; letter-spacing: -0.01em;
-    }
-    .le-tel:hover { background: var(--surface); text-decoration: underline; }
-
-    .le-foot { border-top: 1px solid var(--line); padding: 32px 0 44px; font-size: 15px; color: var(--ink-soft); }
-    /* Same 44px rule as .le-tel, applied to every footer link. The Google Business Profile link
-       measured 168x19 — a footer link is still a link someone taps on a phone. */
-    .le-foot a {
-      color: var(--accent); display: inline-block;
-      padding: 13px 8px; margin: -13px -8px; min-height: 44px;
-    }
-    .le-foot .le-tel { font-size: 15px; }
-    .le-credit { margin-top: 18px; font-size: 13px; color: #8A93A3; }
-
-    /* Mobile first in practice: one column and larger touch targets under 720px.
-       scripts/mobile-audit.mjs is the check, not reasoning about these numbers. */
-    @media (max-width: 720px) {
-      .le-hero { padding: 40px 0 32px; }
-      .le-hero h1 { font-size: 32px; }
-      .le-hero-split { grid-template-columns: 1fr; gap: 24px; }
-      .le-grid-3, .le-grid-2 { grid-template-columns: 1fr; }
-      .le-h2 { font-size: 24px; }
-      .le-section { padding: 40px 0; }
-      .le-btn { width: 100%; }
-      .le-trust { gap: 16px 24px; }
-    }
-  `
+export function ThemeShell({
+  theme, brand, fontClass, children,
+}: {
+  theme: Theme
+  brand?: Brand
+  /** The next/font variable class for this theme's faces. Supplied by the route. */
+  fontClass?: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={`le-site${fontClass ? ` ${fontClass}` : ''}`}
+      style={tokensFor(theme, brand) as React.CSSProperties}
+    >
+      <style dangerouslySetInnerHTML={{ __html: SITE_CSS }} />
+      {children}
+    </div>
+  )
 }
 
-export function Section({ id, children }: { id?: string; children: ReactNode }) {
+/**
+ * Every rule is expressed in tokens. The only literals below are structural — grid counts,
+ * percentages, `1px` hairlines and z-indexes — none of which is a design decision a theme owns.
+ */
+const SITE_CSS = `
+.le-site {
+  background: var(--le-paper);
+  color: var(--le-ink);
+  font-family: var(--le-font-body), system-ui, sans-serif;
+  font-size: var(--le-body);
+  line-height: var(--le-body-line);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+.le-site *, .le-site *::before, .le-site *::after { box-sizing: border-box; }
+
+/* Visible keyboard focus on everything interactive — quality gate, and free. */
+.le-site :focus-visible {
+  outline: 2px solid var(--le-accent-derived);
+  outline-offset: 2px;
+}
+
+.le-wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+/* Section rhythm. Anchors carry weight, connectors sit between them, and no more than two
+   consecutive sections may sit on --le-paper — hence .le-band. */
+.le-anchor    { padding: var(--le-space-anchor) 0; }
+.le-connector { padding: var(--le-space-connector) 0; }
+.le-band      { background: var(--le-structure); color: var(--le-paper); }
+.le-band .le-eyebrow { color: var(--le-paper); opacity: 0.72; }
+.le-band .le-p       { color: var(--le-paper); opacity: 0.88; }
+
+.le-eyebrow {
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility);
+  font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking);
+  text-transform: var(--le-utility-transform);
+  color: var(--le-accent-derived);
+  margin: 0 0 14px;
+}
+
+.le-h1, .le-h2, .le-h3 {
+  font-family: var(--le-font-display), Georgia, serif;
+  font-weight: var(--le-display-weight);
+  letter-spacing: var(--le-display-tracking);
+  margin: 0;
+  line-height: 1.05;
+}
+.le-h1 { font-size: var(--le-display-xl); }
+.le-h2 { font-size: var(--le-display-l); margin-bottom: 28px; }
+.le-h3 { font-size: var(--le-display-m); line-height: 1.2; }
+
+.le-p     { margin: 0 0 16px; max-width: 62ch; }
+.le-lede  { font-size: var(--le-body-l); max-width: 54ch; }
+
+.le-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--le-accent); color: var(--le-paper);
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-body); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking);
+  text-transform: var(--le-utility-transform);
+  text-decoration: none;
+  padding: 18px 32px; min-height: 56px;
+  border: 0; border-radius: var(--le-radius-button); cursor: pointer;
+}
+.le-btn:hover { filter: brightness(1.08); }
+/* Ink label on the fill wherever the accent is light — the surface_only case. Set per site by the
+   route, never guessed here. */
+.le-site[data-accent-mode="surface_only"] .le-btn,
+.le-site[data-accent-mode="derived"] .le-btn { color: var(--le-ink); }
+
+.le-btn-quiet {
+  background: transparent; color: var(--le-accent-derived);
+  border: 1px solid var(--le-accent-derived);
+}
+.le-site[data-accent-mode="surface_only"] .le-btn-quiet,
+.le-site[data-accent-mode="derived"] .le-btn-quiet { color: var(--le-accent-derived); }
+
+.le-tel {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: 6px 10px; margin: -6px -10px;
+  border-radius: var(--le-radius-button);
+  color: var(--le-accent-derived); font-weight: 600; text-decoration: none;
+  font-size: var(--le-body-l);
+}
+.le-tel:hover { text-decoration: underline; }
+.le-band .le-tel { color: var(--le-paper); }
+
+/* Services: an asymmetric ladder, never three equal cards in a row. The first item is wider and
+   carries the ladder; the rest alternate. */
+.le-ladder { display: grid; gap: 1px; background: var(--le-edge); border-top: 1px solid var(--le-edge); }
+.le-ladder > * {
+  background: var(--le-paper); padding: 28px 24px;
+  display: grid; grid-template-columns: 1fr; gap: 6px; align-content: start;
+}
+@media (min-width: 721px) {
+  .le-ladder { grid-template-columns: repeat(6, 1fr); }
+  .le-ladder > *:nth-child(3n+1) { grid-column: span 4; }
+  .le-ladder > *:nth-child(3n+2) { grid-column: span 2; }
+  .le-ladder > *:nth-child(3n+3) { grid-column: span 3; }
+  .le-ladder > *:nth-child(3n+1):last-child,
+  .le-ladder > *:nth-child(3n+3):last-child { grid-column: 1 / -1; }
+}
+
+.le-facts { display: flex; flex-wrap: wrap; gap: 20px 48px; }
+.le-facts dt {
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+  opacity: 0.7; margin: 0 0 6px;
+}
+.le-facts dd { margin: 0; font-size: var(--le-body-l); font-weight: 600; }
+
+.le-photo {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: var(--le-radius-image); background: var(--le-edge);
+}
+.le-figure { margin: 0; }
+.le-figure figcaption { font-size: var(--le-utility); opacity: 0.75; margin-top: 8px; }
+
+/* Gallery: deliberately not a uniform 3-up. Two columns of unequal weight, alternating. */
+.le-gallery { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.le-gallery > * { aspect-ratio: 4 / 3; }
+.le-gallery > *:nth-child(5n+1) { grid-column: span 4; }
+.le-gallery > *:nth-child(5n+2) { grid-column: span 2; }
+.le-gallery > *:nth-child(5n+3) { grid-column: span 2; }
+.le-gallery > *:nth-child(5n+4) { grid-column: span 2; }
+.le-gallery > *:nth-child(5n+5) { grid-column: span 2; }
+
+/* Full-bleed photo band — Ironclad's signature, available to any kit that asks for it. */
+.le-bleed { width: 100%; height: clamp(280px, 42vw, 520px); overflow: hidden; }
+.le-bleed img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.le-hero { padding: 96px 0 72px; }
+.le-hero-split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+.le-hero-media { height: clamp(320px, 40vw, 560px); }
+
+.le-card {
+  background: var(--le-paper); border: 1px solid var(--le-edge);
+  border-radius: var(--le-radius-card); box-shadow: var(--le-shadow-card);
+  padding: 24px;
+}
+
+.le-foot { border-top: 1px solid var(--le-edge); padding: 40px 0 56px; }
+.le-foot a {
+  color: var(--le-accent-derived); display: inline-block;
+  padding: 13px 8px; margin: -13px -8px; min-height: 44px;
+}
+.le-foot .le-tel { font-size: var(--le-body); }
+.le-credit { margin-top: 20px; font-size: var(--le-utility); opacity: 0.6; }
+
+@media (max-width: 720px) {
+  .le-wrap { padding: 0 20px; }
+  .le-anchor    { padding: var(--le-space-anchor-m) 0; }
+  .le-connector { padding: var(--le-space-connector-m) 0; }
+  .le-hero { padding: 56px 0 40px; }
+  .le-hero-split { grid-template-columns: 1fr; gap: 32px; }
+  .le-hero-media { height: clamp(240px, 60vw, 340px); }
+  .le-gallery { grid-template-columns: repeat(2, 1fr); }
+  .le-gallery > * { grid-column: span 1 !important; }
+  .le-btn { width: 100%; }
+  .le-facts { gap: 20px 32px; }
+}
+
+/* One orchestrated motion moment per page, and none at all for anyone who asked for none. */
+@media (prefers-reduced-motion: reduce) {
+  .le-site *, .le-site *::before, .le-site *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+`
+
+// ── Section primitives ───────────────────────────────────────────────────────
+
+export function Section({
+  id, density = 'anchor', band, children,
+}: {
+  id?: string
+  density?: 'anchor' | 'connector'
+  /** Renders on --le-structure. Used to break a run of paper sections, per the rhythm rule. */
+  band?: boolean
+  children: ReactNode
+}) {
   return (
-    <section id={id} className="le-section">
+    <section id={id} className={[density === 'anchor' ? 'le-anchor' : 'le-connector', band ? 'le-band' : ''].join(' ').trim()}>
       <div className="le-wrap">{children}</div>
     </section>
   )
 }
 
 /** The primary action. `call` only ever renders when a dialable number exists — see `ctaFrom`. */
-export function CtaButton({ content, ghost }: { content: SiteContent; ghost?: boolean }) {
-  const cls = ghost ? 'le-btn le-btn-ghost' : 'le-btn'
+export function CtaButton({ content, quiet }: { content: SiteContent; quiet?: boolean }) {
+  const cls = quiet ? 'le-btn le-btn-quiet' : 'le-btn'
   return content.cta.kind === 'call' && content.phone
     ? <a className={cls} href={telHref(content.phone)}>{content.cta.label}</a>
     : <a className={cls} href="#contact">{content.cta.label}</a>
 }
 
+export function PhoneLink({ content }: { content: SiteContent }) {
+  if (!content.phone) return null
+  return <a className="le-tel" href={telHref(content.phone)}>{content.phone}</a>
+}
+
 /**
- * Years in business, credentials and areas — the three things a stranger checks before calling.
- * Renders nothing at all when none of them was answered.
+ * Years in business, credentials, and service area — what a stranger checks before calling.
  *
- * `showAreas` is off for templates that give service areas a section of their own. The same list
- * printed twice on one page looks like the business could not decide, which is the impression this
- * bar exists to prevent.
+ * Service area belongs in the first viewport: local intent is the whole game. Renders nothing when
+ * none of the three was answered, rather than an empty bar.
  */
-export function TrustBar({
-  content,
-  showAreas = true,
+export function ProofBar({
+  content, showAreas = true,
 }: { content: SiteContent; showAreas?: boolean }) {
   const items: Array<[string, string]> = []
   if (content.yearsInBusiness) items.push(['In business', content.yearsInBusiness])
@@ -174,7 +274,7 @@ export function TrustBar({
   if (items.length === 0) return null
 
   return (
-    <dl className="le-trust">
+    <dl className="le-facts">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
@@ -185,43 +285,43 @@ export function TrustBar({
   )
 }
 
-export function Services({ content }: { content: SiteContent }) {
+/**
+ * Services as an asymmetric ladder rather than a grid of equal cards.
+ *
+ * No icons: an icon beside every list item encodes nothing, and the SKILL lists that as a tell.
+ * No `01 / 02 / 03` markers either — a service list is not a sequence.
+ */
+export function Services({
+  content, heading = 'Services', eyebrow = 'What we do',
+}: { content: SiteContent; heading?: string; eyebrow?: string }) {
   if (!content.services?.length) return null
   return (
-    <Section id="services">
-      <p className="le-eyebrow">What we do</p>
-      <h2 className="le-h2">Services</h2>
-      <div className={`le-grid ${content.services.length > 4 ? 'le-grid-3' : 'le-grid-2'}`}>
+    <Section id="services" density="anchor">
+      <p className="le-eyebrow">{eyebrow}</p>
+      <h2 className="le-h2">{heading}</h2>
+      <div className="le-ladder">
         {content.services.map(s => (
-          <div className="le-card" key={s}><h3>{s}</h3></div>
+          <div key={s}><h3 className="le-h3">{s}</h3></div>
         ))}
       </div>
     </Section>
   )
 }
 
-/**
- * Both labels are overridable because "Our work / Recent work" is a TRADES phrase. A party-rental
- * business does not do work, it hires things out, and a gallery titled "Our work" over a row of
- * bounce houses reads as a template nobody adapted. Caught by reading the rendered page.
- */
 export function Gallery({
-  photos,
-  eyebrow = 'Our work',
-  heading = 'Recent work',
+  photos, eyebrow = 'Our work', heading = 'Recent work',
 }: { photos: SitePhoto[]; eyebrow?: string; heading?: string }) {
   if (photos.length === 0) return null
   return (
-    <Section id="work">
+    <Section id="work" density="anchor">
       <p className="le-eyebrow">{eyebrow}</p>
       <h2 className="le-h2">{heading}</h2>
-      <div className="le-grid le-grid-3">
+      <div className="le-gallery">
         {photos.map(p => (
           <figure className="le-figure" key={p.id}>
-            {/* Plain <img>, not next/image: these are Supabase Storage URLs on a public bucket and
-                next/image would need a remotePatterns entry per environment for no benefit here. */}
+            {/* Plain <img>: these are public Supabase Storage URLs, and next/image would need a
+                remotePatterns entry per environment for no benefit on a static photo. */}
             <img className="le-photo" src={p.url} alt={p.caption ?? ''} loading="lazy" />
-            {p.caption ? <figcaption>{p.caption}</figcaption> : null}
           </figure>
         ))}
       </div>
@@ -229,52 +329,59 @@ export function Gallery({
   )
 }
 
-/**
- * "What makes you different" and the visitor message. Silent when neither was answered.
- *
- * `showDifferentiator` exists because Trade Classic already uses that line as its hero subheading.
- * Printing the same sentence twice on a short page reads as a mistake by the business, not by us.
- */
+/** Ironclad's signature: a photo band breaking the container, edge to edge. */
+export function PhotoBand({ photo, businessName }: { photo?: SitePhoto; businessName: string }) {
+  if (!photo) return null
+  return (
+    <div className="le-bleed">
+      <img src={photo.url} alt={photo.caption ?? `Work by ${businessName}`} loading="lazy" />
+    </div>
+  )
+}
+
+/** "What makes you different" and the visitor message. Silent when neither was answered. */
 export function About({
-  content,
-  showDifferentiator = true,
-}: { content: SiteContent; showDifferentiator?: boolean }) {
+  content, showDifferentiator = true, band,
+}: { content: SiteContent; showDifferentiator?: boolean; band?: boolean }) {
   const differentiator = showDifferentiator ? content.differentiator : undefined
   if (!differentiator && !content.intro) return null
   return (
-    <Section id="about">
-      <p className="le-eyebrow">About us</p>
+    <Section id="about" density="connector" band={band}>
+      <p className="le-eyebrow">Why us</p>
       <h2 className="le-h2">Why {content.businessName}</h2>
-      {differentiator ? <p className="le-p">{differentiator}</p> : null}
+      {differentiator ? <p className="le-p le-lede">{differentiator}</p> : null}
       {content.intro ? <p className="le-p">{content.intro}</p> : null}
     </Section>
   )
 }
 
+export function Coverage({ content }: { content: SiteContent }) {
+  if (!content.serviceAreas?.length) return null
+  return (
+    <Section id="coverage" density="connector">
+      <p className="le-eyebrow">Where we work</p>
+      <h2 className="le-h2">Areas we serve</h2>
+      <p className="le-p le-lede">{content.serviceAreas.join(' · ')}</p>
+    </Section>
+  )
+}
+
 /**
- * The contact section.
+ * The terminal call to action.
  *
- * In Phase 4 this holds the real lead form. Until then it renders the CTA and the phone number,
- * both of which genuinely work — and `LeadFormPlaceholder` is deliberately, visibly inert rather
- * than a form that looks live and silently discards a lead.
+ * In Phase 4 this holds the real lead form. Until then it renders the CTA and the phone, both of
+ * which genuinely work, and `LeadFormPlaceholder` is visibly inert rather than a form that looks
+ * live and silently discards a lead.
  */
 export function Contact({ content, children }: { content: SiteContent; children?: ReactNode }) {
-  // A form CTA scrolls HERE, so repeating its label as the heading confirms the visitor arrived at
-  // the right place. A `call` CTA dials instead — it never lands here — so using its label would be
-  // the word "Call Now" printed twice on a short page for no reason. Found by reading the page.
+  // A form CTA scrolls here, so repeating its label confirms the visitor arrived. A `call` CTA
+  // dials and never lands here, so reusing its label would print "Call Now" twice on one page.
   const heading = content.cta.kind === 'form' ? content.cta.label : 'Send us a message'
-
   return (
-    <Section id="contact">
+    <Section id="contact" density="anchor" band>
       <p className="le-eyebrow">Get in touch</p>
       <h2 className="le-h2">{heading}</h2>
-      {content.phone ? (
-        // Deliberately no "— serving X" here. Areas already appear in the trust bar or in their own
-        // section; a third printing of the same list reads as padding.
-        <p className="le-p">
-          Call <a className="le-tel" href={telHref(content.phone)}>{content.phone}</a>
-        </p>
-      ) : null}
+      {content.phone ? <p className="le-p">Call <PhoneLink content={content} /></p> : null}
       {children}
     </Section>
   )
@@ -284,7 +391,7 @@ export function Footer({ content }: { content: SiteContent }) {
   return (
     <footer className="le-foot">
       <div className="le-wrap">
-        <strong style={{ color: 'var(--ink)' }}>{content.businessName}</strong>
+        <strong>{content.businessName}</strong>
         {content.phone ? <> · <a className="le-tel" href={telHref(content.phone)}>{content.phone}</a></> : null}
         {content.googleProfileUrl ? (
           <> · <a href={content.googleProfileUrl} rel="noopener noreferrer" target="_blank">Google Business Profile</a></>
@@ -300,25 +407,24 @@ export function Footer({ content }: { content: SiteContent }) {
  *
  * It shows the real fields so the layout can be judged, and it cannot be submitted. A form that
  * looked live and dropped what a visitor typed would lose exactly the lead this product is sold to
- * capture — and the person who lost it would never know it happened.
+ * capture — and nobody would ever know it happened.
  */
 export function LeadFormPlaceholder() {
   return (
-    <div
-      className="le-card"
-      style={{ maxWidth: 520, borderStyle: 'dashed', opacity: 0.75 }}
-      aria-hidden="true"
-    >
-      <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A93A3' }}>
-        Lead form — activates in Phase 4
-      </p>
+    <div className="le-card" style={{ maxWidth: 560, borderStyle: 'dashed', opacity: 0.8 }} aria-hidden="true">
+      <p className="le-eyebrow" style={{ marginBottom: 18 }}>Lead form — activates in Phase 4</p>
       {['Your name', 'Phone', 'Email', 'How can we help?'].map(label => (
-        <div key={label} style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5, color: 'var(--ink-soft)' }}>{label}</div>
-          <div style={{ height: label.startsWith('How') ? 76 : 44, background: '#fff', border: '1px solid var(--line)', borderRadius: 7 }} />
+        <div key={label} style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 'var(--le-utility)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
+          <div style={{
+            height: label.startsWith('How') ? 84 : 48,
+            background: 'var(--le-paper)',
+            border: '1px solid var(--le-edge)',
+            borderRadius: 'var(--le-radius-card)',
+          }} />
         </div>
       ))}
-      <div className="le-btn" style={{ opacity: 0.45, pointerEvents: 'none' }}>Send</div>
+      <div className="le-btn" style={{ opacity: 0.5, pointerEvents: 'none' }}>Send</div>
     </div>
   )
 }

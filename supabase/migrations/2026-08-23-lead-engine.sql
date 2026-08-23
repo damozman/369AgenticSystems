@@ -45,8 +45,28 @@ CREATE TABLE IF NOT EXISTS public.lead_engine_sites (
   status        text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'awaiting_answers', 'in_build', 'live', 'suspended', 'cancelled')),
 
-  template      text
-    CHECK (template IS NULL OR template IN ('trade_classic', 'service_clean', 'showcase_grid')),
+  -- Section order, chosen by the customer's buying question rather than by their trade — which is
+  -- why roofing and plumbing share one. See lib/lead-engine/theme.ts.
+  --
+  -- The default is the SAFEST pair, not the commonest: Service Clean carries a page with no photos
+  -- at all, so a row created before anyone knows the vertical renders acceptably rather than
+  -- broken. NOT NULL for the same reason — a null template is a page with no layout.
+  template      text NOT NULL DEFAULT 'service_clean'
+    CHECK (template IN ('trade_classic', 'service_clean', 'showcase_grid', 'practice', 'supply')),
+
+  -- Visual identity: palette, type, radius, motion. Independent of template, so a roofer with no
+  -- photos gets Service Clean's structure in Ironclad's identity and still reads as a roofer.
+  theme         text NOT NULL DEFAULT 'counsel'
+    CHECK (theme IN ('ironclad', 'counsel', 'threshold', 'ledger', 'yard', 'clinic')),
+
+  -- The customer's own accent, display face and logo, applied WITHIN a theme. Validated by
+  -- lib/lead-engine/theme.ts before it is stored — a logo colour is routinely unusable as an
+  -- interface colour, and equipment yellow is a real answer a rental yard will give us.
+  --
+  -- Deliberately NOT inside `content`: content is customer data, design is not. Keeping them apart
+  -- is what lets an operator re-theme a live site with no content diff, and stops a re-submitted
+  -- questionnaire from changing how a site looks.
+  brand         jsonb NOT NULL DEFAULT '{}'::jsonb,
 
   -- The Ava seam. NULL means "no voice product", which is the normal case and must stay
   -- first-class — same discipline as getProviderForClient() returning null for a client with no
@@ -95,6 +115,44 @@ DROP TRIGGER IF EXISTS lead_engine_sites_updated_at ON public.lead_engine_sites;
 CREATE TRIGGER lead_engine_sites_updated_at
   BEFORE UPDATE ON public.lead_engine_sites
   FOR EACH ROW EXECUTE FUNCTION public._set_updated_at();
+
+
+-- ── Design layer upgrade, for a database where this file already ran ──────────
+--
+-- The block above is `CREATE TABLE IF NOT EXISTS`, so on a database that already has the table it
+-- is a no-op — including for the three columns just added to it. This section is what actually
+-- upgrades an existing install, and it is why the file stays re-runnable rather than becoming a
+-- second migration: schema and code go live separately in this project, in whichever order
+-- happens, and one file that is safe to run twice is easier to reason about than two that must run
+-- in order.
+--
+-- Applied 2026-08-23 alongside the design layer (five templates instead of three, plus theme and
+-- brand). Every statement here is a no-op on a fresh database.
+
+ALTER TABLE public.lead_engine_sites ADD COLUMN IF NOT EXISTS theme text;
+ALTER TABLE public.lead_engine_sites ADD COLUMN IF NOT EXISTS brand jsonb;
+
+-- Backfill before tightening, or the NOT NULL fails on existing rows.
+UPDATE public.lead_engine_sites SET template = 'service_clean' WHERE template IS NULL;
+UPDATE public.lead_engine_sites SET theme    = 'counsel'       WHERE theme    IS NULL;
+UPDATE public.lead_engine_sites SET brand    = '{}'::jsonb     WHERE brand    IS NULL;
+
+ALTER TABLE public.lead_engine_sites ALTER COLUMN template SET DEFAULT 'service_clean';
+ALTER TABLE public.lead_engine_sites ALTER COLUMN template SET NOT NULL;
+ALTER TABLE public.lead_engine_sites ALTER COLUMN theme    SET DEFAULT 'counsel';
+ALTER TABLE public.lead_engine_sites ALTER COLUMN theme    SET NOT NULL;
+ALTER TABLE public.lead_engine_sites ALTER COLUMN brand    SET DEFAULT '{}'::jsonb;
+ALTER TABLE public.lead_engine_sites ALTER COLUMN brand    SET NOT NULL;
+
+-- The original CHECK admitted three templates and a NULL. Dropped by its auto-generated name and
+-- recreated, because a constraint cannot be widened in place.
+ALTER TABLE public.lead_engine_sites DROP CONSTRAINT IF EXISTS lead_engine_sites_template_check;
+ALTER TABLE public.lead_engine_sites ADD  CONSTRAINT lead_engine_sites_template_check
+  CHECK (template IN ('trade_classic', 'service_clean', 'showcase_grid', 'practice', 'supply'));
+
+ALTER TABLE public.lead_engine_sites DROP CONSTRAINT IF EXISTS lead_engine_sites_theme_check;
+ALTER TABLE public.lead_engine_sites ADD  CONSTRAINT lead_engine_sites_theme_check
+  CHECK (theme IN ('ironclad', 'counsel', 'threshold', 'ledger', 'yard', 'clinic'));
 
 
 -- ── lead_engine_submissions ───────────────────────────────────────────────────
@@ -249,6 +307,12 @@ COMMENT ON COLUMN public.lead_engine_sites.client_domain IS
   'The Ava seam. NULL until this customer also buys the voice product, at which point existing provisioning runs unchanged and its client_domain is written here. Not an FK on purpose: a churned voice client must not cascade-delete a paying mini-site.';
 COMMENT ON COLUMN public.lead_engine_sites.questionnaire IS
   'What the customer typed. Never rendered directly — see the `content` column.';
+COMMENT ON COLUMN public.lead_engine_sites.template IS
+  'Section order, resolved from the vertical at createSite() time. Holds STATED INTENT — the no-photo degrade to service_clean is computed at render and never written back, so a photo uploaded later restores the intended layout with no admin action.';
+COMMENT ON COLUMN public.lead_engine_sites.theme IS
+  'Visual identity. Independent of template: a roofer with no photos gets Service Clean structure in Ironclad identity, and still reads as a roofer.';
+COMMENT ON COLUMN public.lead_engine_sites.brand IS
+  'Customer accent, display face and logo, applied within a theme. accent is validated for contrast before storage and accent_mode records which branch fired, so an operator can see that a colour was corrected and why.';
 COMMENT ON COLUMN public.lead_engine_sites.content IS
   'What actually renders. An operator edit lands here; a re-submitted questionnaire sets needs_review instead of overwriting it, so a live page can never change under the customer without a human seeing it.';
 COMMENT ON COLUMN public.lead_engine_submissions.notify_error IS

@@ -1,5 +1,6 @@
 /**
- * Seeds three throwaway Lead Engine sites — one per template — so the designs can be READ rather
+ * Seeds throwaway Lead Engine sites — one per template, plus a theme-independence case and a
+ * sparse regression case — so the designs can be READ rather
  * than reasoned about.
  *
  * This project's own lesson, paid for twice: read the artifact, not the code that made it. A unit
@@ -23,6 +24,7 @@ import sharp from 'sharp'
 import { contentFrom } from '@/lib/lead-engine/content'
 import { PHOTO_BUCKET } from '@/lib/lead-engine/site'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
+import { resolveForVertical } from '@/lib/lead-engine/theme'
 
 const APPLY   = process.argv.includes('--apply')
 const CLEANUP = process.argv.includes('--cleanup')
@@ -36,27 +38,28 @@ const supabase = createClient(
 )
 
 /**
- * Four businesses. The first three are answered to 100% of the agreed contract — every one of the
- * eleven questions, plus both operational fields, and the full 12-photo allowance — because the
- * design has to be judged at full data before anyone changes the design. A layout critiqued on a
- * half-filled record is a critique of the record.
+ * Seven businesses: one per template, one proving theme is independent of template, and one
+ * deliberately sparse.
  *
- * What "100%" does NOT include, and this matters when reading the pages: there is no logo and no
- * brand colour, because the questionnaire does not ask for either. Both are absent by contract
- * rather than by oversight.
+ * The first six are answered to 100% of the agreed contract — every one of the eleven questions,
+ * both operational fields, and the full 12-photo allowance — because a design has to be judged at
+ * full data. A layout critiqued on a half-filled record is a critique of the record.
  *
- * The fourth is deliberately sparse and is kept as the regression case — a real customer will
- * skip questions, and "does it still look finished" has to stay answerable.
+ * `review-threshold` is the one that proves the model: it runs the SAME template as the roofer
+ * (Trade Classic) on a DIFFERENT theme (Threshold), and carries a customer brand accent. If those
+ * two pages look like the same site, the theme layer is not doing its job.
+ *
+ * The last is thin on purpose and is the regression case — a real customer will skip questions,
+ * and "does it still look finished" has to stay answerable after every design change.
  */
 const SITES = [
   {
     slug: `${PREFIX}trade-classic`,
-    template: 'trade_classic',
+    vertical: 'roofing',            // -> trade_classic + ironclad
     photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Northside Roofing Company',
       phone: '(817) 612-6757',
-      // The full 8 the contract allows, not the 4 a hurried owner would type.
       services: [
         'Roof replacement', 'Storm damage repair', 'Gutter installation', 'Free roof inspections',
         'Emergency tarping', 'Skylight repair', 'Metal roofing', 'Insurance claim support',
@@ -75,8 +78,36 @@ const SITES = [
     },
   },
   {
+    // Same template as the roofer, different theme, plus a customer brand colour. This is the page
+    // that proves template and theme are separate layers rather than one setting with two names.
+    slug: `${PREFIX}threshold`,
+    vertical: 'real-estate',        // -> trade_classic + threshold
+    photos: MAX_PHOTOS_PER_SITE,
+    brand: { accent: '#2F5D50', paper_shade: 'warm' },
+    answers: {
+      business_name: 'Camden & Vale Realty',
+      phone: '(817) 555-0188',
+      services: [
+        'Residential sales', 'First-time buyers', 'Relocation', 'Investment property',
+        'Property valuation', 'Listing preparation', 'New construction', 'Land',
+      ],
+      service_areas: 'Fort Worth, Southlake, Westlake, Colleyville, Keller',
+      differentiator: 'We take twelve listings a year, not sixty. You get the agent you met, at every showing.',
+      credentials: 'Texas Real Estate Commission licensed · Accredited Buyer Representative',
+      years_in_business: '9 years',
+      primary_cta: 'other',
+      primary_cta_other: 'Book a Valuation',
+      google_profile_url: 'g.page/camden-vale-realty',
+      has_photos: true,
+      visitor_message: 'Selling a house is mostly waiting, punctuated by decisions you have never made before. We will tell you which ones actually matter.',
+      pain_points: 'INTERNAL ONLY — should not render.',
+      notify_email: OWNER,
+      preferred_slug: 'camden-vale-realty',
+    },
+  },
+  {
     slug: `${PREFIX}service-clean`,
-    template: 'service_clean',
+    vertical: 'legal',              // -> service_clean + counsel
     photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Hallam & Reed Legal',
@@ -89,9 +120,8 @@ const SITES = [
       differentiator: 'You will speak to the attorney handling your matter, not a case manager. We quote a flat fee before we start, so you are never surprised by an invoice.',
       credentials: 'Licensed by the State Bar of Texas · Board Certified in Estate Planning and Probate',
       years_in_business: '18 years',
-      // 'other' on purpose, and it is the realistic answer: "Get a Free Estimate" is a trades
-      // phrase that reads wrong over a law firm. It also exercises the free-text CTA path, which
-      // nothing else in this seed reaches.
+      // 'other' is the realistic answer: "Get a Free Estimate" is a trades phrase that reads wrong
+      // over a law firm. It also exercises the free-text CTA path.
       primary_cta: 'other',
       primary_cta_other: 'Request a Consultation',
       google_profile_url: 'g.page/hallam-reed-legal',
@@ -104,7 +134,7 @@ const SITES = [
   },
   {
     slug: `${PREFIX}showcase-grid`,
-    template: 'showcase_grid',
+    vertical: 'event-rentals',      // -> showcase_grid + yard
     photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Lone Star Party Rentals',
@@ -127,10 +157,61 @@ const SITES = [
     },
   },
   {
-    // The regression case, kept deliberately thin: a real customer WILL skip questions, and
-    // "does it still look finished" has to stay answerable after every design change.
+    slug: `${PREFIX}practice`,
+    vertical: 'dental',             // -> practice + clinic
+    photos: MAX_PHOTOS_PER_SITE,
+    answers: {
+      business_name: 'Bluebonnet Family Dental',
+      phone: '(817) 555-0164',
+      services: [
+        'Check-ups and cleaning', 'Fillings', 'Crowns and bridges', 'Root canal treatment',
+        'Teeth whitening', 'Childrens dentistry', 'Emergency appointments', 'Dentures',
+      ],
+      service_areas: 'Fort Worth, Benbrook, White Settlement',
+      differentiator: 'We keep two slots free every morning for people in pain, and we will tell you the cost before we start.',
+      credentials: 'Texas State Board of Dental Examiners · ADA member',
+      years_in_business: '15 years',
+      primary_cta: 'other',
+      primary_cta_other: 'Book an Appointment',
+      google_profile_url: 'g.page/bluebonnet-family-dental',
+      has_photos: true,
+      visitor_message: 'Plenty of people have not seen a dentist in years and feel awkward about it. Nobody here is going to make you feel bad about that.',
+      pain_points: 'INTERNAL ONLY — should not render.',
+      notify_email: OWNER,
+      preferred_slug: 'bluebonnet-family-dental',
+    },
+  },
+  {
+    slug: `${PREFIX}supply`,
+    vertical: 'wholesale',          // -> supply + ledger
+    photos: MAX_PHOTOS_PER_SITE,
+    answers: {
+      business_name: 'Trinity Trade Supply',
+      phone: '(817) 555-0121',
+      services: [
+        'Fasteners and fixings', 'Power tool accessories', 'Abrasives', 'Safety equipment',
+        'Adhesives and sealants', 'Hand tools', 'Site consumables', 'Workwear',
+      ],
+      service_areas: 'North Texas, Oklahoma, Louisiana, Arkansas',
+      differentiator: 'Order by two, on your site by seven the next morning, anywhere in North Texas. Same van driver every week.',
+      credentials: 'Authorised distributor for eleven manufacturers · ISO 9001',
+      years_in_business: '22 years',
+      primary_cta: 'other',
+      primary_cta_other: 'Request a Quote',
+      google_profile_url: 'g.page/trinity-trade-supply',
+      has_photos: true,
+      visitor_message: 'Most of our customers are buying the same forty lines every week. Tell us what they are and we will keep them on the shelf for you.',
+      pain_points: 'INTERNAL ONLY — should not render.',
+      notify_email: OWNER,
+      preferred_slug: 'trinity-trade-supply',
+    },
+  },
+  {
+    // The regression case. Note the vertical resolves to trade_classic + ironclad, but with zero
+    // photos it RENDERS Service Clean — in Ironclad's identity. That degrade is the thing to look
+    // at here: it should still read as a plumber, not as a law firm.
     slug: `${PREFIX}sparse`,
-    template: 'service_clean',
+    vertical: 'plumbing',
     photos: 0,
     answers: {
       business_name: 'Bell Avenue Plumbing',
@@ -224,7 +305,12 @@ async function seed() {
 
   for (const spec of SITES) {
     const content = contentFrom(spec.answers, spec.answers.business_name)
-    console.log(`\n${APPLY ? 'Seeding' : 'Would seed'} /sites/${spec.slug}  [${spec.template}, ${spec.photos} photos]`)
+    // Printed from resolveForVertical rather than from the spec, so a dry run shows the pair the
+    // mapping actually produces — which is the thing worth checking before writing anything.
+    const pair = resolveForVertical(spec.vertical)
+    const rendered = spec.photos > 0 ? pair.template : 'service_clean (degraded — no photos)'
+    console.log(`\n${APPLY ? 'Seeding' : 'Would seed'} /sites/${spec.slug}`)
+    console.log(`  ${spec.vertical} -> ${pair.template} + ${pair.theme}, renders ${rendered}, ${spec.photos} photos`)
     console.log(`  ${content.businessName} — CTA "${content.cta.label}" (${content.cta.kind})`)
 
     if (!APPLY) continue
@@ -238,7 +324,11 @@ async function seed() {
         slug: spec.slug,
         business_name: spec.answers.business_name,
         status: 'live',
-        template: spec.template,
+        // Resolved from the vertical exactly as createSite() does, rather than set by hand — a
+        // seed that hardcodes the pair cannot catch a broken mapping.
+        template: resolveForVertical(spec.vertical).template,
+        theme: resolveForVertical(spec.vertical).theme,
+        brand: spec.brand ?? {},
         questionnaire: spec.answers,
         content,
         notify_email: OWNER,

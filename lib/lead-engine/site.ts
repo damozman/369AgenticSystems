@@ -8,14 +8,16 @@
  */
 
 import { createAdminClient } from '@/lib/supabase-admin'
-import type { LeadEngineSite, SiteContent, SitePhoto, TemplateId } from '@/lib/lead-engine/types'
+import type { LeadEngineSite, SiteContent, SitePhoto, Template, Theme } from '@/lib/lead-engine/types'
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
+import { resolveForVertical } from '@/lib/lead-engine/theme'
+import { normaliseVertical } from '@/lib/lead-engine/verticals'
 
 export const PHOTO_BUCKET = 'lead-engine-photos'
 
 const SITE_COLUMNS =
-  'id, slug, business_name, status, template, content, notify_email, client_domain, launched_at, revisions_used'
+  'id, slug, business_name, status, template, theme, brand, content, notify_email, client_domain, launched_at, revisions_used'
 
 /**
  * Whether an error means "the migration has not been applied yet".
@@ -137,12 +139,22 @@ export type CreateSiteResult =
  *
  * The slug is settled here, not by the caller, because uniqueness is a database fact and a form
  * that "checks availability" separately from the insert has a race in it.
+ *
+ * `vertical` is an INPUT and is not stored — `template` and `theme` are the resolved output. If an
+ * operator needs to re-derive later they pass the vertical again. Storing both the input and its
+ * output means they can disagree, and nothing then says which one is right.
+ *
+ * It is required rather than optional on purpose: an unrecognised vertical resolves to the default
+ * pair, so an optional parameter would quietly make every site look like a law firm.
  */
 export async function createSite(input: {
   ownerEmail: string
   businessName: string
+  vertical: string
   preferredSlug?: string | null
-  template?: TemplateId | null
+  /** Overrides the vertical's resolved pair. The admin edit page sets these; nothing else should. */
+  template?: Template | null
+  theme?: Theme | null
   notifyEmail?: string | null
 }): Promise<CreateSiteResult> {
   const ownerEmail = input.ownerEmail.trim().toLowerCase()
@@ -150,6 +162,9 @@ export async function createSite(input: {
 
   if (!ownerEmail) return { ok: false, error: 'An owner email is required.' }
   if (!businessName) return { ok: false, error: 'A business name is required.' }
+  if (!normaliseVertical(input.vertical)) return { ok: false, error: 'A vertical is required.' }
+
+  const resolved = resolveForVertical(input.vertical)
 
   const slug = proposeSlug(businessName, input.preferredSlug)
   if (!slug) {
@@ -164,7 +179,9 @@ export async function createSite(input: {
       owner_email:   ownerEmail,
       business_name: businessName,
       slug,
-      template:      input.template ?? null,
+      template:      input.template ?? resolved.template,
+      theme:         input.theme ?? resolved.theme,
+      brand:         {},
       notify_email:  input.notifyEmail?.trim().toLowerCase() || null,
       status:        'draft',
     })

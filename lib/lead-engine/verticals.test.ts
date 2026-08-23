@@ -1,0 +1,81 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { CANONICAL_VERTICALS } from '@/lib/verticals/index'
+import {
+  ALL_VERTICAL_OPTIONS, LEAD_ENGINE_ONLY_VERTICALS, LEAD_ENGINE_VERTICALS,
+  VERTICAL_KEY_FORMAT, VERTICAL_OPTION_GROUPS, labelFor, normaliseVertical,
+} from '@/lib/lead-engine/verticals'
+
+test('every Lead Engine vertical is canonical or explicitly Lead-Engine-only', () => {
+  // The point of deriving from CANONICAL_VERTICALS rather than redeclaring: a key cannot appear
+  // here in a spelling the rest of the repo does not use. `real-estate` has already been filed
+  // under three spellings once, and nothing errored while it happened.
+  const allowed = new Set<string>([...CANONICAL_VERTICALS, ...LEAD_ENGINE_ONLY_VERTICALS])
+  for (const v of LEAD_ENGINE_VERTICALS) {
+    assert.ok(allowed.has(v), `${v} is offered but is neither canonical nor Lead-Engine-only`)
+  }
+})
+
+test('every vertical key is hyphen-cased — an underscore never reaches a customer', () => {
+  // This is the check that rejects the design brief's `real_estate` spelling at the boundary.
+  for (const v of [...LEAD_ENGINE_VERTICALS, ...LEAD_ENGINE_ONLY_VERTICALS]) {
+    assert.match(v, VERTICAL_KEY_FORMAT, `${v} is not lowercase hyphen-separated`)
+  }
+})
+
+test('canon is not exhausted, and that is deliberate', () => {
+  // Lead Engine is for local service businesses. A SaaS company is not one, so `saas` is canonical
+  // and deliberately not offered. The rule is one-directional: every Lead Engine key must be
+  // allowed, not every canonical key must be offered.
+  assert.ok(CANONICAL_VERTICALS.includes('saas'))
+  assert.ok(!LEAD_ENGINE_VERTICALS.includes('saas'))
+})
+
+test('the select offers every vertical exactly once', () => {
+  const values = ALL_VERTICAL_OPTIONS.map(o => o.value)
+  assert.equal(new Set(values).size, values.length, 'a vertical is listed twice')
+  assert.deepEqual([...values].sort(), [...LEAD_ENGINE_VERTICALS].sort())
+})
+
+test('there is no blank and no "Other" option', () => {
+  // An unmapped vertical resolves to the default pair, so offering "Other" is offering "make it
+  // look like a law firm" without saying so.
+  for (const { value, label } of ALL_VERTICAL_OPTIONS) {
+    assert.ok(value.length > 0, 'a blank option would silently select the fallback')
+    assert.ok(!/^other$/i.test(label), '"Other" is the fallback wearing a friendly name')
+  }
+})
+
+test('every option has a human-readable label', () => {
+  for (const { value, label } of ALL_VERTICAL_OPTIONS) {
+    assert.ok(label.length > 0, `${value} has no label`)
+    assert.ok(!label.includes('-'), `${label} still reads like a key`)
+    assert.ok(!label.includes('_'), `${label} still reads like a key`)
+  }
+  // The ones a title-case rule alone would get wrong.
+  assert.equal(labelFor('hvac'), 'HVAC')
+  assert.equal(labelFor('real-estate'), 'Real Estate')
+  assert.equal(labelFor('b2b-supply'), 'B2B Supply')
+  assert.equal(labelFor('event-rentals'), 'Event & Party Rentals')
+  // And one that it gets right, so the override map does not quietly become mandatory.
+  assert.equal(labelFor('plumbing'), 'Plumbing')
+})
+
+test('groups are non-empty and every option belongs to one', () => {
+  assert.ok(VERTICAL_OPTION_GROUPS.length > 1, 'a flat list of 26 is a scroll, not a choice')
+  for (const g of VERTICAL_OPTION_GROUPS) {
+    assert.ok(g.group.length > 0)
+    assert.ok(g.options.length > 0, `group ${g.group} is empty`)
+  }
+})
+
+test('normalising accepts the design brief spelling without adopting it', () => {
+  // Tolerance on input, one spelling on output — the same shape as getVerticalConfig accepting
+  // both real-estate spellings.
+  assert.equal(normaliseVertical('real_estate'), 'real-estate')
+  assert.equal(normaliseVertical('event_rentals'), 'event-rentals')
+  assert.equal(normaliseVertical('  Real Estate '), 'real-estate')
+  assert.equal(normaliseVertical('ROOFING'), 'roofing')
+  assert.equal(normaliseVertical(null), '')
+  assert.equal(normaliseVertical(undefined), '')
+})

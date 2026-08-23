@@ -1,47 +1,53 @@
 /**
- * Service Clean — copy-forward, low-photo.
+ * T2 · Service Clean — "Are you the right professional for my situation?"
  *
- * Hero (headline + CTA, no large image) → services → why us → areas served → contact → footer.
+ * Copy-forward, low-photo. Carries a page on type and structure alone: an editorial hero with no
+ * image, display type doing the work photography does elsewhere.
  *
- * For legal, insurance, consulting, cleaning — businesses whose credibility is words rather than
- * pictures, and businesses that simply have no good photos. A photo-hungry layout with nothing to
- * put in it looks worse than a layout that never asked, which is why `effectiveTemplate()` falls
- * back to this one whenever a site has no photos at all.
+ * Verticals: legal, insurance, accounting, consulting, cleaning.
  *
- * It still renders a gallery if photos exist — a site can legitimately be chosen for this layout
- * and have three good pictures — but nothing here depends on them.
+ * It is also the **universal fallback**. Any site with no usable photos renders this layout
+ * whatever its stated template — see `effectiveTemplate`. The theme does not change with it, so a
+ * roofer with no photos gets this structure in Ironclad's identity and still reads as a roofer.
+ * That is why nothing here assumes photos exist, and why it still renders a gallery when they do.
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
-import { About, Contact, CtaButton, Footer, Gallery, LeadFormPlaceholder, Section, Services, TrustBar } from '../SiteSections'
+import {
+  About, Contact, Coverage, CtaButton, Footer, Gallery, LeadFormPlaceholder,
+  PhoneLink, ProofBar, Services,
+} from '@/components/lead-engine/SiteSections'
 
 export default function ServiceClean({ content, photos }: { content: SiteContent; photos: SitePhoto[] }) {
   return (
     <>
       <header className="le-hero">
         <div className="le-wrap">
-          <h1>{content.businessName}</h1>
-          {content.differentiator ? <p className="le-p" style={{ fontSize: 19 }}>{content.differentiator}</p> : null}
-          <div style={{ marginTop: 24 }}><CtaButton content={content} /></div>
-          {/* Areas get their own section further down, so the bar would only repeat them. */}
-          <TrustBar content={content} showAreas={false} />
+          {/* Editorial stack, not a centred hero over a flat colour — the SKILL lists that as a
+              tell, and every template here is asymmetric or image-anchored. */}
+          <div style={{ maxWidth: '18ch' }}>
+            <h1 className="le-h1">{content.businessName}</h1>
+          </div>
+          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 28 }}>{content.differentiator}</p> : null}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', marginTop: 32 }}>
+            <CtaButton content={content} />
+            {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
+          </div>
+          <div style={{ marginTop: 48 }}>
+            {/* Areas get their own section further down, so the bar would only repeat them. */}
+            <ProofBar content={content} showAreas={false} />
+          </div>
         </div>
       </header>
 
       <Services content={content} />
 
-      {/* The hero carries the differentiator, so About here is the visitor message only. */}
-      <About content={content} showDifferentiator={false} />
+      {/* On a structure band deliberately: with no hero image, hero → services → about → coverage
+          would be four consecutive sections on paper, and the rhythm rule allows two. */}
+      <About content={content} showDifferentiator={false} band />
 
       <Gallery photos={photos} />
-
-      {content.serviceAreas?.length ? (
-        <Section id="areas">
-          <p className="le-eyebrow">Where we work</p>
-          <h2 className="le-h2">Areas we serve</h2>
-          <p className="le-p">{content.serviceAreas.join(' · ')}</p>
-        </Section>
-      ) : null}
+      <Coverage content={content} />
 
       <Contact content={content}>
         <LeadFormPlaceholder />

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { contentFrom, ctaFrom, profileUrlFrom, effectiveTemplate, telHref } from '@/lib/lead-engine/content'
+import { contentFrom, ctaFrom, profileUrlFrom, telHref } from '@/lib/lead-engine/content'
 import type { QuestionnaireAnswers } from '@/lib/lead-engine/types'
 
 const FULL: QuestionnaireAnswers = {
@@ -130,20 +130,4 @@ test('only http(s) survives the Google profile field', () => {
   assert.equal(profileUrlFrom('data:text/html,<script>'), undefined)
   assert.equal(profileUrlFrom('   '), undefined)
   assert.equal(profileUrlFrom(undefined), undefined)
-})
-
-test('a site with no photos falls back to the copy-forward template', () => {
-  // trade_classic opens on a photo and showcase_grid leads with a grid. With nothing to show, both
-  // render empty frames — so the right answer is a different page, not a placeholder image.
-  assert.equal(effectiveTemplate('showcase_grid', 0), 'service_clean')
-  assert.equal(effectiveTemplate('trade_classic', 0), 'service_clean')
-  assert.equal(effectiveTemplate('showcase_grid', 4), 'showcase_grid')
-  assert.equal(effectiveTemplate('trade_classic', 1), 'trade_classic')
-})
-
-test('an unset or unknown template renders rather than throwing', () => {
-  // A site row whose template was never chosen must still serve a page; a 500 on a live customer
-  // site is worse than a plainer layout.
-  assert.equal(effectiveTemplate(null, 5), 'service_clean')
-  assert.equal(effectiveTemplate('nonsense', 5), 'service_clean')
 })

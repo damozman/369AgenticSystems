@@ -7,8 +7,11 @@
  * re-submitted questionnaire must never rewrite a live page.
  */
 
-export const TEMPLATES = ['trade_classic', 'service_clean', 'showcase_grid'] as const
-export type TemplateId = (typeof TEMPLATES)[number]
+// Template, Theme and Brand live in `theme.ts` — the design layer owns them, and re-declaring them
+// here is how two lists of five templates end up disagreeing. Re-exported so callers that only
+// care about a site's shape have one import.
+export type { Template, Theme, Brand, AccentMode, PaperShade, LogoTreatment } from '@/lib/lead-engine/theme'
+import type { Template, Theme, Brand } from '@/lib/lead-engine/theme'
 
 export const SITE_STATUSES = [
   'draft', 'awaiting_answers', 'in_build', 'live', 'suspended', 'cancelled',
@@ -79,7 +82,10 @@ export interface LeadEngineSite {
   slug: string
   business_name: string
   status: SiteStatus
-  template: TemplateId | null
+  /** Stated intent. The no-photo degrade is computed at render and never stored. */
+  template: Template
+  theme: Theme
+  brand: Brand
   content: SiteContent | null
   notify_email: string | null
   client_domain: string | null

@@ -1,28 +1,39 @@
 /**
- * Showcase Grid — inventory-forward.
+ * T3 · Showcase Grid — "What have you got, and is it available?"
  *
- * Compact hero → gallery FIRST → services/packages → areas → contact → footer.
+ * Inventory-forward. The gallery IS the argument, so it comes before the company story: a customer
+ * planning a birthday wants to see the bounce house before they read about the business.
  *
- * For event and party rentals, equipment rental, dumpsters. The buying question in those trades is
- * "what have you actually got", not "who are you" — a customer planning a birthday wants to see the
- * bounce house before they read about the company. So the grid comes before the prose, which is the
- * one genuinely different decision among the three templates.
+ * Verticals: dumpster rental, equipment rental, event & party rentals, hauling.
  *
- * `effectiveTemplate()` will not select this layout for a site with no photos: a showcase with
- * nothing to show is the worst of the three, so such a site falls back to Service Clean.
+ * `effectiveTemplate` will never select this layout for a site with no photos — a showcase with
+ * nothing to show is the worst of the five, so such a site falls back to Service Clean.
+ *
+ * Nothing here claims live availability. The Yard kit's buyer wants a size, a price and a date, but
+ * we have no availability system and Twilio is unconfigured, so the page says what it can honestly
+ * say: here is the range, here is the phone number.
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
-import { About, Contact, CtaButton, Footer, Gallery, LeadFormPlaceholder, Section, Services, TrustBar } from '../SiteSections'
+import {
+  About, Contact, Coverage, CtaButton, Footer, Gallery, LeadFormPlaceholder,
+  PhoneLink, ProofBar, Section, Services,
+} from '@/components/lead-engine/SiteSections'
 
 export default function ShowcaseGrid({ content, photos }: { content: SiteContent; photos: SitePhoto[] }) {
+  const hasFacts = !!(content.yearsInBusiness || content.credentials || content.serviceAreas?.length)
+
   return (
     <>
-      <header className="le-hero" style={{ paddingBottom: 24 }}>
+      {/* Compact by design: the grid below is the hero. */}
+      <header className="le-hero" style={{ paddingBottom: 40 }}>
         <div className="le-wrap">
-          <h1 style={{ fontSize: 36 }}>{content.businessName}</h1>
-          {content.differentiator ? <p className="le-p">{content.differentiator}</p> : null}
-          <div style={{ marginTop: 20 }}><CtaButton content={content} /></div>
+          <h1 className="le-h1" style={{ maxWidth: '16ch' }}>{content.businessName}</h1>
+          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', marginTop: 28 }}>
+            <CtaButton content={content} />
+            {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
+          </div>
         </div>
       </header>
 
@@ -30,18 +41,19 @@ export default function ShowcaseGrid({ content, photos }: { content: SiteContent
           "Our range", not the default "Our work" — a rental business hires things out. */}
       <Gallery photos={photos} eyebrow="Our range" heading="What we have" />
 
-      <Services content={content} />
-
-      {/* Guarded, not just left to TrustBar's own null: an empty <Section> still paints its
-          top border, which reads as a stray rule across the page. */}
-      {(content.yearsInBusiness || content.credentials || content.serviceAreas?.length) ? (
-        <Section id="details">
-          {/* An eyebrow so the bar is not an orphaned row of stats between two headed sections. */}
+      {/* On a band, and placed here rather than at the end: it breaks the run of paper sections,
+          and these are the facts a hire customer checks before they ring. */}
+      {hasFacts ? (
+        <Section id="details" density="connector" band>
           <p className="le-eyebrow">Good to know</p>
-          <TrustBar content={content} />
+          <ProofBar content={content} showAreas={false} />
         </Section>
       ) : null}
 
+      {/* Not "Our range" again — the gallery above already carries that label, and the same words
+          twice on one page reads as a template nobody adapted. */}
+      <Services content={content} eyebrow="What we hire out" heading="Everything we stock" />
+      <Coverage content={content} />
       <About content={content} showDifferentiator={false} />
 
       <Contact content={content}>
