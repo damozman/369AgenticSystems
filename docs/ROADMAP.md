@@ -1,7 +1,8 @@
 # The Roadmap
 
-**Written 2026-08-21. Updated the same day** — Tracks 2.1, 2.2 and the Retell blocker all closed,
-and dossier steps 0 and 1 shipped. Tracks 2.3 (cost half), 2.4, 3 and 4 remain.
+**Written 2026-08-21. Substantially updated 2026-08-22** — Tracks 2.1, 2.2 and the Retell blocker
+closed, **all seven dossier steps built**, and the deadline framing removed at Chris's direction.
+Tracks 2.3 (cost half), 2.4 and 4 remain.
 
 This is the **operational** roadmap: what to build, in what order, and why that order. It
 consolidates material that was scattered across four places and does not replace any of them:
@@ -19,25 +20,33 @@ consolidates material that was scattered across four places and does not replace
 
 ---
 
-## The two dates that order everything
+## How this is ordered — by completeness, not by a date
 
-Ordering does not come from the backlog. It comes from two fixed dates:
+**Chris's direction, 2026-08-22: there are no deadlines on this project.** In his words — *"I don't
+want any deadlines or appointments pushing the direction of this project... we are just building
+towards a completed product."* He will name dates when they are concrete, and planning against one
+starts then.
 
-```
-2026-08-21        2026-09-02              ~mid-September
-    │                 │                        │
-   TODAY         pilot returns            chamber event
-    │                 │                        │
-    └─ ~12 solo days ─┴──── ~2 weeks ──────────┘
-       build window        onboard + rehearse
-```
+This file used to open with a section called *"The two dates that order everything"* and sequenced
+every track against a twelve-day window. **That framing is gone deliberately.** A countdown pushes
+toward shipping what fits the window rather than what is finished, which is the opposite of how
+this project has earned what it has: almost every real defect here was found by taking the extra
+step — reading all twelve intake forms instead of one, placing a real call, reading the artifact as
+its recipient rather than as its author.
 
-- **~2026-09-02** — Chris's cousin is back. The pilot (her event-rental business) can be onboarded.
-  Until then nothing that needs *her* can move.
-- **~mid-September** — first chamber event. Chris is in the room with buyers.
+**So the ordering principle is:**
 
-**The ~12 days before 2026-09-02 are the only uninterrupted build window in this cycle.** Spend
-them on work that has to be done *before* she arrives, not on work that can happen alongside her.
+1. **Dependency** — what unblocks the most other work.
+2. **Risk to a real person** — anything that could reach a prospect or a client's customer wrongly
+   comes before anything that only inconveniences us.
+3. **Truthfulness debt** — a live claim the system cannot keep is always next, whatever else is
+   queued.
+4. **Then** breadth.
+
+**The people are still real, and still context.** Chris's cousin owns the event-rental business
+that will be the pilot, and chamber events happen periodically. Those explain *who* features are
+for and *why* the rental verticals exist. **They are not commitments and must not be turned back
+into a schedule.** Nothing below should ever read "ship X before Y".
 
 ---
 
@@ -63,11 +72,13 @@ section moved from "built" to "deliverable".
 
 ---
 
-## The spine: what must be true, and when
+## The spine: what must be true before each audience is real
 
-Read this backwards from the chamber event.
+Not a schedule. Two checklists of preconditions — what has to be true before a buyer in a room, and
+before the pilot's own customers, are exposed to this. Work them in the order given at the top of
+this file.
 
-### For the chamber event (~mid-September)
+### For a chamber event — whenever the next one is
 
 | # | Must be true | State today |
 |---|---|---|
@@ -76,7 +87,7 @@ Read this backwards from the chamber event.
 | 3 | **A capture path in the room** — card or QR → the demo number, `/api/intake` catches the follow-up | 🔴 **Not built, and not on any engineering list.** See Track 4. |
 | 4 | **The ability to actually close** | 🔴 **Nobody can buy.** Stripe is in test mode and its only webhook is disabled. See Track 4. |
 
-### For the pilot (before she takes a real booking from a real customer)
+### For the pilot — before she takes a real booking from a real customer
 
 | # | Must be true | State today |
 |---|---|---|
@@ -146,7 +157,7 @@ Neither blocks any build below.
 
 ---
 
-## Track 2 — Before the pilot arrives (the ~12-day window)
+## Track 2 — Things that must be right before the pilot depends on them
 
 ### 2.1 ✅ DONE 2026-08-21 — the questionnaire assumed it was the only writer
 
@@ -262,7 +273,7 @@ real call averages **6,602 tokens/request**, so a naive probe flatters the numbe
 This is the highest-value chamber-facing build item: it is the difference between a demo that
 sounds like a person and one that sounds like software, in front of buyers.
 
-### 2.4 Smaller, still worth the window
+### 2.4 Smaller, still worth doing
 
 - **`capture_lead` sends the wrong `vertical`** — sent `"wholesale"` on a roofing-domain client on
   three separate calls, mislabelling every lead. Small fix, real data quality.
@@ -284,7 +295,7 @@ the one to keep: *the model may write the prose, the model may never invent a nu
 had never existed; today's merge removed that promise. So this is no longer a truthfulness
 emergency — but intake submitters still get **silence**, and that is still a leak.
 
-**Steps 0 and 1 are worth doing in the solo window; the rest can wait until after the chamber.**
+**All seven steps are now built.** What remains is not code — see the step list below.
 
 0. ✅ **DONE — the intake payload is persisted.** `2026-08-21-intake-payload.sql` is **applied to
    production**; `/api/intake` writes company, pain point, service area and website.
@@ -439,7 +450,7 @@ clients — it was disabled deliberately after a sandbox checkout bought real Re
 someone at the chamber wants to sign up, there is no path.
 
 - **Re-enable the webhook** before any end-to-end run (the one-liner is in CLAUDE.md open item 8).
-- **Decide on live mode before mid-September**, not at the event. Note that production's Stripe
+- **Decide on live mode before anyone is in a position to buy**, not in the moment. Note that production's Stripe
   integration is currently wired to *test* mode — that endpoint is `livemode: false` and production
   verifies its signature, so going live is a real change, not a toggle.
 

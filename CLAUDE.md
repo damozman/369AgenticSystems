@@ -31,8 +31,14 @@ Everything is committed and pushed to `master`; the last commit is the voice-spe
 
 ## ▶ START HERE NEXT SESSION
 
-**Read `docs/ROADMAP.md`** — the sequenced build order against the two dates that govern the work:
-the pilot returning **~2026-09-02** and the chamber event **~mid-September**.
+**Read `docs/ROADMAP.md`** — the build order and why it is in that order.
+
+**⛔ THERE ARE NO DEADLINES ON THIS PROJECT.** Chris's direction, 2026-08-22: *"I don't want any
+deadlines or appointments pushing the direction of this project... we are just building towards a
+completed product."* He will name dates when they are concrete. Until then, order work by
+dependency, then by risk to a real person, then by truthfulness debt — never by a countdown, and
+**do not reintroduce a deadline section to this file or to the roadmap.** The pilot and the chamber
+events are real people and real context; they are not commitments.
 
 **▶ NEXT TASK: turn it on.** Steps 0–6 are built and proven end to end against production —
 `verify-dossier-pipeline.mjs` runs submission → build → review → approve → send in 27 checks and
@@ -386,14 +392,16 @@ inventory rows, weekend hours, 180-day horizon, `vertical: 'event-rentals'`. Its
 `Northsideroofing.com` serves a 114-byte JavaScript redirect stub, which is how the website module's
 biggest defect was found.
 
-### 🔴 Current focus: A2P 10DLC, and a real pilot from a real network
+### Distribution: a real pilot from a real network
 Chris's cousin is a Chamber of Commerce member with a large network, business developer at a
 top-ten Texas roofing company, and **owner of an entertainment business** — mobile casino, DJ,
-bounce houses — that wants to scale. First chamber event **~mid-September 2026**. She also knows
+bounce houses — that wants to scale. Chamber events happen periodically; **no date is a
+commitment**. She also knows
 dumpster-rental and real-estate people; his brother-in-law sells CRM systems but not AI.
 
 **This is distribution finally arriving.** Nine verticals have been live with zero paying clients
 and 18 minutes of real traffic in a month — product surface was never the constraint.
+**No date is attached to any of this** — see the no-deadlines note at the top.
 **REVERSED 2026-08-19 — the three RENTAL pages are now GREENLIT.** The old rule ("do not add
 vertical pages, the page follows the customer") was written when nine pages were live with zero
 distribution. Distribution has now arrived, and Chris's reason is the one that overrides it: he
@@ -757,8 +765,8 @@ verified this app" interstitial and must click Advanced → Continue, and there 
    the gate on every SMS track and it is pure calendar time.
 2. **Onboard the cousin's entertainment business** — Stripe checkout with a 100%-off coupon,
    weekend hours, ~180-day horizon, real inventory rows, calendar connected, then a real test call.
-   **She is out of town until roughly 2026-09-02**, so this is prepared rather than imminent; the
-   chamber event is still ~mid-September. **Chris intends a MOCK onboarding of his own first**,
+   **She has been away**, so this is prepared rather than imminent — Chris will say when she is
+   ready, and no date here is a commitment. **Chris intends a MOCK onboarding of his own first**,
    which is worth doing for one specific reason beyond rehearsal: it is the only way to verify the
    **welcome-email** link carries `?t=`. The post-payment page was verified against live
    production on 2026-08-19; the email producer calls the same `questionnaireUrl()` in the same
