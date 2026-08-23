@@ -26,33 +26,42 @@ import {
 } from 'next/font/google'
 import type { Theme } from '@/lib/lead-engine/theme'
 
-// `subsets` is spelled out at each call rather than shared: next/font types it as a MUTABLE array
-// per family, so a shared `['latin'] as const` is readonly and every call fails to typecheck.
-const common = { display: 'swap' as const, preload: false }
+// ── Every option below is written out in full, and must stay that way ──
+//
+// `next/font/google` calls are read by an SWC plugin at BUILD time, not evaluated at runtime, so
+// the argument has to be a statically analyzable object literal. A shared `const common = {...}`
+// spread into each call fails with "Unexpected spread" — and `tsc` cannot see that constraint,
+// because it is a build-plugin rule rather than a type rule.
+//
+// Found by loading the page rather than by typechecking, which is the lesson: with
+// `ignoreBuildErrors: true` set in next.config.mjs, `npx tsc --noEmit` passing says nothing about
+// whether the app compiles. The route has to actually be requested.
+//
+// So: no spread, no variables, no computed keys in any call here. Repetition is the price.
 
 // IRONCLAD
-const archivo      = Archivo({ ...common, subsets: ['latin'], variable: '--le-f-archivo' })
-const archivoBlack = Archivo_Black({ ...common, subsets: ['latin'], weight: '400', variable: '--le-f-archivo-black' })
+const archivo      = Archivo({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-archivo' })
+const archivoBlack = Archivo_Black({ subsets: ['latin'], display: 'swap', preload: false, weight: '400', variable: '--le-f-archivo-black' })
 
 // COUNSEL
-const newsreader = Newsreader({ ...common, subsets: ['latin'], variable: '--le-f-newsreader' })
-const publicSans = Public_Sans({ ...common, subsets: ['latin'], variable: '--le-f-public-sans' })
+const newsreader = Newsreader({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-newsreader' })
+const publicSans = Public_Sans({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-public-sans' })
 
 // THRESHOLD
-const instrumentSerif = Instrument_Serif({ ...common, subsets: ['latin'], weight: '400', variable: '--le-f-instrument-serif' })
-const dmSans          = DM_Sans({ ...common, subsets: ['latin'], variable: '--le-f-dm-sans' })
+const instrumentSerif = Instrument_Serif({ subsets: ['latin'], display: 'swap', preload: false, weight: '400', variable: '--le-f-instrument-serif' })
+const dmSans          = DM_Sans({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-dm-sans' })
 
 // LEDGER
-const plexSans = IBM_Plex_Sans({ ...common, subsets: ['latin'], weight: ['400', '600'], variable: '--le-f-plex-sans' })
-const plexMono = IBM_Plex_Mono({ ...common, subsets: ['latin'], weight: ['400', '500'], variable: '--le-f-plex-mono' })
+const plexSans = IBM_Plex_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600'], variable: '--le-f-plex-sans' })
+const plexMono = IBM_Plex_Mono({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500'], variable: '--le-f-plex-mono' })
 
 // YARD
-const sairaCondensed = Saira_Condensed({ ...common, subsets: ['latin'], weight: ['400', '700'], variable: '--le-f-saira' })
-const barlow         = Barlow({ ...common, subsets: ['latin'], weight: ['400', '600'], variable: '--le-f-barlow' })
+const sairaCondensed = Saira_Condensed({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '700'], variable: '--le-f-saira' })
+const barlow         = Barlow({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600'], variable: '--le-f-barlow' })
 
 // CLINIC
-const fraunces = Fraunces({ ...common, subsets: ['latin'], variable: '--le-f-fraunces' })
-const karla    = Karla({ ...common, subsets: ['latin'], variable: '--le-f-karla' })
+const fraunces = Fraunces({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-fraunces' })
+const karla    = Karla({ subsets: ['latin'], display: 'swap', preload: false, variable: '--le-f-karla' })
 
 /**
  * The class names to put on the theme wrapper — display, body and utility faces for one kit.
