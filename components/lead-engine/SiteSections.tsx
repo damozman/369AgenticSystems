@@ -28,18 +28,34 @@ import type { FaqItem, ServiceItem, SiteContent, SitePhoto, Testimonial } from '
 import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
+import {
+  coverageColumns, coverageRenders, galleryLayout, proofBarRenders, proofFacts,
+  heroLede, servicesColumns, whyUsItems,
+} from '@/lib/lead-engine/sections'
+
+export { coverageRenders, proofBarRenders } from '@/lib/lead-engine/sections'
 
 export function ThemeShell({
-  theme, brand, fontClass, children,
+  theme, brand, fontClass, accentMode = 'text_safe', density = 'full', children,
 }: {
   theme: Theme
   brand?: Brand
   fontClass?: string
+  /**
+   * Which branch validateAccent took. MUST land on .le-site itself — it was previously set on a
+   * wrapper div outside it, so every `.le-site[data-accent-mode=...]` rule silently never matched
+   * and the button-contrast correction had never once fired on any page.
+   */
+  accentMode?: 'text_safe' | 'surface_only' | 'derived'
+  /** 'compact' tightens the vertical rhythm on a page with fewer than five sections. */
+  density?: 'full' | 'compact'
   children: ReactNode
 }) {
   return (
     <div
       className={`le-site${fontClass ? ` ${fontClass}` : ''}`}
+      data-accent-mode={accentMode}
+      data-density={density}
       style={tokensFor(theme, brand) as React.CSSProperties}
     >
       <style dangerouslySetInnerHTML={{ __html: SITE_CSS }} />
@@ -117,6 +133,12 @@ const SITE_CSS = `
 
 .le-anchor    { padding: var(--le-space-anchor) 0; }
 .le-connector { padding: var(--le-space-connector) 0; }
+/* A short page with tall gaps reads as broken; a short page with tight rhythm reads as deliberate.
+   Set from sectionCount() — fewer than five sections and 128px between three-line sections is void
+   rather than rhythm. This is what review-sparse, the site a customer with no photos receives,
+   needed most. */
+.le-site[data-density="compact"] .le-anchor    { padding: var(--le-space-anchor-m) 0; }
+.le-site[data-density="compact"] .le-connector { padding: var(--le-space-connector-m) 0; }
 .le-band      { background: var(--le-structure); color: var(--le-paper); }
 .le-band .le-eyebrow { color: var(--le-paper); opacity: 0.72; }
 
@@ -156,10 +178,27 @@ const SITE_CSS = `
   border: 0; border-radius: var(--le-radius-button); cursor: pointer;
 }
 .le-btn:hover { filter: brightness(1.08); }
-/* When the accent is too light to carry paper-coloured text, the label flips to ink. Driven by
-   data-accent-mode, which the route sets from validateAccent — never guessed here. */
+
+/* ── Button colour per accent mode ──────────────────────────────────────────────
+   text_safe    accent fill, paper label. The accent clears 4.5:1 on paper, so it is dark enough.
+   surface_only accent fill, INK label. The accent works as a fill but is too light for paper text
+                — equipment yellow is the standard case.
+   derived      the ORIGINAL accent is not usable as a fill either: derived means it failed the
+                visibility test against paper, so a button in it is a nearly invisible shape.
+                The fill becomes accent-derived, which by construction clears 4.5:1 on paper and
+                therefore carries a paper label.
+
+   The original colour still appears — in the logo, and as a fill in the two modes above where
+   contrast permits. That is the whole point of storing both values.
+
+   These selectors require data-accent-mode on .le-site itself. It used to be set on a wrapper div
+   outside it, so none of this had ever applied. */
 .le-site[data-accent-mode="surface_only"] .le-btn,
-.le-site[data-accent-mode="derived"] .le-btn { color: var(--le-ink); }
+.le-site[data-accent-mode="surface_only"] .le-submit { color: var(--le-ink); }
+.le-site[data-accent-mode="derived"] .le-btn,
+.le-site[data-accent-mode="derived"] .le-submit {
+  background: var(--le-accent-derived); color: var(--le-paper);
+}
 
 .le-btn-sm { padding: 12px 22px; min-height: 44px; font-size: var(--le-utility); }
 
@@ -215,6 +254,12 @@ const SITE_CSS = `
   padding-right: 48px;
 }
 .le-hero-media { min-height: 620px; align-self: stretch; }
+.le-hero-fact {
+  margin: 32px 0 0; font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+  opacity: 0.7;
+}
 .le-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ── Proof bar ─────────────────────────────────────────────────────────────── */
@@ -267,7 +312,7 @@ const SITE_CSS = `
 .le-gal-feature { grid-column: 1 / 9;  aspect-ratio: 3 / 2; }
 .le-gal-stack   { grid-column: 9 / 13; display: grid; gap: 16px; }
 .le-gal-stack > * { aspect-ratio: 4 / 3; }
-.le-gal-third   { grid-column: span 4; aspect-ratio: 4 / 3; }
+.le-gal-rest    { aspect-ratio: 4 / 3; }
 .le-gal img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--le-radius-image); }
 
 /* ── Coverage ──────────────────────────────────────────────────────────────── */
@@ -319,7 +364,9 @@ const SITE_CSS = `
 }
 .le-submit {
   display: flex; align-items: center; justify-content: center; width: 100%;
-  background: var(--le-accent); color: var(--le-ink);
+  /* Paper label by default, matching .le-btn. Ink on a text_safe accent (Counsel's aged brass, for
+     instance) is dark-on-dark — the per-mode rules above are what change it. */
+  background: var(--le-accent); color: var(--le-paper);
   border-radius: var(--le-radius-button); min-height: 56px; padding: 18px 32px;
   font-family: var(--le-font-utility), system-ui, sans-serif;
   font-size: var(--le-body); font-weight: var(--le-utility-weight);
@@ -373,7 +420,7 @@ const SITE_CSS = `
   .le-gal { grid-template-columns: repeat(2, 1fr); }
   .le-gal-feature { grid-column: 1 / -1; }
   .le-gal-stack   { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); }
-  .le-gal-third   { grid-column: span 1; }
+  .le-gal-rest    { grid-column: span 1 !important; }
 
   .le-cover { grid-template-columns: repeat(2, 1fr); }
   .le-cta-band { padding: 56px 0; }
@@ -468,7 +515,7 @@ export function HeroSplit({
         <div className="le-hero-text">
           {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
           <h1 className="le-h1">{content.businessName}</h1>
-          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+          {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
           <div className="le-actions">
             <CtaButton content={content} />
             {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
@@ -485,6 +532,10 @@ export function HeroSplit({
 
 /** Hero with no image: an editorial stack widened to eight columns so nothing sits beside a void. */
 export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyebrow?: string }) {
+  // The proof bar refuses to render below two facts. Without this the single fact a thin site does
+  // have — usually its service area — would disappear from the page altogether, and local intent
+  // belongs in the first viewport.
+  const strandedFacts = proofBarRenders(content) ? [] : proofFacts(content)
   return (
     <header className="le-hero" id="top">
       <div className="le-wrap">
@@ -492,11 +543,16 @@ export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyeb
           <div className="le-c1-8 le-hero-text">
             {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
             <h1 className="le-h1">{content.businessName}</h1>
-            {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+            {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
             <div className="le-actions">
               <CtaButton content={content} />
               {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
             </div>
+            {strandedFacts.length ? (
+              <p className="le-hero-fact">
+                {strandedFacts.map(([label, value]) => `${label}: ${value}`).join('  ·  ')}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -511,16 +567,14 @@ export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyeb
  * what an unanswered credentials question used to produce.
  */
 export function ProofBar({ content, showAreas = true }: { content: SiteContent; showAreas?: boolean }) {
-  const items: Array<[string, string]> = []
-  if (content.yearsInBusiness) items.push(['In business', content.yearsInBusiness])
-  if (content.credentials)     items.push(['Credentials', content.credentials])
-  if (showAreas && content.serviceAreas?.length) items.push(['Serving', content.serviceAreas.slice(0, 3).join(' · ')])
-  if (content.googleProfileUrl) items.push(['Reviews', 'Google Business Profile'])
-  if (items.length === 0) return null
+  // One fact is not a bar. A single cell spanning the full width between two rules is what made
+  // review-sparse read as broken; the hero carries a lone fact instead.
+  if (!proofBarRenders(content, { showAreas })) return null
+  const facts = proofFacts(content, { showAreas })
 
   return (
-    <dl className={`le-proof le-proof-${Math.min(items.length, 4)}`}>
-      {items.slice(0, 4).map(([label, value]) => (
+    <dl className={`le-proof le-proof-${Math.min(facts.length, 4)}`}>
+      {facts.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
           <dd>{value}</dd>
@@ -572,7 +626,7 @@ export function Services({
           ))}
         </div>
       ) : (
-        <div className="le-svc-list">
+        <div className="le-svc-list" style={{ gridTemplateColumns: servicesColumns(services.length) === 1 ? '1fr' : '1fr 1fr' }}>
           {services.map(s => (
             <div className="le-svc-item" key={s.name}>
               <h3 className="le-h3">{s.name}</h3>
@@ -593,12 +647,7 @@ export function Services({
  * with one item in them is the void this section was built to remove.
  */
 export function WhyUs({ content, band }: { content: SiteContent; band?: boolean }) {
-  const source = [content.differentiator, content.credentials, content.intro].filter(Boolean).join(' ')
-  const items = source
-    .split(/(?<=[.!?])\s+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 20)
-    .slice(0, 4)
+  const items = whyUsItems(content)
 
   if (items.length === 0) return null
 
@@ -644,11 +693,8 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
 export function Gallery({
   photos, eyebrow = 'Our work', heading = 'Recent work',
 }: { photos: SitePhoto[]; eyebrow?: string; heading?: string }) {
-  if (photos.length === 0) return null
-
-  const feature = photos.length >= 4 ? photos[0] : undefined
-  const stack   = photos.length >= 4 ? photos.slice(1, 3) : []
-  const thirds  = photos.length >= 4 ? photos.slice(3, 6) : photos.slice(0, 3)
+  const layout = galleryLayout(photos)
+  if (!layout) return null
 
   return (
     <Section id="work" density="anchor">
@@ -656,39 +702,31 @@ export function Gallery({
         <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
       </div>
       <div className="le-gal">
-        {feature ? (
+        {layout.feature ? (
           <figure className="le-gal-feature" style={{ margin: 0 }}>
-            <img src={feature.url} alt={feature.caption ?? ''} loading="lazy" />
+            <img src={layout.feature.url} alt={layout.feature.caption ?? ''} loading="lazy" />
           </figure>
         ) : null}
-        {stack.length ? (
+        {layout.stack.length ? (
           <div className="le-gal-stack">
-            {stack.map(p => (
+            {layout.stack.map(p => (
               <figure key={p.id} style={{ margin: 0 }}>
                 <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
               </figure>
             ))}
           </div>
         ) : null}
-        {thirds.map(p => (
-          <figure className="le-gal-third" key={p.id} style={{ margin: 0 }}>
+        {/* Span computed from what is LEFT, not assumed. The allocator spends photos on the hero
+            and the band first, so the bottom row routinely holds two rather than three — and a
+            fixed three-up rendering two left the right third of the grid empty. */}
+        {layout.rest.map(p => (
+          <figure className="le-gal-rest" key={p.id} style={{ margin: 0, gridColumn: `span ${layout.restSpan}` }}>
             <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
           </figure>
         ))}
       </div>
     </Section>
   )
-}
-
-/**
- * Whether the Coverage section will render at all.
- *
- * Exported because the proof bar needs to know: areas belong in exactly one place per page, and
- * which place depends on whether there are enough of them to justify a section. Templates ask this
- * rather than hardcoding `showAreas`, so the two can never both show the list or both hide it.
- */
-export function coverageRenders(content: SiteContent): boolean {
-  return (content.serviceAreas?.length ?? 0) >= 3
 }
 
 /**
@@ -707,7 +745,7 @@ export function Coverage({ content }: { content: SiteContent }) {
       <div className="le-grid">
         <div className="le-c1-6"><SectionHead eyebrow="Where we work" heading="Areas we serve" /></div>
       </div>
-      <ul className="le-cover" style={{ margin: 0, padding: 0 }}>
+      <ul className="le-cover" style={{ margin: 0, padding: 0, gridTemplateColumns: `repeat(${coverageColumns(shown.length)}, 1fr)` }}>
         {shown.map(city => <li key={city}>{city}</li>)}
       </ul>
       {areas!.length > shown.length ? <p className="le-cover-note">and surrounding areas.</p> : null}

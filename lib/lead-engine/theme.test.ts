@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   DEFAULT_TEMPLATE, DEFAULT_THEME, INTENTIONAL_DEFAULT_PAIR_VERTICALS, TEMPLATES, THEMES,
-  VERTICAL_MAP, contrastRatio, effectiveTemplate, fontsFor, resolveForVertical, tokensFor,
+  VERTICAL_MAP, accentModeFor, contrastRatio, effectiveTemplate, fontsFor, resolveForVertical, tokensFor,
   validateAccent,
 } from '@/lib/lead-engine/theme'
 import { ALL_VERTICAL_OPTIONS } from '@/lib/lead-engine/verticals'
@@ -249,6 +249,50 @@ test('body text clears 4.5:1 on paper in every theme', () => {
   }
 })
 
+test('EVERY ACCENT MODE PRODUCES A READABLE BUTTON', () => {
+  // The rule that decides button colour had never once fired: its selector is
+  // `.le-site[data-accent-mode=...]`, and the attribute was being set on a wrapper div OUTSIDE
+  // .le-site. So #FFE500 rendered as a light label on a light-yellow fill — the exact failure the
+  // validator exists to prevent, shipping on the fixture built to catch it.
+  //
+  // This asserts the CONTRACT the CSS implements, per mode:
+  //   text_safe    accent fill, paper label
+  //   surface_only accent fill, INK label
+  //   derived      accent-DERIVED fill, paper label (the original is invisible on paper)
+  const cases: Array<[Theme, string]> = [
+    ['counsel', '#7A5C2E'],   // text_safe
+    ['yard',    '#E0A526'],   // surface_only
+    ['ironclad', '#FFE500'],  // derived
+  ]
+
+  for (const [theme, hex] of cases) {
+    const { accent, accent_derived, accent_mode } = validateAccent(theme, hex)
+    const tokens = tokensFor(theme, { accent })
+    const paper = tokens['--le-paper']
+    const ink = tokens['--le-ink']
+
+    const fill  = accent_mode === 'derived' ? accent_derived : accent
+    const label = accent_mode === 'surface_only' ? ink : paper
+
+    const ratio = contrastRatio(label, fill)
+    assert.ok(ratio >= 3.0, `${theme} (${accent_mode}): button label is ${ratio.toFixed(2)}:1 on its fill`)
+
+    // And the fill must be visible against the page, or the button is an invisible shape.
+    const onPaper = contrastRatio(fill, paper)
+    assert.ok(onPaper >= 1.5, `${theme} (${accent_mode}): fill is ${onPaper.toFixed(2)}:1 against paper`)
+  }
+})
+
+test('a derived accent is never used as a button fill in its original form', () => {
+  // #FFE500 measures 1.21:1 against Ironclad's paper — as a fill it is a nearly invisible smudge,
+  // so the derived value takes over. The original survives for the logo only.
+  const { accent, accent_derived, accent_mode } = validateAccent('ironclad', '#FFE500')
+  assert.equal(accent_mode, 'derived')
+  assert.equal(accent, '#FFE500', 'the original must survive for the logo')
+  assert.ok(contrastRatio(accent, tokensFor('ironclad')['--le-paper']) < 1.5)
+  assert.ok(contrastRatio(accent_derived, tokensFor('ironclad')['--le-paper']) >= 4.5)
+})
+
 test("every kit's own accent survives its own validator", () => {
   // A kit shipping an accent that its own validator darkens is a kit with a bug — the signature
   // colour would never appear on a site using that kit unmodified.
@@ -277,4 +321,17 @@ test('a colour that is invisible as a fill is derived, not called surface-only',
   const r = validateAccent('counsel', '#FFE500')
   assert.equal(r.accent_mode, 'derived')
   assert.ok(contrastRatio(r.accent, tokensFor('counsel')['--le-paper']) < 1.5)
+})
+
+test('the accent mode reflects the KIT accent when the customer supplied none', () => {
+  // Gating this on a brand override defaulted every un-branded site to text_safe. Yard's own
+  // equipment yellow is surface_only, so every rental site rendered paper-coloured labels on a
+  // yellow fill — around 1.6:1, unreadable — with no customer override involved at all.
+  assert.equal(accentModeFor('yard'), 'surface_only')
+  assert.equal(accentModeFor('counsel'), 'text_safe')
+  assert.equal(accentModeFor('ironclad'), 'surface_only')
+
+  // A customer override takes over when there is one.
+  assert.equal(accentModeFor('ironclad', { accent: '#FFE500' }), 'derived')
+  assert.equal(accentModeFor('yard', { accent: '#1F6F8B' }), 'text_safe')
 })

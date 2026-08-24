@@ -487,6 +487,22 @@ export function tokensFor(theme: Theme, brand?: Brand): Record<string, string> {
   }
 }
 
+/**
+ * The accent mode actually in force on a page — for the kit's OWN accent as much as for a
+ * customer override.
+ *
+ * The route used to compute this only when `brand.accent` was set, and defaulted to `text_safe`
+ * otherwise. That is wrong for any kit whose own accent is not text-safe: **Yard's equipment
+ * yellow is surface_only**, so every rental site rendered paper-coloured labels on a yellow fill —
+ * about 1.6:1, unreadable — with no customer override involved at all.
+ *
+ * The mode is a property of the accent that ends up on the page, whoever supplied it.
+ */
+export function accentModeFor(theme: Theme, brand?: Brand): AccentMode {
+  const kit = KITS[theme] ?? KITS[DEFAULT_THEME]
+  return validateAccent(theme, brand?.accent ?? kit.accent).accent_mode
+}
+
 /** The token map as an inline `style` object for a React element. */
 export function tokenStyle(theme: Theme, brand?: Brand): Record<string, string> {
   return tokensFor(theme, brand)

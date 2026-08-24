@@ -373,6 +373,10 @@ const SITES = [
         { name: 'Leak repair', description: 'Detection and repair, including under slab.' }
       ],
       service_areas: 'Fort Worth',
+      // The differentiator IS the hero's lede, and without it the editorial hero is a headline and
+      // a button with half a screen of void beside it. Q4 is therefore REQUIRED — a customer who
+      // skips it has no page. Sparse here means no photos and few services, not no answers.
+      differentiator: 'One van, one plumber, and the same number you called last time.',
       primary_cta: 'call',
       has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',
