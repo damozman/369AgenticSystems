@@ -272,7 +272,6 @@ if (!LIVE) {
   // It also covers the case the CSS cannot: `min-width: 0` is applied to an enumerated list of
   // layout containers, so a grid section added later is not on that list. This assertion does not
   // care what caused the overflow.
-  console.log('\nNo horizontal scroll at 320px')
   let browser
   try {
     const { chromium } = await import('playwright')
@@ -281,7 +280,81 @@ if (!LIVE) {
     fail(`could not launch Playwright: ${e.message} — this check did NOT run`)
   }
 
+  // ── Every button a visitor can see is readable ─────────────────────────────
+  //
+  // This is the regression test for the defect that hid for the entire build: the rule deciding
+  // button colour is `.le-site[data-accent-mode=...]`, and the attribute was set on a wrapper div
+  // OUTSIDE .le-site, so it had never once matched. Every unit test still passed, because they
+  // assert the CONTRACT — what colour a given mode SHOULD produce — and the contract was right.
+  // Nothing asked what the browser actually painted.
+  //
+  // So this reads getComputedStyle off the real element. It fails if the attribute moves, if the
+  // selector is edited, if a theme's accent regresses, or if a new button class is added without
+  // the correction — none of which a pure test can see.
   if (browser) {
+    console.log('\nButton contrast, as painted')
+    for (const site of fixtures ?? []) {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+      try {
+        await page.goto(`${base}/sites/${site.slug}`, { waitUntil: 'networkidle', timeout: 30000 })
+        const buttons = await page.evaluate(() => {
+          const lum = (c) => {
+            const [r, g, b] = c.map(v => {
+              const s = v / 255
+              return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+            })
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+          }
+          const parse = (s) => (s.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number)
+          // The painted background, walking up through any transparent ancestors — exactly what
+          // the eye resolves when a button sits on a section that sits on the page.
+          const behind = (el) => {
+            for (let n = el; n; n = n.parentElement) {
+              const bg = getComputedStyle(n).backgroundColor
+              if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return parse(bg)
+            }
+            return [255, 255, 255]
+          }
+          return [...document.querySelectorAll('.le-btn, .le-submit')].map(el => {
+            const cs = getComputedStyle(el)
+            const fg = parse(cs.color)
+            const bg = behind(el)
+            const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x)
+            return {
+              text: (el.textContent ?? '').trim().slice(0, 28),
+              ratio: (a + 0.05) / (b + 0.05),
+              fg: cs.color, bg: cs.backgroundColor,
+            }
+          })
+        })
+
+        const mode = await page.$eval('.le-site', el => el.dataset.accentMode ?? null).catch(() => null)
+        if (!mode) {
+          fail(`${site.slug}: .le-site carries no data-accent-mode — the button-contrast rules cannot match`)
+        }
+
+        // 3:1 is WCAG's large-text threshold, and a button label is large or bold text.
+        const unreadable = buttons.filter(b => b.ratio < 3.0)
+        if (!buttons.length) {
+          fail(`${site.slug}: no buttons found — this check silently proved nothing`)
+        } else if (unreadable.length) {
+          for (const b of unreadable) {
+            fail(`${site.slug} [${mode}] "${b.text}" is ${b.ratio.toFixed(2)}:1 — ${b.fg} on ${b.bg}`)
+          }
+        } else {
+          const worst = Math.min(...buttons.map(b => b.ratio))
+          pass(`${site.slug} [${mode}] — ${buttons.length} buttons, worst ${worst.toFixed(2)}:1`)
+        }
+      } catch (e) {
+        fail(`${site.slug} button contrast — ${e.message}`)
+      } finally {
+        await page.close()
+      }
+    }
+  }
+
+  if (browser) {
+    console.log('\nNo horizontal scroll at 320px')
     for (const site of fixtures ?? []) {
       const page = await browser.newPage({ viewport: { width: 320, height: 800 } })
       try {

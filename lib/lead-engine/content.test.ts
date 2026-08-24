@@ -188,3 +188,58 @@ test('only http(s) survives the Google profile field', () => {
   assert.equal(profileUrlFrom('   '), undefined)
   assert.equal(profileUrlFrom(undefined), undefined)
 })
+
+// ── Practice-only answers (Q9–Q11) ───────────────────────────────────────────
+
+test('AN UNANSWERED "ACCEPTING NEW PATIENTS" STAYS UNANSWERED THROUGH THE MAPPING', () => {
+  // The whole field hinges on this. A practice that skipped the question has not said no, and the
+  // one-character version of this line — `!!answers.accepting_new_patients` — would make every
+  // such practice publish "Not taking new patients right now" on its own website.
+  assert.equal(contentFrom({ business_name: 'X' }, 'X').access, undefined)
+  assert.equal(
+    contentFrom({ business_name: 'X', location: 'Fort Worth' }, 'X').access?.acceptingNewPatients,
+    undefined,
+  )
+  // Both real answers survive as themselves.
+  assert.equal(contentFrom({ business_name: 'X', accepting_new_patients: false }, 'X').access?.acceptingNewPatients, false)
+  assert.equal(contentFrom({ business_name: 'X', accepting_new_patients: true }, 'X').access?.acceptingNewPatients, true)
+})
+
+test('HOURS ARE NOT SPLIT ON COMMAS', () => {
+  // "Mon, Wed, Fri 8-5" is one line. The generic list splitter would shred it into "Mon", "Wed" and
+  // "Fri 8-5" — three rows, two of which are meaningless, on the field a patient reads to find out
+  // when they can come in.
+  const c = contentFrom({ business_name: 'X', hours: 'Mon, Wed, Fri 8:00-5:00; Sat 9:00-noon' }, 'X')
+  assert.deepEqual(c.access?.hours, ['Mon, Wed, Fri 8:00-5:00', 'Sat 9:00-noon'])
+})
+
+test('a team member with no role is dropped rather than rendered unattributed', () => {
+  const c = contentFrom({
+    business_name: 'X',
+    team: [
+      { name: 'Dr Elena Ruiz', role: 'Principal dentist', credentials: 'DDS' },
+      { name: 'Someone', role: '' },
+      { role: 'Hygienist' },
+    ],
+  } as never, 'X')
+  assert.equal(c.team?.length, 1)
+  assert.equal(c.team?.[0].name, 'Dr Elena Ruiz')
+})
+
+test('the new-patient forms link is held to the same http(s) rule as every other href', () => {
+  assert.equal(
+    contentFrom({ business_name: 'X', patient_forms_url: 'javascript:alert(1)' }, 'X').newPatientInfo,
+    undefined,
+  )
+  assert.equal(
+    contentFrom({ business_name: 'X', patient_forms_url: 'example.com/forms' }, 'X').newPatientInfo?.formsUrl,
+    'https://example.com/forms',
+  )
+})
+
+test('a non-practice questionnaire produces no practice fields at all', () => {
+  const c = contentFrom({ business_name: 'Northside Roofing', phone: '(817) 555-0100' }, 'Northside Roofing')
+  assert.equal(c.access, undefined)
+  assert.equal(c.team, undefined)
+  assert.equal(c.newPatientInfo, undefined)
+})

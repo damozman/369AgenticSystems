@@ -6,6 +6,11 @@ finishing up. At the start of a new session, read this section first, before any
 **Replace it each time** — this is a running "current state" snapshot, not a changelog. Once an
 item is actually resolved, delete it from the list instead of marking it done.
 
+**On `feature/lead-engine`?** Everything below is the dossier / audit-calls handoff — real,
+in-flight work on `master`, a separate initiative from Lead Engine. Do not replace it with Lead
+Engine state and do not read it for Lead Engine context. Lead Engine keeps its own handoff, same
+protocol, at the top of `docs/LEAD-ENGINE-PLAN.md` — read that instead, checked out on that branch.
+
 **Companion doc — `docs/architecture/WHAT-CAN-I-DELIVER-TODAY.md`. Keep it current.**
 This section is *working state* (what is in flight right now). That doc is *delivery state*
 (what a paying client actually gets, per vertical, and what each gap still needs). They answer

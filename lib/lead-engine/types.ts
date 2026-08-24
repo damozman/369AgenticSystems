@@ -49,6 +49,46 @@ export interface FaqItem {
 }
 
 /**
+ * One practitioner, as the practice describes them.
+ *
+ * `role` is required and `credentials` is not, because "Dr Elena Ruiz" with no role beside it is
+ * an unattributed name and a patient cannot tell the dentist from the office manager. Credentials
+ * are a licence claim and are simply omitted when the practice did not state them.
+ */
+export interface TeamMember {
+  name: string
+  role: string
+  credentials?: string
+  bio?: string
+}
+
+/**
+ * The four things a patient checks before ringing a practice, and the reason Practice is a separate
+ * template rather than Service Clean in a different palette.
+ *
+ * **`acceptingNewPatients` is a tri-state on purpose.** `undefined` means the practice never
+ * answered, and it renders nothing — printing "Accepting new patients" on a books-closed practice
+ * generates a call the receptionist has to turn away, which is worse than saying nothing. `false`
+ * renders honestly as "Not taking new patients right now", which is a real answer a patient is
+ * grateful for.
+ */
+export interface PracticeAccess {
+  acceptingNewPatients?: boolean
+  /** Plan names exactly as the practice typed them. Never expanded, never abbreviated. */
+  insuranceAccepted?: string[]
+  /** One line per day or per group, e.g. "Mon–Thu 8:00–5:00". */
+  hours?: string[]
+  location?: string
+}
+
+/** What happens at a first appointment. Every field the practice's own words, or absent. */
+export interface NewPatientInfo {
+  firstVisit?: string
+  whatToBring?: string[]
+  formsUrl?: string
+}
+
+/**
  * Raw questionnaire answers, exactly as submitted.
  *
  * Everything is optional. A customer who skips a question has not answered it, and that is
@@ -67,6 +107,26 @@ export interface QuestionnaireAnswers {
   testimonials?: Testimonial[]
   faqs?: FaqItem[]
   service_areas?: string
+
+  /**
+   * ── Practice-only questions (Q9–Q11) ──
+   *
+   * Asked only of the practice verticals — dental, medical, veterinary, chiropractic, optometry.
+   * Before these existed the Practice template was Service Clean in the Clinic palette: its three
+   * distinguishing sections had no data behind them and therefore did not render.
+   *
+   * Every one is optional and the sections omit rather than default. `accepting_new_patients` is
+   * tri-state — see `PracticeAccess`.
+   */
+  accepting_new_patients?: boolean
+  insurance_accepted?: string | string[]
+  /** Free text; split on newlines and semicolons into one line per row. */
+  hours?: string
+  location?: string
+  team?: TeamMember[]
+  first_visit?: string
+  what_to_bring?: string | string[]
+  patient_forms_url?: string
   differentiator?: string
   credentials?: string
   years_in_business?: string
@@ -109,6 +169,10 @@ export interface SiteContent {
   intro?: string
   testimonials?: Testimonial[]
   faqs?: FaqItem[]
+  /** Practice only. Absent on every other template, and the sections omit when it is. */
+  access?: PracticeAccess
+  team?: TeamMember[]
+  newPatientInfo?: NewPatientInfo
 }
 
 /** A site row as the renderer needs it. Narrower than the table on purpose. */

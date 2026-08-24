@@ -76,7 +76,8 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
 
   const photos = await loadPhotos(site.id)
   const content = contentOf(site)
-  const Template = TEMPLATES[effectiveTemplate(site.template, photos.length)]
+  const template = effectiveTemplate(site.template, photos.length)
+  const Template = TEMPLATES[template]
 
   // Re-validated at render rather than trusted from storage: the stored value was checked against
   // whatever theme the site had when it was saved, and an operator can change the theme afterwards.
@@ -98,9 +99,11 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
   // on a short one. Counted from the same predicates the sections render from, so it cannot drift.
   const galleryPhotos = allocatePhotos(photos, {
     hero: true,
-    band: effectiveTemplate(site.template, photos.length) === 'trade_classic',
+    band: template === 'trade_classic',
   }).gallery
-  const density = pageDensity({ content, galleryPhotos, showAreasInProof: !coverageRenders(content) })
+  // The template matters: Service Clean and Supply render no gallery at all, and counting one they
+  // do not render is what gives a short page full rhythm — the void this whole pass removed.
+  const density = pageDensity({ content, galleryPhotos, template, showAreasInProof: !coverageRenders(content) })
 
   return (
     // accentMode and density go ON .le-site, not on a wrapper around it — the CSS selectors are

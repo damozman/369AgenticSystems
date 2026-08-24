@@ -261,14 +261,34 @@ const SITES = [
         { quote: 'Rang at eight in the morning with an abscess and was seen before lunch.', name: 'Ade F.', city: 'Fort Worth', jobType: 'Emergency' },
         { quote: 'They quoted the crown before doing it and the final bill was the same number. That should be normal and it is not.', name: 'Lauren K.', city: 'White Settlement', jobType: 'Crown' },
       ],
+      // The access bar answers "are you taking new patients", and the new-patient section answers
+      // "what do I bring" — both were FAQ rows before those sections existed. Left in place they
+      // would print the same answer twice on one page.
       faqs: [
-        { question: 'Are you taking new patients?', answer: 'Yes. New patient appointments are usually available within two weeks, and same-week if you are in pain.' },
         { question: 'What does a check-up cost without insurance?', answer: 'A check-up and clean is $120 for a new patient. We will tell you the price of anything further before we do it.' },
         { question: 'What if I am nervous?', answer: 'Tell us when you book. We allow extra time, explain everything before we do it, and stop whenever you ask.' },
         { question: 'Do you see children?', answer: 'Yes, from around age three. First visits are usually a ride in the chair and a count of the teeth, nothing more.' },
         { question: 'Can I pay in instalments?', answer: 'For larger treatment plans, yes. We will set it out in writing before you commit to anything.' },
-        { question: 'What do I bring to a first appointment?', answer: 'Any insurance details you have, a list of medications, and the name of your previous dentist if you would like records transferred.' },
+        { question: 'What happens if I need treatment urgently?', answer: 'Two slots are held free every morning. Ring before nine and you will usually be seen the same day.' },
+        { question: 'Do you take referrals from other dentists?', answer: 'Yes, and we will write back to them with what we did unless you would rather we did not.' },
       ],
+
+      // ── Practice-only answers (Q9–Q11) ──
+      accepting_new_patients: true,
+      insurance_accepted: 'Delta Dental, Cigna, MetLife, Aetna, Guardian, United Concordia',
+      hours: 'Mon–Thu 7:30–5:00; Fri 7:30–1:00; Sat by arrangement',
+      location: '2140 Camp Bowie Boulevard, Fort Worth, TX 76107',
+      team: [
+        { name: 'Dr Elena Ruiz', role: 'Principal dentist', credentials: 'DDS, Texas licence 21044', bio: 'Opened the practice in 2011 after eight years in a hospital dental department. Takes the nervous appointments herself.' },
+        { name: 'Dr Marcus Oyelaran', role: 'Associate dentist', credentials: 'DMD', bio: 'Joined in 2019. Most of the crown and bridge work, and the referrals from three practices nearby.' },
+        { name: 'Priya Raman', role: 'Dental hygienist', credentials: 'RDH', bio: 'Sees most patients more often than either dentist does, and will tell you honestly whether you need the appointment.' },
+        { name: 'Dana Whitmore', role: 'Practice manager', bio: 'Handles insurance, payment plans and the two emergency slots. The person you speak to when you ring.' },
+        { name: 'Tobias Lin', role: 'Dental assistant', credentials: 'RDA' },
+      ],
+      first_visit: 'Your first appointment runs 45 minutes rather than the usual 20. We take a full history, examine everything, and then sit down and go through what we found and what it would cost before booking anything. Nobody is asked to agree to treatment on the day.',
+      what_to_bring: 'Insurance card or plan details; A list of any medications you take; The name of your previous dentist; Photo ID',
+      patient_forms_url: 'https://bluebonnetfamilydental.example.com/new-patient-forms',
+
       notify_email: OWNER,
       preferred_slug: 'bluebonnet-family-dental',
     },
@@ -376,7 +396,21 @@ const SITES = [
       // The differentiator IS the hero's lede, and without it the editorial hero is a headline and
       // a button with half a screen of void beside it. Q4 is therefore REQUIRED — a customer who
       // skips it has no page. Sparse here means no photos and few services, not no answers.
-      differentiator: 'One van, one plumber, and the same number you called last time.',
+      //
+      // TWO sentences, deliberately — one sentence used to be all this fixture had, which meant
+      // heroLede() consumed the whole differentiator as the hero's lede and left whyUsItems() with
+      // nothing: Why us silently did not render at all, dropping the page to 5 sections and landing
+      // it on the "full" side of the <5 compact threshold with one fewer section to fill the
+      // rhythm — the "large empty gaps" a reviewer actually sees. The fixture's own comment already
+      // said "not no answers"; it just had one.
+      differentiator: 'One van, one plumber, and the same number you called last time. If I quote a job I am the one who shows up and does it — no second guy, no different price.',
+      // One more sentence, added alongside the differentiator fix above. Two sentences past the
+      // lede gave Why us exactly one item — one <p> plus the section's own eyebrow is two content
+      // elements, one short of the near-empty-section gate `verify-lead-engine.mjs` enforces on
+      // every fixture. The other three fixtures that land on the single-column layout (brand-fail,
+      // showcase-grid, practice) all clear it the same way: a multi-sentence differentiator PLUS a
+      // one-line intro. This fixture had never had an intro at all.
+      visitor_message: 'Most people finding us have already had one plumber not turn up.',
       primary_cta: 'call',
       has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',

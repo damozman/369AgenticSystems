@@ -29,11 +29,15 @@ import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
 import {
-  coverageColumns, coverageRenders, galleryLayout, proofBarRenders, proofFacts,
-  heroLede, servicesColumns, whyUsItems,
+  accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout,
+  newPatientRenders, proofBarRenders, proofFacts, heroLede, servicesColumns, teamColumns, teamRenders,
+  whyUsItems,
 } from '@/lib/lead-engine/sections'
+import type { ProofFact } from '@/lib/lead-engine/sections'
 
-export { coverageRenders, proofBarRenders } from '@/lib/lead-engine/sections'
+export {
+  accessBarRenders, coverageRenders, editorialHeroFacts, proofBarRenders,
+} from '@/lib/lead-engine/sections'
 
 export function ThemeShell({
   theme, brand, fontClass, accentMode = 'text_safe', density = 'full', children,
@@ -113,7 +117,7 @@ const SITE_CSS = `
 */
 .le-site { overflow-wrap: break-word; }
 .le-site :where(
-  .le-grid, .le-hero-inner, .le-proof, .le-svc-list, .le-cover,
+  .le-grid, .le-hero-inner, .le-proof, .le-svc-list, .le-cover, .le-team, .le-hero-facts,
   .le-gal, .le-gal-stack, .le-header-inner, .le-header-actions, .le-actions, .le-faq
 ) > * { min-width: 0; }
 .le-site :focus-visible { outline: 2px solid var(--le-accent-derived); outline-offset: 2px; }
@@ -123,8 +127,10 @@ const SITE_CSS = `
 .le-grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 32px; }
 .le-c1-5  { grid-column: 1 / 6;  }
 .le-c1-6  { grid-column: 1 / 7;  }
+.le-c1-7  { grid-column: 1 / 8;  }
 .le-c1-8  { grid-column: 1 / 9;  }
 .le-c7-12 { grid-column: 7 / 13; }
+.le-c9-12 { grid-column: 9 / 13; }
 .le-c1-12 { grid-column: 1 / -1; }
 
 /* Full-bleed. Rendered outside .le-wrap, so it is already the full page width — width: 100%
@@ -141,6 +147,13 @@ const SITE_CSS = `
 .le-site[data-density="compact"] .le-connector { padding: var(--le-space-connector-m) 0; }
 .le-band      { background: var(--le-structure); color: var(--le-paper); }
 .le-band .le-eyebrow { color: var(--le-paper); opacity: 0.72; }
+/* Every hairline in this file is drawn with var(--le-edge), a tone built to sit on --le-paper. On
+   --le-structure (a dark tone in every kit) that same hairline is nearly invisible. Rather than
+   writing a --le-band-specific override for every rule that draws one, redefine the CUSTOM
+   PROPERTY itself inside .le-band — every descendant that reads var(--le-edge) picks up this value
+   through the ordinary CSS cascade, with no per-selector duplication. Same technique, same 20%
+   figure, already proven on .le-field's border on the terminal CTA band. */
+.le-band { --le-edge: color-mix(in oklab, var(--le-paper) 20%, transparent); }
 
 .le-eyebrow {
   font-family: var(--le-font-utility), system-ui, sans-serif;
@@ -245,11 +258,23 @@ const SITE_CSS = `
    calc(50vw - 640px + 48px) is the container's own left inset — half the viewport, minus half of
    the 1280px container, plus its 48px padding. max() clamps it once the viewport is narrower
    than the container. No negative margins, so there is nothing to overflow.
+
+   THIS CALC IS SCOPED TO .le-hero-inner .le-hero-text — the split-anchor hero only. It used to sit
+   on the bare .le-hero-text class, which HeroEditorial's text block also carries. Editorial has no
+   viewport-bleeding image and already sits inside .le-wrap (a real 1280px-capped, 48px-padded
+   container) — so the calc was a SECOND, additive left inset on top of one it already had, growing
+   without bound as the viewport widened (368px at 1920px). On the centred variant, whose own box is
+   a fixed ~623px (68ch, computed against the BODY font-size, so it does not grow with the hero's
+   type scale), that padding ate so much of the box that "Plumbing" no longer fit on a line and
+   overflow-wrap broke it mid-word — "Bell / Avenue / Plumbin / g" on review-sparse at wide desktop
+   widths. Verified by sweeping viewport width and measuring the headline's own rendered box: it
+   NARROWED as the viewport grew past ~1280px, which is backwards, and is only possible when an
+   unbounded left inset is consuming a fixed-width box faster than the box itself can offer room.
 */
 .le-hero { position: relative; }
 .le-hero-inner { display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
-.le-hero-text {
-  padding-top: 96px; padding-bottom: 96px;
+.le-hero-text { padding-top: 96px; padding-bottom: 96px; }
+.le-hero-inner .le-hero-text {
   padding-left: max(48px, calc(50vw - 640px + 48px));
   padding-right: 48px;
 }
@@ -262,15 +287,42 @@ const SITE_CSS = `
 }
 .le-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* The editorial hero's right-hand columns. Without these the block sat in 1-8 and 9-12 was empty,
+   which is four dead columns and half the first viewport on Counsel and Ledger. */
+.le-hero-facts {
+  margin: 0; align-self: end; display: grid; row-gap: 28px;
+  border-left: 1px solid var(--le-edge); padding-left: 32px;
+}
+.le-hero-facts dt {
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+  opacity: 0.6; margin: 0 0 6px;
+}
+.le-hero-facts dd {
+  margin: 0; font-family: var(--le-font-display), Georgia, serif;
+  font-size: var(--le-display-m); font-weight: 600; line-height: 1.3;
+}
+/* With no facts to sit beside it the block centres instead, so the margin is balanced rather than
+   all on the right. 68ch is a measure, not a width in px, so it scales with the theme's type. */
+.le-hero-centred { max-width: 68ch; margin-inline: auto; }
+
 /* ── Proof bar ─────────────────────────────────────────────────────────────── */
 .le-proof {
   border-top: 1px solid var(--le-edge); border-bottom: 1px solid var(--le-edge);
   padding: 40px 0; display: grid; column-gap: 32px; row-gap: 24px;
 }
+/* At 4 facts, 1fr tracks are the right call — four roughly-equal short answers genuinely want to
+   spread across the full bar. Below 4, 1fr still stretched each track to fill the same width, so
+   two short facts (a number, a one-word label) sat flush left with a wide run of nothing to their
+   right — the same "content doesn't fill its slot" failure the hero fix solved, in a bar rather
+   than a grid cell. Content-sized columns, centred as a group, is what the fix brief's second
+   option ("the items should center in the available width") means literally: the CLUSTER centres,
+   rather than being stretched to a width its content never asked for. */
 .le-proof-4 { grid-template-columns: repeat(4, 1fr); }
-.le-proof-3 { grid-template-columns: repeat(3, 1fr); }
-.le-proof-2 { grid-template-columns: repeat(2, 1fr); }
-.le-proof-1 { grid-template-columns: 1fr; }
+.le-proof-3 { grid-template-columns: repeat(3, max-content); justify-content: center; }
+.le-proof-2 { grid-template-columns: repeat(2, max-content); justify-content: center; }
+.le-proof-1 { grid-template-columns: max-content; justify-content: center; }
 .le-proof dt {
   font-family: var(--le-font-utility), system-ui, sans-serif;
   font-size: var(--le-utility); font-weight: var(--le-utility-weight);
@@ -280,7 +332,36 @@ const SITE_CSS = `
 .le-proof dd {
   margin: 0; font-size: var(--le-display-m); font-weight: 600;
   font-family: var(--le-font-display), Georgia, serif; line-height: 1.25;
+  /* A cap, not a fit: with content-sized columns below 4 facts, an unbounded "Serving: Fort Worth
+     · Arlington · Keller" would stretch its own track far past a short neighbouring fact like "12
+     years", undoing the centring by making the row lopsided again. */
+  max-width: 28ch;
 }
+
+/* ── Practice: access bar, team, new patients ──────────────────────────────── */
+
+/* Sits on a band, so it needs no rules of its own — two hairlines on a tinted panel is one edge
+   too many. The dd drops to body size because these are sentences, not numbers. */
+.le-access { border-top: 0; border-bottom: 0; padding: 8px 0; }
+.le-access dd { font-size: var(--le-body-l); font-weight: 500; line-height: 1.4; }
+/* The one fact a patient scans for. The accent draws the eye to it in both directions — a clear
+   "not right now" is as useful to read as a yes. */
+.le-access div[data-open] dd { color: var(--le-accent); }
+.le-site[data-accent-mode="derived"] .le-access div[data-open] dd { color: var(--le-accent-derived); }
+
+.le-team { display: grid; column-gap: 32px; row-gap: 48px; list-style: none; }
+.le-team li { border-top: 1px solid var(--le-edge); padding-top: 20px; }
+.le-team-role {
+  margin: 6px 0 12px; font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+  opacity: 0.65;
+}
+.le-team li p:last-child { margin: 0; opacity: 0.85; }
+
+.le-bring { margin: 16px 0 0; padding: 0; list-style: none; }
+.le-bring li { border-bottom: 1px solid var(--le-edge); padding: 14px 0; }
+.le-bring li:last-child { border-bottom: 0; }
 
 /* ── Services 5a: alternating ladder ───────────────────────────────────────── */
 .le-ladder-row { align-items: center; margin-bottom: 96px; }
@@ -306,6 +387,24 @@ const SITE_CSS = `
 .le-why-item:last-child { margin-bottom: 0; }
 .le-why-item p { margin: 12px 0 0; max-width: 42ch; }
 .le-why-single { max-width: 62ch; margin: 0 auto; text-align: center; }
+/* Its own rhythm tier, not the standard connector's 64px — reuses the connector's own MOBILE
+   value as a smaller desktop one rather than inventing a new spacing number. One or two sentences
+   inside 64px of padding is what read as empty; this section is sized to what it actually holds. */
+.le-why-compact { padding: var(--le-space-connector-m) 0; }
+/* The pull quote. Display-l — the same size as the three-item layout's OWN heading — carries the
+   section's full visual weight now that there is no heading competing with it. No quotation marks:
+   this is the business's own claim about itself, not a customer's words, and Trust sits close
+   enough on the page that a literal quote here would misread as a second set of testimonials. */
+.le-why-quote {
+  margin: 0; font-family: var(--le-font-display), Georgia, serif;
+  font-size: var(--le-display-m); font-weight: var(--le-display-weight);
+  letter-spacing: var(--le-display-tracking); line-height: 1.3;
+}
+/* A caption, not a peer paragraph — set close beneath the quote so it reads as belonging to it. */
+.le-why-caption {
+  margin: 20px 0 0; font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-body); opacity: 0.65;
+}
 
 /* ── Gallery: fixed ratios, six maximum ────────────────────────────────────── */
 .le-gal { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
@@ -395,7 +494,7 @@ const SITE_CSS = `
   .le-anchor    { padding: var(--le-space-anchor-m) 0; }
   .le-connector { padding: var(--le-space-connector-m) 0; }
 
-  .le-c1-5, .le-c1-6, .le-c1-8, .le-c7-12, .le-c1-12,
+  .le-c1-5, .le-c1-6, .le-c1-7, .le-c1-8, .le-c7-12, .le-c9-12, .le-c1-12,
   .le-ladder-img, .le-ladder-txt, .le-why-head, .le-why-items,
   .le-cta-left, .le-cta-right, .le-faq,
   .le-ladder-row:nth-child(even) .le-ladder-img,
@@ -406,11 +505,22 @@ const SITE_CSS = `
 
   /* Photo above the text on mobile, per the SKILL's split-anchor note. */
   .le-hero-inner { grid-template-columns: 1fr; }
-  .le-hero-text { padding: 40px 20px; }
+  /* Split-only, same scoping fix as the desktop rule above. The split hero has no .le-wrap and
+     needs its own 20px horizontal inset; the editorial hero already gets one from .le-wrap and
+     does not need a second, smaller one stacked on top of it. */
+  .le-hero-text { padding: 40px 0; }
+  .le-hero-inner .le-hero-text { padding-left: 20px; padding-right: 20px; }
   .le-h1 { font-size: clamp(2.5rem, 9vw, 3.25rem); max-width: none; }
   .le-hero-media { grid-row: 1; min-height: 320px; height: 320px; }
 
-  .le-proof-4, .le-proof-3 { grid-template-columns: repeat(2, 1fr); }
+  /* The desktop centred/content-sized treatment for 2-3 facts is a DESKTOP fix: max-content columns
+     refuse to wrap, and "Licensed and insured in Texas" at display-m size computed to 398px wide —
+     wider than the entire 320px viewport — the first time this was checked at a real mobile width.
+     Reset every count back to a responsive, stretching, WRAPPING 2-up grid, same as it always was. */
+  .le-proof-4, .le-proof-3, .le-proof-2 {
+    grid-template-columns: repeat(2, 1fr); justify-content: stretch;
+  }
+  .le-proof dd { max-width: none; }
   .le-ladder-row { margin-bottom: 48px; }
   .le-ladder-row:nth-child(even) .le-ladder-img,
   .le-ladder-row:nth-child(even) .le-ladder-txt { grid-row: auto; }
@@ -423,6 +533,10 @@ const SITE_CSS = `
   .le-gal-rest    { grid-column: span 1 !important; }
 
   .le-cover { grid-template-columns: repeat(2, 1fr); }
+  .le-team  { grid-template-columns: 1fr !important; row-gap: 32px; }
+  /* The facts stack below the headline rather than beside it; the border moves to the top edge. */
+  .le-hero-facts { border-left: 0; border-top: 1px solid var(--le-edge); padding: 32px 20px 0; row-gap: 20px; }
+  .le-hero-centred { max-width: none; }
   .le-cta-band { padding: 56px 0; }
   .le-btn { width: 100%; }
   .le-actions { gap: 16px; margin-top: 32px; }
@@ -441,10 +555,18 @@ const SITE_CSS = `
 // ── Primitives ───────────────────────────────────────────────────────────────
 
 export function Section({
-  id, density = 'anchor', band, children,
-}: { id?: string; density?: 'anchor' | 'connector'; band?: boolean; children: ReactNode }) {
+  id, density = 'anchor', band, className, children,
+}: {
+  id?: string
+  density?: 'anchor' | 'connector'
+  band?: boolean
+  /** An escape hatch for a section whose rhythm is neither of the two standard tiers — see the
+      Why-us single-item fallback, the one caller that currently needs it. */
+  className?: string
+  children: ReactNode
+}) {
   return (
-    <section id={id} className={[density === 'anchor' ? 'le-anchor' : 'le-connector', band ? 'le-band' : ''].join(' ').trim()}>
+    <section id={id} className={[density === 'anchor' ? 'le-anchor' : 'le-connector', band ? 'le-band' : '', className ?? ''].join(' ').trim()}>
       <div className="le-wrap">{children}</div>
     </section>
   )
@@ -530,17 +652,33 @@ export function HeroSplit({
   )
 }
 
-/** Hero with no image: an editorial stack widened to eight columns so nothing sits beside a void. */
-export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyebrow?: string }) {
-  // The proof bar refuses to render below two facts. Without this the single fact a thin site does
-  // have — usually its service area — would disappear from the page altogether, and local intent
-  // belongs in the first viewport.
-  const strandedFacts = proofBarRenders(content) ? [] : proofFacts(content)
+/**
+ * Hero with no image.
+ *
+ * Two shapes, and which one it takes is the fix for the dead right half. The block used to sit in
+ * columns 1–8 with 9–12 empty — four dead columns on Counsel and Ledger, where half the first
+ * viewport was blank.
+ *
+ * • **With facts**: text 1–7, the facts stacked in 9–12. The templates that pass facts here drop
+ *   their proof bar, so this moves the content up rather than printing it twice.
+ * • **Without**: the block centres at a 68ch measure, so the margin is balanced rather than all on
+ *   one side. A single stranded fact still prints inline — local intent belongs above the fold, and
+ *   on a thin site the proof bar refuses to render it.
+ */
+export function HeroEditorial({
+  content, eyebrow, facts,
+}: { content: SiteContent; eyebrow?: string; facts?: ProofFact[] }) {
+  // Default preserves the split hero's fallback behaviour: the bar below still renders, so the hero
+  // shows only what the bar refused.
+  const carried = facts ?? (proofBarRenders(content) ? [] : proofFacts(content))
+  const stacked = carried.length >= 2
+  const stranded = stacked ? [] : carried
+
   return (
     <header className="le-hero" id="top">
       <div className="le-wrap">
         <div className="le-grid">
-          <div className="le-c1-8 le-hero-text">
+          <div className={stacked ? 'le-c1-7 le-hero-text' : 'le-c1-12 le-hero-text le-hero-centred'}>
             {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
             <h1 className="le-h1">{content.businessName}</h1>
             {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
@@ -548,12 +686,23 @@ export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyeb
               <CtaButton content={content} />
               {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
             </div>
-            {strandedFacts.length ? (
+            {stranded.length ? (
               <p className="le-hero-fact">
-                {strandedFacts.map(([label, value]) => `${label}: ${value}`).join('  ·  ')}
+                {stranded.map(([label, value]) => `${label}: ${value}`).join('  ·  ')}
               </p>
             ) : null}
           </div>
+
+          {stacked ? (
+            <dl className="le-c9-12 le-hero-facts">
+              {carried.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
       </div>
     </header>
@@ -592,19 +741,20 @@ export function ProofBar({ content, showAreas = true }: { content: SiteContent; 
  * letting content size them is what produced the uneven cells in Chunk A.
  */
 export function Services({
-  content, photos = [], layout, eyebrow = 'What we do', heading = 'Services',
+  content, photos = [], layout, eyebrow = 'What we do', heading = 'Services', band,
 }: {
   content: SiteContent
   photos?: SitePhoto[]
   layout: 'ladder' | 'list'
   eyebrow?: string
   heading?: string
+  band?: boolean
 }) {
   const services = content.services
   if (!services?.length) return null
 
   return (
-    <Section id="services" density="anchor">
+    <Section id="services" density="anchor" band={band}>
       <div className="le-grid">
         <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
       </div>
@@ -652,12 +802,26 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
   if (items.length === 0) return null
 
   if (items.length < 3) {
+    // A section for one or two sentences is not a shrunken version of the section for three or
+    // more — it is a different shape. The old version reused the multi-column layout's own
+    // display-heading-plus-body treatment and its 64px connector rhythm, and one or two short
+    // sentences inside that much structure read as empty rather than as deliberate, which is
+    // exactly what a customer with a terse answer to "what makes you different" produces — not a
+    // rare fixture shape, the LIKELY one, per the 2026-08-24 review of the actual questionnaire
+    // copy. The fix is not more padding tuning; it is a layout that expects this little.
+    //
+    // No "Why {business}" heading: the primary sentence carries the section's whole weight now,
+    // set large in the display face rather than body copy — a statement, not a quoted testimonial,
+    // so no quotation marks, which would misread as a customer's words this close to Trust's real
+    // ones. A second sentence, when there is one, sits close beneath as a caption rather than a
+    // peer paragraph — attached to the first line, not standing beside it.
+    const [primary, caption] = items
     return (
-      <Section id="why" density="connector" band={band}>
+      <Section id="why" density="connector" band={band} className="le-why-compact">
         <div className="le-why-single">
           <p className="le-eyebrow">Why us</p>
-          <h2 className="le-h2">Why {content.businessName}</h2>
-          {items.map(t => <p className="le-p" key={t} style={{ margin: '0 auto 16px' }}>{t}</p>)}
+          <p className="le-why-quote">{primary}</p>
+          {caption ? <p className="le-why-caption">{caption}</p> : null}
         </div>
       </Section>
     )
@@ -691,13 +855,13 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
  * mismatched ratios was eating 40% of page height and is the largest element with the least to say.
  */
 export function Gallery({
-  photos, eyebrow = 'Our work', heading = 'Recent work',
-}: { photos: SitePhoto[]; eyebrow?: string; heading?: string }) {
+  photos, eyebrow = 'Our work', heading = 'Recent work', band,
+}: { photos: SitePhoto[]; eyebrow?: string; heading?: string; band?: boolean }) {
   const layout = galleryLayout(photos)
   if (!layout) return null
 
   return (
-    <Section id="work" density="anchor">
+    <Section id="work" density="anchor" band={band}>
       <div className="le-grid">
         <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
       </div>
@@ -730,18 +894,118 @@ export function Gallery({
 }
 
 /**
+ * ── Practice only ────────────────────────────────────────────────────────────
+ *
+ * The access bar: whether the practice is taking new patients, which plans it accepts, when it is
+ * open and where it is. These are the four things a patient checks before ringing, and they are the
+ * reason Practice is a template rather than Service Clean in a calmer palette.
+ *
+ * Until the questionnaire asked for them none of this rendered, so the template was Service Clean
+ * with the Clinic kit. It renders only what the practice actually answered — and "Not taking new
+ * patients right now" renders too, because a patient who reads it and does not ring has been served
+ * better than one who rings and is turned away.
+ */
+export function AccessBar({ content }: { content: SiteContent }) {
+  if (!accessBarRenders(content)) return null
+  const facts = accessFacts(content)
+  const accepting = content.access?.acceptingNewPatients
+
+  return (
+    <Section id="access" density="connector" band>
+      <dl className={`le-proof le-access le-proof-${Math.min(facts.length, 4)}`}>
+        {facts.map(([label, value], i) => (
+          <div key={label} {...(i === 0 && typeof accepting === 'boolean' ? { 'data-open': String(accepting) } : {})}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  )
+}
+
+/**
+ * Meet the team.
+ *
+ * No photographs: the questionnaire does not collect headshots, and a grey avatar circle where a
+ * face should be is worse than a name set properly. Role is required — an unattributed list of
+ * names does not tell a patient which one is the dentist.
+ */
+export function Team({ content }: { content: SiteContent }) {
+  if (!teamRenders(content)) return null
+  const team = content.team!
+
+  return (
+    <Section id="team" density="anchor">
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow="Who you will see" heading="Meet the team" /></div>
+      </div>
+      <ul className="le-team" style={{ margin: 0, padding: 0, gridTemplateColumns: `repeat(${teamColumns(team.length)}, 1fr)` }}>
+        {team.map(m => (
+          <li key={m.name}>
+            <h3 className="le-h3">{m.name}</h3>
+            <p className="le-team-role">{[m.role, m.credentials].filter(Boolean).join(' · ')}</p>
+            {m.bio ? <p>{m.bio}</p> : null}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+/**
+ * New-patient information — what happens at a first visit, and what to bring.
+ *
+ * The one section on any template that reduces a specific anxiety rather than making a claim, which
+ * is why it earns its place on a page a nervous patient is reading. Renders only above three
+ * elements; below that the FAQ already covers it.
+ */
+export function NewPatientInfo({ content, band }: { content: SiteContent; band?: boolean }) {
+  if (!newPatientRenders(content)) return null
+  const info = content.newPatientInfo!
+
+  return (
+    <Section id="new-patients" density="anchor" band={band}>
+      <div className="le-grid">
+        <div className="le-c1-5">
+          <SectionHead eyebrow="Your first visit" heading="New patients" />
+          {info.formsUrl ? (
+            <p style={{ marginTop: 24 }}>
+              <a className="le-btn le-btn-sm" href={info.formsUrl} rel="noopener noreferrer" target="_blank">
+                New patient forms
+              </a>
+            </p>
+          ) : null}
+        </div>
+        <div className="le-c7-12">
+          {info.firstVisit ? <p className="le-p">{info.firstVisit}</p> : null}
+          {info.whatToBring?.length ? (
+            <>
+              <h3 className="le-h3" style={{ marginTop: 32 }}>What to bring</h3>
+              <ul className="le-bring">
+                {info.whatToBring.map(item => <li key={item}>{item}</li>)}
+              </ul>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+/**
  * Coverage — a city grid rather than one line of prose. Density, and local search value.
  *
  * Below three cities it does not render: a 4-column grid holding one item is the void the
  * three-content-elements rule exists to remove, and the proof bar carries the areas instead.
  */
-export function Coverage({ content }: { content: SiteContent }) {
+export function Coverage({ content, band }: { content: SiteContent; band?: boolean }) {
   const areas = content.serviceAreas
   if (!coverageRenders(content)) return null
   const shown = areas!.slice(0, 16)
 
   return (
-    <Section id="coverage" density="connector">
+    <Section id="coverage" density="connector" band={band}>
       <div className="le-grid">
         <div className="le-c1-6"><SectionHead eyebrow="Where we work" heading="Areas we serve" /></div>
       </div>
@@ -760,12 +1024,12 @@ export function Coverage({ content }: { content: SiteContent }) {
  * credibility rather than carrying it. Renders nothing when there are no testimonials, and never
  * invents one — a fabricated review is the single worst thing this product could publish.
  */
-export function Trust({ testimonials }: { testimonials?: Testimonial[] }) {
+export function Trust({ testimonials, band }: { testimonials?: Testimonial[]; band?: boolean }) {
   if (!testimonials?.length) return null
   const three = testimonials.length >= 3
 
   return (
-    <Section id="trust" density="anchor">
+    <Section id="trust" density="anchor" band={band}>
       <div className="le-grid">
         <div className="le-c1-6"><SectionHead eyebrow="What clients say" heading="In their words" /></div>
       </div>

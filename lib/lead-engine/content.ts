@@ -11,7 +11,8 @@
  */
 
 import type {
-  CtaKind, FaqItem, QuestionnaireAnswers, ServiceItem, SiteContent, SiteCta, Testimonial,
+  CtaKind, FaqItem, NewPatientInfo, PracticeAccess, QuestionnaireAnswers, ServiceItem, SiteContent,
+  SiteCta, TeamMember, Testimonial,
 } from '@/lib/lead-engine/types'
 
 /** Bounds. Long enough for anything real, short enough that a paste cannot wreck the layout. */
@@ -184,6 +185,65 @@ function faqsFrom(raw: unknown): FaqItem[] | undefined {
   return out.length > 0 ? out : undefined
 }
 
+const MAX_INSURERS = 12
+const MAX_TEAM = 6
+const MAX_HOURS_LINES = 7
+
+/**
+ * The access facts — the four things a patient checks before ringing.
+ *
+ * `acceptingNewPatients` is carried across **only when it is an actual boolean**. A practice that
+ * skipped the question has not said no, and it has not said yes: `undefined` renders nothing.
+ * Coercing it — `!!answers.accepting_new_patients`, the obvious line — would silently turn every
+ * unanswered questionnaire into "Not taking new patients right now" on a practice that is.
+ */
+function accessFrom(answers: QuestionnaireAnswers): PracticeAccess | undefined {
+  const access: PracticeAccess = {
+    ...(typeof answers.accepting_new_patients === 'boolean'
+      ? { acceptingNewPatients: answers.accepting_new_patients }
+      : {}),
+    ...(list(answers.insurance_accepted, MAX_INSURERS, 60) ? { insuranceAccepted: list(answers.insurance_accepted, MAX_INSURERS, 60)! } : {}),
+    // Hours split on lines and semicolons only — NOT on commas, because "Mon, Wed, Fri 8-5" is one
+    // line and the generic list splitter would shred it into three meaningless fragments.
+    ...(hoursFrom(answers.hours) ? { hours: hoursFrom(answers.hours)! } : {}),
+    ...(text(answers.location, 160) ? { location: text(answers.location, 160)! } : {}),
+  }
+  return Object.keys(access).length > 0 ? access : undefined
+}
+
+function hoursFrom(raw: unknown): string[] | undefined {
+  if (typeof raw !== 'string') return undefined
+  const lines = raw.split(/[;\n\r]+/).map(l => text(l, 60)).filter((l): l is string => !!l)
+  return lines.length > 0 ? lines.slice(0, MAX_HOURS_LINES) : undefined
+}
+
+/** The team. A member with no role is dropped — see `TeamMember`. */
+function teamFrom(raw: unknown): TeamMember[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: TeamMember[] = []
+  for (const entry of raw) {
+    const name = text((entry as TeamMember)?.name, 60)
+    const role = text((entry as TeamMember)?.role, 60)
+    if (!name || !role) continue
+    out.push({
+      name, role,
+      ...(text((entry as TeamMember).credentials, 80) ? { credentials: text((entry as TeamMember).credentials, 80)! } : {}),
+      ...(text((entry as TeamMember).bio, 240) ? { bio: text((entry as TeamMember).bio, 240)! } : {}),
+    })
+    if (out.length >= MAX_TEAM) break
+  }
+  return out.length > 0 ? out : undefined
+}
+
+function newPatientInfoFrom(answers: QuestionnaireAnswers): NewPatientInfo | undefined {
+  const info: NewPatientInfo = {
+    ...(text(answers.first_visit) ? { firstVisit: text(answers.first_visit)! } : {}),
+    ...(list(answers.what_to_bring, 6, 80) ? { whatToBring: list(answers.what_to_bring, 6, 80)! } : {}),
+    ...(profileUrlFrom(answers.patient_forms_url) ? { formsUrl: profileUrlFrom(answers.patient_forms_url)! } : {}),
+  }
+  return Object.keys(info).length > 0 ? info : undefined
+}
+
 /**
  * Build the renderable content.
  *
@@ -209,5 +269,8 @@ export function contentFrom(answers: QuestionnaireAnswers, fallbackBusinessName:
     yearsInBusiness:  text(answers.years_in_business, 40),
     googleProfileUrl: profileUrlFrom(answers.google_profile_url),
     intro:            text(answers.visitor_message),
+    access:           accessFrom(answers),
+    team:             teamFrom(answers.team),
+    newPatientInfo:   newPatientInfoFrom(answers),
   }
 }
