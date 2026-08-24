@@ -8,7 +8,9 @@
  */
 
 import { createAdminClient } from '@/lib/supabase-admin'
-import type { LeadEngineSite, SiteContent, SitePhoto, Template, Theme } from '@/lib/lead-engine/types'
+import type {
+  LeadEngineSite, QuestionnaireAnswers, SiteContent, SitePhoto, SiteStatus, Template, Theme,
+} from '@/lib/lead-engine/types'
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
@@ -230,4 +232,171 @@ export async function saveContent(siteId: string, content: SiteContent): Promise
     return { ok: false, error: error.message }
   }
   return { ok: true }
+}
+
+/**
+ * A site's identity plus its raw questionnaire answers — never its `content`. For the
+ * questionnaire routes only: they read and write what the customer typed, and must never touch
+ * what actually renders. Returns null for a site that does not exist; callers distinguish "not
+ * found" from "found but not yours" using `ownerEmail` themselves, the same way
+ * `lib/lead-engine/photo-storage.ts`'s `resolveOwnedSite` does for the photo routes.
+ */
+export async function loadSiteForQuestionnaire(siteId: string): Promise<{
+  id: string
+  businessName: string
+  ownerEmail: string
+  status: SiteStatus
+  answers: QuestionnaireAnswers | null
+  /** When `questionnaire` last changed — the POST route's own throttle cooldown, not rendering. */
+  updatedAt: string
+} | null> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_sites')
+    .select('id, business_name, owner_email, status, questionnaire, updated_at')
+    .eq('id', siteId)
+    .maybeSingle()
+
+  if (error || !data) {
+    if (error && !isMissingTable(error.code)) {
+      console.error(`[LEAD-ENGINE] Could not load questionnaire for ${siteId}: ${error.message}`)
+    }
+    return null
+  }
+
+  return {
+    id: data.id as string,
+    businessName: data.business_name as string,
+    ownerEmail: data.owner_email as string,
+    status: data.status as SiteStatus,
+    answers: (data.questionnaire as QuestionnaireAnswers | null) ?? null,
+    updatedAt: data.updated_at as string,
+  }
+}
+
+/**
+ * Save what the customer typed. Writes ONLY `questionnaire` — see this file's own note on
+ * `saveContent` and the migration's comment on why the two columns must never share a writer.
+ *
+ * The first submission (site still `draft` or `awaiting_answers`) moves it to `in_build`: there is
+ * now something for an operator to build a page from. A later re-submission — the site already has
+ * real content, possibly already live — leaves `status` alone and sets `needs_review` instead, so
+ * a live page can never change under a customer without a human seeing the diff first.
+ */
+export async function saveQuestionnaireAnswers(
+  siteId: string,
+  answers: QuestionnaireAnswers,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createAdminClient()
+
+  const { data: existing, error: readError } = await supabase
+    .from('lead_engine_sites')
+    .select('status')
+    .eq('id', siteId)
+    .maybeSingle()
+  if (readError || !existing) {
+    return { ok: false, error: readError?.message ?? 'Site not found' }
+  }
+
+  const status = existing.status as SiteStatus
+  const nextStatus: SiteStatus = status === 'draft' || status === 'awaiting_answers' ? 'in_build' : status
+
+  const { error } = await supabase
+    .from('lead_engine_sites')
+    .update({ questionnaire: answers, status: nextStatus, needs_review: true })
+    .eq('id', siteId)
+
+  if (error) {
+    console.error(`[LEAD-ENGINE] Could not save questionnaire for ${siteId}: ${error.message}`)
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
+}
+
+/**
+ * A site as the customer dashboard needs it — narrower than `LeadEngineSite`, wider than the
+ * public renderer's columns: it needs `status` and `revisions_used`, which a stranger never should.
+ */
+export async function loadSiteForOwner(siteId: string): Promise<
+  (LeadEngineSite & { ownerEmail: string; questionnaireCompleted: boolean }) | null
+> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_sites')
+    .select(`${SITE_COLUMNS}, owner_email, questionnaire`)
+    .eq('id', siteId)
+    .maybeSingle()
+
+  if (error || !data) return null
+
+  return {
+    ...(data as unknown as LeadEngineSite),
+    ownerEmail: data.owner_email as string,
+    questionnaireCompleted: data.questionnaire != null,
+  }
+}
+
+export interface SiteSubmission {
+  id: string
+  createdAt: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  message: string | null
+  serviceInterest: string | null
+  status: string
+}
+
+export async function listSubmissions(siteId: string, limit = 50): Promise<SiteSubmission[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_submissions')
+    .select('id, created_at, name, email, phone, message, service_interest, status')
+    .eq('site_id', siteId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error(`[LEAD-ENGINE] Could not load submissions for ${siteId}: ${error.message}`)
+    return []
+  }
+  return (data ?? []).map(row => ({
+    id: row.id as string,
+    createdAt: row.created_at as string,
+    name: row.name as string | null,
+    email: row.email as string | null,
+    phone: row.phone as string | null,
+    message: row.message as string | null,
+    serviceInterest: row.service_interest as string | null,
+    status: row.status as string,
+  }))
+}
+
+export interface SiteChangeRequest {
+  id: string
+  createdAt: string
+  body: string
+  status: string
+  billable: boolean
+}
+
+export async function listChangeRequests(siteId: string): Promise<SiteChangeRequest[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_change_requests')
+    .select('id, created_at, body, status, billable')
+    .eq('site_id', siteId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error(`[LEAD-ENGINE] Could not load change requests for ${siteId}: ${error.message}`)
+    return []
+  }
+  return (data ?? []).map(row => ({
+    id: row.id as string,
+    createdAt: row.created_at as string,
+    body: row.body as string,
+    status: row.status as string,
+    billable: row.billable as boolean,
+  }))
 }

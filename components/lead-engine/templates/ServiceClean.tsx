@@ -51,16 +51,17 @@
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import LeadForm from '@/components/lead-engine/LeadForm'
 import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
-  Contact, Coverage, Faq, Footer, LeadFormPlaceholder, HeroEditorial, PhotoBand,
+  Contact, Coverage, Faq, Footer, HeroEditorial, PhotoBand,
   coverageRenders, editorialHeroFacts, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 import { bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function ServiceClean({
-  content, photos, logoUrl,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  content, photos, logoUrl, siteId,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const services = content.services ?? []
   const layout = servicesLayout(services.length, photos.length)
   // The band is asked for ONLY when the ladder is not in use. `allocatePhotos` hands out the band
@@ -96,7 +97,7 @@ export default function ServiceClean({
       <Faq faqs={content.faqs} />
 
       <Contact content={content}>
-        <LeadFormPlaceholder />
+        <LeadForm siteId={siteId} />
       </Contact>
 
       <Footer content={content} />

@@ -174,6 +174,7 @@ const REQUIRED_TOKENS = [
   '--le-radius-button', '--le-radius-card', '--le-radius-image', '--le-shadow-card',
   '--le-display-xl', '--le-display-l', '--le-display-m', '--le-body-l', '--le-body', '--le-utility',
   '--le-space-anchor', '--le-space-connector', '--le-space-anchor-m', '--le-space-connector-m',
+  '--le-danger',
 ]
 
 test('every theme emits every documented token', () => {

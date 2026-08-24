@@ -9,13 +9,13 @@ const FULL: QuestionnaireAnswers = {
   services: ['Roof replacement', 'Storm damage repair', 'Gutter installation'],
   service_areas: 'Fort Worth, Arlington, Keller',
   differentiator: 'We answer the phone at 9pm.',
+  customer_impression: 'People always say we actually turn up when we say we will.',
   credentials: 'Licensed and insured in Texas.',
   years_in_business: '12 years',
   primary_cta: 'call',
   google_profile_url: 'g.page/northside',
   has_photos: true,
   pain_points: 'We miss half our calls and my wife is doing the books at midnight.',
-  visitor_message: 'We want people to feel they are in safe hands.',
   notify_email: 'owner@example.com',
   preferred_slug: 'northside',
 }
@@ -29,6 +29,7 @@ test('carries every answered field onto the page', () => {
   ])
   assert.deepEqual(c.serviceAreas, ['Fort Worth', 'Arlington', 'Keller'])
   assert.equal(c.differentiator, 'We answer the phone at 9pm.')
+  assert.equal(c.customerImpression, 'People always say we actually turn up when we say we will.')
   assert.equal(c.yearsInBusiness, '12 years')
 })
 
@@ -57,9 +58,9 @@ test('an unanswered question stays absent — it is never defaulted or invented'
   assert.equal(c.serviceAreas, undefined)
   assert.equal(c.credentials, undefined)
   assert.equal(c.differentiator, undefined)
+  assert.equal(c.customerImpression, undefined)
   assert.equal(c.yearsInBusiness, undefined)
   assert.equal(c.googleProfileUrl, undefined)
-  assert.equal(c.intro, undefined)
   assert.equal(c.phone, undefined)
 })
 

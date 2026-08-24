@@ -456,13 +456,23 @@ const SITE_CSS = `
 .le-cta-left .le-h2 { color: var(--le-paper); }
 .le-field-label { font-size: var(--le-utility); font-weight: 600; margin-bottom: 8px; opacity: 0.8; }
 .le-field {
+  display: block; width: 100%; box-sizing: border-box;
   background: color-mix(in oklab, var(--le-paper) 8%, transparent);
   border: 1px solid color-mix(in oklab, var(--le-paper) 20%, transparent);
   border-radius: var(--le-radius-card);
   color: var(--le-paper);
+  padding: 14px 16px; min-height: 52px;
+  font-family: var(--le-font-body), system-ui, sans-serif;
+  font-size: var(--le-body);
+}
+textarea.le-field { min-height: 96px; resize: vertical; }
+.le-field::placeholder { color: color-mix(in oklab, var(--le-paper) 55%, transparent); }
+.le-field:focus {
+  outline: none; border-color: color-mix(in oklab, var(--le-paper) 45%, transparent);
 }
 .le-submit {
   display: flex; align-items: center; justify-content: center; width: 100%;
+  border: none; cursor: pointer;
   /* Paper label by default, matching .le-btn. Ink on a text_safe accent (Counsel's aged brass, for
      instance) is dark-on-dark — the per-mode rules above are what change it. */
   background: var(--le-accent); color: var(--le-paper);
@@ -471,6 +481,14 @@ const SITE_CSS = `
   font-size: var(--le-body); font-weight: var(--le-utility-weight);
   letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
 }
+.le-submit:disabled { opacity: 0.6; cursor: default; }
+/* Honeypot — off canvas rather than display:none, which some bots specifically check for and skip. */
+.le-hp { position: absolute; left: -9999px; top: -9999px; height: 0; width: 0; overflow: hidden; }
+.le-form-error {
+  margin: 0 0 16px; font-size: var(--le-utility); color: var(--le-danger);
+}
+.le-form-success { text-align: left; }
+.le-form-success .le-eyebrow { margin-bottom: 12px; }
 
 /* ── Footer ────────────────────────────────────────────────────────────────── */
 .le-foot { border-top: 1px solid var(--le-edge); padding: 40px 0 56px; }
@@ -843,9 +861,9 @@ export function Services({
 /**
  * Why us — a sticky heading column and a list of differentiators.
  *
- * Items come from Q4 (what makes you different) and Q5 (guarantees and credentials), split on
- * sentence boundaries. Under three items it falls back to a single centred column: two columns
- * with one item in them is the void this section was built to remove.
+ * Items are Q4a and Q4b (both guaranteed — see `whyUsItems`) plus, only when the business stated
+ * one, a Q5 credential as a third item. Under three items it falls back to a single centred
+ * column: two columns with one item in them is the void this section was built to remove.
  */
 export function WhyUs({ content, band }: { content: SiteContent; band?: boolean }) {
   const items = whyUsItems(content)
@@ -888,7 +906,9 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
         <div className="le-why-items">
           {items.map((text, i) => (
             <div className="le-why-item" key={text}>
-              <h3 className="le-h3">{['Our promise', 'What you get', 'How we work', 'Peace of mind'][i]}</h3>
+              {/* Item 2 is only ever the Q5 credential (see whyUsItems) and gets its own fixed
+                  label — "How we work" answered nothing when the sentence was a licence name. */}
+              <h3 className="le-h3">{i === 2 ? 'Credentials' : ['Our promise', 'What you get'][i]}</h3>
               <p>{text}</p>
             </div>
           ))}
@@ -1171,28 +1191,6 @@ export function Footer({ content }: { content: SiteContent }) {
         <p className="le-credit">Site by 369 Agentic Systems</p>
       </div>
     </footer>
-  )
-}
-
-/**
- * The Phase 4 lead form, still inert.
- *
- * Full width of its column now rather than a narrow card, and styled for the dark band it sits on.
- * It cannot be submitted: a form that looked live and dropped what a visitor typed would lose
- * exactly the lead this product is sold to capture, and nobody would ever know.
- */
-export function LeadFormPlaceholder() {
-  return (
-    <div aria-hidden="true">
-      <p className="le-eyebrow" style={{ marginBottom: 20 }}>Lead form — activates in Phase 4</p>
-      {['Your name', 'Phone', 'Email', 'How can we help?'].map(label => (
-        <div key={label} style={{ marginBottom: 16 }}>
-          <div className="le-field-label">{label}</div>
-          <div className="le-field" style={{ height: label.startsWith('How') ? 96 : 52 }} />
-        </div>
-      ))}
-      <div className="le-submit" style={{ opacity: 0.55 }}>Send</div>
-    </div>
   )
 }
 

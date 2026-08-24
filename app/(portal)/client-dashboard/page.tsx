@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Zap } from 'lucide-react'
@@ -64,6 +65,21 @@ export default async function ClientDashboardPage({
     .limit(1)
 
   const subscription = subscriptions?.[0] ?? null
+
+  // Lead Engine stands alone (CLAUDE.md: "fully useful with no Ava") — its tenant record is
+  // `lead_engine_sites`, not `agent_subscriptions`, so a Lead-Engine-only customer reaches here
+  // with no subscription row at all and would otherwise hit the "No active subscription" dead end
+  // below despite being a real, paying customer. Checked only when the voice lookup came back
+  // empty — a customer with both products keeps seeing their voice dashboard first, unchanged.
+  if (!subscription && user?.email) {
+    const { data: sites } = await supabaseAdmin
+      .from('lead_engine_sites')
+      .select('id')
+      .eq('owner_email', user.email)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (sites?.[0]) redirect('/client-dashboard/site')
+  }
 
   if (!subscription) {
     return (

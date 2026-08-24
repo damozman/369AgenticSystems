@@ -1,7 +1,7 @@
 /**
  * Lead Engine's verification gate.
  *
- * Two jobs, deliberately in one script so neither gets skipped:
+ * Three jobs, deliberately in one script so neither gets skipped:
  *
  *   1. **The hardcoded-style check.** No hex literal, no literal font-family, no literal radius or
  *      shadow anywhere under `components/lead-engine/`. This is the only thing standing between the
@@ -11,10 +11,26 @@
  *
  *   2. **The live schema and render check**, against production Supabase and the real route.
  *
+ *   3. **Chunk B: a real questionnaire round-trip, a real lead submission, and the owner
+ *      notification path** — writes and cleans up ONE throwaway site (slug prefixed
+ *      `verify-lead-engine-`), separate from the `review-` fixtures Job 2 reads. Refuses to touch
+ *      anything not carrying that prefix, and refuses a `status = 'live'` row even then.
+ *
  * Part 1 needs no database and no server, so it runs first and always.
  *
  *   node scripts/verify-lead-engine.mjs                       # style check only
  *   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
+ *
+ * What Job 3 deliberately does NOT cover, and why:
+ *   - **The photo cap.** `decidePhotoUpload`'s refusal is already asserted directly in
+ *     `lib/lead-engine/limits.test.ts`, and the upload route itself (sign → direct-to-Storage →
+ *     process) was proven end to end on 2026-08-24 with a real HEIC photo — see
+ *     `docs/LEAD-ENGINE-PLAN.md`'s own handoff. Re-proving it here would mean re-building that
+ *     harness for no new information.
+ *   - **The change-request route.** `decideRevision` — the only real decision in it — already has
+ *     its own thorough unit coverage in `lib/lead-engine/limits.test.ts`. The route itself needs an
+ *     authenticated owner session, which this script has no way to mint without a real login; that
+ *     is worth a manual click-through, not a scripted one.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -149,6 +165,9 @@ if (!LIVE) {
   const { TEMPLATES, THEMES, resolveForVertical } = await import('@/lib/lead-engine/theme')
   const { ALL_VERTICAL_OPTIONS } = await import('@/lib/lead-engine/verticals')
   const { previewEnabled } = await import('@/lib/lead-engine/preview')
+  const { createSite } = await import('@/lib/lead-engine/site')
+  const { questionnaireUrl } = await import('@/lib/lead-engine/questionnaire-url')
+  const { SUBMIT_THROTTLE_MAX } = await import('@/lib/lead-engine/rate-limit')
   const previewOn = previewEnabled()
 
   const supabase = createClient(
@@ -253,7 +272,13 @@ if (!LIVE) {
     // ELEMENTS. Counting elements rather than characters is the point — a gallery of six photos is
     // dense and carries almost no text, so a character threshold flagged every gallery on every
     // site while missing a coverage section holding one city.
-    const CONTENT_EL = /<(?:img|li|p|details|blockquote|dd)\b/g
+    //
+    // input|textarea|button|select added when Chunk B's real LeadForm replaced the inert
+    // placeholder: this rule predates a genuine form ever sitting in the Contact section, so it
+    // only ever counted the LEFT column's own intro <p> — a real form with six controls and no
+    // <p>/<li>/<img> of its own read as "near-empty" by this regex alone, which is backwards for
+    // the single most action-oriented section on the page.
+    const CONTENT_EL = /<(?:img|li|p|details|blockquote|dd|input|textarea|button|select)\b/g
     const emptySections = [...html.matchAll(/<section[^>]*id="([^"]+)"[\s\S]*?<\/section>/g)]
       .filter(([block]) => (block.match(CONTENT_EL) ?? []).length < 3)
       .map(([, id]) => id)
@@ -373,6 +398,180 @@ if (!LIVE) {
       }
     }
     await browser.close()
+  }
+
+  // ── 3. Chunk B: questionnaire round-trip, submission, notification ────────
+  //
+  // Its own throwaway site, deliberately separate from the `review-` fixtures above — those are
+  // read-only reference pages for a human to look at, and this job WRITES (a submission row, an
+  // owner-notification email if RESEND_API_KEY is set). Reusing a fixture for that would risk a
+  // real reviewer opening a page mid-write, or a cleanup step here touching content someone is
+  // relying on to stay put.
+  console.log('\nChunk B — questionnaire, submission, notification')
+  const CHUNK_B_PREFIX = 'verify-lead-engine-'
+  const OWNER = 'chris@369agenticsystems.com'
+  let chunkBSiteId
+
+  async function cleanupChunkBSite(siteId) {
+    if (!siteId) return
+    const { data: site } = await supabase.from('lead_engine_sites').select('slug, status').eq('id', siteId).maybeSingle()
+    if (!site) return
+    if (!site.slug.startsWith(CHUNK_B_PREFIX)) { fail(`REFUSING to delete ${site.slug} — not a Chunk B verify site`); return }
+    if (site.status === 'live') { fail(`REFUSING to delete ${site.slug} — status is live`); return }
+    // Submissions cascade from the site row (ON DELETE CASCADE).
+    await supabase.from('lead_engine_sites').delete().eq('id', siteId)
+    pass(`cleaned up ${site.slug}`)
+  }
+
+  try {
+    const created = await createSite({
+      ownerEmail: OWNER,
+      businessName: 'Verify Lead Engine Co',
+      vertical: 'roofing',
+      preferredSlug: `${CHUNK_B_PREFIX}${Date.now()}`,
+      notifyEmail: OWNER,
+    })
+    if (!created.ok) {
+      fail(`createSite() failed: ${created.error}`)
+    } else {
+      chunkBSiteId = created.id
+      pass(`createSite() -> ${created.slug}`)
+
+      // questionnaireUrl() returns the PUBLIC PAGE a customer opens (/lead-engine/questionnaire/[id]),
+      // not the API. It returns HTML, not JSON — fetching it directly and calling .json() on the
+      // result silently swallows a parse error via `.catch(() => ({}))`, which is exactly how the
+      // first version of this check failed: `beforeBody.answers` was never "not null", it was
+      // `undefined` from parsing a React page as JSON. `apiUrl` is the actual endpoint; `qUrl` is
+      // kept only so the token in its query string can be reused on `apiUrl` below.
+      const qUrl = questionnaireUrl(chunkBSiteId, base)
+      const token = new URL(qUrl).searchParams.get('t')
+      token ? pass('a questionnaire token was minted (ONBOARDING_TOKEN_SECRET is set)')
+            : fail('no token minted — ONBOARDING_TOKEN_SECRET is unset, the link would be unsigned')
+
+      const apiUrl = `${base}/api/lead-engine/questionnaire/${chunkBSiteId}?t=${encodeURIComponent(token ?? '')}`
+
+      const getBefore = await fetch(apiUrl)
+      const beforeBody = await getBefore.json().catch(() => ({}))
+      getBefore.status === 200 ? pass('GET /questionnaire/[id] returns 200') : fail(`GET /questionnaire/[id] returned ${getBefore.status}`)
+      beforeBody.answers === null
+        ? pass('answers are null before any submission')
+        : fail(`answers were not null on a brand-new site: ${JSON.stringify(beforeBody.answers)}`)
+
+      const answers = {
+        t: token,
+        business_name: 'Verify Lead Engine Co',
+        phone: '(817) 555-0100',
+        differentiator: 'Every roof we replace is inspected by the owner before we ask for the final payment.',
+        customer_impression: 'That we actually answered the phone at nine at night.',
+        credentials: 'Licensed and insured in Texas',
+        notify_email: OWNER,
+        services: [{ name: 'Roof replacement', description: 'Full tear-off and re-roof.' }],
+      }
+      const post = await fetch(`${base}/api/lead-engine/questionnaire/${chunkBSiteId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(answers),
+      })
+      const postBody = await post.json().catch(() => ({}))
+      post.status === 200 ? pass('POST /questionnaire/[id] returns 200') : fail(`POST /questionnaire/[id] returned ${post.status}: ${JSON.stringify(postBody)}`)
+      postBody.authorizedBy === 'signed-link' ? pass('authorizedBy is signed-link') : fail(`authorizedBy was "${postBody.authorizedBy}"`)
+
+      const { data: afterRow } = await supabase
+        .from('lead_engine_sites')
+        .select('status, needs_review, questionnaire')
+        .eq('id', chunkBSiteId)
+        .single()
+      afterRow?.status === 'in_build' ? pass('status moved draft -> in_build') : fail(`status is "${afterRow?.status}", expected in_build`)
+      afterRow?.needs_review === true ? pass('needs_review is true') : fail('needs_review was not set')
+      afterRow?.questionnaire?.differentiator === answers.differentiator
+        ? pass('questionnaire.differentiator round-tripped')
+        : fail('questionnaire.differentiator did not match what was posted')
+
+      const getAfter = await fetch(apiUrl)
+      const afterBody = await getAfter.json().catch(() => ({}))
+      afterBody.answers?.differentiator === answers.differentiator
+        ? pass('answers.differentiator round-trips through the read path')
+        : fail(`the read path did not return what was saved — got ${JSON.stringify(afterBody.answers?.differentiator)}`)
+
+      const badGet = await fetch(`${base}/api/lead-engine/questionnaire/${chunkBSiteId}?t=not-a-real-token`)
+      badGet.status === 403 ? pass('a bad token is refused with 403') : fail(`a bad token returned ${badGet.status}, expected 403`)
+
+      console.log('\nChunk B — honeypot and throttle')
+
+      const honeypot = await fetch(`${base}/api/lead-engine/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: chunkBSiteId, name: 'Bot', email: 'bot@example.com', hp_field: 'a bot filled this in',
+        }),
+      })
+      const honeypotBody = await honeypot.json().catch(() => ({}))
+      honeypot.status === 200 && honeypotBody.ok === true
+        ? pass('a tripped honeypot still returns a fake 200 success')
+        : fail(`a tripped honeypot returned ${honeypot.status}: ${JSON.stringify(honeypotBody)}`)
+
+      const { count: afterHoneypot } = await supabase
+        .from('lead_engine_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('site_id', chunkBSiteId)
+      afterHoneypot === 0
+        ? pass('the honeypot submission wrote no row')
+        : fail(`the honeypot submission wrote ${afterHoneypot} row(s) — it should write none`)
+
+      const submit = await fetch(`${base}/api/lead-engine/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: chunkBSiteId, name: 'Test Prospect', email: 'prospect@example.com', phone: '(817) 555-0199',
+          message: 'Verification script — safe to ignore.',
+        }),
+      })
+      const submitBody = await submit.json().catch(() => ({}))
+      submit.status === 200 ? pass('POST /submit returns 200') : fail(`POST /submit returned ${submit.status}: ${JSON.stringify(submitBody)}`)
+
+      const { data: submissionRow } = await supabase
+        .from('lead_engine_submissions')
+        .select('id, name, email, notified_at, notify_error')
+        .eq('site_id', chunkBSiteId)
+        .maybeSingle()
+      submissionRow ? pass('the submission row exists') : fail('no submission row was written')
+      submissionRow?.name === 'Test Prospect' && submissionRow?.email === 'prospect@example.com'
+        ? pass('name and email were captured')
+        : fail('the submission row does not carry what was posted')
+      submissionRow?.notified_at || submissionRow?.notify_error
+        ? pass(`the notification path resolved one way or the other — ${submissionRow.notified_at ? `sent at ${submissionRow.notified_at}` : `failed: ${submissionRow.notify_error}`}`)
+        : fail('notified_at and notify_error are BOTH null — a submission that vanished silently')
+
+      // One real submission already landed above. Fire enough more to reach SUBMIT_THROTTLE_MAX,
+      // then confirm the NEXT one past it is refused with 429.
+      for (let i = 1; i < SUBMIT_THROTTLE_MAX; i++) {
+        await fetch(`${base}/api/lead-engine/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteId: chunkBSiteId, name: `Filler ${i}`, email: `filler${i}@example.com` }),
+        })
+      }
+      const throttled = await fetch(`${base}/api/lead-engine/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: chunkBSiteId, name: 'One too many', email: 'toomany@example.com' }),
+      })
+      throttled.status === 429
+        ? pass(`submission ${SUBMIT_THROTTLE_MAX + 1} in the window is refused with 429`)
+        : fail(`submission ${SUBMIT_THROTTLE_MAX + 1} returned ${throttled.status}, expected 429`)
+      throttled.headers.get('retry-after')
+        ? pass(`429 carries a Retry-After header (${throttled.headers.get('retry-after')}s)`)
+        : fail('429 response has no Retry-After header')
+
+      const badSubmit = await fetch(`${base}/api/lead-engine/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: '00000000-0000-0000-0000-000000000000', name: 'X', email: 'x@example.com' }),
+      })
+      badSubmit.status === 404 ? pass('a submission against a nonexistent site returns 404') : fail(`a nonexistent siteId returned ${badSubmit.status}, expected 404`)
+    }
+  } finally {
+    await cleanupChunkBSite(chunkBSiteId)
   }
 
   // ── Sweep ──────────────────────────────────────────────────────────────────

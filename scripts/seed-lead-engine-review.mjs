@@ -79,13 +79,13 @@ const SITES = [
         { name: 'Emergency tarping', description: 'Same-day cover to stop water getting in while a claim is assessed.' },
       ],
       service_areas: 'Fort Worth, Arlington, Keller, Southlake, Grapevine, Colleyville, Haslet, Saginaw',
-      differentiator: 'We answer the phone at nine at night, and we show up when we say we will. Every roof we replace is inspected by the owner before we ask you for the final payment.',
+      differentiator: 'Every roof we replace is inspected by the owner before we ask for the final payment.',
+      customer_impression: 'That we actually answered the phone at nine at night.',
       credentials: 'Licensed and insured in Texas',
       years_in_business: '12 years',
       primary_cta: 'call',
       google_profile_url: 'g.page/northside-roofing',
       has_photos: true,
-      visitor_message: 'Most people call us after a storm, worried about what it will cost. We tell you straight whether you need a repair or a replacement.',
       pain_points: 'WE MISS HALF OUR CALLS — this must never appear on the page.',
       testimonials: [
         { quote: 'They tarped the roof the night the storm hit and had the full replacement done inside two weeks. The insurance paperwork was handled for us.', name: 'Marcus D.', city: 'Keller', jobType: 'Storm replacement' },
@@ -121,14 +121,14 @@ const SITES = [
         { name: 'Relocation', description: 'Coordinating a sale and a purchase when the dates do not line up.' }
       ],
       service_areas: 'Fort Worth, Southlake, Westlake, Colleyville, Keller, Roanoke',
-      differentiator: 'We take twelve listings a year, not sixty. You get the agent you met, at every showing.',
+      differentiator: 'We take twelve listings a year, not sixty, so you get the agent you met at every showing.',
+      customer_impression: 'That the same agent turned up every single time — not whoever was free that day.',
       credentials: 'Texas Real Estate Commission licensed',
       years_in_business: '9 years',
       primary_cta: 'other',
       primary_cta_other: 'Book a Valuation',
       google_profile_url: 'g.page/camden-vale-realty',
       has_photos: true,
-      visitor_message: 'Selling a house is mostly waiting, punctuated by decisions you have never made before. We tell you which ones actually matter.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'They talked us out of two offers that looked better on paper. The one we took closed without a single problem.', name: 'Helen S.', city: 'Westlake', jobType: 'Sale' },
@@ -163,14 +163,14 @@ const SITES = [
         { name: 'Contract disputes', description: 'Negotiation first, litigation only where it is genuinely worth it.' }
       ],
       service_areas: 'Tarrant County, Dallas County, Denton County, Parker County, Johnson County',
-      differentiator: 'You speak to the attorney handling your matter, not a case manager. We quote a flat fee before we start, so you are never surprised by an invoice.',
+      differentiator: 'You speak to the attorney handling your matter directly, never a case manager.',
+      customer_impression: 'That we told them honestly whether they even needed a lawyer.',
       credentials: 'State Bar of Texas',
       years_in_business: '18 years',
       primary_cta: 'other',
       primary_cta_other: 'Request a Consultation',
       google_profile_url: 'g.page/hallam-reed-legal',
       has_photos: true,
-      visitor_message: 'Most people come to us at a difficult moment and want to know what happens next. We explain it in plain English and tell you honestly whether you need a lawyer at all.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'She told me on the first call that I did not need to hire anyone, and explained what to do instead. I came back two years later for the estate work.', name: 'Robert N.', city: 'Fort Worth', jobType: 'Probate' },
@@ -206,13 +206,13 @@ const SITES = [
         { name: 'Tents and marquees', description: 'Frame tents from 10x10 up, with sidewalls if the forecast turns.' }
       ],
       service_areas: 'Fort Worth, Dallas, Arlington, Plano, Frisco, Denton, Mansfield',
-      differentiator: 'Everything is cleaned and checked between every hire, and we set up and take down so you never touch a thing.',
+      differentiator: 'We set up and take down ourselves, so you never touch a thing.',
+      customer_impression: 'That everything arrived cleaner than they expected.',
       credentials: 'Fully insured',
       years_in_business: 'Since 2019',
       primary_cta: 'availability',
       google_profile_url: 'g.page/lone-star-party-rentals',
       has_photos: true,
-      visitor_message: 'Tell us the date and how many people, and we will tell you what is free. Most weekends book out three weeks ahead.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'Set up before we were even awake and collected it after the kids went to bed. We did not lift a thing.', name: 'Sam O.', city: 'Arlington', jobType: 'Birthday' },
@@ -247,14 +247,14 @@ const SITES = [
         { name: 'Dentures', description: 'Full and partial, adjusted as often as it takes to sit comfortably.' }
       ],
       service_areas: 'Fort Worth, Benbrook, White Settlement, Westworth Village',
-      differentiator: 'We keep two slots free every morning for people in pain, and we tell you the cost before we start.',
+      differentiator: 'We keep two slots free every morning for people in pain.',
+      customer_impression: 'That nobody made them feel bad about not having been in for years.',
       credentials: 'Texas State Board of Dental Examiners',
       years_in_business: '15 years',
       primary_cta: 'other',
       primary_cta_other: 'Book an Appointment',
       google_profile_url: 'g.page/bluebonnet-family-dental',
       has_photos: true,
-      visitor_message: 'Plenty of people have not seen a dentist in years and feel awkward about it. Nobody here is going to make you feel bad about that.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'I had avoided dentists for eleven years. They took it slowly and nobody made a comment about it once.', name: 'Janine P.', city: 'Benbrook', jobType: 'New patient' },
@@ -311,14 +311,14 @@ const SITES = [
         { name: 'Workwear', description: 'Hi-vis, boots and cold weather kit, embroidered if you want it.' }
       ],
       service_areas: 'North Texas, Oklahoma, Louisiana, Arkansas',
-      differentiator: 'Order by two, on your site by seven the next morning, anywhere in North Texas. Same van driver every week.',
+      differentiator: 'Order by two, and it is on your site by seven the next morning, anywhere in North Texas.',
+      customer_impression: 'That the same driver has shown up every week for years.',
       credentials: 'Authorised distributor for eleven manufacturers',
       years_in_business: '22 years',
       primary_cta: 'other',
       primary_cta_other: 'Request a Quote',
       google_profile_url: 'g.page/trinity-trade-supply',
       has_photos: true,
-      visitor_message: 'Most of our customers buy the same forty lines every week. Tell us what they are and we will keep them on the shelf for you.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'Same driver for six years. He knows which gate to use and where the site office is, which sounds trivial until you deal with a courier.', name: 'Ken H.', city: 'Fort Worth', jobType: 'Groundworks contractor' },
@@ -354,13 +354,13 @@ const SITES = [
         { name: 'Roof inspections', description: 'A written report with photographs before you commit to anything.' }
       ],
       service_areas: 'Fort Worth, Weatherford, Aledo, Willow Park',
-      differentiator: 'One crew, one job at a time. We do not start your roof and disappear to another site for a fortnight.',
+      differentiator: 'One crew, one job at a time — we never start your roof and disappear to another site.',
+      customer_impression: "That they'd rather turn a job away than run three jobs badly at once.",
       credentials: 'Licensed and insured in Texas',
       years_in_business: '7 years',
       primary_cta: 'call',
       google_profile_url: 'g.page/sunbelt-exteriors',
       has_photos: true,
-      visitor_message: 'We would rather turn work away than run three jobs badly at once.',
       pain_points: 'INTERNAL ONLY — should not render.',
       testimonials: [
         { quote: 'They finished our roof before starting anyone else. Four days, start to finish, and the site was spotless.', name: 'Nathan G.', city: 'Aledo', jobType: 'Replacement' },
@@ -393,24 +393,14 @@ const SITES = [
         { name: 'Leak repair', description: 'Detection and repair, including under slab.' }
       ],
       service_areas: 'Fort Worth',
-      // The differentiator IS the hero's lede, and without it the editorial hero is a headline and
-      // a button with half a screen of void beside it. Q4 is therefore REQUIRED — a customer who
-      // skips it has no page. Sparse here means no photos and few services, not no answers.
-      //
-      // TWO sentences, deliberately — one sentence used to be all this fixture had, which meant
-      // heroLede() consumed the whole differentiator as the hero's lede and left whyUsItems() with
-      // nothing: Why us silently did not render at all, dropping the page to 5 sections and landing
-      // it on the "full" side of the <5 compact threshold with one fewer section to fill the
-      // rhythm — the "large empty gaps" a reviewer actually sees. The fixture's own comment already
-      // said "not no answers"; it just had one.
-      differentiator: 'One van, one plumber, and the same number you called last time. If I quote a job I am the one who shows up and does it — no second guy, no different price.',
-      // One more sentence, added alongside the differentiator fix above. Two sentences past the
-      // lede gave Why us exactly one item — one <p> plus the section's own eyebrow is two content
-      // elements, one short of the near-empty-section gate `verify-lead-engine.mjs` enforces on
-      // every fixture. The other three fixtures that land on the single-column layout (brand-fail,
-      // showcase-grid, practice) all clear it the same way: a multi-sentence differentiator PLUS a
-      // one-line intro. This fixture had never had an intro at all.
-      visitor_message: 'Most people finding us have already had one plumber not turn up.',
+      // 4a IS the hero's lede, and without it the editorial hero is a headline and a button with
+      // half a screen of void beside it — Q4a is therefore REQUIRED, a customer who skips it has no
+      // page. Sparse here means no photos and few services, not no answers. Under the 2026-08-24
+      // Q4 rewrite, 4a + 4b (both answered here) is the FLOOR every real customer clears — two
+      // items lands the compact pull-quote Why-us layout, which is the shape this fixture exists to
+      // exercise (see the other single-column fixtures: brand-fail, showcase-grid, practice).
+      differentiator: 'One van, one plumber — the same number you called last time, every time.',
+      customer_impression: "That we actually showed up, after their last plumber didn't.",
       primary_cta: 'call',
       has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',

@@ -23,16 +23,17 @@
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import LeadForm from '@/components/lead-engine/LeadForm'
 import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
-  Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit, PhotoBand,
+  Contact, Coverage, Faq, Footer, Gallery, HeroSplit, PhotoBand,
   coverageRenders, ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 import { bandPlan, galleryLayout, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function TradeClassic({
-  content, photos, logoUrl,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  content, photos, logoUrl, siteId,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const services = content.services ?? []
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 2))
   const shot = allocatePhotos(photos, {
@@ -72,7 +73,7 @@ export default function TradeClassic({
       <Faq faqs={content.faqs} />
 
       <Contact content={content}>
-        <LeadFormPlaceholder />
+        <LeadForm siteId={siteId} />
       </Contact>
 
       <Footer content={content} />

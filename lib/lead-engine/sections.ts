@@ -87,47 +87,77 @@ export function proofBarRenders(content: SiteContent, opts: { showAreas?: boolea
 // ── Why us ───────────────────────────────────────────────────────────────────
 
 /**
- * The differentiator items.
+ * The hero's lede: Q4a, verbatim.
  *
- * **Credentials are NOT part of this.** They used to be joined into the same string and split on
- * sentence boundaries — but a credential rarely ends in a full stop, so "Licensed and insured in
- * Texas" glued itself to the front of the next sentence and shipped on five of eight pages as
- * *"Licensed and insured in Texas Most people call us after a storm…"*.
- *
- * Credentials already render in the proof bar. Joining two independently-authored fields and
- * hoping punctuation separates them is the bug; keeping them apart is the fix.
- */
-function sentences(s: string | undefined): string[] {
-  return (s ?? '').split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(x => x.length > 20)
-}
-
-/**
- * The hero's lede: the FIRST sentence of the differentiator.
- *
- * One sentence, because a hero lede that runs to three is a paragraph and stops working as a lede.
- * The rest is not discarded — it feeds Why us below, which is what stops the two sections printing
- * the same words.
+ * Q4a ("what's one thing you do that other [vertical] businesses typically don't?") is a single
+ * short-answer prompt, not an open paragraph — so unlike the field it replaced, there is no
+ * sentence to extract. The whole answer IS the lede.
  */
 export function heroLede(content: SiteContent): string | undefined {
-  return sentences(content.differentiator)[0] ?? content.differentiator
+  return content.differentiator
 }
 
 /**
- * The differentiator items.
+ * A bare Q5 credential, given a subject and a verb so it reads as a sentence beside two
+ * first-person ones rather than as a spec-sheet fragment.
  *
- * **Credentials are NOT part of this.** They used to be joined into the same string and split on
- * sentence boundaries — but a credential rarely ends in a full stop, so "Licensed and insured in
- * Texas" glued itself to the front of the next sentence and shipped on five of eight pages as
- * *"Licensed and insured in Texas Most people call us after a storm…"*. Credentials render in the
- * proof bar. Joining two independently-authored fields and hoping punctuation separates them is
- * the bug; keeping them apart is the fix.
+ * Settled 2026-08-24 against a real rendered comparison ("Class A CDL", "EPA certified", "Better
+ * Business Bureau A+ rated" — see `docs/LEAD-ENGINE-PLAN.md`'s "Credentials read twice" section):
+ * a bare credential reads oddly beside two full sentences in every case, so the lead-in is never
+ * optional. A value that already opens with a subject and a verb ("We are fully licensed...") is
+ * left alone — prefixing it would double up. Otherwise the value is either a licence/certification
+ * NAME ("Class A CDL"), which reads naturally after "Holds ", or a STATUS or RATING phrase ("EPA
+ * certified", "...A+ rated"), which does not parse after "Holds " and needs "We are " instead. The
+ * two known rough edges (a participle like "certified" is not itself proof of "already a
+ * sentence"; one fixed prefix cannot cover both shapes) are why this is two branches, not one.
  *
- * **The hero's lede is not part of this either.** Every hero renders the first differentiator
- * sentence, so including it here printed the same sentence twice on one page — and on a thin site
- * it was the entire Why us section.
+ * The status word can open the phrase ("Licensed and insured in Texas") as easily as close it
+ * ("EPA certified") — a trailing-only check missed the first shape, which is one of the most
+ * common answers this exact field collects across the templates already shipped.
+ */
+export function credentialWhyUsLine(raw: string): string {
+  const value = raw.trim()
+  const endWithPeriod = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`)
+
+  if (/^(i|we|is|are|has|have)\b/i.test(value)) return endWithPeriod(value)
+  if (/\b(certified|rated|licensed|insured|accredited|approved|registered|bonded|verified)\b/i.test(value)) {
+    return endWithPeriod(`We are ${value}`)
+  }
+  return endWithPeriod(`Holds ${value}`)
+}
+
+/**
+ * Why us's items: Q4a, Q4b, and — only when the business stated one — a Q5 credential.
+ *
+ * **Two items (4a, 4b) is the floor for anyone who answers the questionnaire at all**, not an edge
+ * case: both are guaranteed, unskippable prompts (no 4a, no hero, no page — the same reasoning
+ * that made the old single-paragraph Q4 required). The credential item is genuinely optional and
+ * always third when present; it is never used to pad a short answer, unlike Q11 in the model this
+ * replaced.
+ *
+ * **4a appears here AND as the hero lede, deliberately** — this is not the old duplication bug.
+ * The old bug was one field split on sentence boundaries, where the first fragment was reused
+ * *verbatim* in two places by construction. Here 4a and 4b are two independently-authored answers
+ * to two different questions; 4a carries the hero's opening claim and is restated as this
+ * section's own first item ("Our promise: <what 4a said>"), the same way a real credential
+ * legitimately appears in both the proof bar and here — see `credentialWhyUsLine`'s own note.
+ *
+ * **Credentials are never concatenated into another item's string.** The original bug —
+ * `differentiator + credentials + intro`, joined and split on sentence boundaries with no
+ * separator — is not possible here: each source produces its own array entry, never a merge.
+ *
+ * **The credential item never appears alone.** It is the THIRD item, and only ever added once at
+ * least one of 4a/4b is already present — a lone reformatted credential standing in for the whole
+ * section is thin content earning its own heading, the same reasoning `proofBarRenders` already
+ * applies to a single proof fact. In practice this never bites: 4a and 4b are the two unskippable
+ * prompts, so a real submission always has at least one before Q5 is ever considered.
  */
 export function whyUsItems(content: SiteContent): string[] {
-  return [...sentences(content.differentiator).slice(1), ...sentences(content.intro)].slice(0, 4)
+  const items: string[] = []
+  if (content.differentiator) items.push(content.differentiator)
+  if (content.customerImpression) items.push(content.customerImpression)
+  if (content.credentials && items.length > 0) items.push(credentialWhyUsLine(content.credentials))
+  return items
 }
 
 export function whyUsRenders(content: SiteContent): boolean {

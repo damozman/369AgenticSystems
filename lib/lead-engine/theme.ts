@@ -484,6 +484,11 @@ export function tokensFor(theme: Theme, brand?: Brand): Record<string, string> {
     '--le-space-connector': '64px',
     '--le-space-anchor-m':    '64px',
     '--le-space-connector-m': '40px',
+
+    // Form-validation red. Identical across kits, like the type scale above — an "invalid" signal
+    // is a UX convention, not a brand decision, and a customer's accent is never guaranteed to read
+    // as an error against every kit's paper.
+    '--le-danger': '#DC2626',
   }
 }
 

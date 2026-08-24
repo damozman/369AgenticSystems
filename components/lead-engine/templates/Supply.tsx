@@ -47,16 +47,17 @@
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import LeadForm from '@/components/lead-engine/LeadForm'
 import { allocatePhotos } from '@/lib/lead-engine/photos'
 import {
-  Contact, Coverage, Faq, Footer, LeadFormPlaceholder, HeroEditorial, PhotoBand,
+  Contact, Coverage, Faq, Footer, HeroEditorial, PhotoBand,
   coverageRenders, editorialHeroFacts, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 import { bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function Supply({
-  content, photos, logoUrl,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  content, photos, logoUrl, siteId,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const shot = allocatePhotos(photos, { band: true })
 
   const [servicesBand, whyBand, coverageBand, trustBand] = bandPlan(
@@ -90,7 +91,7 @@ export default function Supply({
       <Faq faqs={content.faqs} />
 
       <Contact content={content}>
-        <LeadFormPlaceholder />
+        <LeadForm siteId={siteId} />
       </Contact>
 
       <Footer content={content} />

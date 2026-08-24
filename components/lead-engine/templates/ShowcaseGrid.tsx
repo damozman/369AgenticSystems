@@ -39,16 +39,17 @@
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import LeadForm from '@/components/lead-engine/LeadForm'
 import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
-  Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit,
+  Contact, Coverage, Faq, Footer, Gallery, HeroSplit,
   coverageRenders, ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 import { SHOWCASE_GALLERY_PHOTOS, bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function ShowcaseGrid({
-  content, photos, logoUrl,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  content, photos, logoUrl, siteId,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const services = content.services ?? []
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   const shot = allocatePhotos(photos, {
@@ -100,7 +101,7 @@ export default function ShowcaseGrid({
       <Faq faqs={content.faqs} />
 
       <Contact content={content}>
-        <LeadFormPlaceholder />
+        <LeadForm siteId={siteId} />
       </Contact>
 
       <Footer content={content} />

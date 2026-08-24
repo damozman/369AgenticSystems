@@ -56,8 +56,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const content = contentOf(site)
   // The description is the business's own words or nothing at all — never a generated summary.
-  // An invented sentence here is the one that appears in a Google result under their name.
-  const description = content.differentiator ?? content.intro
+  // An invented sentence here is the one that appears in a Google result under their name. Q4a
+  // (differentiator) is the closest thing to a required field this content model has — see
+  // `whyUsItems`'s own note — so it is the only fallback; there is no second field to reach for.
+  const description = content.differentiator
 
   return {
     title: content.businessName,
@@ -116,7 +118,7 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
       accentMode={accentMode}
       density={density}
     >
-      <Template content={content} photos={photos} logoUrl={logoUrl} />
+      <Template content={content} photos={photos} logoUrl={logoUrl} siteId={site.id} />
     </ThemeShell>
   )
 }

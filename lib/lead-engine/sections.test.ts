@@ -2,9 +2,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   TEMPLATE_RENDERS_GALLERY, accessBarRenders, accessFacts, coverageColumns, coverageRenders,
-  editorialHeroCentred, editorialHeroFacts, galleryLayout, heroCarriesProof, heroLede,
-  newPatientRenders, pageDensity, proofBarRenders, proofFacts, sectionCount, servicesColumns,
-  bandPlan, insuranceLine, teamColumns, teamRenders, whyUsItems,
+  credentialWhyUsLine, editorialHeroCentred, editorialHeroFacts, galleryLayout, heroCarriesProof,
+  heroLede, newPatientRenders, pageDensity, proofBarRenders, proofFacts, sectionCount,
+  servicesColumns, bandPlan, insuranceLine, teamColumns, teamRenders, whyUsItems,
 } from '@/lib/lead-engine/sections'
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
 
@@ -15,63 +15,97 @@ const base: SiteContent = {
 const photos = (n: number): SitePhoto[] =>
   Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, url: `/${i + 1}.jpg`, caption: null }))
 
-// ── 1. Credentials must never be glued into a differentiator ─────────────────
+// ── 1. Q4a/Q4b/Q5 → Why us — rewritten 2026-08-24, see LEAD-ENGINE-PLAN.md "Q4 rewritten" ────
 
-test('CREDENTIALS NEVER APPEAR IN A WHY-US ITEM', () => {
+test('CREDENTIALS ARE NEVER CONCATENATED INTO ANOTHER WHY-US ITEM', () => {
   // The bug this exists to prevent shipped on five of eight pages: differentiator, credentials and
   // intro were joined with a space and split on sentence boundaries — but a credential rarely ends
   // in a full stop, so it glued itself to the front of the next sentence:
   //   "Licensed and insured in Texas Most people call us after a storm, worried about what..."
+  // Credentials legitimately appear here now (see the next test) — the ban is on GLUING, not on
+  // presence: `credentials` text must never turn up inside 4a's or 4b's own array entry.
   const credentials = 'Licensed and insured in Texas'
   const content: SiteContent = {
     ...base,
-    differentiator: 'We answer the phone at nine at night. We show up when we say we will.',
+    differentiator: 'We answer the phone at nine at night.',
+    customerImpression: 'People always say we show up when we say we will.',
     credentials,
-    intro: 'Most people call us after a storm, worried about what it will cost.',
   }
 
   const items = whyUsItems(content)
-  assert.ok(items.length > 0)
-  for (const item of items) {
-    assert.ok(!item.includes(credentials), `credentials leaked into a why-us item: ${item}`)
-  }
-  // And nowhere in the joined output either, however the items get concatenated downstream.
-  assert.ok(!items.join(' ').includes(credentials))
+  assert.equal(items[0], content.differentiator)
+  assert.equal(items[1], content.customerImpression)
+  assert.ok(!items[0].includes(credentials) && !items[1].includes(credentials))
 })
 
-test('a credential with no trailing full stop still cannot merge into the next field', () => {
-  // The specific shape of the original defect: no punctuation to split on.
-  for (const credentials of ['State Bar of Texas', 'Texas Real Estate Commission licensed', 'ISO 9001']) {
-    const items = whyUsItems({ ...base, credentials, intro: 'Most people come to us at a difficult moment and want to know what happens next.' })
-    assert.ok(!items.some(i => i.includes(credentials)), `${credentials} leaked`)
-  }
-})
-
-test('THE HERO LEDE IS NEVER REPEATED IN WHY US', () => {
-  // Every hero renders the first differentiator sentence as its lede. Including it in Why us too
-  // printed the same sentence twice on one page — and on a thin site it WAS the whole section,
-  // which is how review-sparse ended up with a heading and one line in 128px of padding.
+test('a Q5 credential renders as its own distinct item, not merged into 4b', () => {
+  // The new feature this Q4 rewrite adds: when the business answered Q5, it becomes a genuinely
+  // separate third array entry — not appended to 4b's string. This is the test that would have
+  // caught the old bug's SHAPE (two fields silently sharing one string) even without its original
+  // mechanism, and it documents the new design rather than merely permitting it by omission.
   const content: SiteContent = {
     ...base,
-    differentiator: 'We answer the phone at nine at night. Every roof is inspected by the owner first.',
-    intro: 'Most people call us after a storm, worried about what it will cost.',
+    differentiator: 'We answer the phone at nine at night.',
+    customerImpression: 'People always say we show up when we say we will.',
+    credentials: 'Licensed and insured in Texas',
   }
-  const lede = heroLede(content)
   const items = whyUsItems(content)
+  assert.equal(items.length, 3)
+  assert.notEqual(items[2], items[1])
+  assert.ok(items[2].startsWith('We are Licensed and insured in Texas'))
+})
 
-  assert.equal(lede, 'We answer the phone at nine at night.')
-  assert.ok(!items.includes(lede!), 'the hero lede was repeated in why us')
-  assert.deepEqual(items, [
+test('THE HERO LEDE IS Q4A, VERBATIM — AND IT IS ALSO WHY-US ITEM ONE, DELIBERATELY', () => {
+  // Not the old duplication bug. The old bug was one field split on sentence boundaries, so the
+  // first fragment appeared twice by construction. Here 4a and 4b are two independently-authored
+  // answers; 4a is restated as this section's own "Our promise" item the same way a real credential
+  // legitimately appears in both the proof bar and here.
+  const content: SiteContent = {
+    ...base,
+    differentiator: 'We answer the phone at nine at night.',
+    customerImpression: 'Every roof is inspected by the owner first.',
+  }
+  assert.equal(heroLede(content), 'We answer the phone at nine at night.')
+  assert.deepEqual(whyUsItems(content), [
+    'We answer the phone at nine at night.',
     'Every roof is inspected by the owner first.',
-    'Most people call us after a storm, worried about what it will cost.',
   ])
 })
 
-test('a one-sentence differentiator becomes the lede and leaves Why us empty', () => {
-  // Correct: with nothing left to say, the section does not render rather than repeating the hero.
-  const content: SiteContent = { ...base, differentiator: 'One van, one plumber, and the same number you called last time.' }
+test('two items (4a, 4b only) is the floor, not an edge case', () => {
+  // Every customer who answers the two guaranteed prompts gets it — this is the shape the
+  // 2026-08-24 pull-quote fallback layout was built for, not a thin-fixture accident.
+  const content: SiteContent = {
+    ...base,
+    differentiator: 'One van, one plumber, and the same number you called last time.',
+    customerImpression: 'Most people finding us have already had one plumber not turn up.',
+  }
   assert.equal(heroLede(content), 'One van, one plumber, and the same number you called last time.')
-  assert.deepEqual(whyUsItems(content), [])
+  assert.equal(whyUsItems(content).length, 2)
+})
+
+test('no 4a, no hero, no Why us either', () => {
+  const content: SiteContent = { ...base, customerImpression: 'People say we always turn up.' }
+  assert.equal(heroLede(content), undefined)
+  assert.deepEqual(whyUsItems(content), ['People say we always turn up.'])
+})
+
+// ── credentialWhyUsLine — the bare-credential lead-in ─────────────────────────
+
+test('a value that already opens with a subject and a verb is left alone', () => {
+  assert.equal(credentialWhyUsLine('We are fully licensed and insured'), 'We are fully licensed and insured.')
+  assert.equal(credentialWhyUsLine('Has held a Class A CDL since 2009.'), 'Has held a Class A CDL since 2009.')
+})
+
+test('a licence NAME reads naturally after "Holds"', () => {
+  assert.equal(credentialWhyUsLine('Class A CDL'), 'Holds Class A CDL.')
+})
+
+test('a STATUS or RATING phrase does not parse after "Holds" and gets "We are" instead', () => {
+  // Both contain a past-participle a naive check would read as "already a sentence" — but both
+  // still read as fragments bare, per the 2026-08-24 rendered comparison.
+  assert.equal(credentialWhyUsLine('EPA certified'), 'We are EPA certified.')
+  assert.equal(credentialWhyUsLine('Better Business Bureau A+ rated'), 'We are Better Business Bureau A+ rated.')
 })
 
 // ── 2. review-sparse: nothing renders with more space than content ───────────

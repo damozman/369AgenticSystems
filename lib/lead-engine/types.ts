@@ -127,7 +127,11 @@ export interface QuestionnaireAnswers {
   first_visit?: string
   what_to_bring?: string | string[]
   patient_forms_url?: string
+  /** Q4a — "What's one thing you do that other [vertical] businesses typically don't?" The hero's lede, verbatim. */
   differentiator?: string
+  /** Q4b — "What's the first thing customers usually say about you?" An externally-observed impression, not a self-assessment. */
+  customer_impression?: string
+  /** Q5. Feeds the proof bar always, and a third Why-us item when answered — see `sections.ts`'s `credentialWhyUsLine`. */
   credentials?: string
   years_in_business?: string
   primary_cta?: CtaKind
@@ -139,7 +143,6 @@ export interface QuestionnaireAnswers {
    * `contentFrom()` does not carry it across, and a test asserts that it cannot.
    */
   pain_points?: string
-  visitor_message?: string
   /** Operational, not rendered: where lead notifications go, and the requested URL. */
   notify_email?: string
   preferred_slug?: string
@@ -162,11 +165,13 @@ export interface SiteContent {
   phone?: string
   services?: ServiceItem[]
   serviceAreas?: string[]
+  /** Q4a, verbatim — also the hero's lede. */
   differentiator?: string
+  /** Q4b, verbatim — the second guaranteed Why-us item. */
+  customerImpression?: string
   credentials?: string
   yearsInBusiness?: string
   googleProfileUrl?: string
-  intro?: string
   testimonials?: Testimonial[]
   faqs?: FaqItem[]
   /** Practice only. Absent on every other template, and the sections omit when it is. */

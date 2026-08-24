@@ -8,79 +8,140 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-24 (second session that day).**
+**Last updated: 2026-08-24 (third session that day).**
 
 ### Where this session ended
 
-**Photo pipeline (`docs/PHOTO-REQUIREMENTS.md` Part B) is BUILT, not yet turned on.** tsc clean,
-548 tests (up 18 this session), `next build` clean, and the rendering change verified
-against all 8 real review fixtures on a live local dev server — not just tsc, the actual HTML was
-read. Everything is committed on `feature/lead-engine`; nothing is merged to `master`.
+**Chunk B is BUILT, not yet verified against production or read as a customer would.** tsc clean,
+552 tests, `next build` clean. Everything is committed on the working tree of `feature/lead-engine`
+— **not yet committed to git** (see "▶ START HERE NEXT SESSION" below, item 1). Nothing is merged
+to `master`.
 
-**Two real decisions came out of building it, both resolved — read `docs/PHOTO-REQUIREMENTS.md`'s
-own top section before touching any of this again, do not re-derive:**
-1. Chris confirmed `heic-convert` (decode only) + `sharp` (everything else) — sharp's prebuilt
-   binaries cannot decode HEIC on Vercel at all (confirmed live: no `@img/sharp-*-heif` package).
-2. Found mid-build, not in the original spec: **Vercel Functions cap request/response bodies at
-   4.5MB, hard** (confirmed against Vercel's own docs). The 20MB upload therefore cannot be a
-   single route — it's now `POST /api/lead-engine/photos/sign` (mint a signed Storage upload URL)
-   then a browser-direct upload to Storage, then `POST /api/lead-engine/photos` (tiny JSON naming
-   the path) to process it server-to-server. `docs/PHOTO-REQUIREMENTS.md` §6/§10 still describe
-   the processing logic correctly; its "What actually got built" section explains why the route
-   shape moved.
+**What actually shipped, in build order:**
 
-**Part B is now PROVEN end to end against production, same day — all three blockers above are
-closed. Do not re-verify any of this:**
-1. **The migration is applied.** Not stated separately — proven by the test upload itself, which
-   only succeeds if `width`/`height`/`aspect_ratio`/`dominant_hex`/`variants` exist to write to.
-2. **Both Storage buckets exist and work** — the original public `lead-engine-photos` (Phase 6)
-   and the new private `lead-engine-photos-incoming`, created by hand by Chris.
-3. **A real HEIC photo went through the live routes and back out clean.** Sign → direct-to-Storage
-   upload → process, via a throwaway admin test page
-   (`app/(portal)/admin/lead-engine-photos/`, not part of the product — a harness, same spirit as
-   `admin/ops-brief`) built specifically because no real dashboard exists yet to click through.
-   Correct orientation, 4 variants (480/960/1440/2560), real dimensions (4000×3000, 4:3 — a real
-   iPhone photo), dominant color extracted. Then deleted through the real `DELETE
-   /api/lead-engine/photos` route (not by hand) — verified read-only afterward: the DB row is gone
-   and `storage.list()` on that photo's prefix returns empty, so all 8 variant objects (4 widths ×
-   2 encodings) were actually removed, not just the row.
-   **The one thing this did NOT need:** a fabricated HEIC test fixture. `lib/lead-engine/
-   photo-pipeline.test.ts` was honest about not having one; a real photo made that gap moot rather
-   than needing to be worked around.
+1. **The Q4/Q5 content-model rewrite** this doc's own "Q4 rewritten — 2026-08-24" section
+   specified — done first because Chunk B's questionnaire has nothing to write into `content`
+   without it. `QuestionnaireAnswers.differentiator` (4a) and the new `customer_impression` (4b)
+   replace the old single open-ended differentiator paragraph; `visitor_message`/`SiteContent.intro`
+   (Q11) is deleted outright, not merged. `heroLede()` now reads 4a verbatim — no more
+   sentence-splitting, since 4a is a single short-answer prompt, not a paragraph.
+   `whyUsItems()` returns `[4a, 4b, credentials?]`, in that order; the new `credentialWhyUsLine()`
+   helper gives a bare Q5 credential a subject and verb ("Class A CDL" → "Holds Class A CDL.",
+   "EPA certified" → "We are EPA certified.") using a word-boundary match against a fixed list of
+   status participles, checked BOTH ends of the string — the doc's own worked examples only checked
+   the trailing end, which broke on "Licensed and insured in Texas" (a real, common fixture value)
+   until this session's own test caught it. The credential item never appears alone — only once at
+   least one of 4a/4b is present — so a synthetic content object with only `credentials` set (an
+   existing unrelated test built exactly that) can't earn its own Why-us section.
+   `WhyUs` in `SiteSections.tsx` gives item index 2 the fixed label "Credentials" rather than
+   pulling from the generic `['Our promise', 'What you get', ...]` array, since item 2 is now
+   ALWAYS the Q5-sourced line by construction. All 8 review fixtures in
+   `scripts/seed-lead-engine-review.mjs` rewritten to the 4a/4b shape — every `differentiator` is
+   now a single sentence, every fixture gained a `customer_impression`. **Not yet re-seeded to
+   production** — the live `review-*` rows still hold the OLD shape until
+   `seed-lead-engine-review.mjs --apply` runs again (see next-session item 2).
+2. **The Chunk B library layer** — `lib/lead-engine/notify.ts` (owner lead-notification email,
+   `notify_email` falling back to `owner_email`, mirrors `/api/intake`'s never-throws contract),
+   `lib/lead-engine/questionnaire-auth.ts` (signed-link-or-owner-session, reusing
+   `lib/security/onboarding-token.ts`'s primitives with the site UUID as the signed subject —
+   **enforces immediately, no reporting-only rollout**, unlike the voice product's version, because
+   this route has never shipped before and so has no existing producer to break), and five new
+   functions on `lib/lead-engine/site.ts` (`loadSiteForQuestionnaire`, `saveQuestionnaireAnswers`,
+   `loadSiteForOwner`, `listSubmissions`, `listChangeRequests`).
+3. **The routes**: `POST /api/lead-engine/submit` (public, the `/api/intake` contract — only
+   reports success once the row is committed), `GET`+`POST /api/lead-engine/questionnaire/[id]`
+   (one shared authorizer for both, per this doc's own file-list note), `POST
+   /api/lead-engine/change-request` (owner-session only, reuses `photo-storage.ts`'s
+   `resolveOwnedSite` rather than a third ownership check).
+4. **The public questionnaire form** — `app/lead-engine/questionnaire/[id]/page.tsx`, same
+   load-then-populate-then-enable-submit shape as the voice product's onboarding form, covering the
+   full Chris-approved Q-list. **Scope cut, on purpose:** the practice-only extension questions
+   (Q9–Q11 — accepting patients, insurance, hours, team, first-visit info) are NOT in this form yet.
+   The API route's `parseAnswers()` already accepts them if posted; only the UI is missing. Nothing
+   in Chunk B's file list called for a vertical-conditional form, and the site row doesn't carry its
+   vertical after creation (only the resolved template/theme) — so showing them would mean either
+   threading the vertical through at creation or branching on `template === 'practice'`. Deferred
+   rather than guessed at.
+5. **The real lead form** — `components/lead-engine/LeadForm.tsx` replaces the inert
+   `LeadFormPlaceholder` Chunk A shipped, wired into all five templates with an added `siteId` prop
+   threaded from `app/sites/[slug]/page.tsx`. Same four fields, same `.le-field`/`.le-submit`
+   classes — no visual change to a page Chris already reviewed, just an onSubmit that works. Email
+   required, phone optional (mirrors `/api/intake`'s "the email is what makes a lead actionable").
+   `service_interest` is not collected in v1 — the DB column exists and stays null.
+6. **The customer dashboard** — `app/(portal)/client-dashboard/site/page.tsx` (submissions list,
+   `decideRevision()`'s own message, a change-request form) plus `ChangeRequestForm.tsx`. Lead
+   Engine has no Sidebar nav entry (deliberately deferred to Chunk C, alongside the admin list page
+   that will actually need one) — reached instead via a new redirect in the EXISTING
+   `client-dashboard/page.tsx`: a customer with no `agent_subscriptions` row is now checked against
+   `lead_engine_sites` before falling through to the "No active subscription" dead end, so a
+   Lead-Engine-only customer (no Ava) can reach their dashboard at all, per this doc's own "must
+   stand alone" requirement.
+7. **`scripts/verify-lead-engine.mjs` extended, not replaced.** This file already existed —
+   Chunk A's own style-drift gate (no hardcoded hex/font/radius/shadow under
+   `components/lead-engine/`) plus its live schema/render/button-contrast/320px checks. **A first
+   draft of this session's work overwrote it wholesale** — caught before being reported as done, by
+   noticing `git status` showed it `M` (modified) rather than `??` (new) and diffing against `HEAD`.
+   Restored, then extended with a THIRD job: create one throwaway site, round-trip the
+   questionnaire through the real GET/POST routes (including a bad-token 403 check), submit a real
+   lead through `/api/lead-engine/submit`, assert the notification path resolved one way or the
+   other (never silent), then sweep the throwaway row. Runs under the existing `--live` flag,
+   writes nothing under the `review-` prefix the rest of the script reads.
+   **The lesson, restated because it nearly repeated itself:** a file that already exists is a
+   claim about prior work, and `git status` before trusting a Write to a non-empty path is the
+   ten-second check that catches it — the exact shape of this project's own "re-derive from the
+   live system" rule, applied to a local file instead of a database.
+8. **One real bug the merged style-check caught immediately**: the new `.le-form-error` CSS used a
+   literal `#FCA5A5` for validation-error text. Fixed by adding `--le-danger` (`#DC2626`,
+   `theme.ts`) as a sixth kit-identical token alongside the existing type-scale and rhythm
+   constants — an "invalid" signal is a UX convention, not a brand decision, so it is NOT per-kit
+   like `--le-accent`. `theme.test.ts`'s `REQUIRED_TOKENS` list updated to match.
 
 The admin test page (`/admin/lead-engine-photos`) is still there, admin-gated, harmless to leave —
-delete it whenever Chunk B's real dashboard makes it redundant, not before.
-
-There is still no CUSTOMER-facing dashboard to call `/api/lead-engine/photos/sign` from — that's
-Chunk B below.
+delete it whenever Chunk C's real dashboard photo uploader makes it redundant, not before.
 
 ### ▶ START HERE NEXT SESSION
 
-**Chunk B — the real questionnaire, public lead form, notification, dashboard.** Read this
-doc's own "Q4 rewritten — 2026-08-24, Q11 removed, Q5 doing double duty" section in full before
-touching `lib/lead-engine/sections.ts` or `lib/lead-engine/content.ts` — it is a DESIGN, not a
-changelog entry, and skipping it will re-derive decisions that were already made and tested
-against a real rendered comparison. Specifically, it specifies:
-- 4a/4b as the two guaranteed Why-us prompts (4a doubles as the hero lede), Q5 (credentials) as
-  an optional third feeding BOTH the proof bar and Why-us.
-- **Fixed "Credentials" label for Why-us item 3** — never pulled from the generic per-item
-  array (`['Our promise', 'What you get', 'How we work', 'Peace of mind']`), which was proven
-  wrong for a credential in every phrasing tested.
-- **The `"Holds "` / `"We are "` lead-in helper** for a bare credential value, and its two known
-  rough edges (verb-detection is not "contains a verb-shaped word," and a single fixed prefix
-  does not fit both name-shaped and status-shaped credentials) — both found by rendering the
-  fix, not before shipping it. Do not re-derive these from scratch; the doc section has the
-  worked examples.
-- **Two replacement tests**, not one deleted: the credentials-concatenation ban survives,
-  generalised beyond "never in Why-us" specifically; a new test asserts Q5, when answered,
-  renders as its own distinct item rather than merged into 4b's string.
-- `app/sites/[slug]/page.tsx`'s meta-description fallback (`content.differentiator ?? content.intro`)
-  needs to point at 4a once Q11 is gone — a live loose end, not hypothetical.
+**Chunk B is code-complete but has never touched production.** In order:
 
-**Nothing above is wired into live code yet.** The Why-us pull-quote layout that shipped this
-session renders off the OLD single-`differentiator`-string sentence-splitting mechanism
-   (`whyUsItems()` in `lib/lead-engine/sections.ts`), not the new 4a/4b/Q5 field structure. Chunk B
-   is what makes that switch.
+1. **Commit the working tree.** Everything described above is uncommitted on `feature/lead-engine`
+   — this session ran out of room before the commit step, not before the build step.
+2. **Re-seed the review fixtures** — they still hold the OLD `differentiator`/`visitor_message`
+   shape in production, which no longer matches `QuestionnaireAnswers`' type (harmless — jsonb
+   doesn't enforce it — but `contentFrom()` run against a stale row would silently drop the old
+   `visitor_message` field, since that key no longer maps to anything):
+   ```
+   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --apply
+   ```
+   Then read at least one page (`/sites/review-trade-classic`) to confirm Why-us reads naturally
+   with the new 4a/4b/credential shape — this project's own rule, "read the artifact, not the code
+   that made it," and Why-us specifically is the section this whole rewrite touched.
+3. **Run the live verification** — never run yet, only written:
+   ```
+   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
+   ```
+   This both re-runs the existing style/schema/render/contrast/320px checks AND exercises Chunk B's
+   own new path: create a throwaway site, round-trip the questionnaire through the real routes,
+   submit a real lead, confirm the notification resolved one way or the other. It sends a real
+   email to `chris@369agenticsystems.com` if `RESEND_API_KEY` is set — expect it.
+4. **Open the real questionnaire form in a browser** (`/lead-engine/questionnaire/<a real site id>`)
+   and fill it in as a customer would — the script above proves the HTTP contract, not that the
+   form is pleasant to use or that nothing looks broken. Nobody has looked at this form yet.
+5. **Then Chunk C** — photo upload wired into the customer dashboard (`PhotoUploader.tsx` is still
+   unbuilt; today a photo can only reach a site through the internal
+   `/admin/lead-engine-photos` harness), and the internal admin list/edit page so a site can go
+   from answers to live with no raw SQL. Until that page exists, `content` still has to be built by
+   hand — see `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an
+   admin route would automate.
+
+**Known, deliberate gaps in what shipped — not bugs, just not built:**
+- The public questionnaire form does not ask Q9–Q11 (practice-only: accepting patients, insurance,
+  hours, team, first-visit info). The API route already accepts them if posted; only the UI is
+  missing. Deferred because the site row doesn't carry its vertical after creation, so the form has
+  no cheap way to know whether to show them — see this session's own note further up.
+- The lead form doesn't collect "what are you interested in?" — `service_interest` stays null.
+- `client-dashboard/site` has no Sidebar nav entry; reached via the redirect wired into the main
+  `client-dashboard/page.tsx`, or a direct link, until Chunk C's admin page needs one and both get
+  added together.
 
 ### What shipped 2026-08-24, second session — the photo pipeline
 
@@ -106,8 +167,24 @@ session renders off the OLD single-`differentiator`-string sentence-splitting me
   degrades to a plain `<img src>` when it doesn't. Alt text now follows §9 exactly — gallery
   photos with no caption used to render `alt=""`; they now fall back to the business name, which a
   new `businessName` prop on `Gallery` threads through from all three template call sites.
-- **Migration `2026-08-24-lead-engine-photo-pipeline.sql`** — NOT yet applied, see this session's
-  handoff above for what's still needed before any of this is live.
+- **Migration `2026-08-24-lead-engine-photo-pipeline.sql` is APPLIED**, and Part B is proven end to
+  end against production, same day. **Do not re-verify any of this:**
+  - The migration itself — not stated separately, proven by the test upload below, which only
+    succeeds if `width`/`height`/`aspect_ratio`/`dominant_hex`/`variants` exist to write to.
+  - **Both Storage buckets exist and work** — the original public `lead-engine-photos` (Phase 6)
+    and the new private `lead-engine-photos-incoming`, created by hand by Chris.
+  - **A real HEIC photo went through the live routes and back out clean.** Sign →
+    direct-to-Storage upload → process, via the throwaway admin test page
+    (`app/(portal)/admin/lead-engine-photos/`, not part of the product — a harness, same spirit as
+    `admin/ops-brief`) built specifically because no real dashboard exists yet to click through.
+    Correct orientation, 4 variants (480/960/1440/2560), real dimensions (4000×3000, 4:3 — a real
+    iPhone photo), dominant color extracted. Then deleted through the real `DELETE
+    /api/lead-engine/photos` route (not by hand) — verified read-only afterward: the DB row is
+    gone and `storage.list()` on that photo's prefix returns empty, so all 8 variant objects
+    (4 widths × 2 encodings) were actually removed, not just the row.
+    **The one thing this did NOT need:** a fabricated HEIC test fixture.
+    `lib/lead-engine/photo-pipeline.test.ts` was honest about not having one; a real photo made
+    that gap moot rather than needing to be worked around.
 
 ### What shipped 2026-08-24, first session — the short version
 
@@ -276,6 +353,13 @@ render empty frames. Absence of a photo is not a reason to show a placeholder.
 never render on the public page. This is written into the content mapper and asserted in a test.
 
 ### Q4 rewritten — 2026-08-24, Q11 removed, Q5 doing double duty
+
+**✅ IMPLEMENTED 2026-08-24 (third session).** Everything below was the design; the "What actually
+shipped" list at the top of this doc's handoff records what building it actually found — most
+notably that `credentialWhyUsLine`'s status-word check has to match at EITHER end of the string,
+not just the trailing end this section's own worked examples checked, or "Licensed and insured in
+Texas" — one of this project's own most common fixture credentials — comes out as the broken
+"Holds Licensed and insured in Texas." Kept below for the reasoning, not as an open task.
 
 **The problem this fixes.** The single open-ended Q4 ("What makes you different…") plus the
 catch-all Q11 ("Anything specific you want visitors to know or feel…") were the only two inputs
@@ -481,10 +565,11 @@ by design, and both portal paths sit under prefixes already matched.
 *Verification point:* Chris opens a real seeded site on all three templates and reads it as a
 customer would.
 
-**Chunk B — Phases 3–5.** Questionnaire (token-gated), public lead form + owner notification,
-customer dashboard section (submissions, counts, change-request form).
-*Verification point:* Chris fills the questionnaire from a real emailed link and submits a real
-lead, and the notification arrives.
+**Chunk B — Phases 3–5. ✅ BUILT 2026-08-24, not yet verified against production — see this doc's
+own handoff.** Questionnaire (token-gated), public lead form + owner notification, customer
+dashboard section (submissions, counts, change-request form).
+*Verification point, still outstanding:* Chris fills the questionnaire from a real emailed link
+and submits a real lead, and the notification arrives.
 
 **Chunk C — Phases 6–7.** Photo upload + gallery, internal admin list/edit so a site goes from
 answers to live with no raw SQL. Quarterly refresh is a **`limits.ts` function only** — no cron
