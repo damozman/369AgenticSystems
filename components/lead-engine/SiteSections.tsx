@@ -61,9 +61,18 @@ const SITE_CSS = `
   line-height: var(--le-body-line);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  /* Deliberately NO overflow-x: hidden. It was here to mask the hero's negative-margin bleed, and
+     it does two bad things: it hides overflow rather than removing it (the audit still reports the
+     clipped element, and part of the photo is genuinely cut off), and an overflow-x on an ancestor
+     breaks position: sticky on the header inside it. Both bleeds below are now computed so they
+     cannot overflow in the first place. */
 }
 .le-site *, .le-site *::before, .le-site *::after { box-sizing: border-box; }
+/* Every string on these pages is typed by a customer — a city, a service, a credential — so any
+   of them can be longer than its column at 320px. Without this the BOX fits and the TEXT paints
+   outside it, which no element-bounds check catches: the audit reported a 9px sideways scroll on
+   a page where every element measured inside the viewport. */
+.le-site { overflow-wrap: break-word; }
 .le-site :focus-visible { outline: 2px solid var(--le-accent-derived); outline-offset: 2px; }
 
 /* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */
@@ -75,8 +84,9 @@ const SITE_CSS = `
 .le-c7-12 { grid-column: 7 / 13; }
 .le-c1-12 { grid-column: 1 / -1; }
 
-/* Full-bleed breakout. overflow-x is hidden on .le-site so 100vw cannot cause a scrollbar. */
-.le-bleed-out { width: 100vw; margin-left: calc(50% - 50vw); }
+/* Full-bleed. Rendered outside .le-wrap, so it is already the full page width — width: 100%
+   rather than 100vw, because 100vw includes the vertical scrollbar and overflows by its width. */
+.le-bleed-out { width: 100%; }
 
 .le-anchor    { padding: var(--le-space-anchor) 0; }
 .le-connector { padding: var(--le-space-connector) 0; }
@@ -159,14 +169,25 @@ const SITE_CSS = `
 .le-header .le-tel { font-size: var(--le-body); font-family: var(--le-font-body), system-ui, sans-serif; }
 
 /* ── Hero: split anchor ────────────────────────────────────────────────────── */
+/*
+   The image occupies the right half of the VIEWPORT while the text stays aligned to the container.
+   Done by padding the text column rather than by pulling the image out with a negative margin: a
+   negative margin on a grid item resolves its percentage against the grid's content box, not the
+   container, so it overshot the viewport edge at every width above 768px and was only invisible
+   because an overflow:hidden was hiding it.
+
+   calc(50vw - 640px + 48px) is the container's own left inset — half the viewport, minus half of
+   the 1280px container, plus its 48px padding. max() clamps it once the viewport is narrower
+   than the container. No negative margins, so there is nothing to overflow.
+*/
 .le-hero { position: relative; }
-.le-hero-grid { align-items: center; }
-.le-hero-text { padding: 96px 0; }
-.le-hero-media {
-  grid-column: 7 / 13; position: relative; min-height: 620px;
-  /* Bleeds to the right viewport edge rather than stopping at the container. */
-  margin-right: calc(50% - 50vw); align-self: stretch;
+.le-hero-inner { display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
+.le-hero-text {
+  padding-top: 96px; padding-bottom: 96px;
+  padding-left: max(48px, calc(50vw - 640px + 48px));
+  padding-right: 48px;
 }
+.le-hero-media { min-height: 620px; align-self: stretch; }
 .le-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ── Proof bar ─────────────────────────────────────────────────────────────── */
@@ -309,9 +330,11 @@ const SITE_CSS = `
   .le-header, .le-header-inner { height: 60px; }
   .le-header .le-btn { display: none; }
 
-  .le-hero-text { padding: 40px 0; }
+  /* Photo above the text on mobile, per the SKILL's split-anchor note. */
+  .le-hero-inner { grid-template-columns: 1fr; }
+  .le-hero-text { padding: 40px 20px; }
   .le-h1 { font-size: clamp(2.5rem, 9vw, 3.25rem); max-width: none; }
-  .le-hero-media { grid-column: 1 / -1; grid-row: 1; min-height: 320px; height: 320px; margin-right: 0; margin-left: 0; }
+  .le-hero-media { grid-row: 1; min-height: 320px; height: 320px; }
 
   .le-proof-4, .le-proof-3 { grid-template-columns: repeat(2, 1fr); }
   .le-ladder-row { margin-bottom: 48px; }
@@ -408,25 +431,25 @@ export function SiteHeader({ content, logoUrl }: { content: SiteContent; logoUrl
 export function HeroSplit({
   content, photo, eyebrow,
 }: { content: SiteContent; photo?: SitePhoto; eyebrow?: string }) {
+  // With no photo there is no right half to fill, and a half-width text column beside nothing is
+  // exactly the dead space this pass exists to remove. Fall back to the editorial hero.
+  if (!photo) return <HeroEditorial content={content} eyebrow={eyebrow} />
+
   return (
     <header className="le-hero" id="top">
-      <div className="le-wrap">
-        <div className="le-grid le-hero-grid">
-          <div className={photo ? 'le-c1-6 le-hero-text' : 'le-c1-8 le-hero-text'}>
-            {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
-            <h1 className="le-h1">{content.businessName}</h1>
-            {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
-            <div className="le-actions">
-              <CtaButton content={content} />
-              {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
-            </div>
+      <div className="le-hero-inner">
+        <div className="le-hero-text">
+          {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
+          <h1 className="le-h1">{content.businessName}</h1>
+          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+          <div className="le-actions">
+            <CtaButton content={content} />
+            {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
           </div>
-          {photo ? (
-            <div className="le-hero-media">
-              {/* Eager and unlazy — this is the LCP element. */}
-              <img src={photo.url} alt={photo.caption ?? `Work by ${content.businessName}`} />
-            </div>
-          ) : null}
+        </div>
+        <div className="le-hero-media">
+          {/* Eager and unlazy — this is the LCP element. */}
+          <img src={photo.url} alt={photo.caption ?? `Work by ${content.businessName}`} />
         </div>
       </div>
     </header>
@@ -630,11 +653,27 @@ export function Gallery({
   )
 }
 
-/** Coverage — a city grid rather than one line of prose. Density, and local search value. */
+/**
+ * Whether the Coverage section will render at all.
+ *
+ * Exported because the proof bar needs to know: areas belong in exactly one place per page, and
+ * which place depends on whether there are enough of them to justify a section. Templates ask this
+ * rather than hardcoding `showAreas`, so the two can never both show the list or both hide it.
+ */
+export function coverageRenders(content: SiteContent): boolean {
+  return (content.serviceAreas?.length ?? 0) >= 3
+}
+
+/**
+ * Coverage — a city grid rather than one line of prose. Density, and local search value.
+ *
+ * Below three cities it does not render: a 4-column grid holding one item is the void the
+ * three-content-elements rule exists to remove, and the proof bar carries the areas instead.
+ */
 export function Coverage({ content }: { content: SiteContent }) {
   const areas = content.serviceAreas
-  if (!areas?.length) return null
-  const shown = areas.slice(0, 16)
+  if (!coverageRenders(content)) return null
+  const shown = areas!.slice(0, 16)
 
   return (
     <Section id="coverage" density="connector">
@@ -644,7 +683,7 @@ export function Coverage({ content }: { content: SiteContent }) {
       <ul className="le-cover" style={{ margin: 0, padding: 0 }}>
         {shown.map(city => <li key={city}>{city}</li>)}
       </ul>
-      {areas.length > shown.length ? <p className="le-cover-note">and surrounding areas.</p> : null}
+      {areas!.length > shown.length ? <p className="le-cover-note">and surrounding areas.</p> : null}
     </Section>
   )
 }

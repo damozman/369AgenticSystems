@@ -26,7 +26,7 @@ import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
 import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
   Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit,
-  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
+  coverageRenders, ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
 export default function ShowcaseGrid({
@@ -59,7 +59,7 @@ export default function ShowcaseGrid({
       {/* On a band, breaking the run of paper sections. These are the facts a hire customer checks
           before ringing — and they are facts we actually hold. */}
       <Section density="connector" band>
-        <ProofBar content={content} showAreas={false} />
+        <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
       <Coverage content={content} />

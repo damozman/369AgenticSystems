@@ -249,10 +249,13 @@ if (!LIVE) {
       if (html.toLowerCase().includes(claim)) fail(`/sites/${site.slug} claims "${claim}", which does not exist`)
     }
 
-    // The composition question, asked mechanically: a section that renders a heading and nothing
-    // else is the void this whole pass exists to remove.
+    // The composition rule, asked mechanically: a section renders only with three or more content
+    // ELEMENTS. Counting elements rather than characters is the point — a gallery of six photos is
+    // dense and carries almost no text, so a character threshold flagged every gallery on every
+    // site while missing a coverage section holding one city.
+    const CONTENT_EL = /<(?:img|li|p|details|blockquote|dd)\b/g
     const emptySections = [...html.matchAll(/<section[^>]*id="([^"]+)"[\s\S]*?<\/section>/g)]
-      .filter(([block]) => block.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length < 60)
+      .filter(([block]) => (block.match(CONTENT_EL) ?? []).length < 3)
       .map(([, id]) => id)
     if (emptySections.length) {
       fail(`/sites/${site.slug} has near-empty section(s): ${emptySections.join(', ')}`)

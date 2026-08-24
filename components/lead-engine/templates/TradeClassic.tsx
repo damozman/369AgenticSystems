@@ -13,7 +13,7 @@ import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
 import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
   Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit, PhotoBand,
-  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
+  coverageRenders, ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
 export default function TradeClassic({
@@ -33,7 +33,7 @@ export default function TradeClassic({
       <HeroSplit content={content} photo={shot.hero} />
 
       <Section density="connector">
-        <ProofBar content={content} />
+        <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
       <Services content={content} photos={shot.ladder} layout={layout} />

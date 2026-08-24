@@ -67,15 +67,16 @@ const SITES = [
     answers: {
       business_name: 'Northside Roofing Company',
       phone: '(817) 612-6757',
+      // Five on purpose. Trade Classic is the template most customers will get, and at 7+ services
+      // it takes the two-column list — so its signature block, the image ladder, would never be
+      // seen on the flagship. Ladder now appears on Ironclad and Threshold; the list on Counsel,
+      // Yard, Clinic and Ledger. Both layouts, at least two themes each.
       services: [
         { name: 'Roof replacement', description: 'Full tear-off and re-roof, with the old material hauled away the same day.' },
         { name: 'Storm damage repair', description: 'Emergency assessment and repair after hail or wind, documented for your insurer.' },
         { name: 'Gutter installation', description: 'Seamless gutters formed on site to fit the run exactly.' },
         { name: 'Free roof inspections', description: 'A written report with photographs, whether or not you go ahead with us.' },
         { name: 'Emergency tarping', description: 'Same-day cover to stop water getting in while a claim is assessed.' },
-        { name: 'Skylight repair', description: 'Reseal or replace, including the flashing that usually causes the leak.' },
-        { name: 'Metal roofing', description: 'Standing seam and corrugated, for outbuildings and full residential roofs.' },
-        { name: 'Insurance claim support', description: 'We meet your adjuster on site and provide the documentation they ask for.' }
       ],
       service_areas: 'Fort Worth, Arlington, Keller, Southlake, Grapevine, Colleyville, Haslet, Saginaw',
       differentiator: 'We answer the phone at nine at night, and we show up when we say we will. Every roof we replace is inspected by the owner before we ask you for the final payment.',

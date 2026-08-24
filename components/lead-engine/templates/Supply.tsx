@@ -24,7 +24,7 @@ import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
 import { allocatePhotos } from '@/lib/lead-engine/photos'
 import {
   Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroEditorial,
-  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
+  coverageRenders, ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
 export default function Supply({
@@ -39,7 +39,7 @@ export default function Supply({
 
       {/* Capability, carrying only answered facts. Never a minimum order quantity or a lead time. */}
       <Section density="connector" band>
-        <ProofBar content={content} showAreas={false} />
+        <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
       <Services content={content} layout="list" eyebrow="What we supply" heading="Product categories" />
