@@ -8,54 +8,108 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-24.**
+**Last updated: 2026-08-24 (second session that day).**
 
 ### Where this session ended
 
-All 8 review fixtures signed off after an extended composition and background-rhythm pass —
-tsc clean, 530 tests, `verify-lead-engine.mjs --live` all-pass (button contrast as painted + 320px
-overflow), `mobile-audit.mjs` 216/216 clean. Everything is committed on `feature/lead-engine`;
-nothing is merged to `master`.
+**Photo pipeline (`docs/PHOTO-REQUIREMENTS.md` Part B) is BUILT, not yet turned on.** tsc clean,
+548 tests (up 18 this session), `next build` clean, and the rendering change verified
+against all 8 real review fixtures on a live local dev server — not just tsc, the actual HTML was
+read. Everything is committed on `feature/lead-engine`; nothing is merged to `master`.
+
+**Two real decisions came out of building it, both resolved — read `docs/PHOTO-REQUIREMENTS.md`'s
+own top section before touching any of this again, do not re-derive:**
+1. Chris confirmed `heic-convert` (decode only) + `sharp` (everything else) — sharp's prebuilt
+   binaries cannot decode HEIC on Vercel at all (confirmed live: no `@img/sharp-*-heif` package).
+2. Found mid-build, not in the original spec: **Vercel Functions cap request/response bodies at
+   4.5MB, hard** (confirmed against Vercel's own docs). The 20MB upload therefore cannot be a
+   single route — it's now `POST /api/lead-engine/photos/sign` (mint a signed Storage upload URL)
+   then a browser-direct upload to Storage, then `POST /api/lead-engine/photos` (tiny JSON naming
+   the path) to process it server-to-server. `docs/PHOTO-REQUIREMENTS.md` §6/§10 still describe
+   the processing logic correctly; its "What actually got built" section explains why the route
+   shape moved.
+
+**Part B is now PROVEN end to end against production, same day — all three blockers above are
+closed. Do not re-verify any of this:**
+1. **The migration is applied.** Not stated separately — proven by the test upload itself, which
+   only succeeds if `width`/`height`/`aspect_ratio`/`dominant_hex`/`variants` exist to write to.
+2. **Both Storage buckets exist and work** — the original public `lead-engine-photos` (Phase 6)
+   and the new private `lead-engine-photos-incoming`, created by hand by Chris.
+3. **A real HEIC photo went through the live routes and back out clean.** Sign → direct-to-Storage
+   upload → process, via a throwaway admin test page
+   (`app/(portal)/admin/lead-engine-photos/`, not part of the product — a harness, same spirit as
+   `admin/ops-brief`) built specifically because no real dashboard exists yet to click through.
+   Correct orientation, 4 variants (480/960/1440/2560), real dimensions (4000×3000, 4:3 — a real
+   iPhone photo), dominant color extracted. Then deleted through the real `DELETE
+   /api/lead-engine/photos` route (not by hand) — verified read-only afterward: the DB row is gone
+   and `storage.list()` on that photo's prefix returns empty, so all 8 variant objects (4 widths ×
+   2 encodings) were actually removed, not just the row.
+   **The one thing this did NOT need:** a fabricated HEIC test fixture. `lib/lead-engine/
+   photo-pipeline.test.ts` was honest about not having one; a real photo made that gap moot rather
+   than needing to be worked around.
+
+The admin test page (`/admin/lead-engine-photos`) is still there, admin-gated, harmless to leave —
+delete it whenever Chunk B's real dashboard makes it redundant, not before.
+
+There is still no CUSTOMER-facing dashboard to call `/api/lead-engine/photos/sign` from — that's
+Chunk B below.
 
 ### ▶ START HERE NEXT SESSION
 
-Two things, in the order Chris named them:
+**Chunk B — the real questionnaire, public lead form, notification, dashboard.** Read this
+doc's own "Q4 rewritten — 2026-08-24, Q11 removed, Q5 doing double duty" section in full before
+touching `lib/lead-engine/sections.ts` or `lib/lead-engine/content.ts` — it is a DESIGN, not a
+changelog entry, and skipping it will re-derive decisions that were already made and tested
+against a real rendered comparison. Specifically, it specifies:
+- 4a/4b as the two guaranteed Why-us prompts (4a doubles as the hero lede), Q5 (credentials) as
+  an optional third feeding BOTH the proof bar and Why-us.
+- **Fixed "Credentials" label for Why-us item 3** — never pulled from the generic per-item
+  array (`['Our promise', 'What you get', 'How we work', 'Peace of mind']`), which was proven
+  wrong for a credential in every phrasing tested.
+- **The `"Holds "` / `"We are "` lead-in helper** for a bare credential value, and its two known
+  rough edges (verb-detection is not "contains a verb-shaped word," and a single fixed prefix
+  does not fit both name-shaped and status-shaped credentials) — both found by rendering the
+  fix, not before shipping it. Do not re-derive these from scratch; the doc section has the
+  worked examples.
+- **Two replacement tests**, not one deleted: the credentials-concatenation ban survives,
+  generalised beyond "never in Why-us" specifically; a new test asserts Q5, when answered,
+  renders as its own distinct item rather than merged into 4b's string.
+- `app/sites/[slug]/page.tsx`'s meta-description fallback (`content.differentiator ?? content.intro`)
+  needs to point at 4a once Q11 is gone — a live loose end, not hypothetical.
 
-1. **Photo pipeline — `docs/PHOTO-REQUIREMENTS.md`, Part B.** Not started. No code touched —
-   `lib/lead-engine/limits.ts` and the upload route are still whatever they were before this
-   thread began. **Before writing anything**, answer the two questions Chris asked and never got
-   answered: sharp vs `heic-convert` for HEIC conversion, and whether either needs anything added
-   to `next.config.mjs` or the Vercel build config. Part A (the customer-facing copy for
-   onboarding) is finished and needs no further work — copy it in as-is when onboarding exists to
-   copy it into.
-
-2. **Chunk B — the real questionnaire, public lead form, notification, dashboard.** Read this
-   doc's own "Q4 rewritten — 2026-08-24, Q11 removed, Q5 doing double duty" section in full before
-   touching `lib/lead-engine/sections.ts` or `lib/lead-engine/content.ts` — it is a DESIGN, not a
-   changelog entry, and skipping it will re-derive decisions that were already made and tested
-   against a real rendered comparison. Specifically, it specifies:
-   - 4a/4b as the two guaranteed Why-us prompts (4a doubles as the hero lede), Q5 (credentials) as
-     an optional third feeding BOTH the proof bar and Why-us.
-   - **Fixed "Credentials" label for Why-us item 3** — never pulled from the generic per-item
-     array (`['Our promise', 'What you get', 'How we work', 'Peace of mind']`), which was proven
-     wrong for a credential in every phrasing tested.
-   - **The `"Holds "` / `"We are "` lead-in helper** for a bare credential value, and its two known
-     rough edges (verb-detection is not "contains a verb-shaped word," and a single fixed prefix
-     does not fit both name-shaped and status-shaped credentials) — both found by rendering the
-     fix, not before shipping it. Do not re-derive these from scratch; the doc section has the
-     worked examples.
-   - **Two replacement tests**, not one deleted: the credentials-concatenation ban survives,
-     generalised beyond "never in Why-us" specifically; a new test asserts Q5, when answered,
-     renders as its own distinct item rather than merged into 4b's string.
-   - `app/sites/[slug]/page.tsx`'s meta-description fallback (`content.differentiator ?? content.intro`)
-     needs to point at 4a once Q11 is gone — a live loose end, not hypothetical.
-
-   **Nothing above is wired into live code yet.** The Why-us pull-quote layout that shipped this
-   session renders off the OLD single-`differentiator`-string sentence-splitting mechanism
+**Nothing above is wired into live code yet.** The Why-us pull-quote layout that shipped this
+session renders off the OLD single-`differentiator`-string sentence-splitting mechanism
    (`whyUsItems()` in `lib/lead-engine/sections.ts`), not the new 4a/4b/Q5 field structure. Chunk B
    is what makes that switch.
 
-### What shipped this session — the short version
+### What shipped 2026-08-24, second session — the photo pipeline
+
+- **`lib/lead-engine/photo-pipeline.ts`** — `normalizeToRaster` (HEIC/HEIF → JPEG via
+  `heic-convert`, everything else passes through) and `processPhoto` (EXIF-rotate-then-strip via
+  `sharp().rotate()` + not calling `withMetadata()`, 4 variant widths skipping any larger than the
+  source, WebP q82 + JPEG fallback, dominant color via `sharp().stats().dominant`). 7 tests, all
+  against real `sharp`-generated image bytes — see the file's own note on why real HEIC decoding
+  is NOT one of them.
+- **Two API routes, not one** — `POST /api/lead-engine/photos/sign` then `POST
+  /api/lead-engine/photos`, split because of the Vercel body-limit finding in this session's
+  handoff above. `lib/lead-engine/photo-storage.ts` holds the bucket names, path helpers, and the
+  one ownership check both routes (and DELETE) share.
+- **`allocatePhotos()` gained two Part B rules** (`lib/lead-engine/photos.ts`) — `isPrimary`
+  overrides `sort_order` for the hero slot only; hero/band prefer the pool's least-/most-wide
+  photo by `aspectRatio` when that data exists. Both implemented so disjointness holds by
+  construction (every pick splices out of one shared pool) rather than by re-checking it, and both
+  degrade to the exact pre-Part-B FIFO behaviour when a photo carries neither field — which is why
+  every pre-existing allocator test still passes unmodified.
+- **Rendering pass in `components/lead-engine/SiteSections.tsx`** — one new `SitePhotoImg`
+  helper used at all six photo call sites (hero, ladder, gallery ×3, band). Adds
+  `srcSet`/`sizes`/`fetchPriority`/dominant-color placeholder when a photo has Part B data,
+  degrades to a plain `<img src>` when it doesn't. Alt text now follows §9 exactly — gallery
+  photos with no caption used to render `alt=""`; they now fall back to the business name, which a
+  new `businessName` prop on `Gallery` threads through from all three template call sites.
+- **Migration `2026-08-24-lead-engine-photo-pipeline.sql`** — NOT yet applied, see this session's
+  handoff above for what's still needed before any of this is live.
+
+### What shipped 2026-08-24, first session — the short version
 
 - **`bandPlan()`** (`lib/lead-engine/sections.ts`) — background-rhythm alternation computed from
   what will actually render, not hand-picked per section. Read its own doc comment before touching
@@ -93,6 +147,15 @@ Two things, in the order Chris named them:
   `node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --apply`
   any time fixture content or rendering changes; the URLs are always `/sites/review-<name>` for
   trade-classic, threshold, service-clean, showcase-grid, practice, supply, brand-fail, sparse.
+- **`sharp`'s prebuilt binaries cannot decode HEIC** (patent licensing on the HEVC codec libheif
+  needs) — there is no `@img/sharp-*-heif` package and none will appear from a normal `npm
+  install` on Vercel. Don't re-investigate this if a future HEIC bug shows up; it's why
+  `heic-convert` exists in this codebase at all.
+- **Vercel Functions cap request AND response bodies at 4.5MB, hard, unconfigurable** — this is
+  not a Next.js setting and there is no larger tier to buy. Any route that needs to move more than
+  a few MB has to use a signed direct-to-Storage upload instead, the way
+  `/api/lead-engine/photos/sign` does. Don't design another large-upload route as a single route
+  without re-reading this.
 
 ---
 

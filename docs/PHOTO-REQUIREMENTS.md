@@ -2,8 +2,60 @@
 
 Two parts. Part A is customer-facing — copy it into onboarding as-is. Part B is the pipeline spec for the agent.
 
-**Status: queued, not started.** Chris wants to review the eight rendered fixture pages (the
-section-composition punch-list work) before tackling this. Do not begin Part B until he says go.
+**Status: Part B BUILT and PROVEN end to end, 2026-08-24.** `lib/lead-engine/limits.ts`,
+`lib/lead-engine/photo-pipeline.ts`, `lib/lead-engine/photo-storage.ts`, `lib/lead-engine/photos.ts`
+(allocator), the rendering pass in `components/lead-engine/SiteSections.tsx`, and two API routes.
+tsc clean, 18 new tests, `next build` clean, rendering verified against all 8 real review fixtures
+on a live dev server, and — same day, via a throwaway admin harness at
+`/admin/lead-engine-photos` (not part of the product) — a real HEIC photo uploaded, converted,
+resized, stored, and deleted through the actual live routes. No mocking anywhere in that chain:
+real signed Storage upload, real `heic-convert` decode, real DB row (4000×3000, 4 variants,
+`#989898` dominant), real `DELETE` route, verified read-only afterward that the row and all 8
+storage objects were actually gone, not just that the route returned 200.
+
+**Two decisions this section assumed away turned out to need answers, both settled 2026-08-24:**
+
+1. **sharp can't decode HEIC on Vercel.** Its prebuilt binaries exclude libheif (HEVC patent
+   licensing) — confirmed live, no `@img/sharp-*-heif` package is installed. Chris's call:
+   `heic-convert` (WASM, `libheif-js`, no native build step) decodes HEIC only; sharp does
+   everything downstream. Neither needs `next.config.mjs` or Vercel build changes.
+2. **A 20MB upload can never reach `app/api/lead-engine/photos/route.ts` as a request body.**
+   Vercel Functions cap request/response bodies at 4.5MB, hard and unconfigurable (confirmed
+   against Vercel's own docs, updated 2026-07-01). §6/§10 below describe the ORIGINAL single-route
+   design and are kept for the processing logic they still fully specify, but the upload path
+   itself is now two routes, not one — see "What actually got built" below before reading §6/§10
+   as if they described the live route shape.
+
+**Formerly "still unverified," closed out same day — do not re-verify:**
+- Real HEIC decoding — `heic-convert` correctly decoded a real iPhone HEIC end to end.
+- The whole two-hop upload from an actual browser (sign → direct-to-Storage → process) — run for
+  real, not just reasoned through against the SDK source.
+- Both Storage buckets exist: `lead-engine-photos` (public, from Phase 6) and
+  `lead-engine-photos-incoming` (private, created by hand 2026-08-24).
+- The 2026-08-24 migration is applied — proven by the test row actually having
+  `width`/`height`/`aspect_ratio`/`dominant_hex`/`variants` populated.
+
+**Still genuinely open:** there is no CUSTOMER-facing UI that calls `/api/lead-engine/photos/sign`
+— only the internal admin harness at `/admin/lead-engine-photos`. That's Chunk B.
+
+### What actually got built (read this before §6/§10, which describe the original single-route design)
+
+**Two routes, not one**, because of the 4.5MB body-cap finding above:
+
+- `POST /api/lead-engine/photos/sign` — `{siteId, filename}` in, `{path, token}` out. Mints a
+  Supabase Storage signed upload URL scoped to the PRIVATE incoming bucket. The browser then
+  calls Supabase's own `uploadToSignedUrl` directly — the raw file never touches our route.
+- `POST /api/lead-engine/photos` — `{siteId, incomingPath, filename, isPrimary?, caption?}` in.
+  Downloads the raw bytes server-to-server (not bound by the inbound limit), runs
+  `normalizeToRaster` → `processPhoto` → uploads every WebP+JPEG variant to the PUBLIC bucket →
+  writes the `lead_engine_photos` row → deletes the raw original from the incoming bucket, always,
+  success or failure.
+- `DELETE /api/lead-engine/photos?photoId=...` — as originally specified.
+
+`lib/lead-engine/limits.ts` gained `decideBatchPhotoUpload` (the "over 18 files" message, for a
+future dashboard offering multi-select) and `decideResolution` (the 1200/2000px checks, run after
+decode since resolution can't be known from an undecoded file) alongside the raised
+`decidePhotoUpload` caps.
 
 ---
 

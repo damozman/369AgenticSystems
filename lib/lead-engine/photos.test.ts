@@ -75,6 +75,69 @@ test('the input array is not mutated', () => {
   assert.equal(input.length, 5, 'callers reuse this array')
 })
 
+test('isPrimary overrides sort_order for the hero slot only', () => {
+  const set = photos(5)
+  set[3].isPrimary = true // p4, would otherwise land in the ladder
+  const a = allocatePhotos(set, { hero: true, band: true, ladderRows: 2 })
+  assert.equal(a.hero?.id, 'p4')
+  // Everything else keeps its original relative order, drawn from what's left.
+  assert.equal(a.band?.id, 'p1')
+  assert.deepEqual(a.ladder.map(p => p.id), ['p2', 'p3'])
+  assert.deepEqual(a.gallery.map(p => p.id), ['p5'])
+})
+
+test('isPrimary is ignored when the hero slot is not needed', () => {
+  const set = photos(3)
+  set[1].isPrimary = true
+  const a = allocatePhotos(set, { band: true, ladderRows: 2 })
+  assert.equal(a.hero, undefined)
+  // p2 was never pulled out, so band still draws FIFO from the top.
+  assert.equal(a.band?.id, 'p1')
+})
+
+test('band prefers the widest photo, hero the least-wide, when aspect ratio is known', () => {
+  const set = photos(4)
+  set[0].aspectRatio = 1.0   // p1 square
+  set[1].aspectRatio = 2.4   // p2 widest — wants the band
+  set[2].aspectRatio = 0.6   // p3 tallest — wants the hero
+  set[3].aspectRatio = 1.5   // p4
+  const a = allocatePhotos(set, { hero: true, band: true })
+  assert.equal(a.hero?.id, 'p3')
+  assert.equal(a.band?.id, 'p2')
+})
+
+test('aspect-ratio preference still leaves every remaining photo disjoint', () => {
+  const set = photos(8)
+  set.forEach((p, i) => { p.aspectRatio = (i % 3) + 0.5 })
+  const a = allocatePhotos(set, { hero: true, band: true, ladderRows: 3 })
+  const ids = allIds(a)
+  assert.equal(new Set(ids).size, ids.length)
+})
+
+test('with no aspectRatio data anywhere, hero/band fall back to plain sort_order (pre-Part-B behaviour)', () => {
+  const a = allocatePhotos(photos(6), { hero: true, band: true, ladderRows: 2 })
+  assert.equal(a.hero?.id, 'p1')
+  assert.equal(a.band?.id, 'p2')
+})
+
+test('a lone rated photo is still pickable when only band is being filled', () => {
+  const set = photos(3) // none rated
+  set[2].aspectRatio = 3.0 // p3, the only one with data
+  const a = allocatePhotos(set, { band: true })
+  assert.equal(a.band?.id, 'p3')
+})
+
+test('hero resolves before band, so a lone rated photo goes to hero when both are needed', () => {
+  // Documents the resolution order rather than surprising a future reader: with only one photo
+  // carrying aspectRatio, hero (computed first) has nothing to compare it against and takes it,
+  // leaving band to fall back to plain sort_order on what's left.
+  const set = photos(3)
+  set[2].aspectRatio = 3.0
+  const a = allocatePhotos(set, { hero: true, band: true })
+  assert.equal(a.hero?.id, 'p3')
+  assert.equal(a.band?.id, 'p1')
+})
+
 test('the ladder layout is chosen only when it can actually be filled', () => {
   assert.equal(servicesLayout(4, 12), 'ladder')
   assert.equal(servicesLayout(6, 6), 'ladder')

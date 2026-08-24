@@ -66,7 +66,7 @@ export default function TradeClassic({
       <PhotoBand photo={shot.band} businessName={content.businessName} />
 
       <WhyUs content={content} band={whyBand} />
-      <Gallery photos={shot.gallery} band={galleryBand} />
+      <Gallery photos={shot.gallery} businessName={content.businessName} band={galleryBand} />
       <Coverage content={content} band={coverageBand} />
       <Trust testimonials={content.testimonials} band={trustBand} />
       <Faq faqs={content.faqs} />

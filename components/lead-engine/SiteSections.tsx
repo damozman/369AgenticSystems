@@ -595,6 +595,46 @@ export function PhoneLink({ content }: { content: SiteContent }) {
 }
 
 /**
+ * The one place every SitePhoto becomes an `<img>`. `docs/PHOTO-REQUIREMENTS.md` Part B §7.
+ *
+ * `srcSet`/`sizes` only appear when `photo.variants` exists — a photo uploaded before the Part B
+ * pipeline shipped has none, and falls back to plain `src`, identical to how every photo on the
+ * site rendered before this existed. `width`/`height` likewise only print when the pipeline
+ * measured them; every slot already fixes its own box with CSS (`object-fit: cover` on a set
+ * aspect-ratio), so these are belt-and-suspenders CLS prevention, not what actually sizes anything.
+ */
+function SitePhotoImg({
+  photo, alt, sizes, loading = 'lazy', fetchPriority, className, style,
+}: {
+  photo: SitePhoto
+  alt: string
+  /** Required whenever `srcSet` will be present — a `srcSet` with no `sizes` degrades to the
+   *  largest candidate on every browser, which defeats having variants at all. */
+  sizes: string
+  loading?: 'lazy' | 'eager'
+  fetchPriority?: 'high' | 'low' | 'auto'
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const srcSet = photo.variants?.length
+    ? photo.variants.map(v => `${v.webp} ${v.width}w`).join(', ')
+    : undefined
+
+  return (
+    <img
+      src={photo.url}
+      srcSet={srcSet}
+      sizes={srcSet ? sizes : undefined}
+      alt={alt}
+      loading={loading}
+      fetchPriority={fetchPriority}
+      className={className}
+      style={photo.dominantHex ? { background: photo.dominantHex, ...style } : style}
+    />
+  )
+}
+
+/**
  * The site header.
  *
  * Its absence was a large part of what read as unfinished — a page with no header does not look
@@ -644,8 +684,15 @@ export function HeroSplit({
           </div>
         </div>
         <div className="le-hero-media">
-          {/* Eager and unlazy — this is the LCP element. */}
-          <img src={photo.url} alt={photo.caption ?? `Work by ${content.businessName}`} />
+          {/* Eager and high-priority — this is the LCP element. Full width under the split
+              breakpoint, half the viewport above it (text takes the other half). */}
+          <SitePhotoImg
+            photo={photo}
+            alt={photo.caption ?? `Work by ${content.businessName}`}
+            sizes="(max-width: 900px) 100vw, 50vw"
+            loading="eager"
+            fetchPriority="high"
+          />
         </div>
       </div>
     </header>
@@ -765,7 +812,11 @@ export function Services({
             <div className="le-grid le-ladder-row" key={s.name}>
               {photos[i] ? (
                 <div className="le-ladder-img">
-                  <img src={photos[i].url} alt={photos[i].caption ?? s.name} loading="lazy" />
+                  <SitePhotoImg
+                    photo={photos[i]}
+                    alt={photos[i].caption ?? `${content.businessName} — ${s.name}`}
+                    sizes="(max-width: 900px) 100vw, 50vw"
+                  />
                 </div>
               ) : null}
               <div className="le-ladder-txt">
@@ -855,10 +906,13 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
  * mismatched ratios was eating 40% of page height and is the largest element with the least to say.
  */
 export function Gallery({
-  photos, eyebrow = 'Our work', heading = 'Recent work', band,
-}: { photos: SitePhoto[]; eyebrow?: string; heading?: string; band?: boolean }) {
+  photos, businessName, eyebrow = 'Our work', heading = 'Recent work', band,
+}: { photos: SitePhoto[]; businessName?: string; eyebrow?: string; heading?: string; band?: boolean }) {
   const layout = galleryLayout(photos)
   if (!layout) return null
+  // Part B §9: never empty, never a description of content we can't see. Not allocated to a
+  // specific service row, so this is the "otherwise" branch — business name alone.
+  const altFallback = businessName ?? 'Recent work'
 
   return (
     <Section id="work" density="anchor" band={band}>
@@ -868,14 +922,14 @@ export function Gallery({
       <div className="le-gal">
         {layout.feature ? (
           <figure className="le-gal-feature" style={{ margin: 0 }}>
-            <img src={layout.feature.url} alt={layout.feature.caption ?? ''} loading="lazy" />
+            <SitePhotoImg photo={layout.feature} alt={layout.feature.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 50vw" />
           </figure>
         ) : null}
         {layout.stack.length ? (
           <div className="le-gal-stack">
             {layout.stack.map(p => (
               <figure key={p.id} style={{ margin: 0 }}>
-                <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
+                <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 50vw, 25vw" />
               </figure>
             ))}
           </div>
@@ -885,7 +939,7 @@ export function Gallery({
             fixed three-up rendering two left the right third of the grid empty. */}
         {layout.rest.map(p => (
           <figure className="le-gal-rest" key={p.id} style={{ margin: 0, gridColumn: `span ${layout.restSpan}` }}>
-            <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
+            <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
           </figure>
         ))}
       </div>
@@ -1147,10 +1201,10 @@ export function PhotoBand({ photo, businessName }: { photo?: SitePhoto; business
   if (!photo) return null
   return (
     <div className="le-bleed-out" style={{ height: 'clamp(320px, 44vw, 560px)', overflow: 'hidden' }}>
-      <img
-        src={photo.url}
+      <SitePhotoImg
+        photo={photo}
         alt={photo.caption ?? `Work by ${businessName}`}
-        loading="lazy"
+        sizes="100vw"
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
     </div>

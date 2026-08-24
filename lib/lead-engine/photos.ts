@@ -30,25 +30,55 @@ export interface PhotoAllocation {
  * which point it does not render. That order is deliberate: a ladder row with a missing image is a
  * broken layout, whereas a shorter gallery is just a shorter gallery. Degrade the decorative thing,
  * never the structural one.
+ *
+ * **Two Part B additions, both structured so disjointness still holds by construction** — every
+ * pick removes its photo from the same pool before the next pick runs, so no path can hand the
+ * same photo to two slots:
+ *
+ * - `isPrimary` overrides sort_order for the hero slot only. The customer told us their best
+ *   photo; it is spliced out of the pool up front so every later pick already excludes it.
+ * - Hero and band prefer the pool's most/least-wide photo by `aspectRatio` when that data exists
+ *   — the band wants the widest available, the hero the least-wide (a 21:9 landscape cropped into
+ *   a tall hero slot loses most of its subject). **A photo with no `aspectRatio` (everything
+ *   uploaded before Part B shipped) falls back to plain `sort_order`**, which is exactly the old
+ *   behaviour — this is why the pre-Part-B tests below are unchanged.
  */
 export function allocatePhotos(
   photos: SitePhoto[],
   need: { hero?: boolean; band?: boolean; ladderRows?: number } = {},
 ): PhotoAllocation {
-  const queue = [...photos]
-  const take = () => queue.shift()
+  const pool = [...photos]
 
-  const hero = need.hero ? take() : undefined
-  const band = need.band ? take() : undefined
+  let primary: SitePhoto | undefined
+  if (need.hero) {
+    const i = pool.findIndex(p => p.isPrimary)
+    if (i !== -1) primary = pool.splice(i, 1)[0]
+  }
+
+  const takeByAspect = (prefer: 'widest' | 'narrowest'): SitePhoto | undefined => {
+    if (pool.length === 0) return undefined
+    const withRatio = pool.filter(p => typeof p.aspectRatio === 'number')
+    if (withRatio.length === 0) return pool.shift()
+    let best = withRatio[0]
+    for (const p of withRatio) {
+      const better = prefer === 'widest' ? p.aspectRatio! > best.aspectRatio! : p.aspectRatio! < best.aspectRatio!
+      if (better) best = p
+    }
+    pool.splice(pool.indexOf(best), 1)
+    return best
+  }
+
+  const hero = need.hero ? (primary ?? takeByAspect('narrowest')) : undefined
+  const band = need.band ? takeByAspect('widest') : undefined
 
   const ladder: SitePhoto[] = []
   for (let i = 0; i < (need.ladderRows ?? 0); i++) {
-    const next = take()
+    const next = pool.shift()
     if (!next) break
     ladder.push(next)
   }
 
-  return { hero, band, ladder, gallery: queue.slice(0, MAX_GALLERY_PHOTOS) }
+  return { hero, band, ladder, gallery: pool.slice(0, MAX_GALLERY_PHOTOS) }
 }
 
 /**

@@ -192,9 +192,31 @@ export interface LeadEngineSite {
   revisions_used: number
 }
 
-/** A photo, as the gallery needs it. Populated in Phase 6; the templates already read it. */
+/** One generated size of a photo, always both encodings at the same width. */
+export interface PhotoVariant {
+  width: number
+  webp: string
+  jpg: string
+}
+
+/**
+ * A photo, as the gallery needs it. Populated in Phase 6; the templates already read `url` and
+ * `caption`. `variants` / `aspectRatio` / `dominantHex` / `isPrimary` come from the Part B ingest
+ * pipeline (`lib/lead-engine/photo-pipeline.ts`) and are optional because a photo uploaded before
+ * that pipeline shipped has none of them — every consumer must degrade to `url` alone rather than
+ * assume they exist.
+ */
 export interface SitePhoto {
   id: string
+  /** The largest stored variant. What every pre-Part-B caller already reads. */
   url: string
   caption: string | null
+  /** Ascending by width. Empty when this photo predates the pipeline. */
+  variants?: PhotoVariant[]
+  /** width / height of the source, after EXIF rotation. Undefined when never measured. */
+  aspectRatio?: number
+  /** Placeholder background while the real image loads. */
+  dominantHex?: string
+  /** The customer's stated best photo — overrides sort_order for the hero slot only. */
+  isPrimary?: boolean
 }

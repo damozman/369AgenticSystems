@@ -75,6 +75,7 @@ export default function ShowcaseGrid({
           photos, because the named list below is the actual catalogue — see the note above. */}
       <Gallery
         photos={shot.gallery.slice(0, SHOWCASE_GALLERY_PHOTOS)}
+        businessName={content.businessName}
         eyebrow="Photographs"
         heading="A look at our kit"
       />

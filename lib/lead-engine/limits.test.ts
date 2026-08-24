@@ -1,8 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  decidePhotoUpload, decideRevision, photoRefreshDue,
-  MAX_PHOTOS_PER_SITE, MAX_PHOTO_BYTES, INCLUDED_REVISIONS, REVISION_WINDOW_DAYS,
+  decidePhotoUpload, decideBatchPhotoUpload, decideResolution, decideRevision, photoRefreshDue,
+  MAX_PHOTOS_PER_SITE, MAX_PHOTO_BYTES, MIN_PHOTO_LONG_EDGE, WARN_PHOTO_LONG_EDGE,
+  INCLUDED_REVISIONS, REVISION_WINDOW_DAYS,
 } from '@/lib/lead-engine/limits'
 
 const JPEG = 'image/jpeg'
@@ -13,10 +14,10 @@ test('accepts a normal photo', () => {
   assert.deepEqual(decidePhotoUpload({ currentCount: MAX_PHOTOS_PER_SITE - 1, bytes: ONE_MB, contentType: 'image/webp' }), { allowed: true })
 })
 
-test('refuses the thirteenth photo', () => {
+test('refuses the nineteenth photo', () => {
   const d = decidePhotoUpload({ currentCount: MAX_PHOTOS_PER_SITE, bytes: ONE_MB, contentType: JPEG })
   assert.equal(d.allowed, false)
-  if (!d.allowed) assert.match(d.reason, /12/)
+  if (!d.allowed) assert.match(d.reason, new RegExp(String(MAX_PHOTOS_PER_SITE)))
 })
 
 test('the size limit is exact at the boundary', () => {
@@ -24,14 +25,20 @@ test('the size limit is exact at the boundary', () => {
   assert.equal(decidePhotoUpload({ currentCount: 0, bytes: MAX_PHOTO_BYTES + 1, contentType: JPEG }).allowed, false)
 })
 
-test('refuses HEIC with advice, not a MIME type', () => {
-  // HEIC is what an iPhone produces by default and what a customer will try to send. Browsers do
-  // not render it, so accepting it would put a broken image on a live page.
-  const d = decidePhotoUpload({ currentCount: 0, bytes: ONE_MB, contentType: 'image/heic' })
+test('accepts HEIC and HEIF at the gate — they are converted server-side, not rejected', () => {
+  // Part B, 2026-08-24: an iPhone shoots HEIC by default regardless of what we ask for. Rejecting
+  // it here would be asking a non-technical customer to convert a file format by hand; the
+  // pipeline (lib/lead-engine/photo-pipeline.ts) converts it to JPEG before sharp ever sees it.
+  assert.equal(decidePhotoUpload({ currentCount: 0, bytes: ONE_MB, contentType: 'image/heic' }).allowed, true)
+  assert.equal(decidePhotoUpload({ currentCount: 0, bytes: ONE_MB, contentType: 'image/heif' }).allowed, true)
+})
+
+test('refuses an unsupported type and names the actual file, not the MIME string', () => {
+  const d = decidePhotoUpload({ currentCount: 0, bytes: ONE_MB, contentType: 'application/pdf', filename: 'estimate.pdf' })
   assert.equal(d.allowed, false)
   if (!d.allowed) {
-    assert.match(d.reason, /JPEG/i)
-    assert.match(d.reason, /iPhone/i, 'the refusal should tell the customer what to do next')
+    assert.match(d.reason, /PDF/)
+    assert.match(d.reason, /JPG|PNG|WebP/i, 'should say what DOES work, not just what failed')
   }
 })
 
@@ -39,6 +46,29 @@ test('refuses an empty or nonsense file size', () => {
   for (const bytes of [0, -1, NaN, Infinity]) {
     assert.equal(decidePhotoUpload({ currentCount: 0, bytes, contentType: JPEG }).allowed, false)
   }
+})
+
+test('a batch that fits is allowed, one that overflows names the real numbers', () => {
+  assert.equal(decideBatchPhotoUpload({ currentCount: 0, incomingCount: MAX_PHOTOS_PER_SITE }).allowed, true)
+  const d = decideBatchPhotoUpload({ currentCount: 0, incomingCount: MAX_PHOTOS_PER_SITE + 4 })
+  assert.equal(d.allowed, false)
+  if (!d.allowed) {
+    assert.match(d.reason, new RegExp(String(MAX_PHOTOS_PER_SITE + 4)))
+    assert.match(d.reason, new RegExp(String(MAX_PHOTOS_PER_SITE)))
+  }
+})
+
+test('a batch counts what the site already has, not just the new files', () => {
+  // Ten already stored, ten more selected — 20 total is over 18, even though neither number alone is.
+  const d = decideBatchPhotoUpload({ currentCount: 10, incomingCount: 10 })
+  assert.equal(d.allowed, false)
+})
+
+test('resolution: below the floor rejects, below the warn line stores with a warning, at or above is silent', () => {
+  assert.equal(decideResolution(MIN_PHOTO_LONG_EDGE - 1).status, 'reject')
+  assert.equal(decideResolution(MIN_PHOTO_LONG_EDGE).status, 'warn')
+  assert.equal(decideResolution(WARN_PHOTO_LONG_EDGE - 1).status, 'warn')
+  assert.equal(decideResolution(WARN_PHOTO_LONG_EDGE).status, 'ok')
 })
 
 test('pre-launch change requests are part of the build, not revisions', () => {

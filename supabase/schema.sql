@@ -461,15 +461,23 @@ CREATE TABLE IF NOT EXISTS public.lead_engine_submissions (
 );
 
 CREATE TABLE IF NOT EXISTS public.lead_engine_photos (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  site_id      uuid NOT NULL REFERENCES public.lead_engine_sites(id) ON DELETE CASCADE,
-  storage_path text NOT NULL UNIQUE,           -- bucket: lead-engine-photos (public)
-  caption      text,
-  sort_order   int NOT NULL DEFAULT 0,
-  bytes        int,
-  content_type text
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  site_id       uuid NOT NULL REFERENCES public.lead_engine_sites(id) ON DELETE CASCADE,
+  storage_path  text NOT NULL UNIQUE,          -- bucket: lead-engine-photos (public); largest webp variant
+  caption       text,
+  sort_order    int NOT NULL DEFAULT 0,
+  bytes         int,
+  content_type  text,
+  width         int,
+  height        int,
+  aspect_ratio  numeric,                       -- post-EXIF-rotation width/height
+  dominant_hex  text,
+  variants      jsonb,                         -- [{width,webp,jpg}, ...] ascending by width
+  is_primary    boolean NOT NULL DEFAULT false -- customer's stated best photo; at most one per site
 );
+CREATE UNIQUE INDEX IF NOT EXISTS lead_engine_photos_one_primary_per_site
+  ON public.lead_engine_photos (site_id) WHERE is_primary;
 
 CREATE TABLE IF NOT EXISTS public.lead_engine_change_requests (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),

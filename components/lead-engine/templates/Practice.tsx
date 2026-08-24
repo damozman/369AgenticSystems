@@ -98,7 +98,7 @@ export default function Practice({
       <NewPatientInfo content={content} band={newPatientsBand} />
 
       <WhyUs content={content} band={whyBand} />
-      <Gallery photos={shot.gallery} eyebrow="Our practice" heading="Inside the practice" />
+      <Gallery photos={shot.gallery} businessName={content.businessName} eyebrow="Our practice" heading="Inside the practice" />
       <Coverage content={content} band={coverageBand} />
       <Trust testimonials={content.testimonials} band={trustBand} />
       <Faq faqs={content.faqs} />
