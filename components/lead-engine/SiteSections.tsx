@@ -51,6 +51,10 @@ export function ThemeShell({
 /**
  * The only literals below are structural — column counts, gutters, hairlines, aspect ratios and
  * the spacing scale. None of those is a decision a theme owns.
+ *
+ * NO BACKTICKS ANYWHERE IN THIS STRING, including inside comments. It is a template literal, so a
+ * backtick terminates it and the whole file stops parsing — which has now happened twice, both
+ * times from quoting a CSS property name in prose. Write property names bare.
  */
 const SITE_CSS = `
 .le-site {
@@ -68,11 +72,34 @@ const SITE_CSS = `
      cannot overflow in the first place. */
 }
 .le-site *, .le-site *::before, .le-site *::after { box-sizing: border-box; }
-/* Every string on these pages is typed by a customer — a city, a service, a credential — so any
-   of them can be longer than its column at 320px. Without this the BOX fits and the TEXT paints
-   outside it, which no element-bounds check catches: the audit reported a 9px sideways scroll on
-   a page where every element measured inside the viewport. */
+/* ── Two overflow defences, and they are not interchangeable ────────────────────
+   Measured at 320px, not assumed:
+
+     neither                     Service Clean 329px  (+9 overflow)
+     overflow-wrap only          320px OK
+     min-width:0 only            329px  (+9)  AND Supply regressed to 340px (+20)
+     both                        320px OK everywhere
+
+   So the failure that actually bit us was TEXT that could not wrap, not a grid track that refused
+   to shrink. min-width: 0 alone does not fix it — and applied bluntly it makes things worse,
+   because letting a box shrink without letting its text wrap just pushes the text further out.
+
+   Both are kept, for different failure modes:
+   - overflow-wrap handles customer-typed strings, which is every string on these pages.
+   - min-width: 0 handles a grid or flex child that will not shrink below its content: an image,
+     a table, a long unbreakable URL. min-width: auto is the default on those children and is
+     the classic cause. Scoped to the layout containers rather than *, because the universal
+     version measurably changed layout elsewhere.
+
+   The enumerated list below cannot cover a layout container added later. That is what the 320px
+   assertion in scripts/verify-lead-engine.mjs is for — it renders every fixture and fails on any
+   horizontal scroll, whatever caused it.
+*/
 .le-site { overflow-wrap: break-word; }
+.le-site :where(
+  .le-grid, .le-hero-inner, .le-proof, .le-svc-list, .le-cover,
+  .le-gal, .le-gal-stack, .le-header-inner, .le-header-actions, .le-actions, .le-faq
+) > * { min-width: 0; }
 .le-site :focus-visible { outline: 2px solid var(--le-accent-derived); outline-offset: 2px; }
 
 /* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */

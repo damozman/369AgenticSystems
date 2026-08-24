@@ -262,6 +262,46 @@ if (!LIVE) {
     }
   }
 
+  // ── 320px: no horizontal scroll, on every fixture ──────────────────────────
+  //
+  // This is the regression test for layout overflow, and it has to render rather than read source.
+  // The defect it exists to catch produced a 9px sideways scroll on a page where EVERY element
+  // measured inside the viewport — the boxes fit and the text painted outside them — so no
+  // static check and no element-bounds check could see it.
+  //
+  // It also covers the case the CSS cannot: `min-width: 0` is applied to an enumerated list of
+  // layout containers, so a grid section added later is not on that list. This assertion does not
+  // care what caused the overflow.
+  console.log('\nNo horizontal scroll at 320px')
+  let browser
+  try {
+    const { chromium } = await import('playwright')
+    browser = await chromium.launch()
+  } catch (e) {
+    fail(`could not launch Playwright: ${e.message} — this check did NOT run`)
+  }
+
+  if (browser) {
+    for (const site of fixtures ?? []) {
+      const page = await browser.newPage({ viewport: { width: 320, height: 800 } })
+      try {
+        await page.goto(`${base}/sites/${site.slug}`, { waitUntil: 'networkidle', timeout: 30000 })
+        const { vw, sw } = await page.evaluate(() => ({
+          vw: document.documentElement.clientWidth,
+          sw: document.documentElement.scrollWidth,
+        }))
+        sw <= vw
+          ? pass(`${site.slug} — ${sw}px in ${vw}px`)
+          : fail(`${site.slug} scrolls sideways at 320px: ${sw}px in ${vw}px (+${sw - vw})`)
+      } catch (e) {
+        fail(`${site.slug} at 320px — ${e.message}`)
+      } finally {
+        await page.close()
+      }
+    }
+    await browser.close()
+  }
+
   // ── Sweep ──────────────────────────────────────────────────────────────────
   if (process.argv.includes('--sweep')) {
     console.log('\nSweeping review fixtures')
