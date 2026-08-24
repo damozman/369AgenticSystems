@@ -1,65 +1,51 @@
 /**
  * T1 · Trade Classic — "Can I trust you with my property?"
  *
- * Photo-forward, credentials early. A stranger wants to see finished work and a licence before
- * they call, so the hero photo and the proof bar sit above the fold together.
+ * Header · Hero (split anchor) · Proof · Services · Photo band · Why us · Gallery · Coverage ·
+ * Trust · FAQ · Terminal CTA.
  *
- * Verticals: roofing, HVAC, plumbing, electrical, concrete, tree work, general contracting, and —
- * on the Threshold kit rather than Ironclad — real estate, property management, mortgage. Same
- * buying question, different identity.
- *
- * Section order per the SKILL. No hex, no font-family, no literal radius anywhere in this file.
+ * Verticals: roofing, HVAC, plumbing, electrical, concrete, tree work, general contracting — and
+ * real estate, property management and mortgage on the Threshold kit. Same buying question,
+ * different identity.
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
-  About, Contact, Coverage, CtaButton, Footer, Gallery, LeadFormPlaceholder,
-  PhoneLink, PhotoBand, ProofBar, Services,
+  Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit, PhotoBand,
+  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
-export default function TradeClassic({ content, photos }: { content: SiteContent; photos: SitePhoto[] }) {
-  // The hero photo is spent here and the band takes the next one, so the gallery shows the rest
-  // rather than repeating either.
-  const [hero, band, ...rest] = photos
+export default function TradeClassic({
+  content, photos, logoUrl,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  const services = content.services ?? []
+  const layout = servicesLayout(services.length, Math.max(0, photos.length - 2))
+  const shot = allocatePhotos(photos, {
+    hero: true,
+    band: true,
+    ladderRows: layout === 'ladder' ? services.length : 0,
+  })
 
   return (
     <>
-      <header className="le-hero">
-        <div className="le-wrap">
-          <div className="le-hero-split">
-            <div>
-              <h1 className="le-h1">{content.businessName}</h1>
-              {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', marginTop: 32 }}>
-                <CtaButton content={content} />
-                {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
-              </div>
-            </div>
-            {hero ? (
-              <div className="le-hero-media">
-                {/* Eager and unlazy: this is the LCP element, and lazy-loading it is how a mobile
-                    visitor gets a blank rectangle for the first second. */}
-                <img className="le-photo" src={hero.url} alt={hero.caption ?? `Work by ${content.businessName}`} />
-              </div>
-            ) : null}
-          </div>
-          <div style={{ marginTop: 48 }}>
-            <ProofBar content={content} />
-          </div>
-        </div>
-      </header>
+      <SiteHeader content={content} logoUrl={logoUrl} />
+      <HeroSplit content={content} photo={shot.hero} />
 
-      <Services content={content} />
+      <Section density="connector">
+        <ProofBar content={content} />
+      </Section>
 
-      {/* Ironclad's signature — a photo band breaking the container edge to edge, which also breaks
-          the run of paper sections before About. */}
-      <PhotoBand photo={band} businessName={content.businessName} />
+      <Services content={content} photos={shot.ladder} layout={layout} />
 
-      {/* The hero already carries the differentiator; repeating it reads as a mistake by the
-          business rather than by us. */}
-      <About content={content} showDifferentiator={false} />
-      <Gallery photos={rest} />
+      {/* Ironclad's signature, and the break in the run of paper sections before Why us. */}
+      <PhotoBand photo={shot.band} businessName={content.businessName} />
+
+      <WhyUs content={content} />
+      <Gallery photos={shot.gallery} />
       <Coverage content={content} />
+      <Trust testimonials={content.testimonials} />
+      <Faq faqs={content.faqs} />
 
       <Contact content={content}>
         <LeadFormPlaceholder />

@@ -10,7 +10,9 @@
  * whole sections instead of rendering an empty frame or a placeholder.
  */
 
-import type { CtaKind, QuestionnaireAnswers, SiteContent, SiteCta } from '@/lib/lead-engine/types'
+import type {
+  CtaKind, FaqItem, QuestionnaireAnswers, ServiceItem, SiteContent, SiteCta, Testimonial,
+} from '@/lib/lead-engine/types'
 
 /** Bounds. Long enough for anything real, short enough that a paste cannot wreck the layout. */
 const MAX_SERVICES = 8
@@ -120,6 +122,68 @@ export function profileUrlFrom(raw: unknown): string | undefined {
   }
 }
 
+const MAX_DESCRIPTION = 140
+const MAX_TESTIMONIALS = 3
+const MAX_FAQS = 6
+
+/**
+ * Services, from either shape the form may post.
+ *
+ * Descriptions are carried straight through and are never generated — not here, not at render.
+ * A description is a claim about what a business does, and the questionnaire asks for it precisely
+ * so that nothing has to invent one. A service with no description is a name on its own, which
+ * layout 5b renders perfectly well.
+ */
+function servicesFrom(raw: unknown): ServiceItem[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+
+  const seen = new Map<string, ServiceItem>()
+  for (const entry of raw) {
+    const name = text(typeof entry === 'string' ? entry : (entry as ServiceItem)?.name, MAX_SERVICE_LENGTH)
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    const description = typeof entry === 'object' && entry
+      ? text((entry as ServiceItem).description, MAX_DESCRIPTION)
+      : undefined
+    seen.set(key, description ? { name, description } : { name })
+    if (seen.size >= MAX_SERVICES) break
+  }
+  return seen.size > 0 ? [...seen.values()] : undefined
+}
+
+/** Quotes, kept whole. Trust renders nothing at all rather than a partial or invented one. */
+function testimonialsFrom(raw: unknown): Testimonial[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: Testimonial[] = []
+  for (const entry of raw) {
+    const quote = text((entry as Testimonial)?.quote, 400)
+    const name  = text((entry as Testimonial)?.name, 60)
+    // Both are required: an unattributed quote is indistinguishable from one we wrote ourselves.
+    if (!quote || !name) continue
+    out.push({
+      quote, name,
+      ...(text((entry as Testimonial).city, 40) ? { city: text((entry as Testimonial).city, 40)! } : {}),
+      ...(text((entry as Testimonial).jobType, 40) ? { jobType: text((entry as Testimonial).jobType, 40)! } : {}),
+    })
+    if (out.length >= MAX_TESTIMONIALS) break
+  }
+  return out.length > 0 ? out : undefined
+}
+
+function faqsFrom(raw: unknown): FaqItem[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: FaqItem[] = []
+  for (const entry of raw) {
+    const question = text((entry as FaqItem)?.question, 160)
+    const answer   = text((entry as FaqItem)?.answer, 600)
+    if (!question || !answer) continue
+    out.push({ question, answer })
+    if (out.length >= MAX_FAQS) break
+  }
+  return out.length > 0 ? out : undefined
+}
+
 /**
  * Build the renderable content.
  *
@@ -136,8 +200,10 @@ export function contentFrom(answers: QuestionnaireAnswers, fallbackBusinessName:
     businessName,
     phone,
     cta:              ctaFrom(answers, phone),
-    services:         list(answers.services, MAX_SERVICES, MAX_SERVICE_LENGTH),
+    services:         servicesFrom(answers.services),
     serviceAreas:     list(answers.service_areas, MAX_AREAS, MAX_AREA_LENGTH),
+    testimonials:     testimonialsFrom(answers.testimonials),
+    faqs:             faqsFrom(answers.faqs),
     differentiator:   text(answers.differentiator),
     credentials:      text(answers.credentials),
     yearsInBusiness:  text(answers.years_in_business, 40),

@@ -1,63 +1,56 @@
 /**
  * T5 · Supply — "Can you supply what I need, at my volume, on my timeline?"
  *
- * Operational and spec-dense. Reads like a catalogue and a terms sheet, because that is what a
- * trade buyer wants — not a story about the company.
+ * Header · Hero (editorial) · Capability bar (band) · Product categories · Gallery · Why us ·
+ * Coverage · Trust · FAQ · Terminal CTA.
  *
- * Verticals: wholesale, distribution, B2B supply. Runs on the Ledger kit, whose signature is dense
- * mono-set rows treated as a design element rather than tidied away.
+ * Verticals: wholesale, distribution, B2B supply, on the Ledger kit — whose signature is dense
+ * mono-set rows treated as a design element rather than tidied away. Operational and spec-dense,
+ * because a trade buyer wants a catalogue and a terms sheet, not a story about the company.
  *
- * ── What this template deliberately does NOT render ──
- * The SKILL's full Supply order includes a capability bar (categories · minimums · lead time ·
- * shipping radius), a terms block (MOQ, payment terms, freight, returns), and a buyer-type list.
- * **The questionnaire asks for none of them.** A minimum order quantity or a payment term invented
- * on a supplier's behalf is a commercial claim a buyer may hold them to, which makes it the most
- * dangerous kind of filler on any of the five templates.
- *
- * So the capability bar renders only what was actually answered, and terms do not render at all.
- * They arrive when the questionnaire asks for them.
+ * ── Composition decisions the fix brief does not cover (mine, for review) ──
+ * • **Product categories use the two-column list (5b), never the image ladder.** A supply buyer
+ *   scans category names; eight categories with a description each is a catalogue page, whereas
+ *   eight alternating photo rows is an enormous page that says less.
+ * • **No hero image.** Ledger carries a page on type and hairlines, and a stock warehouse shot adds
+ *   nothing a category list does not already say.
+ * • **The terms block is NOT built.** MOQ, payment terms, freight and returns are commercial
+ *   commitments a buyer can hold a supplier to, and we collect none of them — which makes them the
+ *   most dangerous filler on any of the five templates. The capability bar therefore carries only
+ *   answered facts, and FAQ carries lead times and minimums when the supplier has written them.
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import { allocatePhotos } from '@/lib/lead-engine/photos'
 import {
-  About, Contact, Coverage, CtaButton, Footer, Gallery, LeadFormPlaceholder,
-  PhoneLink, ProofBar, Section, Services,
+  Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroEditorial,
+  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
-export default function Supply({ content, photos }: { content: SiteContent; photos: SitePhoto[] }) {
-  const hasFacts = !!(content.yearsInBusiness || content.credentials)
+export default function Supply({
+  content, photos, logoUrl,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  const shot = allocatePhotos(photos, {})
 
   return (
     <>
-      {/* No hero image: a buyer scanning for capability wants the capability statement, and Ledger
-          carries a page on type and hairlines rather than photography. */}
-      <header className="le-hero">
-        <div className="le-wrap">
-          <h1 className="le-h1" style={{ maxWidth: '20ch' }}>{content.businessName}</h1>
-          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 28 }}>{content.differentiator}</p> : null}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', marginTop: 32 }}>
-            <CtaButton content={content} />
-            {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
-          </div>
-        </div>
-      </header>
+      <SiteHeader content={content} logoUrl={logoUrl} />
+      <HeroEditorial content={content} eyebrow="Trade supply" />
 
-      {/* The capability bar, carrying only answered facts. Never a minimum order quantity or a lead
-          time — we do not ask for either, and a buyer would hold a supplier to both. */}
-      {hasFacts ? (
-        <Section id="capability" density="connector" band>
-          <p className="le-eyebrow">Capability</p>
-          <ProofBar content={content} showAreas={false} />
-        </Section>
-      ) : null}
+      {/* Capability, carrying only answered facts. Never a minimum order quantity or a lead time. */}
+      <Section density="connector" band>
+        <ProofBar content={content} showAreas={false} />
+      </Section>
 
-      <Services content={content} eyebrow="What we supply" heading="Product categories" />
-      <Gallery photos={photos} eyebrow="Our stock" heading="What we carry" />
+      <Services content={content} layout="list" eyebrow="What we supply" heading="Product categories" />
 
-      <About content={content} showDifferentiator={false} band />
+      <Gallery photos={shot.gallery} eyebrow="Our stock" heading="What we carry" />
+      <WhyUs content={content} />
 
       {/* Distribution footprint — the buyer's real question is whether you reach them. */}
       <Coverage content={content} />
+      <Trust testimonials={content.testimonials} />
+      <Faq faqs={content.faqs} />
 
       <Contact content={content}>
         <LeadFormPlaceholder />

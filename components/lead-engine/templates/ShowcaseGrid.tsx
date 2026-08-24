@@ -1,60 +1,71 @@
 /**
  * T3 · Showcase Grid — "What have you got, and is it available?"
  *
- * Inventory-forward. The gallery IS the argument, so it comes before the company story: a customer
- * planning a birthday wants to see the bounce house before they read about the business.
+ * Header · Hero (compact split) · Inventory grid · Services · Proof (band) · Coverage · Why us ·
+ * Trust · FAQ · Terminal CTA.
  *
- * Verticals: dumpster rental, equipment rental, event & party rentals, hauling.
+ * Verticals: dumpster rental, equipment rental, event & party rentals, hauling. The gallery leads
+ * because for a hire customer the photo IS the argument — someone planning a birthday wants to see
+ * the bounce house before they read about the company.
  *
- * `effectiveTemplate` will never select this layout for a site with no photos — a showcase with
- * nothing to show is the worst of the five, so such a site falls back to Service Clean.
+ * `effectiveTemplate` never selects this layout for a site with no photos: a showcase with nothing
+ * to show is the worst of the five, so such a site falls back to Service Clean.
  *
- * Nothing here claims live availability. The Yard kit's buyer wants a size, a price and a date, but
- * we have no availability system and Twilio is unconfigured, so the page says what it can honestly
- * say: here is the range, here is the phone number.
+ * ── Composition decisions the fix brief does not cover (mine, for review) ──
+ * • The inventory grid is the standard gallery shape rather than a bespoke one. Six items at fixed
+ *   ratios reads as a catalogue; the alternative was captioned cells, which needs per-photo labels
+ *   the questionnaire does not collect.
+ * • **The sizing strip is deliberately NOT built.** A strip of sizes, prices and availability is
+ *   what a Yard buyer wants, and we collect none of them. Filling it with service areas and years
+ *   in business — which was my first attempt — just reprints the proof bar in the proof bar's own
+ *   shape. Being right not to invent sizes means cutting the section, not recycling data into it.
+ *   It returns when the questionnaire collects real inventory specs.
  */
 
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import { allocatePhotos, servicesLayout } from '@/lib/lead-engine/photos'
 import {
-  About, Contact, Coverage, CtaButton, Footer, Gallery, LeadFormPlaceholder,
-  PhoneLink, ProofBar, Section, Services,
+  Contact, Coverage, Faq, Footer, Gallery, LeadFormPlaceholder, HeroSplit,
+  ProofBar, Section, Services, SiteHeader, Trust, WhyUs,
 } from '@/components/lead-engine/SiteSections'
 
-export default function ShowcaseGrid({ content, photos }: { content: SiteContent; photos: SitePhoto[] }) {
-  const hasFacts = !!(content.yearsInBusiness || content.credentials || content.serviceAreas?.length)
+export default function ShowcaseGrid({
+  content, photos, logoUrl,
+}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string }) {
+  const services = content.services ?? []
+  const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
+  const shot = allocatePhotos(photos, {
+    hero: true,
+    ladderRows: layout === 'ladder' ? services.length : 0,
+  })
 
   return (
     <>
-      {/* Compact by design: the grid below is the hero. */}
-      <header className="le-hero" style={{ paddingBottom: 40 }}>
-        <div className="le-wrap">
-          <h1 className="le-h1" style={{ maxWidth: '16ch' }}>{content.businessName}</h1>
-          {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', marginTop: 28 }}>
-            <CtaButton content={content} />
-            {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
-          </div>
-        </div>
-      </header>
+      <SiteHeader content={content} logoUrl={logoUrl} />
+      <HeroSplit content={content} photo={shot.hero} />
 
       {/* The whole point of this template: what we have, before who we are.
-          "Our range", not the default "Our work" — a rental business hires things out. */}
-      <Gallery photos={photos} eyebrow="Our range" heading="What we have" />
+          "Our range", not "Our work" — a rental business hires things out. */}
+      <Gallery photos={shot.gallery} eyebrow="Our range" heading="What we have" />
 
-      {/* On a band, and placed here rather than at the end: it breaks the run of paper sections,
-          and these are the facts a hire customer checks before they ring. */}
-      {hasFacts ? (
-        <Section id="details" density="connector" band>
-          <p className="le-eyebrow">Good to know</p>
-          <ProofBar content={content} showAreas={false} />
-        </Section>
-      ) : null}
+      <Services
+        content={content}
+        photos={shot.ladder}
+        layout={layout}
+        eyebrow="What we hire out"
+        heading="Everything we stock"
+      />
 
-      {/* Not "Our range" again — the gallery above already carries that label, and the same words
-          twice on one page reads as a template nobody adapted. */}
-      <Services content={content} eyebrow="What we hire out" heading="Everything we stock" />
+      {/* On a band, breaking the run of paper sections. These are the facts a hire customer checks
+          before ringing — and they are facts we actually hold. */}
+      <Section density="connector" band>
+        <ProofBar content={content} showAreas={false} />
+      </Section>
+
       <Coverage content={content} />
-      <About content={content} showDifferentiator={false} />
+      <WhyUs content={content} />
+      <Trust testimonials={content.testimonials} />
+      <Faq faqs={content.faqs} />
 
       <Contact content={content}>
         <LeadFormPlaceholder />

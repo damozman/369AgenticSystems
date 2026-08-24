@@ -23,6 +23,32 @@ export const CTA_KINDS = ['call', 'estimate', 'availability', 'other'] as const
 export type CtaKind = (typeof CTA_KINDS)[number]
 
 /**
+ * One service, as the customer describes it.
+ *
+ * The description is collected, never generated. A one-line description is a claim about what a
+ * business does — "full tear-off and re-roof" on a roofer who subcontracts tear-offs is a false
+ * statement on their own website — so Q2 asks for it rather than a phrase bank inventing it.
+ * Chris's call, 2026-08-23: add the field while Chunk B is unshipped and it is free.
+ */
+export interface ServiceItem {
+  name: string
+  description?: string
+}
+
+/** A real customer quote. Trust renders only from these and never invents one. */
+export interface Testimonial {
+  quote: string
+  name: string
+  city?: string
+  jobType?: string
+}
+
+export interface FaqItem {
+  question: string
+  answer: string
+}
+
+/**
  * Raw questionnaire answers, exactly as submitted.
  *
  * Everything is optional. A customer who skips a question has not answered it, and that is
@@ -32,7 +58,14 @@ export type CtaKind = (typeof CTA_KINDS)[number]
 export interface QuestionnaireAnswers {
   business_name?: string
   phone?: string
-  services?: string[]
+  /**
+   * Accepts both shapes. Q2 now posts `{name, description}` rows, but a browser holding a cached
+   * copy of the form keeps posting a flat string list long after a deploy, and a service list is
+   * worth more than a tidy contract.
+   */
+  services?: Array<string | ServiceItem>
+  testimonials?: Testimonial[]
+  faqs?: FaqItem[]
   service_areas?: string
   differentiator?: string
   credentials?: string
@@ -67,13 +100,15 @@ export interface SiteContent {
   businessName: string
   cta: SiteCta
   phone?: string
-  services?: string[]
+  services?: ServiceItem[]
   serviceAreas?: string[]
   differentiator?: string
   credentials?: string
   yearsInBusiness?: string
   googleProfileUrl?: string
   intro?: string
+  testimonials?: Testimonial[]
+  faqs?: FaqItem[]
 }
 
 /** A site row as the renderer needs it. Narrower than the table on purpose. */

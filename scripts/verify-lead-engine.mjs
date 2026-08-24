@@ -49,11 +49,24 @@ function walk(dir) {
  * MARKUP: a `style={{ color: '#0A0A0A' }}` on a template.
  */
 function scannable(source) {
-  return source
+  let out = source
     .replace(/\/\*[\s\S]*?\*\//g, '')     // block comments
     .replace(/^\s*\/\/.*$/gm, '')          // line comments
-    .replace(/const SITE_CSS = `[\s\S]*?`\n/, '')  // the one authored stylesheet
+  for (const line of PX_EXEMPT) out = out.split(line).join('')
+  return out
 }
+
+/**
+ * The colour, font, radius and shadow rules skip the authored stylesheet — it is where the tokens
+ * are consumed, and it legitimately contains hairlines and structural values. The two px rules do
+ * NOT skip it: a fixed column track or a px measure inside that block is exactly the drift they
+ * exist to catch.
+ */
+function scannableNoCss(source) {
+  return scannable(source).replace(/const SITE_CSS = `[\s\S]*?`\n/, '')
+}
+
+const RULES_SCAN_CSS = new Set(['grid-template-columns with a literal px', 'max-width in px'])
 
 const RULES = [
   {
@@ -76,13 +89,46 @@ const RULES = [
     re: /box-?[Ss]hadow\s*[:=]\s*['"`]?\d/g,
     hint: 'use var(--le-shadow-card)',
   },
+  {
+    // A px column track is a fixed-width layout wearing a grid's clothes: it does not respond, and
+    // it is what makes a section leave dead columns at one breakpoint and overflow at another.
+    name: 'grid-template-columns with a literal px',
+    re: /grid-?[Tt]emplate-?[Cc]olumns\s*[:=][^;\n]*\d+px/g,
+    hint: 'use fr units, repeat(12, 1fr), or a token',
+  },
+  {
+    // Measure belongs in ch (it tracks the font) or in a token. A px max-width silently stops
+    // tracking the type scale the moment a theme changes its display face.
+    //
+    // The lookbehind excludes `@media (max-width: 720px)` — a breakpoint is a viewport fact, not a
+    // measure, and px is the only sane unit for one. Only a max-width applied to an ELEMENT is
+    // caught.
+    name: 'max-width in px',
+    re: /(?<!\()max-?[Ww]idth\s*[:=]\s*['"`]?\d+px/g,
+    hint: 'use ch for measure, % for media, or a token — px only in the container and the logo cap',
+  },
+]
+
+/**
+ * Lines the px rules do not apply to.
+ *
+ * The container itself is a real pixel measurement — 1280px is the design's canvas width, not a
+ * measure — and a logo's maximum height is a physical constraint on someone else's artwork.
+ * Exempting them by exact string keeps the rule honest rather than toothless.
+ */
+const PX_EXEMPT = [
+  '.le-wrap { max-width: 1280px;',
+  '.le-header-logo { max-height: 40px;',
 ]
 
 console.log('\nHardcoded-style check — components/lead-engine/')
 let styleClean = true
 for (const file of walk(COMPONENT_DIR)) {
-  const source = scannable(readFileSync(file, 'utf8'))
+  const raw = readFileSync(file, 'utf8')
+  const withCss = scannable(raw)
+  const withoutCss = scannableNoCss(raw)
   for (const rule of RULES) {
+    const source = RULES_SCAN_CSS.has(rule.name) ? withCss : withoutCss
     const hits = source.match(rule.re)
     if (hits) {
       styleClean = false
@@ -102,6 +148,8 @@ if (!LIVE) {
   const { createClient } = await import('@supabase/supabase-js')
   const { TEMPLATES, THEMES, resolveForVertical } = await import('@/lib/lead-engine/theme')
   const { ALL_VERTICAL_OPTIONS } = await import('@/lib/lead-engine/verticals')
+  const { previewEnabled } = await import('@/lib/lead-engine/preview')
+  const previewOn = previewEnabled()
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -150,14 +198,31 @@ if (!LIVE) {
   }
   if (!unmapped) pass(`all ${ALL_VERTICAL_OPTIONS.length} selectable verticals resolve to a real pair`)
 
+  // ── The fixtures must never be publicly reachable ──────────────────────────
+  // A `review-` row at status 'live' puts eight fictional businesses, with fictional licence
+  // numbers and fictional testimonials, on the production domain the moment this branch deploys.
+  console.log('\nReview fixtures')
+  const { data: fixtures } = await supabase
+    .from('lead_engine_sites')
+    .select('slug, status, questionnaire')
+    .like('slug', 'review-%')
+    .order('slug')
+
+  const notDraft = (fixtures ?? []).filter(s => s.status !== 'draft')
+  if (notDraft.length) {
+    for (const s of notDraft) fail(`${s.slug} is status "${s.status}" — review fixtures must be draft`)
+  } else {
+    pass(`all ${fixtures?.length ?? 0} review fixtures are draft, so production serves none of them`)
+  }
+
+  if (!previewOn) {
+    console.error('      LEAD_ENGINE_PREVIEW is not "true", so drafts will 404 — set it in .env.local to review locally')
+  }
+
   // The rendered pages, read as a visitor would get them.
   const base = process.env.BASE_URL ?? 'http://localhost:3001'
   console.log(`\nRendering — ${base}`)
-  const { data: live } = await supabase
-    .from('lead_engine_sites')
-    .select('slug, questionnaire')
-    .eq('status', 'live')
-    .like('slug', 'review-%')
+  const live = fixtures
 
   for (const site of live ?? []) {
     let html = ''
@@ -182,6 +247,25 @@ if (!LIVE) {
     // Nothing may claim a capability that does not exist. Twilio is unconfigured everywhere.
     for (const claim of ['text you', 'we\'ll text', 'instant quote', 'book online', 'live availability', 'pay a deposit']) {
       if (html.toLowerCase().includes(claim)) fail(`/sites/${site.slug} claims "${claim}", which does not exist`)
+    }
+
+    // The composition question, asked mechanically: a section that renders a heading and nothing
+    // else is the void this whole pass exists to remove.
+    const emptySections = [...html.matchAll(/<section[^>]*id="([^"]+)"[\s\S]*?<\/section>/g)]
+      .filter(([block]) => block.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length < 60)
+      .map(([, id]) => id)
+    if (emptySections.length) {
+      fail(`/sites/${site.slug} has near-empty section(s): ${emptySections.join(', ')}`)
+    }
+  }
+
+  // ── Sweep ──────────────────────────────────────────────────────────────────
+  if (process.argv.includes('--sweep')) {
+    console.log('\nSweeping review fixtures')
+    for (const site of fixtures ?? []) {
+      if (!site.slug.startsWith('review-')) continue  // belt and braces on a prefix delete
+      const { error: delErr } = await supabase.from('lead_engine_sites').delete().eq('slug', site.slug)
+      delErr ? fail(`${site.slug}: ${delErr.message}`) : pass(`removed ${site.slug}`)
     }
   }
 

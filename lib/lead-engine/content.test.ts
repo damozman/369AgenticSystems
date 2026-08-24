@@ -24,7 +24,9 @@ test('carries every answered field onto the page', () => {
   const c = contentFrom(FULL, 'fallback')
   assert.equal(c.businessName, 'Northside Roofing Company')
   assert.equal(c.phone, '(817) 612-6757')
-  assert.deepEqual(c.services, ['Roof replacement', 'Storm damage repair', 'Gutter installation'])
+  assert.deepEqual(c.services, [
+    { name: 'Roof replacement' }, { name: 'Storm damage repair' }, { name: 'Gutter installation' },
+  ])
   assert.deepEqual(c.serviceAreas, ['Fort Worth', 'Arlington', 'Keller'])
   assert.equal(c.differentiator, 'We answer the phone at 9pm.')
   assert.equal(c.yearsInBusiness, '12 years')
@@ -83,7 +85,62 @@ test('reads a list however the customer typed it', () => {
 test('drops duplicates but keeps the customer capitalisation', () => {
   // "HVAC" is not "Hvac", and a business that writes its own trade in capitals means it.
   const c = contentFrom({ services: ['HVAC repair', 'hvac repair', 'Duct cleaning'] }, 'x')
-  assert.deepEqual(c.services, ['HVAC repair', 'Duct cleaning'])
+  assert.deepEqual(c.services, [{ name: 'HVAC repair' }, { name: 'Duct cleaning' }])
+})
+
+test('service descriptions are carried through, never generated', () => {
+  // A description is a claim about what a business does. "Full tear-off and re-roof" on a roofer
+  // who subcontracts tear-offs is a false statement on their own site, which is why Q2 asks for it
+  // rather than a phrase bank inventing one.
+  const c = contentFrom({
+    services: [
+      { name: 'Roof replacement', description: 'Full tear-off and re-roof.' },
+      { name: 'Gutter installation' },
+    ],
+  }, 'x')
+  assert.deepEqual(c.services, [
+    { name: 'Roof replacement', description: 'Full tear-off and re-roof.' },
+    { name: 'Gutter installation' },
+  ])
+  // A service with no description stays without one. Nothing fills the gap.
+  assert.equal(c.services?.[1].description, undefined)
+})
+
+test('the old flat string shape still submits', () => {
+  // A browser holding a cached copy of the form keeps posting the old shape long after a deploy,
+  // and a service list is worth more than a tidy contract.
+  const c = contentFrom({ services: ['Drain cleaning', 'Water heaters'] }, 'x')
+  assert.deepEqual(c.services, [{ name: 'Drain cleaning' }, { name: 'Water heaters' }])
+})
+
+test('an unattributed testimonial is dropped, not shown', () => {
+  // A quote with no name is indistinguishable from one we wrote ourselves, and a fabricated review
+  // is the worst thing this product could publish.
+  const c = contentFrom({
+    testimonials: [
+      { quote: 'They were excellent.', name: 'Marcus D.', city: 'Keller' },
+      { quote: 'No name on this one.', name: '' },
+      { quote: '', name: 'Nobody' },
+    ] as never,
+  }, 'x')
+  assert.equal(c.testimonials?.length, 1)
+  assert.equal(c.testimonials?.[0].name, 'Marcus D.')
+})
+
+test('testimonials and faqs are absent when never supplied', () => {
+  const c = contentFrom({ business_name: 'Acme' }, 'x')
+  assert.equal(c.testimonials, undefined)
+  assert.equal(c.faqs, undefined)
+})
+
+test('a faq needs both halves', () => {
+  const c = contentFrom({
+    faqs: [
+      { question: 'What does it cost?', answer: 'Between $9,000 and $22,000.' },
+      { question: 'Half a question?', answer: '' },
+    ] as never,
+  }, 'x')
+  assert.equal(c.faqs?.length, 1)
 })
 
 test('a long paste cannot wreck the layout', () => {

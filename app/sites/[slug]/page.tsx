@@ -83,10 +83,16 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
   const brand = site.brand ?? {}
   const accentMode = brand.accent ? validateAccent(site.theme, brand.accent).accent_mode : 'text_safe'
 
+  // brand.logo_url is a Storage path, not a URL — the same shape loadPhotos resolves.
+  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')
+  const logoUrl = brand.logo_url
+    ? (/^https?:\/\//i.test(brand.logo_url) ? brand.logo_url : `${base}/storage/v1/object/public/${brand.logo_url}`)
+    : undefined
+
   return (
     <div data-accent-mode={accentMode}>
       <ThemeShell theme={site.theme} brand={brand} fontClass={fontClassFor(site.theme)}>
-        <Template content={content} photos={photos} />
+        <Template content={content} photos={photos} logoUrl={logoUrl} />
       </ThemeShell>
     </div>
   )

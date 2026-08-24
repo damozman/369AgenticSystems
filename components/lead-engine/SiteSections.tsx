@@ -1,43 +1,39 @@
 /**
- * The shared primitives all five Lead Engine templates are built from, plus the theme wrapper.
+ * The grid, the theme wrapper, and every section primitive the five templates compose from.
  *
- * The design reference is `.claude/skills/site-design-system/SKILL.md`. Its rules are not repeated
- * here — where a value looks arbitrary, that file is why.
+ * Design reference: `.claude/skills/site-design-system/SKILL.md`. Its §1 and §3 now carry the
+ * numeric grid values below; where a value looks arbitrary, that file is why.
  *
  * ── The hard rule this file exists to hold ──
- * No hex literal, no `font-family` with a literal value, no hardcoded radius or shadow anywhere in
- * this file or in any template. Every one comes from a `var(--le-*)` emitted by `tokensFor()`.
+ * No hex literal, no `font-family` with a literal value, no hardcoded radius or shadow, in this
+ * file or in any template. Every one comes from a `var(--le-*)` emitted by `tokensFor()`.
  * `scripts/verify-lead-engine.mjs` checks it mechanically, because `ignoreBuildErrors: true` means
- * nothing else will, and one stray `#0A0A0A` is how a themed system quietly stops being one.
+ * nothing else ever will.
  *
- * ── Why the sites opt out of the portal's CSS entirely ──
- * `app/globals.css` paints `body` with our dark admin theme on every Next-rendered route, and
+ * ── The rule that fixed the composition ──
+ * **No section leaves more than three consecutive columns empty.** A section with six columns of
+ * content is either genuinely two-column, or centred at a narrower max-width. It is never
+ * left-aligned with dead space beside it. Chunk A got the section ORDER right and the section
+ * COMPOSITION wrong, and this single rule is most of the difference.
+ *
+ * ── Why the sites opt out of the portal's CSS ──
+ * `app/globals.css` paints `body` with our dark admin theme on every Next route, and
  * `app/layout.tsx` toggles `html.light` from a `portal-theme` key in **the visitor's own
- * localStorage** — so a stranger reading a roofer's website would get our dark Command Center
- * palette, while someone who had used our portal would get a different page. That file also carries
- * a wall of `html.light .text-slate-400 { … !important }` rules that reach into any markup using
- * those class names. Hence: own class names, own tokens, nothing borrowed.
+ * localStorage** — so a stranger reading a roofer's site would get our dark Command Center palette
+ * while someone who had used our portal got a different page. Hence: own class names, own tokens.
  */
 
 import type { ReactNode } from 'react'
-import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
+import type { FaqItem, ServiceItem, SiteContent, SitePhoto, Testimonial } from '@/lib/lead-engine/types'
 import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
 
-/**
- * The one place a theme becomes CSS.
- *
- * Sets every token as an inline custom property on a single element; templates render inside it.
- * There are deliberately **no per-theme component variants** — one set of components, six token
- * sets. A per-theme variant is how six copies of a bug get born.
- */
 export function ThemeShell({
   theme, brand, fontClass, children,
 }: {
   theme: Theme
   brand?: Brand
-  /** The next/font variable class for this theme's faces. Supplied by the route. */
   fontClass?: string
   children: ReactNode
 }) {
@@ -53,8 +49,8 @@ export function ThemeShell({
 }
 
 /**
- * Every rule is expressed in tokens. The only literals below are structural — grid counts,
- * percentages, `1px` hairlines and z-indexes — none of which is a design decision a theme owns.
+ * The only literals below are structural — column counts, gutters, hairlines, aspect ratios and
+ * the spacing scale. None of those is a decision a theme owns.
  */
 const SITE_CSS = `
 .le-site {
@@ -65,24 +61,27 @@ const SITE_CSS = `
   line-height: var(--le-body-line);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 .le-site *, .le-site *::before, .le-site *::after { box-sizing: border-box; }
+.le-site :focus-visible { outline: 2px solid var(--le-accent-derived); outline-offset: 2px; }
 
-/* Visible keyboard focus on everything interactive — quality gate, and free. */
-.le-site :focus-visible {
-  outline: 2px solid var(--le-accent-derived);
-  outline-offset: 2px;
-}
+/* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */
+.le-wrap { max-width: 1280px; margin: 0 auto; padding: 0 48px; }
+.le-grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 32px; }
+.le-c1-5  { grid-column: 1 / 6;  }
+.le-c1-6  { grid-column: 1 / 7;  }
+.le-c1-8  { grid-column: 1 / 9;  }
+.le-c7-12 { grid-column: 7 / 13; }
+.le-c1-12 { grid-column: 1 / -1; }
 
-.le-wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+/* Full-bleed breakout. overflow-x is hidden on .le-site so 100vw cannot cause a scrollbar. */
+.le-bleed-out { width: 100vw; margin-left: calc(50% - 50vw); }
 
-/* Section rhythm. Anchors carry weight, connectors sit between them, and no more than two
-   consecutive sections may sit on --le-paper — hence .le-band. */
 .le-anchor    { padding: var(--le-space-anchor) 0; }
 .le-connector { padding: var(--le-space-connector) 0; }
 .le-band      { background: var(--le-structure); color: var(--le-paper); }
 .le-band .le-eyebrow { color: var(--le-paper); opacity: 0.72; }
-.le-band .le-p       { color: var(--le-paper); opacity: 0.88; }
 
 .le-eyebrow {
   font-family: var(--le-font-utility), system-ui, sans-serif;
@@ -91,7 +90,7 @@ const SITE_CSS = `
   letter-spacing: var(--le-utility-tracking);
   text-transform: var(--le-utility-transform);
   color: var(--le-accent-derived);
-  margin: 0 0 14px;
+  margin: 0 0 24px;
 }
 
 .le-h1, .le-h2, .le-h3 {
@@ -101,12 +100,12 @@ const SITE_CSS = `
   margin: 0;
   line-height: 1.05;
 }
-.le-h1 { font-size: var(--le-display-xl); }
-.le-h2 { font-size: var(--le-display-l); margin-bottom: 28px; }
+.le-h1 { font-size: clamp(3.5rem, 6vw, 5.5rem); max-width: 13ch; }
+.le-h2 { font-size: var(--le-display-l); margin-bottom: 32px; }
 .le-h3 { font-size: var(--le-display-m); line-height: 1.2; }
 
-.le-p     { margin: 0 0 16px; max-width: 62ch; }
-.le-lede  { font-size: var(--le-body-l); max-width: 54ch; }
+.le-p    { margin: 0 0 16px; max-width: 62ch; }
+.le-lede { font-size: var(--le-body-l); max-width: 42ch; }
 
 .le-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -120,156 +119,233 @@ const SITE_CSS = `
   border: 0; border-radius: var(--le-radius-button); cursor: pointer;
 }
 .le-btn:hover { filter: brightness(1.08); }
-/* Ink label on the fill wherever the accent is light — the surface_only case. Set per site by the
-   route, never guessed here. */
+/* When the accent is too light to carry paper-coloured text, the label flips to ink. Driven by
+   data-accent-mode, which the route sets from validateAccent — never guessed here. */
 .le-site[data-accent-mode="surface_only"] .le-btn,
 .le-site[data-accent-mode="derived"] .le-btn { color: var(--le-ink); }
 
-.le-btn-quiet {
-  background: transparent; color: var(--le-accent-derived);
-  border: 1px solid var(--le-accent-derived);
-}
-.le-site[data-accent-mode="surface_only"] .le-btn-quiet,
-.le-site[data-accent-mode="derived"] .le-btn-quiet { color: var(--le-accent-derived); }
+.le-btn-sm { padding: 12px 22px; min-height: 44px; font-size: var(--le-utility); }
 
+/* The phone is an equal-weight action beside the CTA, not a footnote under it. */
 .le-tel {
   display: inline-flex; align-items: center; min-height: 44px;
   padding: 6px 10px; margin: -6px -10px;
   border-radius: var(--le-radius-button);
-  color: var(--le-accent-derived); font-weight: 600; text-decoration: none;
-  font-size: var(--le-body-l);
+  color: var(--le-accent-derived); text-decoration: none;
+  font-size: var(--le-display-m); font-weight: 600;
+  font-family: var(--le-font-display), Georgia, serif;
 }
 .le-tel:hover { text-decoration: underline; }
 .le-band .le-tel { color: var(--le-paper); }
 
-/* Services: an asymmetric ladder, never three equal cards in a row.
-   The spans MUST tile exactly, or CSS grid leaves holes and the empty cells show this container's
-   background as grey rectangles — which is what happened first time round, on every site. A
-   4-item cycle of 4·2·2·4 sums to 6 twice, so every pair completes a row whatever the item count;
-   an odd final item spans the full width rather than leaving half a row empty. */
-.le-ladder { display: grid; gap: 1px; background: var(--le-edge); border-top: 1px solid var(--le-edge); }
-.le-ladder > * {
-  background: var(--le-paper); padding: 28px 24px;
-  display: grid; grid-template-columns: 1fr; gap: 6px; align-content: start;
-}
-@media (min-width: 721px) {
-  .le-ladder { grid-template-columns: repeat(6, 1fr); }
-  .le-ladder > *:nth-child(4n+1) { grid-column: span 4; }
-  .le-ladder > *:nth-child(4n+2) { grid-column: span 2; }
-  .le-ladder > *:nth-child(4n+3) { grid-column: span 2; }
-  .le-ladder > *:nth-child(4n+4) { grid-column: span 4; }
-  .le-ladder > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
-}
+.le-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 40px; }
 
-.le-facts { display: flex; flex-wrap: wrap; gap: 20px 48px; }
-.le-facts dt {
+/* ── Site header ───────────────────────────────────────────────────────────── */
+.le-header {
+  position: sticky; top: 0; z-index: 50; height: 72px;
+  background: var(--le-paper); border-bottom: 1px solid var(--le-edge);
+  backdrop-filter: blur(8px);
+}
+.le-header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; gap: 24px; }
+.le-header-name {
+  font-family: var(--le-font-display), Georgia, serif;
+  font-size: var(--le-display-m); font-weight: var(--le-display-weight);
+  letter-spacing: var(--le-display-tracking);
+  text-decoration: none; color: var(--le-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.le-header-logo { max-height: 40px; width: auto; display: block; }
+.le-header-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.le-header .le-tel { font-size: var(--le-body); font-family: var(--le-font-body), system-ui, sans-serif; }
+
+/* ── Hero: split anchor ────────────────────────────────────────────────────── */
+.le-hero { position: relative; }
+.le-hero-grid { align-items: center; }
+.le-hero-text { padding: 96px 0; }
+.le-hero-media {
+  grid-column: 7 / 13; position: relative; min-height: 620px;
+  /* Bleeds to the right viewport edge rather than stopping at the container. */
+  margin-right: calc(50% - 50vw); align-self: stretch;
+}
+.le-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ── Proof bar ─────────────────────────────────────────────────────────────── */
+.le-proof {
+  border-top: 1px solid var(--le-edge); border-bottom: 1px solid var(--le-edge);
+  padding: 40px 0; display: grid; column-gap: 32px; row-gap: 24px;
+}
+.le-proof-4 { grid-template-columns: repeat(4, 1fr); }
+.le-proof-3 { grid-template-columns: repeat(3, 1fr); }
+.le-proof-2 { grid-template-columns: repeat(2, 1fr); }
+.le-proof-1 { grid-template-columns: 1fr; }
+.le-proof dt {
   font-family: var(--le-font-utility), system-ui, sans-serif;
   font-size: var(--le-utility); font-weight: var(--le-utility-weight);
   letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
-  opacity: 0.7; margin: 0 0 6px;
+  opacity: 0.6; margin: 0 0 8px;
 }
-.le-facts dd { margin: 0; font-size: var(--le-body-l); font-weight: 600; }
-
-.le-photo {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  border-radius: var(--le-radius-image); background: var(--le-edge);
-}
-.le-figure { margin: 0; }
-.le-figure figcaption { font-size: var(--le-utility); opacity: 0.75; margin-top: 8px; }
-
-/* Gallery: deliberately not a uniform 3-up, but it must still tile.
-   Same 4·2·2·4 cycle as the ladder, and a FIXED row height rather than a per-item aspect ratio —
-   with aspect-ratio, a wide item and a narrow item in the same row resolve to different heights,
-   the row takes the taller, and the short one leaves a gap under it. Uniform rows with varied
-   widths is what reads as designed; varied heights reads as broken. */
-.le-gallery {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;
-  grid-auto-rows: clamp(200px, 22vw, 300px);
-}
-.le-gallery > *:nth-child(4n+1) { grid-column: span 4; }
-.le-gallery > *:nth-child(4n+2) { grid-column: span 2; }
-.le-gallery > *:nth-child(4n+3) { grid-column: span 2; }
-.le-gallery > *:nth-child(4n+4) { grid-column: span 4; }
-.le-gallery > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
-
-/* Full-bleed photo band — Ironclad's signature, available to any kit that asks for it. */
-.le-bleed { width: 100%; height: clamp(280px, 42vw, 520px); overflow: hidden; }
-.le-bleed img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.le-hero { padding: 96px 0 72px; }
-.le-hero-split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
-.le-hero-media { height: clamp(320px, 40vw, 560px); }
-
-.le-card {
-  background: var(--le-paper); border: 1px solid var(--le-edge);
-  border-radius: var(--le-radius-card); box-shadow: var(--le-shadow-card);
-  padding: 24px;
+.le-proof dd {
+  margin: 0; font-size: var(--le-display-m); font-weight: 600;
+  font-family: var(--le-font-display), Georgia, serif; line-height: 1.25;
 }
 
-/* The Phase 4 form stub, drawn as a wireframe rather than a filled card.
-   It sits on the terminal CTA's --le-structure band, where a --le-paper card renders as a grey
-   blob with its fields invisible inside it — it read as a broken image, not as a form. Everything
-   here inherits currentColor, so it is legible on paper and on a band without knowing which. */
-.le-formstub {
-  max-width: 560px; border: 1px dashed currentColor; border-radius: var(--le-radius-card);
-  padding: 24px; background: transparent;
-}
-.le-formstub .le-eyebrow { color: currentColor; opacity: 0.65; }
-.le-formstub-label { font-size: var(--le-utility); font-weight: 600; margin-bottom: 6px; opacity: 0.8; }
-.le-formstub-field {
-  border: 1px solid currentColor; border-radius: var(--le-radius-card);
-  background: transparent; opacity: 0.35;
-}
-.le-formstub-send {
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid currentColor; border-radius: var(--le-radius-button);
-  padding: 14px 28px; min-height: 48px; opacity: 0.5;
+/* ── Services 5a: alternating ladder ───────────────────────────────────────── */
+.le-ladder-row { align-items: center; margin-bottom: 96px; }
+.le-ladder-row:last-child { margin-bottom: 0; }
+.le-ladder-img { grid-column: 1 / 6; aspect-ratio: 4 / 3; }
+.le-ladder-txt { grid-column: 7 / 13; }
+.le-ladder-row:nth-child(even) .le-ladder-img { grid-column: 8 / 13; grid-row: 1; }
+.le-ladder-row:nth-child(even) .le-ladder-txt { grid-column: 1 / 6;  grid-row: 1; }
+.le-ladder-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--le-radius-image); }
+.le-ladder-txt h3 { font-size: var(--le-display-l); }
+.le-ladder-txt p { margin: 16px 0 0; font-size: var(--le-body-l); max-width: 46ch; }
+
+/* ── Services 5b: two-column list ──────────────────────────────────────────── */
+.le-svc-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 64px; row-gap: 48px; }
+.le-svc-item { border-top: 1px solid var(--le-edge); padding-top: 20px; }
+.le-svc-item h3 { margin-bottom: 12px; }
+.le-svc-item p { margin: 0; max-width: 38ch; opacity: 0.7; }
+
+/* ── Why us ────────────────────────────────────────────────────────────────── */
+.le-why-head { grid-column: 1 / 6; position: sticky; top: 104px; align-self: start; }
+.le-why-items { grid-column: 7 / 13; }
+.le-why-item { border-top: 1px solid var(--le-edge); padding-top: 20px; margin-bottom: 48px; }
+.le-why-item:last-child { margin-bottom: 0; }
+.le-why-item p { margin: 12px 0 0; max-width: 42ch; }
+.le-why-single { max-width: 62ch; margin: 0 auto; text-align: center; }
+
+/* ── Gallery: fixed ratios, six maximum ────────────────────────────────────── */
+.le-gal { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.le-gal-feature { grid-column: 1 / 9;  aspect-ratio: 3 / 2; }
+.le-gal-stack   { grid-column: 9 / 13; display: grid; gap: 16px; }
+.le-gal-stack > * { aspect-ratio: 4 / 3; }
+.le-gal-third   { grid-column: span 4; aspect-ratio: 4 / 3; }
+.le-gal img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--le-radius-image); }
+
+/* ── Coverage ──────────────────────────────────────────────────────────────── */
+.le-cover { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 32px; row-gap: 16px; }
+.le-cover li {
+  list-style: none; border-bottom: 1px solid var(--le-edge);
+  padding: 12px 0; font-size: var(--le-utility);
   font-family: var(--le-font-utility), system-ui, sans-serif;
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+}
+.le-cover-note { margin: 24px 0 0; opacity: 0.7; }
+
+/* ── Trust ─────────────────────────────────────────────────────────────────── */
+.le-quote p { font-size: var(--le-body-l); max-width: 34ch; margin: 0; }
+.le-quote footer {
+  margin-top: 24px; font-family: var(--le-font-utility), system-ui, sans-serif;
   font-size: var(--le-utility); font-weight: var(--le-utility-weight);
+  letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
+  opacity: 0.65;
+}
+
+/* ── FAQ ───────────────────────────────────────────────────────────────────── */
+.le-faq { grid-column: 1 / 9; }
+.le-faq details { border-top: 1px solid var(--le-edge); }
+.le-faq summary {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
+  padding: 24px 0; cursor: pointer; list-style: none;
+  font-family: var(--le-font-display), Georgia, serif;
+  font-size: var(--le-display-m); font-weight: var(--le-display-weight);
+  letter-spacing: var(--le-display-tracking); line-height: 1.25;
+}
+.le-faq summary::-webkit-details-marker { display: none; }
+/* The +/- indicator, drawn in text rather than pulled from an icon library. */
+.le-faq summary::after { content: "+"; font-weight: 400; opacity: 0.5; flex-shrink: 0; }
+.le-faq details[open] summary::after { content: "\\2212"; }
+.le-faq details p { margin: 0 0 24px; max-width: 62ch; opacity: 0.8; }
+
+/* ── Terminal CTA ──────────────────────────────────────────────────────────── */
+.le-cta-band { padding: 96px 0; }
+.le-cta-left  { grid-column: 1 / 6; }
+.le-cta-right { grid-column: 7 / 13; }
+.le-cta-left .le-h2 { color: var(--le-paper); }
+.le-field-label { font-size: var(--le-utility); font-weight: 600; margin-bottom: 8px; opacity: 0.8; }
+.le-field {
+  background: color-mix(in oklab, var(--le-paper) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--le-paper) 20%, transparent);
+  border-radius: var(--le-radius-card);
+  color: var(--le-paper);
+}
+.le-submit {
+  display: flex; align-items: center; justify-content: center; width: 100%;
+  background: var(--le-accent); color: var(--le-ink);
+  border-radius: var(--le-radius-button); min-height: 56px; padding: 18px 32px;
+  font-family: var(--le-font-utility), system-ui, sans-serif;
+  font-size: var(--le-body); font-weight: var(--le-utility-weight);
   letter-spacing: var(--le-utility-tracking); text-transform: var(--le-utility-transform);
 }
 
+/* ── Footer ────────────────────────────────────────────────────────────────── */
 .le-foot { border-top: 1px solid var(--le-edge); padding: 40px 0 56px; }
 .le-foot a {
   color: var(--le-accent-derived); display: inline-block;
   padding: 13px 8px; margin: -13px -8px; min-height: 44px;
 }
-.le-foot .le-tel { font-size: var(--le-body); }
+.le-foot .le-tel { font-size: var(--le-body); font-family: var(--le-font-body), system-ui, sans-serif; }
 .le-credit { margin-top: 20px; font-size: var(--le-utility); opacity: 0.6; }
 
-@media (max-width: 720px) {
-  .le-wrap { padding: 0 20px; }
-  .le-anchor    { padding: var(--le-space-anchor-m) 0; }
-  .le-connector { padding: var(--le-space-connector-m) 0; }
-  .le-hero { padding: 56px 0 40px; }
-  .le-hero-split { grid-template-columns: 1fr; gap: 32px; }
-  .le-hero-media { height: clamp(240px, 60vw, 340px); }
-  .le-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
-  .le-gallery > * { grid-column: span 1 !important; }
-  .le-btn { width: 100%; }
-  .le-facts { gap: 20px 32px; }
+/* ── Tablet ────────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .le-wrap { padding: 0 24px; }
+  .le-cover { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* One orchestrated motion moment per page, and none at all for anyone who asked for none. */
+/* ── Mobile ────────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .le-wrap { padding: 0 20px; }
+  .le-grid { column-gap: 0; }
+  .le-anchor    { padding: var(--le-space-anchor-m) 0; }
+  .le-connector { padding: var(--le-space-connector-m) 0; }
+
+  .le-c1-5, .le-c1-6, .le-c1-8, .le-c7-12, .le-c1-12,
+  .le-ladder-img, .le-ladder-txt, .le-why-head, .le-why-items,
+  .le-cta-left, .le-cta-right, .le-faq,
+  .le-ladder-row:nth-child(even) .le-ladder-img,
+  .le-ladder-row:nth-child(even) .le-ladder-txt { grid-column: 1 / -1; }
+
+  .le-header, .le-header-inner { height: 60px; }
+  .le-header .le-btn { display: none; }
+
+  .le-hero-text { padding: 40px 0; }
+  .le-h1 { font-size: clamp(2.5rem, 9vw, 3.25rem); max-width: none; }
+  .le-hero-media { grid-column: 1 / -1; grid-row: 1; min-height: 320px; height: 320px; margin-right: 0; margin-left: 0; }
+
+  .le-proof-4, .le-proof-3 { grid-template-columns: repeat(2, 1fr); }
+  .le-ladder-row { margin-bottom: 48px; }
+  .le-ladder-row:nth-child(even) .le-ladder-img,
+  .le-ladder-row:nth-child(even) .le-ladder-txt { grid-row: auto; }
+  .le-svc-list { grid-template-columns: 1fr; row-gap: 32px; }
+  .le-why-head { position: static; margin-bottom: 40px; }
+
+  .le-gal { grid-template-columns: repeat(2, 1fr); }
+  .le-gal-feature { grid-column: 1 / -1; }
+  .le-gal-stack   { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); }
+  .le-gal-third   { grid-column: span 1; }
+
+  .le-cover { grid-template-columns: repeat(2, 1fr); }
+  .le-cta-band { padding: 56px 0; }
+  .le-btn { width: 100%; }
+  .le-actions { gap: 16px; margin-top: 32px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .le-site *, .le-site *::before, .le-site *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
+  .le-why-head { position: static; }
 }
 `
 
-// ── Section primitives ───────────────────────────────────────────────────────
+// ── Primitives ───────────────────────────────────────────────────────────────
 
 export function Section({
   id, density = 'anchor', band, children,
-}: {
-  id?: string
-  density?: 'anchor' | 'connector'
-  /** Renders on --le-structure. Used to break a run of paper sections, per the rhythm rule. */
-  band?: boolean
-  children: ReactNode
-}) {
+}: { id?: string; density?: 'anchor' | 'connector'; band?: boolean; children: ReactNode }) {
   return (
     <section id={id} className={[density === 'anchor' ? 'le-anchor' : 'le-connector', band ? 'le-band' : ''].join(' ').trim()}>
       <div className="le-wrap">{children}</div>
@@ -277,9 +353,18 @@ export function Section({
   )
 }
 
-/** The primary action. `call` only ever renders when a dialable number exists — see `ctaFrom`. */
-export function CtaButton({ content, quiet }: { content: SiteContent; quiet?: boolean }) {
-  const cls = quiet ? 'le-btn le-btn-quiet' : 'le-btn'
+/** Eyebrow + heading, occupying half the grid so the other half can carry content. */
+export function SectionHead({ eyebrow, heading }: { eyebrow: string; heading: string }) {
+  return (
+    <>
+      <p className="le-eyebrow">{eyebrow}</p>
+      <h2 className="le-h2">{heading}</h2>
+    </>
+  )
+}
+
+export function CtaButton({ content, small }: { content: SiteContent; small?: boolean }) {
+  const cls = small ? 'le-btn le-btn-sm' : 'le-btn'
   return content.cta.kind === 'call' && content.phone
     ? <a className={cls} href={telHref(content.phone)}>{content.cta.label}</a>
     : <a className={cls} href="#contact">{content.cta.label}</a>
@@ -291,23 +376,101 @@ export function PhoneLink({ content }: { content: SiteContent }) {
 }
 
 /**
- * Years in business, credentials, and service area — what a stranger checks before calling.
+ * The site header.
  *
- * Service area belongs in the first viewport: local intent is the whole game. Renders nothing when
- * none of the three was answered, rather than an empty bar.
+ * Its absence was a large part of what read as unfinished — a page with no header does not look
+ * like a website. The phone is reachable without scrolling at every viewport, because on a
+ * lead-generation site that is the conversion path; the CTA button drops on mobile so the number
+ * never has to.
  */
-export function ProofBar({
-  content, showAreas = true,
-}: { content: SiteContent; showAreas?: boolean }) {
+export function SiteHeader({ content, logoUrl }: { content: SiteContent; logoUrl?: string }) {
+  return (
+    <header className="le-header">
+      <div className="le-wrap le-header-inner">
+        {logoUrl
+          ? <img className="le-header-logo" src={logoUrl} alt={content.businessName} />
+          : <a className="le-header-name" href="#top">{content.businessName}</a>}
+        <div className="le-header-actions">
+          <PhoneLink content={content} />
+          <CtaButton content={content} small />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+/**
+ * Hero — split anchor. Text in columns 1–6, image 7–12 bleeding to the right viewport edge.
+ *
+ * The headline is capped at 13ch on purpose: the two-or-three line wrap is what gives it presence.
+ * A single long line at the same font size reads as a caption.
+ */
+export function HeroSplit({
+  content, photo, eyebrow,
+}: { content: SiteContent; photo?: SitePhoto; eyebrow?: string }) {
+  return (
+    <header className="le-hero" id="top">
+      <div className="le-wrap">
+        <div className="le-grid le-hero-grid">
+          <div className={photo ? 'le-c1-6 le-hero-text' : 'le-c1-8 le-hero-text'}>
+            {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
+            <h1 className="le-h1">{content.businessName}</h1>
+            {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+            <div className="le-actions">
+              <CtaButton content={content} />
+              {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
+            </div>
+          </div>
+          {photo ? (
+            <div className="le-hero-media">
+              {/* Eager and unlazy — this is the LCP element. */}
+              <img src={photo.url} alt={photo.caption ?? `Work by ${content.businessName}`} />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+/** Hero with no image: an editorial stack widened to eight columns so nothing sits beside a void. */
+export function HeroEditorial({ content, eyebrow }: { content: SiteContent; eyebrow?: string }) {
+  return (
+    <header className="le-hero" id="top">
+      <div className="le-wrap">
+        <div className="le-grid">
+          <div className="le-c1-8 le-hero-text">
+            {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
+            <h1 className="le-h1">{content.businessName}</h1>
+            {content.differentiator ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{content.differentiator}</p> : null}
+            <div className="le-actions">
+              <CtaButton content={content} />
+              {content.cta.kind === 'form' ? <PhoneLink content={content} /> : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+/**
+ * Proof bar — full container width, equal columns.
+ *
+ * The column count reduces to the number of facts rather than rendering an empty cell, which is
+ * what an unanswered credentials question used to produce.
+ */
+export function ProofBar({ content, showAreas = true }: { content: SiteContent; showAreas?: boolean }) {
   const items: Array<[string, string]> = []
   if (content.yearsInBusiness) items.push(['In business', content.yearsInBusiness])
   if (content.credentials)     items.push(['Credentials', content.credentials])
-  if (showAreas && content.serviceAreas?.length) items.push(['Serving', content.serviceAreas.join(' · ')])
+  if (showAreas && content.serviceAreas?.length) items.push(['Serving', content.serviceAreas.slice(0, 3).join(' · ')])
+  if (content.googleProfileUrl) items.push(['Reviews', 'Google Business Profile'])
   if (items.length === 0) return null
 
   return (
-    <dl className="le-facts">
-      {items.map(([label, value]) => (
+    <dl className={`le-proof le-proof-${Math.min(items.length, 4)}`}>
+      {items.slice(0, 4).map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
           <dd>{value}</dd>
@@ -318,42 +481,148 @@ export function ProofBar({
 }
 
 /**
- * Services as an asymmetric ladder rather than a grid of equal cards.
+ * Services.
  *
- * No icons: an icon beside every list item encodes nothing, and the SKILL lists that as a tell.
- * No `01 / 02 / 03` markers either — a service list is not a sequence.
+ * Two layouts, chosen by `servicesLayout()`: an alternating image ladder for a short list with
+ * photos to fill it, and a two-column list otherwise. The list's columns are explicitly `1fr 1fr` —
+ * letting content size them is what produced the uneven cells in Chunk A.
  */
 export function Services({
-  content, heading = 'Services', eyebrow = 'What we do',
-}: { content: SiteContent; heading?: string; eyebrow?: string }) {
-  if (!content.services?.length) return null
+  content, photos = [], layout, eyebrow = 'What we do', heading = 'Services',
+}: {
+  content: SiteContent
+  photos?: SitePhoto[]
+  layout: 'ladder' | 'list'
+  eyebrow?: string
+  heading?: string
+}) {
+  const services = content.services
+  if (!services?.length) return null
+
   return (
     <Section id="services" density="anchor">
-      <p className="le-eyebrow">{eyebrow}</p>
-      <h2 className="le-h2">{heading}</h2>
-      <div className="le-ladder">
-        {content.services.map(s => (
-          <div key={s}><h3 className="le-h3">{s}</h3></div>
-        ))}
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
+      </div>
+
+      {layout === 'ladder' ? (
+        <div>
+          {services.map((s, i) => (
+            <div className="le-grid le-ladder-row" key={s.name}>
+              {photos[i] ? (
+                <div className="le-ladder-img">
+                  <img src={photos[i].url} alt={photos[i].caption ?? s.name} loading="lazy" />
+                </div>
+              ) : null}
+              <div className="le-ladder-txt">
+                <h3 className="le-h3">{s.name}</h3>
+                {s.description ? <p>{s.description}</p> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="le-svc-list">
+          {services.map(s => (
+            <div className="le-svc-item" key={s.name}>
+              <h3 className="le-h3">{s.name}</h3>
+              {s.description ? <p>{s.description}</p> : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  )
+}
+
+/**
+ * Why us — a sticky heading column and a list of differentiators.
+ *
+ * Items come from Q4 (what makes you different) and Q5 (guarantees and credentials), split on
+ * sentence boundaries. Under three items it falls back to a single centred column: two columns
+ * with one item in them is the void this section was built to remove.
+ */
+export function WhyUs({ content, band }: { content: SiteContent; band?: boolean }) {
+  const source = [content.differentiator, content.credentials, content.intro].filter(Boolean).join(' ')
+  const items = source
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 20)
+    .slice(0, 4)
+
+  if (items.length === 0) return null
+
+  if (items.length < 3) {
+    return (
+      <Section id="why" density="connector" band={band}>
+        <div className="le-why-single">
+          <p className="le-eyebrow">Why us</p>
+          <h2 className="le-h2">Why {content.businessName}</h2>
+          {items.map(t => <p className="le-p" key={t} style={{ margin: '0 auto 16px' }}>{t}</p>)}
+        </div>
+      </Section>
+    )
+  }
+
+  return (
+    <Section id="why" density="anchor" band={band}>
+      <div className="le-grid">
+        <div className="le-why-head">
+          <p className="le-eyebrow">Why us</p>
+          <h2 className="le-h2">Why {content.businessName}</h2>
+        </div>
+        <div className="le-why-items">
+          {items.map((text, i) => (
+            <div className="le-why-item" key={text}>
+              <h3 className="le-h3">{['Our promise', 'What you get', 'How we work', 'Peace of mind'][i]}</h3>
+              <p>{text}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </Section>
   )
 }
 
+/**
+ * Gallery — six at most, at fixed aspect ratios.
+ *
+ * Row one is a 3:2 feature plus two stacked 4:3; row two is three equal 4:3. Fewer than four
+ * photos drops row one entirely rather than leaving a half-built feature row. Twelve photos at
+ * mismatched ratios was eating 40% of page height and is the largest element with the least to say.
+ */
 export function Gallery({
   photos, eyebrow = 'Our work', heading = 'Recent work',
 }: { photos: SitePhoto[]; eyebrow?: string; heading?: string }) {
   if (photos.length === 0) return null
+
+  const feature = photos.length >= 4 ? photos[0] : undefined
+  const stack   = photos.length >= 4 ? photos.slice(1, 3) : []
+  const thirds  = photos.length >= 4 ? photos.slice(3, 6) : photos.slice(0, 3)
+
   return (
     <Section id="work" density="anchor">
-      <p className="le-eyebrow">{eyebrow}</p>
-      <h2 className="le-h2">{heading}</h2>
-      <div className="le-gallery">
-        {photos.map(p => (
-          <figure className="le-figure" key={p.id}>
-            {/* Plain <img>: these are public Supabase Storage URLs, and next/image would need a
-                remotePatterns entry per environment for no benefit on a static photo. */}
-            <img className="le-photo" src={p.url} alt={p.caption ?? ''} loading="lazy" />
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
+      </div>
+      <div className="le-gal">
+        {feature ? (
+          <figure className="le-gal-feature" style={{ margin: 0 }}>
+            <img src={feature.url} alt={feature.caption ?? ''} loading="lazy" />
+          </figure>
+        ) : null}
+        {stack.length ? (
+          <div className="le-gal-stack">
+            {stack.map(p => (
+              <figure key={p.id} style={{ margin: 0 }}>
+                <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
+              </figure>
+            ))}
+          </div>
+        ) : null}
+        {thirds.map(p => (
+          <figure className="le-gal-third" key={p.id} style={{ margin: 0 }}>
+            <img src={p.url} alt={p.caption ?? ''} loading="lazy" />
           </figure>
         ))}
       </div>
@@ -361,61 +630,110 @@ export function Gallery({
   )
 }
 
-/** Ironclad's signature: a photo band breaking the container, edge to edge. */
-export function PhotoBand({ photo, businessName }: { photo?: SitePhoto; businessName: string }) {
-  if (!photo) return null
-  return (
-    <div className="le-bleed">
-      <img src={photo.url} alt={photo.caption ?? `Work by ${businessName}`} loading="lazy" />
-    </div>
-  )
-}
-
-/** "What makes you different" and the visitor message. Silent when neither was answered. */
-export function About({
-  content, showDifferentiator = true, band,
-}: { content: SiteContent; showDifferentiator?: boolean; band?: boolean }) {
-  const differentiator = showDifferentiator ? content.differentiator : undefined
-  if (!differentiator && !content.intro) return null
-  return (
-    <Section id="about" density="connector" band={band}>
-      <p className="le-eyebrow">Why us</p>
-      <h2 className="le-h2">Why {content.businessName}</h2>
-      {differentiator ? <p className="le-p le-lede">{differentiator}</p> : null}
-      {content.intro ? <p className="le-p">{content.intro}</p> : null}
-    </Section>
-  )
-}
-
+/** Coverage — a city grid rather than one line of prose. Density, and local search value. */
 export function Coverage({ content }: { content: SiteContent }) {
-  if (!content.serviceAreas?.length) return null
+  const areas = content.serviceAreas
+  if (!areas?.length) return null
+  const shown = areas.slice(0, 16)
+
   return (
     <Section id="coverage" density="connector">
-      <p className="le-eyebrow">Where we work</p>
-      <h2 className="le-h2">Areas we serve</h2>
-      <p className="le-p le-lede">{content.serviceAreas.join(' · ')}</p>
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow="Where we work" heading="Areas we serve" /></div>
+      </div>
+      <ul className="le-cover" style={{ margin: 0, padding: 0 }}>
+        {shown.map(city => <li key={city}>{city}</li>)}
+      </ul>
+      {areas.length > shown.length ? <p className="le-cover-note">and surrounding areas.</p> : null}
     </Section>
   )
 }
 
 /**
- * The terminal call to action.
+ * Trust — real quotes only.
  *
- * In Phase 4 this holds the real lead form. Until then it renders the CTA and the phone, both of
- * which genuinely work, and `LeadFormPlaceholder` is visibly inert rather than a form that looks
- * live and silently discards a lead.
+ * No stars, no avatar circles, no quotation-mark ornaments: each is a graphic standing in for
+ * credibility rather than carrying it. Renders nothing when there are no testimonials, and never
+ * invents one — a fabricated review is the single worst thing this product could publish.
+ */
+export function Trust({ testimonials }: { testimonials?: Testimonial[] }) {
+  if (!testimonials?.length) return null
+  const three = testimonials.length >= 3
+
+  return (
+    <Section id="trust" density="anchor">
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow="What clients say" heading="In their words" /></div>
+      </div>
+      <div className="le-grid" style={{ rowGap: 48 }}>
+        {testimonials.slice(0, 3).map((t, i) => (
+          <blockquote
+            className="le-quote"
+            key={t.name + i}
+            style={{ margin: 0, gridColumn: three ? 'span 4' : i === 0 ? '1 / 6' : '7 / 12' }}
+          >
+            <p>{t.quote}</p>
+            <footer>{[t.name, t.city, t.jobType].filter(Boolean).join(' · ')}</footer>
+          </blockquote>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+/**
+ * FAQ — eight columns, not full width: a 90-character answer line is genuinely harder to read.
+ *
+ * `<details>` rather than JavaScript, and the +/- indicator is drawn in text rather than pulled
+ * from an icon library.
+ */
+export function Faq({ faqs }: { faqs?: FaqItem[] }) {
+  if (!faqs?.length) return null
+  return (
+    <Section id="faq" density="connector">
+      <div className="le-grid">
+        <div className="le-c1-6"><SectionHead eyebrow="Before you call" heading="Common questions" /></div>
+      </div>
+      <div className="le-grid">
+        <div className="le-faq">
+          {faqs.slice(0, 6).map(f => (
+            <details key={f.question}>
+              <summary>{f.question}</summary>
+              <p>{f.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+/**
+ * Terminal CTA — two columns on a full-bleed band.
+ *
+ * The form sat narrow and alone on the left in Chunk A with the right half empty. Heading, a
+ * sentence and the phone now occupy columns 1–5, the form 7–12.
  */
 export function Contact({ content, children }: { content: SiteContent; children?: ReactNode }) {
-  // A form CTA scrolls here, so repeating its label confirms the visitor arrived. A `call` CTA
-  // dials and never lands here, so reusing its label would print "Call Now" twice on one page.
+  // A form CTA scrolls here, so repeating its label confirms arrival. A `call` CTA dials and never
+  // lands here, so reusing its label would print the same words twice on one page.
   const heading = content.cta.kind === 'form' ? content.cta.label : 'Send us a message'
   return (
-    <Section id="contact" density="anchor" band>
-      <p className="le-eyebrow">Get in touch</p>
-      <h2 className="le-h2">{heading}</h2>
-      {content.phone ? <p className="le-p">Call <PhoneLink content={content} /></p> : null}
-      {children}
-    </Section>
+    <section id="contact" className="le-band le-cta-band">
+      <div className="le-wrap">
+        <div className="le-grid">
+          <div className="le-cta-left">
+            <p className="le-eyebrow">Get in touch</p>
+            <h2 className="le-h2">{heading}</h2>
+            <p className="le-p" style={{ opacity: 0.85 }}>
+              Tell us what you need and {content.businessName} will get back to you.
+            </p>
+            {content.phone ? <div style={{ marginTop: 24 }}><PhoneLink content={content} /></div> : null}
+          </div>
+          <div className="le-cta-right">{children}</div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -435,23 +753,41 @@ export function Footer({ content }: { content: SiteContent }) {
 }
 
 /**
- * A visibly inert stand-in for the Phase 4 lead form.
+ * The Phase 4 lead form, still inert.
  *
- * It shows the real fields so the layout can be judged, and it cannot be submitted. A form that
- * looked live and dropped what a visitor typed would lose exactly the lead this product is sold to
- * capture — and nobody would ever know it happened.
+ * Full width of its column now rather than a narrow card, and styled for the dark band it sits on.
+ * It cannot be submitted: a form that looked live and dropped what a visitor typed would lose
+ * exactly the lead this product is sold to capture, and nobody would ever know.
  */
 export function LeadFormPlaceholder() {
   return (
-    <div className="le-formstub" aria-hidden="true">
-      <p className="le-eyebrow" style={{ marginBottom: 18 }}>Lead form — activates in Phase 4</p>
+    <div aria-hidden="true">
+      <p className="le-eyebrow" style={{ marginBottom: 20 }}>Lead form — activates in Phase 4</p>
       {['Your name', 'Phone', 'Email', 'How can we help?'].map(label => (
-        <div key={label} style={{ marginBottom: 14 }}>
-          <div className="le-formstub-label">{label}</div>
-          <div className="le-formstub-field" style={{ height: label.startsWith('How') ? 84 : 48 }} />
+        <div key={label} style={{ marginBottom: 16 }}>
+          <div className="le-field-label">{label}</div>
+          <div className="le-field" style={{ height: label.startsWith('How') ? 96 : 52 }} />
         </div>
       ))}
-      <div className="le-formstub-send">Send</div>
+      <div className="le-submit" style={{ opacity: 0.55 }}>Send</div>
     </div>
   )
 }
+
+/** Full-bleed photo band — Ironclad's signature, breaking the container edge to edge. */
+export function PhotoBand({ photo, businessName }: { photo?: SitePhoto; businessName: string }) {
+  if (!photo) return null
+  return (
+    <div className="le-bleed-out" style={{ height: 'clamp(320px, 44vw, 560px)', overflow: 'hidden' }}>
+      <img
+        src={photo.url}
+        alt={photo.caption ?? `Work by ${businessName}`}
+        loading="lazy"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+      />
+    </div>
+  )
+}
+
+/** Re-exported so templates import their services layout decision from one place. */
+export type { ServiceItem }

@@ -38,19 +38,26 @@ const supabase = createClient(
 )
 
 /**
- * Seven businesses: one per template, one proving theme is independent of template, and one
- * deliberately sparse.
+ * Eight review fixtures: one per template, one proving theme is independent of template, one
+ * exercising a brand colour that FAILS contrast, and one deliberately sparse.
  *
- * The first six are answered to 100% of the agreed contract — every one of the eleven questions,
- * both operational fields, and the full 12-photo allowance — because a design has to be judged at
- * full data. A layout critiqued on a half-filled record is a critique of the record.
+ * These are FIXTURES, not customers. The truthfulness rules exist to stop false claims appearing on
+ * a real business's own site, and no real business is involved here — so the testimonials, FAQs and
+ * service descriptions below are written fiction. Chris's call, 2026-08-23: judging composition on
+ * pages that are silently missing Trust and FAQ would be judging the wrong thing.
  *
- * `review-threshold` is the one that proves the model: it runs the SAME template as the roofer
- * (Trade Classic) on a DIFFERENT theme (Threshold), and carries a customer brand accent. If those
- * two pages look like the same site, the theme layer is not doing its job.
+ * `review-threshold` proves the model: SAME template as the roofer, different theme, plus a brand
+ * accent. If those two pages look like the same site, the theme layer is not working.
  *
- * The last is thin on purpose and is the regression case — a real customer will skip questions,
- * and "does it still look finished" has to stay answerable after every design change.
+ * `review-brand-fail` carries #FFE500 on Ironclad — 1.21:1 on that kit's paper, so validateAccent
+ * takes its `derived` branch. What to check on the page: buttons stay readable, and the original
+ * yellow still shows where it is used as a large fill rather than as text.
+ *
+ * `review-sparse` stays thin on services and photos — that is its job — but gets testimonials and
+ * FAQs, so the no-photo degrade is tested at realistic density rather than on an empty page.
+ *
+ * `review-threshold` also carries only 5 services, so layout 5a (the image ladder) actually
+ * renders. At 8 services every site takes 5b and the ladder would ship unseen.
  */
 const SITES = [
   {
@@ -61,25 +68,42 @@ const SITES = [
       business_name: 'Northside Roofing Company',
       phone: '(817) 612-6757',
       services: [
-        'Roof replacement', 'Storm damage repair', 'Gutter installation', 'Free roof inspections',
-        'Emergency tarping', 'Skylight repair', 'Metal roofing', 'Insurance claim support',
+        { name: 'Roof replacement', description: 'Full tear-off and re-roof, with the old material hauled away the same day.' },
+        { name: 'Storm damage repair', description: 'Emergency assessment and repair after hail or wind, documented for your insurer.' },
+        { name: 'Gutter installation', description: 'Seamless gutters formed on site to fit the run exactly.' },
+        { name: 'Free roof inspections', description: 'A written report with photographs, whether or not you go ahead with us.' },
+        { name: 'Emergency tarping', description: 'Same-day cover to stop water getting in while a claim is assessed.' },
+        { name: 'Skylight repair', description: 'Reseal or replace, including the flashing that usually causes the leak.' },
+        { name: 'Metal roofing', description: 'Standing seam and corrugated, for outbuildings and full residential roofs.' },
+        { name: 'Insurance claim support', description: 'We meet your adjuster on site and provide the documentation they ask for.' }
       ],
-      service_areas: 'Fort Worth, Arlington, Keller, Southlake, Grapevine, Colleyville',
+      service_areas: 'Fort Worth, Arlington, Keller, Southlake, Grapevine, Colleyville, Haslet, Saginaw',
       differentiator: 'We answer the phone at nine at night, and we show up when we say we will. Every roof we replace is inspected by the owner before we ask you for the final payment.',
-      credentials: 'Licensed and insured in Texas · GAF Master Elite · BBB A+',
+      credentials: 'Licensed and insured in Texas',
       years_in_business: '12 years',
       primary_cta: 'call',
       google_profile_url: 'g.page/northside-roofing',
       has_photos: true,
-      visitor_message: 'Most people call us after a storm, worried about what it will cost. We will tell you straight whether you need a repair or a replacement, and we will put it in writing before anyone climbs on your roof.',
+      visitor_message: 'Most people call us after a storm, worried about what it will cost. We tell you straight whether you need a repair or a replacement.',
       pain_points: 'WE MISS HALF OUR CALLS — this must never appear on the page.',
+      testimonials: [
+        { quote: 'They tarped the roof the night the storm hit and had the full replacement done inside two weeks. The insurance paperwork was handled for us.', name: 'Marcus D.', city: 'Keller', jobType: 'Storm replacement' },
+        { quote: 'Two other companies told me I needed a whole new roof. Northside repaired the section that was actually damaged and charged a fifth of the price.', name: 'Priya R.', city: 'Fort Worth', jobType: 'Repair' },
+        { quote: 'Turned up when they said, cleaned up properly, and the owner came out to check it before they invoiced. Rare these days.', name: 'Dale W.', city: 'Southlake', jobType: 'Full replacement' },
+      ],
+      faqs: [
+        { question: 'How much does a new roof cost?', answer: 'Most residential replacements in this area land between $9,000 and $22,000 depending on size, pitch and material. We give you a written figure before any work starts.' },
+        { question: 'Will my insurance cover storm damage?', answer: 'Often, yes. We document the damage, meet your adjuster on site, and give you the report they need. We do not file the claim for you, but we make it straightforward.' },
+        { question: 'How long does a replacement take?', answer: 'A typical single-family roof is one to two days on site, weather permitting. Larger or steeper roofs can run to three.' },
+        { question: 'Do you need permits?', answer: 'Yes, and we pull them. The permit fee is itemised on your quote rather than buried in the total.' },
+        { question: 'What happens to my garden and driveway?', answer: 'We tarp landscaping, use a magnetic sweeper over the drive and lawn at the end of every day, and haul the old material away ourselves.' },
+        { question: 'When do I pay?', answer: 'A deposit on scheduling and the balance once the owner has inspected the finished work. Never the full amount up front.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'northside-roofing',
     },
   },
   {
-    // Same template as the roofer, different theme, plus a customer brand colour. This is the page
-    // that proves template and theme are separate layers rather than one setting with two names.
     slug: `${PREFIX}threshold`,
     vertical: 'real-estate',        // -> trade_classic + threshold
     photos: MAX_PHOTOS_PER_SITE,
@@ -87,20 +111,35 @@ const SITES = [
     answers: {
       business_name: 'Camden & Vale Realty',
       phone: '(817) 555-0188',
+      // Five services on purpose: this is the site that renders the image ladder.
       services: [
-        'Residential sales', 'First-time buyers', 'Relocation', 'Investment property',
-        'Property valuation', 'Listing preparation', 'New construction', 'Land',
+        { name: 'Residential sales', description: 'Listing, marketing and negotiation, handled by the agent you first met.' },
+        { name: 'First-time buyers', description: 'A slower walk through the whole process, with no assumption you know the jargon.' },
+        { name: 'Property valuation', description: 'A written figure with the comparable sales it is based on.' },
+        { name: 'Listing preparation', description: 'What to fix, what to leave, and what genuinely changes the offer.' },
+        { name: 'Relocation', description: 'Coordinating a sale and a purchase when the dates do not line up.' }
       ],
-      service_areas: 'Fort Worth, Southlake, Westlake, Colleyville, Keller',
+      service_areas: 'Fort Worth, Southlake, Westlake, Colleyville, Keller, Roanoke',
       differentiator: 'We take twelve listings a year, not sixty. You get the agent you met, at every showing.',
-      credentials: 'Texas Real Estate Commission licensed · Accredited Buyer Representative',
+      credentials: 'Texas Real Estate Commission licensed',
       years_in_business: '9 years',
       primary_cta: 'other',
       primary_cta_other: 'Book a Valuation',
       google_profile_url: 'g.page/camden-vale-realty',
       has_photos: true,
-      visitor_message: 'Selling a house is mostly waiting, punctuated by decisions you have never made before. We will tell you which ones actually matter.',
+      visitor_message: 'Selling a house is mostly waiting, punctuated by decisions you have never made before. We tell you which ones actually matter.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'They talked us out of two offers that looked better on paper. The one we took closed without a single problem.', name: 'Helen S.', city: 'Westlake', jobType: 'Sale' },
+        { quote: 'Same agent at every viewing, which sounds small until you have dealt with an agency where it is a different person each time.', name: 'Tom A.', city: 'Colleyville', jobType: 'Purchase' },
+      ],
+      faqs: [
+        { question: 'What is your commission?', answer: 'A flat percentage agreed in writing before we list, with no marketing surcharges added later. We will quote it on the first call.' },
+        { question: 'How long will my house take to sell?', answer: 'In this market, most of our listings are under contract within five weeks. Anything priced above the comparable range takes considerably longer.' },
+        { question: 'Should I renovate before listing?', answer: 'Usually not. Paint and decluttering pay for themselves; kitchens and bathrooms rarely return what they cost in a sale.' },
+        { question: 'Do you handle rentals?', answer: 'No. We sell and we buy. For lettings we will refer you to a management firm we trust rather than take it on badly.' },
+        { question: 'What does a valuation involve?', answer: 'About forty minutes at the property, then a written figure with the comparable sales it is based on so you can see the reasoning.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'camden-vale-realty',
     },
@@ -113,21 +152,37 @@ const SITES = [
       business_name: 'Hallam & Reed Legal',
       phone: '(817) 555-0142',
       services: [
-        'Wills and probate', 'Family law', 'Small business contracts', 'Real estate closings',
-        'Estate planning', 'Guardianship', 'Business formation', 'Contract disputes',
+        { name: 'Wills and probate', description: 'Drafting, and administering an estate through the Texas courts.' },
+        { name: 'Family law', description: 'Divorce, custody and support, handled without unnecessary escalation.' },
+        { name: 'Small business contracts', description: 'Supplier and client agreements written in language you can use.' },
+        { name: 'Real estate closings', description: 'Title review and closing for residential and small commercial purchases.' },
+        { name: 'Estate planning', description: 'Wills, powers of attorney and directives, reviewed as circumstances change.' },
+        { name: 'Guardianship', description: 'Applications for minors and for adults who can no longer manage their affairs.' },
+        { name: 'Business formation', description: 'LLC and corporation setup, including the agreements between owners.' },
+        { name: 'Contract disputes', description: 'Negotiation first, litigation only where it is genuinely worth it.' }
       ],
-      service_areas: 'Tarrant County, Dallas County, Denton County, Parker County',
-      differentiator: 'You will speak to the attorney handling your matter, not a case manager. We quote a flat fee before we start, so you are never surprised by an invoice.',
-      credentials: 'Licensed by the State Bar of Texas · Board Certified in Estate Planning and Probate',
+      service_areas: 'Tarrant County, Dallas County, Denton County, Parker County, Johnson County',
+      differentiator: 'You speak to the attorney handling your matter, not a case manager. We quote a flat fee before we start, so you are never surprised by an invoice.',
+      credentials: 'State Bar of Texas',
       years_in_business: '18 years',
-      // 'other' is the realistic answer: "Get a Free Estimate" is a trades phrase that reads wrong
-      // over a law firm. It also exercises the free-text CTA path.
       primary_cta: 'other',
       primary_cta_other: 'Request a Consultation',
       google_profile_url: 'g.page/hallam-reed-legal',
       has_photos: true,
-      visitor_message: 'Most people come to us at a difficult moment and want to know what happens next. We will explain it in plain English and tell you honestly whether you need a lawyer at all.',
+      visitor_message: 'Most people come to us at a difficult moment and want to know what happens next. We explain it in plain English and tell you honestly whether you need a lawyer at all.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'She told me on the first call that I did not need to hire anyone, and explained what to do instead. I came back two years later for the estate work.', name: 'Robert N.', city: 'Fort Worth', jobType: 'Probate' },
+        { quote: 'The flat fee was the whole reason we chose them. We knew what it cost before anything started.', name: 'Angela M.', city: 'Arlington', jobType: 'Business formation' },
+        { quote: 'Difficult circumstances handled without any drama. That is worth a lot.', name: 'Chris B.', city: 'Denton', jobType: 'Family law' },
+      ],
+      faqs: [
+        { question: 'What does a consultation cost?', answer: 'The first conversation is free and usually takes half an hour. If we can point you somewhere better, we will.' },
+        { question: 'Do you charge by the hour?', answer: 'For most matters, no. We agree a flat fee in writing before starting. Litigation is the exception and we say so up front.' },
+        { question: 'How long does probate take in Texas?', answer: 'An uncontested independent administration is commonly four to eight months. Contested matters run considerably longer.' },
+        { question: 'Do I need a will if I have no property?', answer: 'If you have children, almost certainly. Guardianship is decided by a will and it is the part people most often overlook.' },
+        { question: 'Will I speak to the same attorney throughout?', answer: 'Yes. That is the reason the firm is deliberately small.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'hallam-reed-legal',
     },
@@ -140,18 +195,35 @@ const SITES = [
       business_name: 'Lone Star Party Rentals',
       phone: '(817) 555-0199',
       services: [
-        'Bounce houses', 'Mobile casino tables', 'DJ and sound', 'Party bus',
-        'Tables and chairs', 'Water slides', 'Concession machines', 'Tents and marquees',
+        { name: 'Bounce houses', description: 'Themed and plain, from toddler size up to combo units with slides.' },
+        { name: 'Mobile casino tables', description: 'Blackjack, roulette and poker, with dealers who are good with a nervous crowd.' },
+        { name: 'DJ and sound', description: 'PA, lighting and a DJ who will take requests or stick to your playlist.' },
+        { name: 'Party bus', description: 'Up to twenty passengers, with a driver, for the evening or the whole day.' },
+        { name: 'Tables and chairs', description: 'Banquet and round tables, delivered set up rather than stacked in the drive.' },
+        { name: 'Water slides', description: 'Single and double lane, for the months when a bounce house is too hot.' },
+        { name: 'Concession machines', description: 'Popcorn, snow cone and candy floss, supplied with enough stock for the day.' },
+        { name: 'Tents and marquees', description: 'Frame tents from 10x10 up, with sidewalls if the forecast turns.' }
       ],
-      service_areas: 'Fort Worth, Dallas, Arlington, Plano, Frisco, Denton',
+      service_areas: 'Fort Worth, Dallas, Arlington, Plano, Frisco, Denton, Mansfield',
       differentiator: 'Everything is cleaned and checked between every hire, and we set up and take down so you never touch a thing.',
-      credentials: 'Fully insured · Texas Department of Insurance inspected · Background-checked crew',
+      credentials: 'Fully insured',
       years_in_business: 'Since 2019',
       primary_cta: 'availability',
       google_profile_url: 'g.page/lone-star-party-rentals',
       has_photos: true,
-      visitor_message: 'Tell us the date and how many people, and we will tell you what is free. Most weekends book out three weeks ahead, so the earlier you ask the better we can do.',
+      visitor_message: 'Tell us the date and how many people, and we will tell you what is free. Most weekends book out three weeks ahead.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'Set up before we were even awake and collected it after the kids went to bed. We did not lift a thing.', name: 'Sam O.', city: 'Arlington', jobType: 'Birthday' },
+        { quote: 'The casino tables made the whole evening. The dealers they sent were genuinely good with a nervous crowd.', name: 'Rebecca T.', city: 'Fort Worth', jobType: 'Corporate event' },
+      ],
+      faqs: [
+        { question: 'How far ahead should I book?', answer: 'Three to four weeks for a weekend in spring or autumn. Midweek is usually available at shorter notice.' },
+        { question: 'What happens if it rains?', answer: 'Inflatables cannot run in high wind or heavy rain for safety reasons. Tell us by nine on the morning and we will move the booking rather than charge you.' },
+        { question: 'Do you set up and collect?', answer: 'Always, and it is included. We need about an hour before the start and thirty minutes after.' },
+        { question: 'What space do you need?', answer: 'A standard bounce house needs roughly 20 by 20 feet of level ground and access through a gate at least four feet wide.' },
+        { question: 'Is there a power supply needed?', answer: 'Yes, a standard outlet within a hundred feet for anything inflatable. We bring the extension leads.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'lone-star-party-rentals',
     },
@@ -164,12 +236,18 @@ const SITES = [
       business_name: 'Bluebonnet Family Dental',
       phone: '(817) 555-0164',
       services: [
-        'Check-ups and cleaning', 'Fillings', 'Crowns and bridges', 'Root canal treatment',
-        'Teeth whitening', 'Childrens dentistry', 'Emergency appointments', 'Dentures',
+        { name: 'Check-ups and cleaning', description: 'Examination, scale and polish, with anything we find explained before we act.' },
+        { name: 'Fillings', description: 'Tooth-coloured composite, matched to the teeth either side.' },
+        { name: 'Crowns and bridges', description: 'Quoted before we start, with a temporary fitted the same day.' },
+        { name: 'Root canal treatment', description: 'Usually one or two visits, with more time booked than we think we need.' },
+        { name: 'Teeth whitening', description: 'Supervised home trays rather than a single aggressive in-chair session.' },
+        { name: 'Childrens dentistry', description: 'From around age three, starting with a ride in the chair and nothing else.' },
+        { name: 'Emergency appointments', description: 'Two slots held free every morning for people in pain.' },
+        { name: 'Dentures', description: 'Full and partial, adjusted as often as it takes to sit comfortably.' }
       ],
-      service_areas: 'Fort Worth, Benbrook, White Settlement',
-      differentiator: 'We keep two slots free every morning for people in pain, and we will tell you the cost before we start.',
-      credentials: 'Texas State Board of Dental Examiners · ADA member',
+      service_areas: 'Fort Worth, Benbrook, White Settlement, Westworth Village',
+      differentiator: 'We keep two slots free every morning for people in pain, and we tell you the cost before we start.',
+      credentials: 'Texas State Board of Dental Examiners',
       years_in_business: '15 years',
       primary_cta: 'other',
       primary_cta_other: 'Book an Appointment',
@@ -177,6 +255,19 @@ const SITES = [
       has_photos: true,
       visitor_message: 'Plenty of people have not seen a dentist in years and feel awkward about it. Nobody here is going to make you feel bad about that.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'I had avoided dentists for eleven years. They took it slowly and nobody made a comment about it once.', name: 'Janine P.', city: 'Benbrook', jobType: 'New patient' },
+        { quote: 'Rang at eight in the morning with an abscess and was seen before lunch.', name: 'Ade F.', city: 'Fort Worth', jobType: 'Emergency' },
+        { quote: 'They quoted the crown before doing it and the final bill was the same number. That should be normal and it is not.', name: 'Lauren K.', city: 'White Settlement', jobType: 'Crown' },
+      ],
+      faqs: [
+        { question: 'Are you taking new patients?', answer: 'Yes. New patient appointments are usually available within two weeks, and same-week if you are in pain.' },
+        { question: 'What does a check-up cost without insurance?', answer: 'A check-up and clean is $120 for a new patient. We will tell you the price of anything further before we do it.' },
+        { question: 'What if I am nervous?', answer: 'Tell us when you book. We allow extra time, explain everything before we do it, and stop whenever you ask.' },
+        { question: 'Do you see children?', answer: 'Yes, from around age three. First visits are usually a ride in the chair and a count of the teeth, nothing more.' },
+        { question: 'Can I pay in instalments?', answer: 'For larger treatment plans, yes. We will set it out in writing before you commit to anything.' },
+        { question: 'What do I bring to a first appointment?', answer: 'Any insurance details you have, a list of medications, and the name of your previous dentist if you would like records transferred.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'bluebonnet-family-dental',
     },
@@ -189,49 +280,126 @@ const SITES = [
       business_name: 'Trinity Trade Supply',
       phone: '(817) 555-0121',
       services: [
-        'Fasteners and fixings', 'Power tool accessories', 'Abrasives', 'Safety equipment',
-        'Adhesives and sealants', 'Hand tools', 'Site consumables', 'Workwear',
+        { name: 'Fasteners and fixings', description: 'Bolts, anchors and screws, held in the quantities a site actually gets through.' },
+        { name: 'Power tool accessories', description: 'Blades, bits and discs for the brands your crews already run.' },
+        { name: 'Abrasives', description: 'Discs, belts and sheets across the full grit range.' },
+        { name: 'Safety equipment', description: 'PPE, harnesses and signage, with certification supplied.' },
+        { name: 'Adhesives and sealants', description: 'Structural adhesives, silicones and foams, stored so they are in date.' },
+        { name: 'Hand tools', description: 'Trade-grade rather than retail, replaced under warranty without argument.' },
+        { name: 'Site consumables', description: 'Sheeting, tape, marking and the things nobody remembers to order.' },
+        { name: 'Workwear', description: 'Hi-vis, boots and cold weather kit, embroidered if you want it.' }
       ],
       service_areas: 'North Texas, Oklahoma, Louisiana, Arkansas',
       differentiator: 'Order by two, on your site by seven the next morning, anywhere in North Texas. Same van driver every week.',
-      credentials: 'Authorised distributor for eleven manufacturers · ISO 9001',
+      credentials: 'Authorised distributor for eleven manufacturers',
       years_in_business: '22 years',
       primary_cta: 'other',
       primary_cta_other: 'Request a Quote',
       google_profile_url: 'g.page/trinity-trade-supply',
       has_photos: true,
-      visitor_message: 'Most of our customers are buying the same forty lines every week. Tell us what they are and we will keep them on the shelf for you.',
+      visitor_message: 'Most of our customers buy the same forty lines every week. Tell us what they are and we will keep them on the shelf for you.',
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'Same driver for six years. He knows which gate to use and where the site office is, which sounds trivial until you deal with a courier.', name: 'Ken H.', city: 'Fort Worth', jobType: 'Groundworks contractor' },
+        { quote: 'They hold our regular lines so we are not carrying the stock ourselves. That changed our cash flow more than any discount would have.', name: 'Maria V.', city: 'Denton', jobType: 'Fit-out contractor' },
+      ],
+      faqs: [
+        { question: 'Do you have a minimum order?', answer: 'For account customers on a scheduled delivery, no. Ad-hoc deliveries outside the regular round have a minimum that we will confirm when you set the account up.' },
+        { question: 'How quickly can you deliver?', answer: 'Order by 2pm for next-morning delivery across North Texas. Out of state is typically two working days.' },
+        { question: 'Can you hold stock for us?', answer: 'Yes. Tell us your regular lines and we will carry them so you do not have to.' },
+        { question: 'Do you offer trade accounts?', answer: 'Yes, subject to the usual references. Terms are agreed in writing when the account opens.' },
+        { question: 'What if something arrives damaged?', answer: 'Tell the driver or call the same day and we replace it on the next round. We do not ask you to return it first.' },
+      ],
       notify_email: OWNER,
       preferred_slug: 'trinity-trade-supply',
     },
   },
   {
-    // The regression case. Note the vertical resolves to trade_classic + ironclad, but with zero
-    // photos it RENDERS Service Clean — in Ironclad's identity. That degrade is the thing to look
-    // at here: it should still read as a plumber, not as a law firm.
+    // The brand-failure case. #FFE500 measures 1.21:1 on Ironclad's paper, so validateAccent takes
+    // its `derived` branch: the interface uses a darkened value while the original yellow survives
+    // for large fills and the logo.
+    slug: `${PREFIX}brand-fail`,
+    vertical: 'roofing',            // -> trade_classic + ironclad
+    photos: MAX_PHOTOS_PER_SITE,
+    brand: { accent: '#FFE500' },
+    answers: {
+      business_name: 'Sunbelt Exteriors',
+      phone: '(817) 555-0133',
+      services: [
+        { name: 'Roof replacement', description: 'One crew, one job, start to finish before we take on the next.' },
+        { name: 'Siding', description: 'Fibre cement and vinyl, usually cheaper done alongside the roof.' },
+        { name: 'Gutter replacement', description: 'Seamless runs formed on site, fitted while the scaffolding is up.' },
+        { name: 'Storm damage repair', description: 'Documented for your insurer, with same-day tarping if it is open.' },
+        { name: 'Roof inspections', description: 'A written report with photographs before you commit to anything.' }
+      ],
+      service_areas: 'Fort Worth, Weatherford, Aledo, Willow Park',
+      differentiator: 'One crew, one job at a time. We do not start your roof and disappear to another site for a fortnight.',
+      credentials: 'Licensed and insured in Texas',
+      years_in_business: '7 years',
+      primary_cta: 'call',
+      google_profile_url: 'g.page/sunbelt-exteriors',
+      has_photos: true,
+      visitor_message: 'We would rather turn work away than run three jobs badly at once.',
+      pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'They finished our roof before starting anyone else. Four days, start to finish, and the site was spotless.', name: 'Nathan G.', city: 'Aledo', jobType: 'Replacement' },
+        { quote: 'Quoted honestly, did what they quoted, invoiced the same figure.', name: 'Sarah L.', city: 'Weatherford', jobType: 'Siding' },
+      ],
+      faqs: [
+        { question: 'How soon can you start?', answer: 'Because we run one job at a time, the wait is usually two to three weeks. Emergency tarping is same day.' },
+        { question: 'Do you do siding as well as roofing?', answer: 'Yes, and gutters. It is usually cheaper to do them in the same visit while the scaffolding is up.' },
+        { question: 'What warranty do you offer?', answer: 'Ten years on our workmanship, plus whatever the manufacturer gives on the material. Both are in writing.' },
+        { question: 'Do you work with insurance claims?', answer: 'We document the damage and meet the adjuster. The claim itself stays yours to file.' },
+        { question: 'What does the deposit cover?', answer: 'Material ordering. The balance is due after you have walked the finished job with us.' },
+      ],
+      notify_email: OWNER,
+      preferred_slug: 'sunbelt-exteriors',
+    },
+  },
+  {
+    // The regression case. Resolves to trade_classic + ironclad, but with zero photos it RENDERS
+    // Service Clean — in Ironclad's identity. It should still read as a plumber, not a law firm.
+    // Testimonials and FAQs are present so the degrade is judged at realistic density.
     slug: `${PREFIX}sparse`,
     vertical: 'plumbing',
     photos: 0,
     answers: {
       business_name: 'Bell Avenue Plumbing',
       phone: '(817) 555-0175',
-      services: ['Drain cleaning', 'Water heaters', 'Leak repair'],
+      services: [
+        { name: 'Drain cleaning', description: 'Cabling and jetting, with a camera survey if it keeps coming back.' },
+        { name: 'Water heaters', description: 'Repair or replacement, and an honest answer about which you need.' },
+        { name: 'Leak repair', description: 'Detection and repair, including under slab.' }
+      ],
       service_areas: 'Fort Worth',
       primary_cta: 'call',
       has_photos: false,
       pain_points: 'INTERNAL ONLY — should not render.',
+      testimonials: [
+        { quote: 'Came out on a Sunday for a burst pipe and charged the weekday rate.', name: 'Ian C.', city: 'Fort Worth', jobType: 'Emergency' },
+        { quote: 'Fixed in twenty minutes what another firm wanted to replace entirely.', name: 'Della M.', city: 'Fort Worth', jobType: 'Repair' },
+      ],
+      faqs: [
+        { question: 'Do you charge a call-out fee?', answer: 'No call-out fee within Fort Worth. You pay for the time and the parts.' },
+        { question: 'Are you available at weekends?', answer: 'For emergencies, yes, at the same hourly rate as a weekday.' },
+        { question: 'How quickly can you come out?', answer: 'Same day for anything leaking. Within two days for everything else.' },
+        { question: 'Do you replace water heaters?', answer: 'Yes, and we will tell you honestly whether yours needs replacing or repairing.' },
+      ],
     },
   },
 ]
 
-/** A clean labelled placeholder. Honest about being a placeholder — this is a layout review. */
+/**
+ * A flat placeholder in the theme-neutral edge tone.
+ *
+ * Deliberately ONE colour for every slot. The previous random pastels made review harder than it
+ * needed to be — a grid of different colours reads as broken rather than as pending, and it was
+ * impossible to judge composition through it.
+ */
 async function placeholder(label, index) {
-  const tones = ['#DDE3EA', '#E6E2DC', '#DCE5E1', '#E4E0EA', '#E9E4DC', '#DEE6E9']
-  const bg = tones[index % tones.length]
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900">
-      <rect width="1200" height="900" fill="${bg}"/>
-      <text x="600" y="450" font-family="Inter, sans-serif" font-size="44" fill="#8A93A3"
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200">
+      <rect width="1600" height="1200" fill="#DEDEDA"/>
+      <text x="800" y="600" font-family="Inter, sans-serif" font-size="40" fill="#9A9A94"
             text-anchor="middle" dominant-baseline="middle">${label} ${index + 1}</text>
     </svg>`
   return sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer()
@@ -323,7 +491,7 @@ async function seed() {
         owner_email: OWNER,
         slug: spec.slug,
         business_name: spec.answers.business_name,
-        status: 'live',
+        status: 'draft',
         // Resolved from the vertical exactly as createSite() does, rather than set by hand — a
         // seed that hardcodes the pair cannot catch a broken mapping.
         template: resolveForVertical(spec.vertical).template,
@@ -332,7 +500,8 @@ async function seed() {
         questionnaire: spec.answers,
         content,
         notify_email: OWNER,
-        launched_at: new Date().toISOString(),
+        // Deliberately NOT launched: these are fixtures and must never be publicly reachable.
+        launched_at: null,
       })
       .select('id')
       .single()

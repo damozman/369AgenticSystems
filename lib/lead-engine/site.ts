@@ -13,6 +13,7 @@ import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
 import { normaliseVertical } from '@/lib/lead-engine/verticals'
+import { previewEnabled } from '@/lib/lead-engine/preview'
 
 export const PHOTO_BUCKET = 'lead-engine-photos'
 
@@ -47,12 +48,19 @@ export async function loadSiteBySlug(slug: string): Promise<LeadEngineSite | nul
   if (!validateSlug(slug).valid) return null
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase
+
+  // The gate. `status = 'live'` is the only thing a production deployment ever serves; preview mode
+  // additionally serves drafts, and is enabled only in .env.local — never in Vercel. See
+  // lib/lead-engine/preview.ts for why the check is written the way it is.
+  const query = supabase
     .from('lead_engine_sites')
     .select(SITE_COLUMNS)
     .eq('slug', slug)
-    .eq('status', 'live')
-    .maybeSingle()
+
+  const { data, error } = await (previewEnabled()
+    ? query.in('status', ['live', 'draft', 'in_build', 'awaiting_answers'])
+    : query.eq('status', 'live')
+  ).maybeSingle()
 
   if (error) {
     if (isMissingTable(error.code)) {
