@@ -8,49 +8,117 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-25.**
+**Last updated: 2026-08-25 (second session that day).**
 
-### Where this session ended
+### Where this session ended — 2026-08-25, second session
 
-**Chunk B is MERGED TO `master`.** PR #48, merge commit `d18b1d0`. Work continues on
-`feature/lead-engine-chunk-c`, cut from `master` after that merge — the old `feature/lead-engine`
-branch is superseded, not deleted, do not build on it.
+**A design pass on what the generated sites actually LOOK like.** Chris's opening: the templates
+are "very generic" next to commercial themes he'd been shown. Reading the real Miller Storm render
+end to end showed most of the gap was NOT the design system — it was content shape, and a bold
+re-skin would have left it untouched.
 
-**The real-business run is DONE — Miller Storm, a real roofing company (millerstorm.com), taken all
-the way through the merged pipeline:**
-1. Site created (`e980a426-5c8c-41ba-8ef6-1dde27e78d81`, slug `miller-storm`, vertical `roofing` →
-   `trade_classic` / `ironclad`).
-2. Questionnaire filled out for real — 6 services, service areas, credentials, differentiator,
-   years in business, Google profile — through the real public questionnaire route.
-3. **14 of 18 photos uploaded** through the admin harness — confirmed live against
-   `lead_engine_photos`, and 14 is not arbitrary: it is the exact number the allocator can use for a
-   6-service site (`1 hero + 1 band + 6 ladder + 6 gallery`), verified by reading `allocatePhotos()`
-   and `servicesLayout()` directly rather than assumed.
-4. **`content` built and saved** via `contentFrom()` (the same function the seed script uses) —
-   this is a real production write, done by hand because the admin edit page that should do this
-   doesn't exist yet.
-5. **The finished page verified rendering for real** at `/sites/miller-storm` (locally, preview
-   mode — the site's `status` is still `in_build`, not `live`, so nothing public serves it yet):
-   confirmed in the raw HTML that services, differentiator, credentials, years-in-business, the
-   Why-us section, and real uploaded photos are all present and correctly assembled.
+**Two reference mockups, published, both built only from fields the questionnaire already
+collects.** Both carry a "Show field sources" overlay that tags every string on the page:
+- **Forge** (bold trades direction) — https://claude.ai/code/artifact/8f36454e-9535-458a-8e41-509ed2968646
+- **Counsel** (restrained legal direction) — https://claude.ai/code/artifact/9ca925d6-7434-4fc7-bb00-9532b0569cd9
 
-**This whole run found five concrete, real gaps in what a customer-facing (or Chris-facing) UI
-needs that the current internal tooling doesn't have — all logged in dated entries under
-"Known, deliberate gaps" / the Chunk C candidate list below, each with the exact moment it was
-found:** the photo harness only listing `review-%` sites (fixed), no `isPrimary`/`caption` exposed
-at upload, no running count of accepted photos, no signal for the useful 14-vs-18 ceiling, and no
-explicit "I'm done" action anywhere in the flow. Treat these as real requirements gathered from
-actual use, not hypothetical polish.
+**🔴 THE RULE THAT CAME OUT OF IT, and it is the important part of this session:**
 
-**Two content issues in Miller Storm's live row, deliberately NOT fixed by me — they're Chris's own
-words, not mine to silently edit:** a typo in credentials ("Licensed and Insured **accross** the
-nation") and the photo-per-service assignment in the ladder is FIFO-by-upload-order, not matched to
-which photo actually shows that service.
+> Every string on a generated site is either **derived from a questionnaire field** or **fixed copy
+> that asserts nothing**. There is no third category.
 
-**🛑 Chunk C has still NOT started — hold until Chris explicitly says to begin building.** The real
-run is now complete and has produced real requirements (above), which is exactly what the hold was
-waiting on. That does not by itself mean start building — wait for the explicit go-ahead rather
-than inferring it from the run being finished.
+The first draft of the Forge mockup broke this in FIVE places, all of which read as harmless
+template copy: *"Six services, one crew"* (a claim about how the business staffs jobs — a roofer
+who subcontracts would have a lie on his own site), *"Roofs we finished this season"*, *"What you
+get, in writing"*, *"Most estimates are scheduled within a day"*, and *"+ surrounding areas"* on
+the coverage list (asserting reach beyond the five cities they typed). Same shape as the failure
+CLAUDE.md already records twice: **prose is where a truthfulness rule leaks, not logic.** The
+overlay exists so the next person catches it by construction rather than by eye.
+
+**The overlay also caught two PLACEMENT bugs, which is arguably worth more than the invention
+check:** the footer rendered `notify_email` on the public page (publishing the owner's private
+lead-notification address — spam bait, and not what "Where should new lead notifications go?"
+implies), and the nav wordmark hand-trimmed `business_name` from "Brightwell Roofing" to
+"Brightwell." while still tagged as that field. A tag claiming a field but showing something else
+is the worst kind of leak, because it looks verified. Both fixed in the mockups; **neither is fixed
+in the real templates yet** — see the open list below.
+
+### What shipped to `feature/lead-engine-chunk-c`
+
+Two commits, 577 tests passing, tsc clean.
+
+1. **`5f10d04` — service names render as typed, minus the shouting.** One real submission produced
+   "Roofing REPLACEMENT", "Roof REPAIR", "STORM DAMAGE", "GARAGE DOORS", "WINDOW SCREENS" and
+   "Gutters": five capitalisation patterns in one list, rendered verbatim as six headings.
+   `serviceDisplayName()` corrects shouting and nothing else — capitalisation is typing, not
+   wording. **The rule is not "title-case everything" because HVAC, TPO, EPDM and A/C are real
+   answers** and "Hvac" is worse than the bug. Applied at RENDER, never in `servicesFrom`: the
+   questionnaire has to show a customer their own words back, and a normaliser on the write path
+   is the second-writer shape this repo has been bitten by twice.
+2. **`056162f` — the hero says what the business does, and Q4a stops printing twice.**
+
+**⚠ `056162f` NEEDS A MIGRATION APPLIED:**
+`supabase/migrations/2026-08-25-lead-engine-headline-noun.sql` — adds a nullable `headline_noun`
+to `lead_engine_sites`. Every existing row is null and renders exactly as before, so code and
+schema can go live in either order.
+
+**The headline decision, and why it is not what it first looks like.** The hero used to be
+`<h1>{businessName}</h1>`. It is now "<noun> in <primary area>". The obvious implementation —
+persist the vertical on the site row — **directly contradicts `site.ts`'s own written rule**: the
+vertical is an INPUT, template/theme are its resolved OUTPUT, and storing both invites them to
+disagree. So what is stored is the **resolved noun**, which is a leaf: nothing derives a template,
+theme or layout from it. It also lets an operator override a business that sells itself as
+something the map cannot know ("Storm restoration", not "Roofing"). `VERTICAL_NOUNS` is separate
+from `labelFor()` on purpose — that one names a vertical for an operator picking from a select,
+and "Legal in Fort Worth" is not English.
+
+**Deliberate consequence: `WhyUs`'s three-column grid is GONE.** With Q4a promoted to the hero,
+`whyUsItems` returns at most two, so that branch became unreachable and was removed with its
+now-dead CSS rather than left as code no test can enter. It is in git history if a third item is
+ever added.
+
+## ▶ START HERE NEXT SESSION
+
+**Chunk C proper has still NOT started.** The two commits above are content-model fixes on the
+Chunk C branch, not Chunk C itself. Chris's go-ahead for Chunk C is given but he wants to discuss
+scope first — do not start building the uploader or the admin page without that conversation.
+
+**Approved and NOT yet built — the design work, in order:**
+
+1. **Forge and Counsel as real `template` × `theme` pairs.** Forge is a bold evolution of Ironclad
+   (deeper navy, hotter accent `#E4551D` vs the muted `#C8542B`, and the reversal the kit currently
+   forbids: 6px radius and elevation). Counsel keeps `radius: 0` / `shadow: none` and gains ONE
+   photograph plus a few bronze accents. Chris on the first flat draft: *"very nice but a bit too
+   clean"* — the fix was a photo and accents, **not** elevation. Both mockups are the spec.
+2. **`service_clean` should render a hero photo.** `TEMPLATE_RENDERS_GALLERY.service_clean = false`
+   is right — a wall of six photos is wrong for a law firm. But `theme.ts` describes it as "a page
+   with no photos at all", which is the rationale for it being the DEFAULT fallback template, and
+   the two rules got collapsed into one. **"Must survive with zero photos" ≠ "must never show
+   photos"**, and for professional services the photo is the pitch: people hire a person.
+3. **The two placement bugs found by the overlay** (above): stop rendering `notify_email` publicly,
+   and set the wordmark from `logo_url ?? business_name` verbatim — never a hand-trim.
+4. **"Fixed copy" is template-scoped, not global.** The law-firm footer needs its disclaimer ("does
+   not create an attorney–client relationship, do not send confidential information through this
+   form"); that string is mandatory for legal and meaningless for roofing.
+5. **Which verticals get the bold treatment.** Agreed split: **trades (7) and rentals/hauling (4)
+   get Forge**; property, supply, professional and health keep their own kits and take only the
+   structural upgrades. A law firm with an orange full-bleed hero reads as less credible, not more.
+
+**Raised, not fixed — `cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.**
+A cleaning company's buying question is "can I trust you in my house", which is the trade question,
+not the professional one. Looks like a mis-mapping; worth a second look independently of the above.
+
+**Still true from the previous session, unchanged:** the five photo-uploader requirements from the
+Miller Storm run (per-slot labelled sections, a running count of accepted photos, the useful-14 vs
+hard-18 ceiling, `isPrimary`/`caption` at upload, an explicit "I'm done" action) are Chunk C item 1
+and are recorded in full further down this doc. The mockups' labelled photo slots (Hero, Service
+1–4, Gallery 1–6) are the visual counterpart to that uploader.
+
+**⚠ Environment note for cloud sessions:** `npm install` FAILS in Claude Code's remote container.
+`xlsx` is served from `cdn.sheetjs.com`, which the network policy denies with a 403 on CONNECT
+(confirmed via `curl "$HTTPS_PROXY/__agentproxy/status"`). Install without it to verify — the five
+resulting `lib/ops-brief-parse.ts` type errors are the workaround, not the code. **Re-run
+`npx tsc --noEmit` locally before any deploy.** Chris confirmed it is clean on his machine.
 
 ### Chunk B build detail (2026-08-24) — kept for reference, not current state
 
