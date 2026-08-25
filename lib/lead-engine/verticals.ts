@@ -114,3 +114,71 @@ export const ALL_VERTICAL_OPTIONS: readonly VerticalOption[] =
 export function normaliseVertical(raw: string | null | undefined): string {
   return String(raw ?? '').trim().toLowerCase().replace(/[_\s]+/g, '-')
 }
+
+/**
+ * What a business DOES, as a page says it out loud.
+ *
+ * The hero used to set the business name as its `<h1>`, so a stranger landing cold could not tell
+ * what the company sold without scrolling to Services. The fix is a headline built from what we
+ * already know — noun plus primary service area, "Roofing in Fort Worth" — and this map is the
+ * noun half.
+ *
+ * ── Why a separate map, and not `labelFor()` ──
+ * `labelFor` names a vertical for an OPERATOR picking from a select: "Real Estate", "B2B Supply",
+ * "Tree Service". Those are category names, and several of them are unsayable in a sentence a
+ * customer reads — "Legal in Fort Worth" is not English, and "B2B Supply in Fort Worth" is a
+ * filing label rather than a claim. The two lists overlap and are still different jobs, so they are
+ * different functions; collapsing them would force one of the two to read badly.
+ *
+ * ── Why this is not stored as the vertical ──
+ * `createSite` deliberately does not store the vertical (see its own note): the vertical is an
+ * input, `template` and `theme` are its resolved output, and keeping both invites them to
+ * disagree. The noun is a LEAF — nothing derives a template, a theme or a layout from it — so
+ * storing the resolved noun carries none of that risk, and it lets an operator override a business
+ * that sells itself as something the map cannot know ("Storm restoration", not "Roofing").
+ */
+export const VERTICAL_NOUNS: Readonly<Record<string, string>> = {
+  roofing:               'Roofing',
+  hvac:                  'Heating and air conditioning',
+  plumbing:              'Plumbing',
+  electrical:            'Electrical work',
+  concrete:              'Concrete work',
+  'tree-service':        'Tree service',
+  'general-contracting': 'General contracting',
+
+  'real-estate':   'Real estate',
+  'property-mgmt': 'Property management',
+  mortgage:        'Mortgage lending',
+
+  legal:      'Legal counsel',
+  insurance:  'Insurance',
+  accounting: 'Accounting',
+  consulting: 'Consulting',
+  cleaning:   'Cleaning services',
+
+  'dumpster-rental':  'Dumpster rental',
+  'equipment-rental': 'Equipment rental',
+  'event-rentals':    'Event and party rentals',
+  hauling:            'Hauling',
+
+  wholesale:    'Wholesale supply',
+  distribution: 'Distribution',
+  'b2b-supply': 'B2B supply',
+
+  dental:       'Dental care',
+  medical:      'Medical care',
+  veterinary:   'Veterinary care',
+  chiropractic: 'Chiropractic care',
+  optometry:    'Eye care',
+}
+
+/**
+ * The noun for a vertical, or `undefined` when we have none.
+ *
+ * Undefined rather than a guess: with no noun the hero falls back to the business name, which is
+ * what it always did. Inventing "Services in Fort Worth" would be a headline that says nothing
+ * while looking like it says something.
+ */
+export function headlineNounFor(vertical: string | null | undefined): string | undefined {
+  return VERTICAL_NOUNS[normaliseVertical(vertical)]
+}

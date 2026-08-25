@@ -14,13 +14,13 @@ import type {
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
-import { normaliseVertical } from '@/lib/lead-engine/verticals'
+import { headlineNounFor, normaliseVertical } from '@/lib/lead-engine/verticals'
 import { previewEnabled } from '@/lib/lead-engine/preview'
 
 export const PHOTO_BUCKET = 'lead-engine-photos'
 
 const SITE_COLUMNS =
-  'id, slug, business_name, status, template, theme, brand, content, notify_email, client_domain, launched_at, revisions_used'
+  'id, slug, business_name, status, template, theme, brand, content, headline_noun, notify_email, client_domain, launched_at, revisions_used'
 
 /**
  * Whether an error means "the migration has not been applied yet".
@@ -165,6 +165,12 @@ export async function createSite(input: {
   /** Overrides the vertical's resolved pair. The admin edit page sets these; nothing else should. */
   template?: Template | null
   theme?: Theme | null
+  /**
+   * Overrides the vertical's resolved headline noun, for a business that sells itself as something
+   * the map cannot know — "Storm restoration" rather than "Roofing". The admin create page will
+   * offer this prefilled; until it exists the map's answer stands.
+   */
+  headlineNoun?: string | null
   notifyEmail?: string | null
 }): Promise<CreateSiteResult> {
   const ownerEmail = input.ownerEmail.trim().toLowerCase()
@@ -191,6 +197,12 @@ export async function createSite(input: {
       slug,
       template:      input.template ?? resolved.template,
       theme:         input.theme ?? resolved.theme,
+      // Absent and empty mean different things. Not passing the field at all takes the map's
+      // answer; passing it empty is an operator deliberately clearing it, and must NOT have the
+      // map reinstated behind their back — that site's hero falls back to the business name.
+      headline_noun: input.headlineNoun === undefined
+        ? headlineNounFor(input.vertical) ?? null
+        : input.headlineNoun?.trim() || null,
       brand:         {},
       notify_email:  input.notifyEmail?.trim().toLowerCase() || null,
       status:        'draft',

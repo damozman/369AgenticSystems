@@ -42,11 +42,18 @@ const TEMPLATES = {
  * a 500. In practice an operator publishes with content; this guards the case where someone flips a
  * status by hand.
  */
-function contentOf(site: Pick<LeadEngineSite, 'content' | 'business_name'>): SiteContent {
-  return site.content ?? {
+function contentOf(
+  site: Pick<LeadEngineSite, 'content' | 'business_name' | 'headline_noun'>,
+): SiteContent {
+  const base: SiteContent = site.content ?? {
     businessName: site.business_name,
     cta: { label: 'Get a Free Estimate', kind: 'form' },
   }
+
+  // The noun is a COLUMN, not questionnaire content — merged in here so the sections can read one
+  // object. Keeping it off `content` is what stops a re-submitted questionnaire from silently
+  // clearing it: `contentFrom` rebuilds that jsonb wholesale and knows nothing about this field.
+  return site.headline_noun ? { ...base, headlineNoun: site.headline_noun } : base
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

@@ -29,7 +29,7 @@ import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
 import {
-  accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout, heroLede, newPatientRenders, proofBarRenders, proofFacts, serviceDisplayName, servicesColumns, teamColumns, teamRenders, whyUsItems,
+  accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout, heroHeadline, heroLede, newPatientRenders, proofBarRenders, proofFacts, serviceDisplayName, servicesColumns, teamColumns, teamRenders, whyUsItems,
 } from '@/lib/lead-engine/sections'
 import type { ProofFact } from '@/lib/lead-engine/sections'
 
@@ -379,11 +379,10 @@ const SITE_CSS = `
 .le-svc-item p { margin: 0; max-width: 38ch; opacity: 0.7; }
 
 /* ── Why us ────────────────────────────────────────────────────────────────── */
-.le-why-head { grid-column: 1 / 6; position: sticky; top: 104px; align-self: start; }
-.le-why-items { grid-column: 7 / 13; }
-.le-why-item { border-top: 1px solid var(--le-edge); padding-top: 20px; margin-bottom: 48px; }
-.le-why-item:last-child { margin-bottom: 0; }
-.le-why-item p { margin: 12px 0 0; max-width: 42ch; }
+/* The sticky-heading three-column grid (.le-why-head / .le-why-items / .le-why-item) was removed
+   with the markup it styled: whyUsItems returns at most two items now that Q4a is the hero's
+   lede, so that layout could no longer be reached. The compact shape below is the only one.
+   NB: this block is a template literal — no backticks in these comments. */
 .le-why-single { max-width: 62ch; margin: 0 auto; text-align: center; }
 /* Its own rhythm tier, not the standard connector's 64px — reuses the connector's own MOBILE
    value as a smaller desktop one rather than inventing a new spacing number. One or two sentences
@@ -511,7 +510,7 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-connector { padding: var(--le-space-connector-m) 0; }
 
   .le-c1-5, .le-c1-6, .le-c1-7, .le-c1-8, .le-c7-12, .le-c9-12, .le-c1-12,
-  .le-ladder-img, .le-ladder-txt, .le-why-head, .le-why-items,
+  .le-ladder-img, .le-ladder-txt,
   .le-cta-left, .le-cta-right, .le-faq,
   .le-ladder-row:nth-child(even) .le-ladder-img,
   .le-ladder-row:nth-child(even) .le-ladder-txt { grid-column: 1 / -1; }
@@ -541,7 +540,6 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-ladder-row:nth-child(even) .le-ladder-img,
   .le-ladder-row:nth-child(even) .le-ladder-txt { grid-row: auto; }
   .le-svc-list { grid-template-columns: 1fr; row-gap: 32px; }
-  .le-why-head { position: static; margin-bottom: 40px; }
 
   .le-gal { grid-template-columns: repeat(2, 1fr); }
   .le-gal-feature { grid-column: 1 / -1; }
@@ -564,7 +562,6 @@ textarea.le-field { min-height: 96px; resize: vertical; }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  .le-why-head { position: static; }
 }
 `
 
@@ -692,7 +689,7 @@ export function HeroSplit({
       <div className="le-hero-inner">
         <div className="le-hero-text">
           {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
-          <h1 className="le-h1">{content.businessName}</h1>
+          <h1 className="le-h1">{heroHeadline(content)}</h1>
           {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
           <div className="le-actions">
             <CtaButton content={content} />
@@ -743,7 +740,7 @@ export function HeroEditorial({
         <div className="le-grid">
           <div className={stacked ? 'le-c1-7 le-hero-text' : 'le-c1-12 le-hero-text le-hero-centred'}>
             {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
-            <h1 className="le-h1">{content.businessName}</h1>
+            <h1 className="le-h1">{heroHeadline(content)}</h1>
             {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
             <div className="le-actions">
               <CtaButton content={content} />
@@ -868,49 +865,28 @@ export function WhyUs({ content, band }: { content: SiteContent; band?: boolean 
 
   if (items.length === 0) return null
 
-  if (items.length < 3) {
-    // A section for one or two sentences is not a shrunken version of the section for three or
-    // more — it is a different shape. The old version reused the multi-column layout's own
-    // display-heading-plus-body treatment and its 64px connector rhythm, and one or two short
-    // sentences inside that much structure read as empty rather than as deliberate, which is
-    // exactly what a customer with a terse answer to "what makes you different" produces — not a
-    // rare fixture shape, the LIKELY one, per the 2026-08-24 review of the actual questionnaire
-    // copy. The fix is not more padding tuning; it is a layout that expects this little.
-    //
-    // No "Why {business}" heading: the primary sentence carries the section's whole weight now,
-    // set large in the display face rather than body copy — a statement, not a quoted testimonial,
-    // so no quotation marks, which would misread as a customer's words this close to Trust's real
-    // ones. A second sentence, when there is one, sits close beneath as a caption rather than a
-    // peer paragraph — attached to the first line, not standing beside it.
-    const [primary, caption] = items
-    return (
-      <Section id="why" density="connector" band={band} className="le-why-compact">
-        <div className="le-why-single">
-          <p className="le-eyebrow">Why us</p>
-          <p className="le-why-quote">{primary}</p>
-          {caption ? <p className="le-why-caption">{caption}</p> : null}
-        </div>
-      </Section>
-    )
-  }
-
+  // A section for one or two sentences is not a shrunken version of the section for three — it is
+  // a different shape. The old version reused a multi-column layout's display-heading-plus-body
+  // treatment and its 64px connector rhythm, and one or two short sentences inside that much
+  // structure read as empty rather than deliberate, which is exactly what a customer with a terse
+  // answer produces — not a rare fixture shape, the LIKELY one.
+  //
+  // This is now the ONLY shape. `whyUsItems` returns at most two (Q4b, then a Q5 credential)
+  // since Q4a moved to the hero as its lede, so the three-column branch that used to live here
+  // became unreachable and was removed rather than left as code no test could enter. It is in
+  // git history if a third item is ever added.
+  //
+  // No "Why {business}" heading: the primary sentence carries the section's whole weight, set
+  // large in the display face rather than body copy — a statement, not a quoted testimonial, so no
+  // quotation marks, which would misread as a customer's words this close to Trust's real ones. A
+  // second sentence sits close beneath as a caption rather than a peer paragraph.
+  const [primary, caption] = items
   return (
-    <Section id="why" density="anchor" band={band}>
-      <div className="le-grid">
-        <div className="le-why-head">
-          <p className="le-eyebrow">Why us</p>
-          <h2 className="le-h2">Why {content.businessName}</h2>
-        </div>
-        <div className="le-why-items">
-          {items.map((text, i) => (
-            <div className="le-why-item" key={text}>
-              {/* Item 2 is only ever the Q5 credential (see whyUsItems) and gets its own fixed
-                  label — "How we work" answered nothing when the sentence was a licence name. */}
-              <h3 className="le-h3">{i === 2 ? 'Credentials' : ['Our promise', 'What you get'][i]}</h3>
-              <p>{text}</p>
-            </div>
-          ))}
-        </div>
+    <Section id="why" density="connector" band={band} className="le-why-compact">
+      <div className="le-why-single">
+        <p className="le-eyebrow">Why us</p>
+        <p className="le-why-quote">{primary}</p>
+        {caption ? <p className="le-why-caption">{caption}</p> : null}
       </div>
     </Section>
   )

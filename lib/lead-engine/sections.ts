@@ -98,6 +98,29 @@ export function heroLede(content: SiteContent): string | undefined {
 }
 
 /**
+ * The hero's `<h1>`.
+ *
+ * It used to be the business name, full stop — so a stranger landing cold could not tell what the
+ * company sold without scrolling to Services. "Miller Storm" says nothing; "Roofing in Fort Worth"
+ * says the two things a visitor came to check.
+ *
+ * Both halves are already held, so this asks the customer for nothing new: the noun is resolved
+ * from the vertical at creation (`VERTICAL_NOUNS`, operator-overridable) and the place is the first
+ * service area they typed.
+ *
+ * **It composes stated facts and never invents one.** With no noun, or no service area, it returns
+ * the business name — the previous behaviour — rather than reaching for a phrase that would sound
+ * like a claim while carrying no information. The business name still appears on the page either
+ * way: the header wordmark sets it above this heading.
+ */
+export function heroHeadline(content: SiteContent): string {
+  const noun = content.headlineNoun?.trim()
+  const place = content.serviceAreas?.[0]?.trim()
+  if (!noun) return content.businessName
+  return place ? `${noun} in ${place}` : noun
+}
+
+/**
  * A bare Q5 credential, given a subject and a verb so it reads as a sentence beside two
  * first-person ones rather than as a spec-sheet fragment.
  *
@@ -135,12 +158,15 @@ export function credentialWhyUsLine(raw: string): string {
  * always third when present; it is never used to pad a short answer, unlike Q11 in the model this
  * replaced.
  *
- * **4a appears here AND as the hero lede, deliberately** — this is not the old duplication bug.
- * The old bug was one field split on sentence boundaries, where the first fragment was reused
- * *verbatim* in two places by construction. Here 4a and 4b are two independently-authored answers
- * to two different questions; 4a carries the hero's opening claim and is restated as this
- * section's own first item ("Our promise: <what 4a said>"), the same way a real credential
- * legitimately appears in both the proof bar and here — see `credentialWhyUsLine`'s own note.
+ * **4a is NOT here — it is the hero's lede, and it appears once.** This paragraph used to argue
+ * the opposite: that 4a carrying the hero AND opening this section was a legitimate restatement
+ * rather than the old duplication bug, because 4a and 4b are independently authored. That
+ * reasoning answered the wrong question. 4a and 4b being different fields says nothing about 4a
+ * printing *verbatim in two places*, which is what it did — and on the first real page anyone
+ * read end to end, the hero and "Our promise" carried the same sentence word for word, six lines
+ * apart. It read as a bug because it was one. The rule the old note reached for is real but does
+ * not stretch this far: a credential appears in the proof bar as a short FACT and here as a
+ * sentence, which is a change of form; 4a in both places was the same string twice.
  *
  * **Credentials are never concatenated into another item's string.** The original bug —
  * `differentiator + credentials + intro`, joined and split on sentence boundaries with no
@@ -154,7 +180,6 @@ export function credentialWhyUsLine(raw: string): string {
  */
 export function whyUsItems(content: SiteContent): string[] {
   const items: string[] = []
-  if (content.differentiator) items.push(content.differentiator)
   if (content.customerImpression) items.push(content.customerImpression)
   if (content.credentials && items.length > 0) items.push(credentialWhyUsLine(content.credentials))
   return items

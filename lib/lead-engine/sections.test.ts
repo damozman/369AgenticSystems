@@ -4,7 +4,7 @@ import {
   TEMPLATE_RENDERS_GALLERY, accessBarRenders, accessFacts, coverageColumns, coverageRenders,
   credentialWhyUsLine, editorialHeroCentred, editorialHeroFacts, galleryLayout, heroCarriesProof,
   heroLede, newPatientRenders, pageDensity, proofBarRenders, proofFacts, sectionCount,
-  servicesColumns, bandPlan, insuranceLine, serviceDisplayName, teamColumns, teamRenders,
+  heroHeadline, servicesColumns, bandPlan, insuranceLine, serviceDisplayName, teamColumns, teamRenders,
   whyUsItems,
 } from '@/lib/lead-engine/sections'
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
@@ -23,8 +23,8 @@ test('CREDENTIALS ARE NEVER CONCATENATED INTO ANOTHER WHY-US ITEM', () => {
   // intro were joined with a space and split on sentence boundaries — but a credential rarely ends
   // in a full stop, so it glued itself to the front of the next sentence:
   //   "Licensed and insured in Texas Most people call us after a storm, worried about what..."
-  // Credentials legitimately appear here now (see the next test) — the ban is on GLUING, not on
-  // presence: `credentials` text must never turn up inside 4a's or 4b's own array entry.
+  // Credentials legitimately appear here (see the next test) — the ban is on GLUING, not on
+  // presence: `credentials` text must never turn up inside another item's own array entry.
   const credentials = 'Licensed and insured in Texas'
   const content: SiteContent = {
     ...base,
@@ -34,16 +34,11 @@ test('CREDENTIALS ARE NEVER CONCATENATED INTO ANOTHER WHY-US ITEM', () => {
   }
 
   const items = whyUsItems(content)
-  assert.equal(items[0], content.differentiator)
-  assert.equal(items[1], content.customerImpression)
-  assert.ok(!items[0].includes(credentials) && !items[1].includes(credentials))
+  assert.equal(items[0], content.customerImpression)
+  assert.ok(items.every((item, i) => i === 1 || !item.includes(credentials)))
 })
 
 test('a Q5 credential renders as its own distinct item, not merged into 4b', () => {
-  // The new feature this Q4 rewrite adds: when the business answered Q5, it becomes a genuinely
-  // separate third array entry — not appended to 4b's string. This is the test that would have
-  // caught the old bug's SHAPE (two fields silently sharing one string) even without its original
-  // mechanism, and it documents the new design rather than merely permitting it by omission.
   const content: SiteContent = {
     ...base,
     differentiator: 'We answer the phone at nine at night.',
@@ -51,41 +46,57 @@ test('a Q5 credential renders as its own distinct item, not merged into 4b', () 
     credentials: 'Licensed and insured in Texas',
   }
   const items = whyUsItems(content)
-  assert.equal(items.length, 3)
-  assert.notEqual(items[2], items[1])
-  assert.ok(items[2].startsWith('We are Licensed and insured in Texas'))
+  assert.equal(items.length, 2)
+  assert.notEqual(items[1], items[0])
+  assert.ok(items[1].startsWith('We are Licensed and insured in Texas'))
 })
 
-test('THE HERO LEDE IS Q4A, VERBATIM — AND IT IS ALSO WHY-US ITEM ONE, DELIBERATELY', () => {
-  // Not the old duplication bug. The old bug was one field split on sentence boundaries, so the
-  // first fragment appeared twice by construction. Here 4a and 4b are two independently-authored
-  // answers; 4a is restated as this section's own "Our promise" item the same way a real credential
-  // legitimately appears in both the proof bar and here.
+test('Q4A IS THE HERO LEDE AND APPEARS EXACTLY ONCE ON THE PAGE', () => {
+  // This test used to assert the opposite, and its own name called the duplication deliberate.
+  // The argument was that 4a and 4b are independently authored, so restating 4a as Why-us item one
+  // was not the old split-on-sentence-boundaries bug. That answered the wrong question: whether
+  // two FIELDS differ says nothing about one field printing verbatim in two PLACES, which is what
+  // it did. On the first real page anyone read end to end, the hero and "Our promise" carried the
+  // same sentence word for word, six lines apart, and it read as a bug because it was one.
   const content: SiteContent = {
     ...base,
     differentiator: 'We answer the phone at nine at night.',
     customerImpression: 'Every roof is inspected by the owner first.',
   }
   assert.equal(heroLede(content), 'We answer the phone at nine at night.')
-  assert.deepEqual(whyUsItems(content), [
-    'We answer the phone at nine at night.',
-    'Every roof is inspected by the owner first.',
-  ])
+  assert.deepEqual(whyUsItems(content), ['Every roof is inspected by the owner first.'])
+  assert.ok(!whyUsItems(content).includes(content.differentiator!))
 })
 
-test('two items (4a, 4b only) is the floor, not an edge case', () => {
-  // Every customer who answers the two guaranteed prompts gets it — this is the shape the
-  // 2026-08-24 pull-quote fallback layout was built for, not a thin-fixture accident.
-  const content: SiteContent = {
+test('Q4b alone still earns a Why us — it is the section\'s floor now', () => {
+  // With 4a promoted to the hero, 4b is what this section is built on. 4a-only sites render the
+  // claim once, in the hero, and no Why us at all — which is correct: there is nothing left to say
+  // that the hero has not already said.
+  const withBoth: SiteContent = {
     ...base,
     differentiator: 'One van, one plumber, and the same number you called last time.',
     customerImpression: 'Most people finding us have already had one plumber not turn up.',
   }
-  assert.equal(heroLede(content), 'One van, one plumber, and the same number you called last time.')
-  assert.equal(whyUsItems(content).length, 2)
+  assert.equal(heroLede(withBoth), 'One van, one plumber, and the same number you called last time.')
+  assert.equal(whyUsItems(withBoth).length, 1)
+
+  const only4a: SiteContent = { ...base, differentiator: 'We answer the phone at nine at night.' }
+  assert.equal(heroLede(only4a), 'We answer the phone at nine at night.')
+  assert.deepEqual(whyUsItems(only4a), [])
 })
 
-test('no 4a, no hero, no Why us either', () => {
+// A lone credential never stands in for the whole section — the same reasoning `proofBarRenders`
+// applies to a single proof fact.
+test('a credential with no 4b earns no Why us of its own', () => {
+  const content: SiteContent = {
+    ...base,
+    differentiator: 'We answer the phone at nine at night.',
+    credentials: 'Licensed and insured in Texas',
+  }
+  assert.deepEqual(whyUsItems(content), [])
+})
+
+test('no 4a means no hero lede, but 4b still carries Why us', () => {
   const content: SiteContent = { ...base, customerImpression: 'People say we always turn up.' }
   assert.equal(heroLede(content), undefined)
   assert.deepEqual(whyUsItems(content), ['People say we always turn up.'])
@@ -510,4 +521,34 @@ test('serviceDisplayName keeps joining words lowercase unless they lead', () => 
 test('serviceDisplayName is safe on empty and whitespace input', () => {
   assert.equal(serviceDisplayName(''), '')
   assert.equal(serviceDisplayName('   '), '')
+})
+
+// ── heroHeadline — what the business does, and where ─────────────────────────
+
+test('THE HERO SAYS WHAT THE BUSINESS DOES, NOT JUST ITS NAME', () => {
+  // "Miller Storm" as an h1 told a stranger nothing; both halves of this were already held.
+  assert.equal(
+    heroHeadline({ ...base, headlineNoun: 'Roofing', serviceAreas: ['Fort Worth', 'Keller'] }),
+    'Roofing in Fort Worth',
+  )
+})
+
+test('heroHeadline uses the FIRST service area, the one they typed first', () => {
+  assert.equal(
+    heroHeadline({ ...base, headlineNoun: 'Plumbing', serviceAreas: ['Arlington', 'Mansfield'] }),
+    'Plumbing in Arlington',
+  )
+})
+
+// It composes stated facts and invents none: with a half missing it degrades rather than guesses.
+test('heroHeadline falls back to the business name when there is no noun', () => {
+  assert.equal(heroHeadline({ ...base, serviceAreas: ['Fort Worth'] }), base.businessName)
+  assert.equal(heroHeadline(base), base.businessName)
+  assert.equal(heroHeadline({ ...base, headlineNoun: '   ' }), base.businessName)
+})
+
+test('heroHeadline drops the place rather than inventing one', () => {
+  assert.equal(heroHeadline({ ...base, headlineNoun: 'Legal counsel' }), 'Legal counsel')
+  assert.equal(heroHeadline({ ...base, headlineNoun: 'Legal counsel', serviceAreas: [] }), 'Legal counsel')
+  assert.equal(heroHeadline({ ...base, headlineNoun: 'Legal counsel', serviceAreas: ['  '] }), 'Legal counsel')
 })

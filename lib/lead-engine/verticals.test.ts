@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { CANONICAL_VERTICALS } from '@/lib/verticals/index'
 import {
   ALL_VERTICAL_OPTIONS, LEAD_ENGINE_ONLY_VERTICALS, LEAD_ENGINE_VERTICALS,
-  VERTICAL_KEY_FORMAT, VERTICAL_OPTION_GROUPS, labelFor, normaliseVertical,
+  VERTICAL_KEY_FORMAT, VERTICAL_NOUNS, VERTICAL_OPTION_GROUPS, headlineNounFor, labelFor,
+  normaliseVertical,
 } from '@/lib/lead-engine/verticals'
 
 test('every Lead Engine vertical is canonical or explicitly Lead-Engine-only', () => {
@@ -78,4 +79,36 @@ test('normalising accepts the design brief spelling without adopting it', () => 
   assert.equal(normaliseVertical('ROOFING'), 'roofing')
   assert.equal(normaliseVertical(null), '')
   assert.equal(normaliseVertical(undefined), '')
+})
+
+// ── Headline nouns ───────────────────────────────────────────────────────────
+
+test('EVERY VERTICAL AN OPERATOR CAN PICK HAS A HEADLINE NOUN', () => {
+  // Without one the hero silently falls back to the business name, which is the exact defect the
+  // noun exists to fix — and it would fail quietly, on one vertical, months later. Adding a
+  // vertical should fail here loudly instead.
+  const missing = ALL_VERTICAL_OPTIONS.filter(o => !headlineNounFor(o.value)).map(o => o.value)
+  assert.deepEqual(missing, [])
+})
+
+test('no headline noun is left as a filing label', () => {
+  // `labelFor` names a vertical for an operator reading a select; this names it for a customer
+  // reading a sentence. "Legal in Fort Worth" is not English, which is why the two differ.
+  assert.equal(headlineNounFor('legal'), 'Legal counsel')
+  assert.equal(headlineNounFor('b2b-supply'), 'B2B supply')
+  assert.equal(headlineNounFor('hvac'), 'Heating and air conditioning')
+  assert.notEqual(headlineNounFor('legal'), labelFor('legal'))
+})
+
+test('headlineNounFor tolerates the design brief spelling, like everything else here', () => {
+  assert.equal(headlineNounFor('real_estate'), VERTICAL_NOUNS['real-estate'])
+  assert.equal(headlineNounFor('  Event_Rentals  '), VERTICAL_NOUNS['event-rentals'])
+})
+
+test('an unknown vertical yields no noun rather than a guess', () => {
+  // The hero then prints the business name, exactly as it always did. Inventing "Services in Fort
+  // Worth" would be a headline that says nothing while looking like it says something.
+  for (const raw of ['saas', 'not-a-vertical', '', null, undefined]) {
+    assert.equal(headlineNounFor(raw), undefined)
+  }
 })

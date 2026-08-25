@@ -162,6 +162,13 @@ export interface SiteCta {
 export interface SiteContent {
   businessName: string
   cta: SiteCta
+  /**
+   * What the business does, for the hero headline — "Roofing", "Legal counsel".
+   *
+   * Not written by `contentFrom`: it is a column on the site row, merged in at render. The
+   * questionnaire never asks for it, and re-submitting the questionnaire must not change it.
+   */
+  headlineNoun?: string
   phone?: string
   services?: ServiceItem[]
   serviceAreas?: string[]
@@ -186,6 +193,12 @@ export interface LeadEngineSite {
   slug: string
   business_name: string
   status: SiteStatus
+  /**
+   * What the business does, for the hero headline — resolved from the vertical at creation via
+   * VERTICAL_NOUNS, operator-overridable. NOT the vertical key: the vertical is deliberately not
+   * stored. Null falls the hero back to the business name.
+   */
+  headline_noun: string | null
   /** Stated intent. The no-photo degrade is computed at render and never stored. */
   template: Template
   theme: Theme
