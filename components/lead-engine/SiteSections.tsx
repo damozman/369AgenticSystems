@@ -29,9 +29,7 @@ import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
 import {
-  accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout,
-  newPatientRenders, proofBarRenders, proofFacts, heroLede, servicesColumns, teamColumns, teamRenders,
-  whyUsItems,
+  accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout, heroLede, newPatientRenders, proofBarRenders, proofFacts, serviceDisplayName, servicesColumns, teamColumns, teamRenders, whyUsItems,
 } from '@/lib/lead-engine/sections'
 import type { ProofFact } from '@/lib/lead-engine/sections'
 
@@ -838,7 +836,7 @@ export function Services({
                 </div>
               ) : null}
               <div className="le-ladder-txt">
-                <h3 className="le-h3">{s.name}</h3>
+                <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
                 {s.description ? <p>{s.description}</p> : null}
               </div>
             </div>
@@ -848,7 +846,7 @@ export function Services({
         <div className="le-svc-list" style={{ gridTemplateColumns: servicesColumns(services.length) === 1 ? '1fr' : '1fr 1fr' }}>
           {services.map(s => (
             <div className="le-svc-item" key={s.name}>
-              <h3 className="le-h3">{s.name}</h3>
+              <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
               {s.description ? <p>{s.description}</p> : null}
             </div>
           ))}

@@ -429,3 +429,71 @@ export function bandPlan(candidates: BandCandidate[], startingPaperRun = 0): boo
   })
   return result
 }
+
+// ── Service display names ────────────────────────────────────────────────────
+
+/** Joining words that stay lowercase inside a title, never as the first word. */
+const TITLE_MINOR = new Set([
+  'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or',
+  'the', 'to', 'up', 'via', 'with',
+])
+
+function titleCaseWord(word: string, isFirst: boolean): string {
+  const lower = word.toLowerCase()
+  if (!isFirst && TITLE_MINOR.has(lower)) return lower
+  // Capitalise the first LETTER, not the first character — "3-tab" and "(commercial)" must not
+  // lose their leading digit or bracket to an index-0 assumption.
+  return lower.replace(/[a-z]/, c => c.toUpperCase())
+}
+
+function titleCase(value: string): string {
+  let seenWord = false
+  return value.replace(/[^\s/]+/g, word => {
+    if (!/[a-z]/i.test(word)) return word
+    const out = titleCaseWord(word, !seenWord)
+    seenWord = true
+    return out
+  })
+}
+
+/**
+ * A service name as the PAGE should set it, leaving what the customer typed untouched in the row.
+ *
+ * Six services on one real submission arrived as "Roofing REPLACEMENT", "Roof REPAIR", "STORM
+ * DAMAGE", "GARAGE DOORS", "WINDOW SCREENS" and "Gutters" — five capitalisation patterns in one
+ * list, rendered verbatim as six headings. It reads as a broken page rather than as a person
+ * typing quickly, which is what it is.
+ *
+ * **This corrects shouting and nothing else.** Capitalisation is typing, not wording, so
+ * normalising it does not put words in a business's mouth — but anything beyond that would. A
+ * name already in mixed case is returned untouched, so "McCall Roofing", "iSpy Inspections" and
+ * "3-Tab Shingles" survive intact.
+ *
+ * Acronyms are the reason the rule is not simply "title-case everything": HVAC, TPO, EPDM and A/C
+ * are real answers to this question, and "Hvac" is worse than the problem being fixed. So a
+ * short all-caps token is left alone, and only genuinely shouted words are corrected:
+ *
+ *   • an all-caps string of two or more words  → title-cased  ("STORM DAMAGE" → "Storm Damage")
+ *   • an all-caps word longer than four letters → title-cased ("Roof REPAIR" → "Roof Repair")
+ *   • anything else                             → returned exactly as typed
+ *
+ * Deliberately applied at RENDER, not in `servicesFrom`. The questionnaire has to show a customer
+ * their own words back when they reopen it, and a normaliser on the write path would quietly
+ * rewrite the row — the second-writer shape this codebase has already been bitten by twice.
+ */
+export function serviceDisplayName(raw: string): string {
+  const value = raw.trim()
+  if (!value) return value
+
+  const letters = value.replace(/[^A-Za-z]/g, '')
+  if (!letters || letters !== letters.toUpperCase()) {
+    // Mixed or lower case overall — correct only the individually shouted words.
+    return value.replace(/[A-Za-z]{5,}/g, word =>
+      word === word.toUpperCase() ? titleCase(word) : word)
+  }
+
+  // Entirely upper case. One short token is an acronym; more than one word is shouting.
+  const words = value.split(/\s+/).filter(Boolean)
+  if (words.length === 1 && letters.length <= 5) return value
+  return titleCase(value)
+}

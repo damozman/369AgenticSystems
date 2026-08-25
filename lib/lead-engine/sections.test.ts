@@ -4,7 +4,8 @@ import {
   TEMPLATE_RENDERS_GALLERY, accessBarRenders, accessFacts, coverageColumns, coverageRenders,
   credentialWhyUsLine, editorialHeroCentred, editorialHeroFacts, galleryLayout, heroCarriesProof,
   heroLede, newPatientRenders, pageDensity, proofBarRenders, proofFacts, sectionCount,
-  servicesColumns, bandPlan, insuranceLine, teamColumns, teamRenders, whyUsItems,
+  servicesColumns, bandPlan, insuranceLine, serviceDisplayName, teamColumns, teamRenders,
+  whyUsItems,
 } from '@/lib/lead-engine/sections'
 import type { SiteContent, SitePhoto } from '@/lib/lead-engine/types'
 
@@ -457,4 +458,56 @@ test('startingPaperRun accounts for a fixed prefix that already spent paper sect
 
   const afterPaperPrefix = bandPlan(slots, 1)
   assert.deepEqual(afterPaperPrefix, [false, true], 'the prefix already spent one, so this is the second')
+})
+
+// ── Service display names — shouting corrected, wording never ────────────────
+
+test('serviceDisplayName corrects a wholly shouted multi-word name', () => {
+  assert.equal(serviceDisplayName('STORM DAMAGE'), 'Storm Damage')
+  assert.equal(serviceDisplayName('GARAGE DOORS'), 'Garage Doors')
+  assert.equal(serviceDisplayName('WINDOW SCREENS'), 'Window Screens')
+})
+
+test('serviceDisplayName corrects one shouted word inside a normal name', () => {
+  assert.equal(serviceDisplayName('Roofing REPLACEMENT'), 'Roofing Replacement')
+  assert.equal(serviceDisplayName('Roof REPAIR'), 'Roof Repair')
+})
+
+test('serviceDisplayName leaves a well-typed name exactly as it was', () => {
+  for (const name of ['Gutters', 'Roof Repair', 'Storm Damage', 'Siding & Trim']) {
+    assert.equal(serviceDisplayName(name), name)
+  }
+})
+
+// The reason the rule is not "title-case everything" — all four are real answers to this question.
+test('serviceDisplayName leaves short all-caps acronyms alone', () => {
+  for (const name of ['HVAC', 'TPO', 'EPDM', 'A/C']) {
+    assert.equal(serviceDisplayName(name), name)
+  }
+})
+
+test('serviceDisplayName keeps an acronym intact inside a longer name', () => {
+  assert.equal(serviceDisplayName('TPO Roofing'), 'TPO Roofing')
+  assert.equal(serviceDisplayName('EPDM Flat Roofs'), 'EPDM Flat Roofs')
+  assert.equal(serviceDisplayName('A/C Repair'), 'A/C Repair')
+})
+
+// Mixed case is a signal the customer meant it. Never "correct" it.
+test('serviceDisplayName never rewrites intentional inner capitals', () => {
+  assert.equal(serviceDisplayName('McCall Roof Systems'), 'McCall Roof Systems')
+  assert.equal(serviceDisplayName('iSpy Inspections'), 'iSpy Inspections')
+})
+
+test('serviceDisplayName capitalises the first LETTER, not the first character', () => {
+  assert.equal(serviceDisplayName('3-TAB SHINGLE REPAIR'), '3-Tab Shingle Repair')
+})
+
+test('serviceDisplayName keeps joining words lowercase unless they lead', () => {
+  assert.equal(serviceDisplayName('WILLS AND TRUSTS'), 'Wills and Trusts')
+  assert.equal(serviceDisplayName('OF COUNSEL SERVICES'), 'Of Counsel Services')
+})
+
+test('serviceDisplayName is safe on empty and whitespace input', () => {
+  assert.equal(serviceDisplayName(''), '')
+  assert.equal(serviceDisplayName('   '), '')
 })
