@@ -27,12 +27,56 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-22 (second session that day).
+**Last updated:** 2026-08-25.
 
-### Where this session ended — 2026-08-22
+### Where this session ended — 2026-08-25
 
-**Dossier steps 2, 3 and 5 are done or built.** tsc clean, **338 tests**, production build clean.
-Everything is committed and pushed to `master`; the last commit is the voice-speed change.
+**🔴 Production was silently 3 days stale — found and fixed, but one decision is still open,
+deferred to "tomorrow" by Chris.** Discovered while deploying the (separate) Lead Engine merge, not
+while working dossier/audit-calls directly — but the cause and the fix are entirely on this side.
+
+**Root cause: every deploy for 3 days had been failing outright**, not skipped, not queued —
+`vercel.json` had `audit-calls` on `*/15 * * * *` and `dossier-build` on `*/20 * * * *`, and the
+Vercel account is on the **Hobby plan**, which hard-refuses any cron more frequent than once a day
+at deploy time (`Hobby accounts are limited to daily cron jobs`). Every push since that cron was
+added had been silently failing to deploy — the live site was serving a build from before the
+failure started, and nobody had checked.
+
+**Fixed as a stopgap, PR #49 → `master` at `c95df3a`:** both crons dropped to once-daily
+(`audit-calls` → `0 17 * * *`, `dossier-build` → `0 10 * * *`). Production redeployed successfully
+immediately after (`vercel --prod`, aliased to `369agenticsystems.com`) — confirmed live by
+checking a route that could only 200 on the new build.
+
+**Checked live before treating this as urgent: nobody was actually blocked.** `system_audits` had
+one row in 7 days (a test submission), `dossiers` had zero rows ever, `audit_calls` hadn't fired
+since 2026-08-04. But the risk is real going forward, not hypothetical: `acknowledgeProspect()`
+promises a 24-hour reply, and at once-daily `dossier-build`, a real submission could now sit up to
+~24 hours before even entering the approval queue — enough to blow that promise on the very first
+real submission, since it used to build within ~20 minutes of becoming eligible.
+
+**🔴 OPEN DECISION, Chris's own words: "I'll address the cron tomorrow."** He was given the real
+tradeoff and hasn't picked yet:
+- **Upgrade to Vercel Pro — $20/month flat** (includes $20/mo usage credit, so likely near-zero
+  net cost at this traffic level). Removes the Hobby restriction entirely, restores both crons to
+  their designed cadence, no behavior change. Confirmed against Vercel's own current docs, not
+  assumed. This is the fix Chris leans toward in principle — *"I'd rather pay for the right plan
+  than silently degrade a live product."*
+- **Stay on Hobby, keep both crons daily.** Free, already shipped, but `dossier-build` at daily
+  is a real, live degradation of the dossier pipeline's responsiveness, not cosmetic.
+- Do **not** independently decide this or nudge toward one option — it's explicitly parked for
+  Chris to pick up. If a future session needs `audit-calls` at its designed multi-call-per-day
+  cadence (the disclosure-line/`AUDIT_CALLS_ENABLED` item below), this decision blocks that too —
+  a single daily cron tick cannot drive "call at business hours, call again in the evening."
+
+**Also newly discovered, unrelated to the cron fix:** this Vercel project has **no visible Git
+integration** in `vercel project inspect` — deploys are not confirmed to be auto-triggered by a
+push to `master`, despite this file's own "Project Overview" section still saying "auto-deploys
+from master." Not re-verified further this session; worth confirming properly before relying on
+push-to-deploy again. All production deploys this session were manual (`vercel --prod` via the
+Vercel CLI), which is what actually shipped both this fix and Lead Engine.
+
+**Dossier steps 2, 3 and 5 are done or built** (2026-08-22, unchanged this session). tsc clean,
+**338 tests**, production build clean as of that session.
 
 ## ▶ START HERE NEXT SESSION
 
