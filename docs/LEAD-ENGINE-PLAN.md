@@ -8,14 +8,29 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-24 (fourth session that day).**
+**Last updated: 2026-08-24 (fifth session that day).**
 
 ### Where this session ended
 
-**Chunk B is BUILT, VERIFIED, COMMITTED, and PUSHED.** Two commits on `feature/lead-engine`
-(`b3b1c5d` the Chunk B build, `6699b8f` a fix to the verify script itself — see below), pushed to
-`origin/feature/lead-engine`. **Not merged to `master`, no PR opened** — Chris has the PR-creation
-link GitHub offers on push if he wants one; nobody has asked for that yet.
+**Chunk B is MERGED TO `master`.** PR #48, merge commit `d18b1d0`. Before merging, the Chunk B
+verify-run cleanup was re-confirmed independently and live (not by trusting the prior session's own
+claim) — a fresh query against production Supabase found zero `lead_engine_sites` rows matching
+`verify-lead-engine-%` and zero `lead_engine_submissions` rows of any kind, matching the standard
+already set by the photo-pipeline delete. tsc was clean and 559/559 tests passed on the branch
+immediately before the merge.
+
+**Work has moved to a new branch, `feature/lead-engine-chunk-c`, cut from `master` AFTER the
+merge** — not a continuation of the old `feature/lead-engine`, which is left in place (not deleted)
+but superseded. Any future Lead Engine session should be on `feature/lead-engine-chunk-c` or its
+successor, not on `feature/lead-engine`.
+
+**🛑 Chunk C has NOT started. Hold here — do not begin building it.** Chris is running one real
+business through the full merged pipeline first — real questionnaire answers, real photos, the
+whole path — specifically so Chunk C gets prioritized from what that run actually surfaces rather
+than from a guess made before anyone had used it end to end. He will come back with findings; until
+then there is nothing to build. **Do not start on `PhotoUploader.tsx` or the admin list/edit page
+on your own initiative** — either could turn out to be the wrong first thing once a real run has
+happened.
 
 **Verified two independent ways, both real, neither skipped:**
 1. **By hand, in a browser, by Chris** — not by me. He opened the real questionnaire at
@@ -150,21 +165,25 @@ delete it whenever Chunk C's real dashboard photo uploader makes it redundant, n
 
 ### ▶ START HERE NEXT SESSION
 
-**Chunk B is done. Nothing about it is blocking — next up is Chunk C, or a decision about merging
-first.**
+**Merge decision is RESOLVED: merged.** PR #48 → `master` at `d18b1d0`. Work continues on
+`feature/lead-engine-chunk-c`, cut from `master` after the merge — the old `feature/lead-engine`
+branch is superseded, do not build on it.
 
-1. **Decide: merge `feature/lead-engine` toward `master` now, or keep building Chunk C on the same
-   branch first?** Chris hasn't said either way. The branch is pushed and clean; a PR is one click
-   away at the link GitHub prints on push. Nothing here forces the decision — raise it, don't guess.
-2. **Chunk C** — photo upload wired into the customer dashboard (`PhotoUploader.tsx` is still
-   unbuilt; today a photo can only reach a site through the internal `/admin/lead-engine-photos`
-   harness), and the internal admin list/edit page so a site can go from answers to live with no
-   raw SQL. Until that page exists, `content` still has to be built by hand — see
+**🛑 Do not start Chunk C work until Chris returns.** He is running one real business through the
+full merged pipeline himself — real questionnaire, real photos, everything Chunk A/B shipped —
+before deciding what Chunk C should prioritize. The candidates below are what looked like the next
+build BEFORE that real run; treat them as a starting hypothesis, not a queue, and expect Chris's
+findings to reorder or replace them.
+
+1. **Photo upload wired into the customer dashboard** — `PhotoUploader.tsx` is still unbuilt; today
+   a photo can only reach a site through the internal `/admin/lead-engine-photos` harness.
+2. **The internal admin list/edit page** so a site can go from answers to live with no raw SQL.
+   Until that page exists, `content` still has to be built by hand — see
    `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an admin
    route would automate.
-3. **The review fixtures were reseeded this session** (Chris ran it himself after Chunk B closed)
-   and are confirmed `draft` with the new 4a/4b/credential shape via the live script's own check —
-   do not re-seed again without a reason; nothing here is stale.
+3. **The review fixtures were reseeded 2026-08-24** (Chris ran it himself after Chunk B closed) and
+   are confirmed `draft` with the new 4a/4b/credential shape via the live script's own check — do
+   not re-seed again without a reason; nothing here is stale.
 
 **Known, deliberate gaps in what shipped — not bugs, just not built:**
 - The public questionnaire form does not ask Q9–Q11 (practice-only: accepting patients, insurance,
