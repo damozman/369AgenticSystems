@@ -11,12 +11,13 @@ export default async function LeadEnginePhotosTestPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // The 8 seeded review fixtures — real lead_engine_sites rows, draft-status, preview-gated, safe
-  // to attach a test photo to. See scripts/seed-lead-engine-review.mjs.
+  // Every site, not just the 8 seeded review fixtures — this harness is also the only way to
+  // attach a real photo to a real site until Chunk C's admin edit page exists. Originally scoped
+  // to `review-%` only; widened 2026-08-25 when the first real site (created outside the seed
+  // script) couldn't appear in the dropdown at all.
   const { data: sites } = await supabaseAdmin
     .from('lead_engine_sites')
     .select('id, slug, business_name')
-    .like('slug', 'review-%')
     .order('slug')
 
   return (
