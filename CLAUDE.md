@@ -68,12 +68,28 @@ tradeoff and hasn't picked yet:
   cadence (the disclosure-line/`AUDIT_CALLS_ENABLED` item below), this decision blocks that too —
   a single daily cron tick cannot drive "call at business hours, call again in the evening."
 
-**Also newly discovered, unrelated to the cron fix:** this Vercel project has **no visible Git
-integration** in `vercel project inspect` — deploys are not confirmed to be auto-triggered by a
-push to `master`, despite this file's own "Project Overview" section still saying "auto-deploys
-from master." Not re-verified further this session; worth confirming properly before relying on
-push-to-deploy again. All production deploys this session were manual (`vercel --prod` via the
-Vercel CLI), which is what actually shipped both this fix and Lead Engine.
+**✅ RESOLVED 2026-08-25 — push-to-deploy DOES work. The previous claim here was wrong.**
+This section used to say the project had "no visible Git integration" in `vercel project inspect`
+and that push-to-deploy could not be relied on. Checked properly and it is connected:
+- PR #49's head commit `331b7d8` carries a **Vercel commit status** ("Deployment has completed").
+  Vercel can only post that through the GitHub App, so the integration exists.
+- Chris's own Deployments list, read directly: **`cdac8e1` on `master` is badged Production**, and
+  two commits pushed from a cloud session minutes earlier (`5f10d04`, `d6c0080`) appear as **Ready
+  previews with nobody having deployed them**. Branches build to preview, master promotes to
+  production, both automatically.
+
+**So the stale-production incident was ENTIRELY the cron build failures**, not a missing trigger:
+the deploys were firing the whole time and every one of them was failing on the Hobby daily-cron
+limit, leaving production on old code. `vercel --prod` was used manually that session, which is
+what made the trigger look absent — it was never tested.
+
+**The lesson, which this file has now paid for four times:** `vercel project inspect` not showing
+Git integration is the same shape as `agent.list()` not returning `webhook_url` and a quoted grep
+nobody re-ran — **a tool's silence is not evidence of absence.** The Deployments list answers the
+question the inspect command was being asked to answer, and it took one look.
+
+**Consequence for the open decision above:** Vercel Pro is now purely about `dossier-build`
+cadence. Deployment reliability is not a factor in it.
 
 **Dossier steps 2, 3 and 5 are done or built** (2026-08-22, unchanged this session). tsc clean,
 **338 tests**, production build clean as of that session.
