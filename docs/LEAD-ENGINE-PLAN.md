@@ -206,6 +206,12 @@ findings to reorder or replace them.
    `/api/lead-engine/photos` accepts both — every photo uploaded through it lands with
    `isPrimary: false, caption: null` regardless of intent, so there is no way to guarantee a
    specific shot becomes the hero. The real uploader needs to expose both.
+   **There is also no "I'm done" action anywhere in the flow.** Site status only ever moves
+   `draft → awaiting_answers → in_build → live`; nothing marks "photos are finished, ready to move
+   forward." Running Miller Storm through today, the only way this got communicated was Chris
+   saying so directly in the session. The real dashboard needs an explicit action for this —
+   likely the natural trigger for handing a site to the admin list/edit page (item 2 below) rather
+   than leaving it implicit in status alone.
 2. **The internal admin list/edit page** so a site can go from answers to live with no raw SQL.
    Until that page exists, `content` still has to be built by hand — see
    `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an admin
