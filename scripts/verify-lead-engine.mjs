@@ -542,15 +542,24 @@ if (!LIVE) {
         ? pass(`the notification path resolved one way or the other — ${submissionRow.notified_at ? `sent at ${submissionRow.notified_at}` : `failed: ${submissionRow.notify_error}`}`)
         : fail('notified_at and notify_error are BOTH null — a submission that vanished silently')
 
-      // One real submission already landed above. Fire enough more to reach SUBMIT_THROTTLE_MAX,
-      // then confirm the NEXT one past it is refused with 429.
-      for (let i = 1; i < SUBMIT_THROTTLE_MAX; i++) {
-        await fetch(`${base}/api/lead-engine/submit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ siteId: chunkBSiteId, name: `Filler ${i}`, email: `filler${i}@example.com` }),
-        })
-      }
+      // One real submission already landed above, and sent the one real notification email this
+      // whole section should ever send. To prove the (SUBMIT_THROTTLE_MAX+1)th request actually
+      // gets refused, the remaining count is built with DIRECT INSERTS rather than more real
+      // POSTs — 2026-08-24: the first version of this fired SUBMIT_THROTTLE_MAX-1 additional REAL
+      // POSTs through the route to reach the limit, and every one of them is a genuine,
+      // non-honeypot submission that the route notifies on exactly like a real customer's. 21 real
+      // emails landed in a real inbox across four runs before that was caught. Seeding the count
+      // directly answers the same question — does request N+1 get refused? — without
+      // manufacturing N-1 more real notification sends to ask it.
+      const { error: seedError } = await supabase.from('lead_engine_submissions').insert(
+        Array.from({ length: SUBMIT_THROTTLE_MAX - 1 }, (_, i) => ({
+          site_id: chunkBSiteId, name: `Throttle seed ${i + 1}`, email: `throttle-seed-${i + 1}@example.com`,
+        })),
+      )
+      seedError
+        ? fail(`could not seed throttle rows directly: ${seedError.message}`)
+        : pass(`seeded ${SUBMIT_THROTTLE_MAX - 1} prior submissions directly — no route, no email`)
+
       const throttled = await fetch(`${base}/api/lead-engine/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
