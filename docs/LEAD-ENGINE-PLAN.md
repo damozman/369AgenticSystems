@@ -8,14 +8,63 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-24 (third session that day).**
+**Last updated: 2026-08-24 (fourth session that day).**
 
 ### Where this session ended
 
-**Chunk B is BUILT, not yet verified against production or read as a customer would.** tsc clean,
-552 tests, `next build` clean. Everything is committed on the working tree of `feature/lead-engine`
-— **not yet committed to git** (see "▶ START HERE NEXT SESSION" below, item 1). Nothing is merged
-to `master`.
+**Chunk B is BUILT, VERIFIED, COMMITTED, and PUSHED.** Two commits on `feature/lead-engine`
+(`b3b1c5d` the Chunk B build, `6699b8f` a fix to the verify script itself — see below), pushed to
+`origin/feature/lead-engine`. **Not merged to `master`, no PR opened** — Chris has the PR-creation
+link GitHub offers on push if he wants one; nobody has asked for that yet.
+
+**Verified two independent ways, both real, neither skipped:**
+1. **By hand, in a browser, by Chris** — not by me. He opened the real questionnaire at
+   `/lead-engine/questionnaire/<real fixture id>`, changed a real field, saved, hard-refreshed, and
+   screenshotted the change surviving the refresh. He then submitted the real lead form on
+   `/sites/review-trade-classic`, screenshotted the resulting email landing in his own
+   `chris@369agenticsystems.com` inbox with the correct business identity, submitted content, and
+   `Reply to` pointed at the prospect's own address rather than his. This is the verification that
+   actually matters — the live script below proves the HTTP contract, this proves a human can use it.
+2. **`scripts/verify-lead-engine.mjs --live`**, after three real bugs it surfaced were fixed (below)
+   — full clean run, zero failures, confirmed by Chris pasting the actual terminal output rather
+   than a summary.
+
+**Three real bugs found chasing this session's verification, all fixed, all worth reading before
+touching this code again:**
+
+1. **`lib/lead-engine/questionnaire-auth.ts` imported `NextResponse` at module scope**, which pulls
+   in `next/server` — unresolvable outside Next's own bundler
+   (`ERR_MODULE_NOT_FOUND: next/server`). This broke the verify script's ability to import
+   `questionnaireUrl()`, a function with no Next.js dependency of its own, purely because it lived
+   in the same file as functions that do. **Fixed by splitting it out** to
+   `lib/lead-engine/questionnaire-url.ts` — the same separation the voice product already draws
+   between `lib/security/onboarding-token.ts` (script-safe) and
+   `lib/security/questionnaire-auth.ts` (route-only). This project's own file didn't follow its own
+   precedent the first time; a script hitting the boundary head-on is what caught it.
+2. **The verify script's own GET calls hit the wrong URL.** `questionnaireUrl()` returns the
+   PUBLIC PAGE (`/lead-engine/questionnaire/[id]`, HTML) — the script was fetching that and calling
+   `.json()` on it, which silently fails and resolves to `{}` via a `.catch(() => ({}))`. This read
+   as "the questionnaire write isn't landing / is stale" for THREE separate live runs, and burned a
+   real `export const dynamic = 'force-dynamic'` fix (still a legitimate hardening, kept) on a
+   theory that turned out to be wrong. The actual bug was the test hitting the wrong URL the entire
+   time. Fixed by building a separate `apiUrl` pointing at `/api/lead-engine/questionnaire/[id]`.
+   **The lesson:** when a live script disagrees with a live human's own click-through (Chris's
+   manual test worked correctly throughout this whole saga), suspect the test before the app.
+3. **The throttle-exhaustion test sent 21 real emails across four `--live` runs, not one.** To prove
+   the 6th submission gets refused, the test fired `SUBMIT_THROTTLE_MAX - 1` additional REAL POSTs
+   through the actual route — every one a genuine, non-honeypot submission, notified on exactly like
+   a real customer's. Chris caught this by asking directly whether `--live` sends real mail, and
+   confirmed 21 messages landed in his own inbox between 5:34–5:59 PM across the four runs chasing
+   bug #2 above. **Fixed by seeding the other `SUBMIT_THROTTLE_MAX - 1` rows with a direct database
+   insert** rather than routing them through the app — still proves the real question (does request
+   N+1 get refused with 429?) without manufacturing N-1 real notification sends to ask it. Re-run
+   live afterward: exactly one `sent at` line, one email, screenshotted and confirmed.
+   **Cleanup independently proven, not just trusted**, with two SQL queries Chris ran himself
+   against production: zero `lead_engine_sites` rows matching `verify-lead-engine-%`, and zero
+   `lead_engine_submissions` rows whose `site_id` points at a site that no longer exists. Both came
+   back empty. The mechanism (a `finally`-block delete cascading via the `ON DELETE CASCADE` FK) was
+   always going to make this true, but "the script says it cleaned up" and "an independent query
+   confirms nothing is left" are different claims, and only the second one is proof.
 
 **What actually shipped, in build order:**
 
@@ -37,9 +86,9 @@ to `master`.
    pulling from the generic `['Our promise', 'What you get', ...]` array, since item 2 is now
    ALWAYS the Q5-sourced line by construction. All 8 review fixtures in
    `scripts/seed-lead-engine-review.mjs` rewritten to the 4a/4b shape — every `differentiator` is
-   now a single sentence, every fixture gained a `customer_impression`. **Not yet re-seeded to
-   production** — the live `review-*` rows still hold the OLD shape until
-   `seed-lead-engine-review.mjs --apply` runs again (see next-session item 2).
+   now a single sentence, every fixture gained a `customer_impression`. **Re-seeded to production
+   later the same session** (Chris ran it himself) — the live `review-*` rows now hold the new
+   shape, confirmed via the live verify script's own render checks.
 2. **The Chunk B library layer** — `lib/lead-engine/notify.ts` (owner lead-notification email,
    `notify_email` falling back to `owner_email`, mirrors `/api/intake`'s never-throws contract),
    `lib/lead-engine/questionnaire-auth.ts` (signed-link-or-owner-session, reusing
@@ -101,37 +150,21 @@ delete it whenever Chunk C's real dashboard photo uploader makes it redundant, n
 
 ### ▶ START HERE NEXT SESSION
 
-**Chunk B is code-complete but has never touched production.** In order:
+**Chunk B is done. Nothing about it is blocking — next up is Chunk C, or a decision about merging
+first.**
 
-1. **Commit the working tree.** Everything described above is uncommitted on `feature/lead-engine`
-   — this session ran out of room before the commit step, not before the build step.
-2. **Re-seed the review fixtures** — they still hold the OLD `differentiator`/`visitor_message`
-   shape in production, which no longer matches `QuestionnaireAnswers`' type (harmless — jsonb
-   doesn't enforce it — but `contentFrom()` run against a stale row would silently drop the old
-   `visitor_message` field, since that key no longer maps to anything):
-   ```
-   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --apply
-   ```
-   Then read at least one page (`/sites/review-trade-classic`) to confirm Why-us reads naturally
-   with the new 4a/4b/credential shape — this project's own rule, "read the artifact, not the code
-   that made it," and Why-us specifically is the section this whole rewrite touched.
-3. **Run the live verification** — never run yet, only written:
-   ```
-   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
-   ```
-   This both re-runs the existing style/schema/render/contrast/320px checks AND exercises Chunk B's
-   own new path: create a throwaway site, round-trip the questionnaire through the real routes,
-   submit a real lead, confirm the notification resolved one way or the other. It sends a real
-   email to `chris@369agenticsystems.com` if `RESEND_API_KEY` is set — expect it.
-4. **Open the real questionnaire form in a browser** (`/lead-engine/questionnaire/<a real site id>`)
-   and fill it in as a customer would — the script above proves the HTTP contract, not that the
-   form is pleasant to use or that nothing looks broken. Nobody has looked at this form yet.
-5. **Then Chunk C** — photo upload wired into the customer dashboard (`PhotoUploader.tsx` is still
-   unbuilt; today a photo can only reach a site through the internal
-   `/admin/lead-engine-photos` harness), and the internal admin list/edit page so a site can go
-   from answers to live with no raw SQL. Until that page exists, `content` still has to be built by
-   hand — see `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an
-   admin route would automate.
+1. **Decide: merge `feature/lead-engine` toward `master` now, or keep building Chunk C on the same
+   branch first?** Chris hasn't said either way. The branch is pushed and clean; a PR is one click
+   away at the link GitHub prints on push. Nothing here forces the decision — raise it, don't guess.
+2. **Chunk C** — photo upload wired into the customer dashboard (`PhotoUploader.tsx` is still
+   unbuilt; today a photo can only reach a site through the internal `/admin/lead-engine-photos`
+   harness), and the internal admin list/edit page so a site can go from answers to live with no
+   raw SQL. Until that page exists, `content` still has to be built by hand — see
+   `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an admin
+   route would automate.
+3. **The review fixtures were reseeded this session** (Chris ran it himself after Chunk B closed)
+   and are confirmed `draft` with the new 4a/4b/credential shape via the live script's own check —
+   do not re-seed again without a reason; nothing here is stale.
 
 **Known, deliberate gaps in what shipped — not bugs, just not built:**
 - The public questionnaire form does not ask Q9–Q11 (practice-only: accepting patients, insurance,
@@ -565,11 +598,13 @@ by design, and both portal paths sit under prefixes already matched.
 *Verification point:* Chris opens a real seeded site on all three templates and reads it as a
 customer would.
 
-**Chunk B — Phases 3–5. ✅ BUILT 2026-08-24, not yet verified against production — see this doc's
-own handoff.** Questionnaire (token-gated), public lead form + owner notification, customer
-dashboard section (submissions, counts, change-request form).
-*Verification point, still outstanding:* Chris fills the questionnaire from a real emailed link
-and submits a real lead, and the notification arrives.
+**Chunk B — Phases 3–5. ✅ DONE 2026-08-24 — built, verified, committed, pushed.** Questionnaire
+(token-gated), public lead form + owner notification, customer dashboard section (submissions,
+counts, change-request form).
+*Verification point:* met, by Chris, by hand — he filled the questionnaire, saved, and confirmed
+it survived a refresh; he submitted a real lead and confirmed the notification arrived in his own
+inbox with the correct content. See this doc's own handoff for the three real bugs verification
+surfaced and fixed along the way.
 
 **Chunk C — Phases 6–7.** Photo upload + gallery, internal admin list/edit so a site goes from
 answers to live with no raw SQL. Quarterly refresh is a **`limits.ts` function only** — no cron
