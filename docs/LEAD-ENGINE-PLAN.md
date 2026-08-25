@@ -187,6 +187,20 @@ findings to reorder or replace them.
    upload time) — Chris wants placement made VISIBLE and predictable to the person uploading, even
    though the underlying automatic allocation can stay as the actual mechanism. Treat this as a
    real product requirement for the eventual dashboard uploader, not a nice-to-have.
+   **Also has no running count or list of what's already landed.** After uploading several photos
+   for Miller Storm, Chris had no way to tell from the page how many had actually been accepted —
+   he had to ask, and the true count (checked live against `lead_engine_photos`) was 10 of the 18
+   cap. The tool shows only the single most-recently-uploaded photo's own detail card, nothing
+   cumulative. **The real uploader needs to show, live: how many photos exist for this site, and
+   which ones — not just the one you just sent.** Related to but distinct from the counts-per-slot
+   requirement above: that one is forward-looking ("here's what this slot still needs"), this one
+   is backward-looking ("here's what you've already got").
+   **Also worth surfacing: there is a real, useful stopping point well below the hard cap.** For a
+   site with N services (3–6, the range `servicesLayout` will use a photo ladder for), the page can
+   only ever use `1 hero + 1 band + N ladder + up to 6 gallery` photos — for Miller Storm's 6
+   services that's 14. Photos uploaded past that number are accepted (up to 18) but never rendered
+   anywhere; `allocatePhotos()` simply never reaches them. The real uploader should tell the person
+   uploading when they've hit that useful ceiling, not just the hard one.
    **Also found running the current harness against a real site (not a fixture) for the first
    time:** its upload form never sends `isPrimary` or `caption`, even though
    `/api/lead-engine/photos` accepts both — every photo uploaded through it lands with
