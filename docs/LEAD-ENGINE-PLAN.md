@@ -177,6 +177,21 @@ findings to reorder or replace them.
 
 1. **Photo upload wired into the customer dashboard** — `PhotoUploader.tsx` is still unbuilt; today
    a photo can only reach a site through the internal `/admin/lead-engine-photos` harness.
+   **Chris's explicit direction, given 2026-08-25 while running Miller Storm through the current
+   harness:** the real uploader should NOT be one generic file input. It should have **separate
+   labeled sections per slot — hero, band, services ladder, gallery — each showing how many photos
+   that slot needs/accepts and where an uploaded photo will land**, plus size/format guidance
+   on-screen (today: 18 photos per site, 20MB each, `lib/lead-engine/limits.ts`). This is a
+   deliberate reversal of the current allocator design note in `photos.ts` ("one function, disjoint
+   slices" — allocation is automatic, computed at render time from aspect ratio, not chosen at
+   upload time) — Chris wants placement made VISIBLE and predictable to the person uploading, even
+   though the underlying automatic allocation can stay as the actual mechanism. Treat this as a
+   real product requirement for the eventual dashboard uploader, not a nice-to-have.
+   **Also found running the current harness against a real site (not a fixture) for the first
+   time:** its upload form never sends `isPrimary` or `caption`, even though
+   `/api/lead-engine/photos` accepts both — every photo uploaded through it lands with
+   `isPrimary: false, caption: null` regardless of intent, so there is no way to guarantee a
+   specific shot becomes the hero. The real uploader needs to expose both.
 2. **The internal admin list/edit page** so a site can go from answers to live with no raw SQL.
    Until that page exists, `content` still has to be built by hand — see
    `scripts/seed-lead-engine-review.mjs`'s own call to `contentFrom()` for the pattern an admin
@@ -184,6 +199,11 @@ findings to reorder or replace them.
 3. **The review fixtures were reseeded 2026-08-24** (Chris ran it himself after Chunk B closed) and
    are confirmed `draft` with the new 4a/4b/credential shape via the live script's own check — do
    not re-seed again without a reason; nothing here is stale.
+
+**Fixed 2026-08-25, found running Miller Storm (a real, non-fixture site) through the photo
+harness for the first time:** its Site dropdown was hardcoded to `slug LIKE 'review-%'`, so a real
+site created outside `seed-lead-engine-review.mjs` couldn't be selected at all. Widened to list
+every site — see the commit on `feature/lead-engine-chunk-c`.
 
 **Known, deliberate gaps in what shipped — not bugs, just not built:**
 - The public questionnaire form does not ask Q9–Q11 (practice-only: accepting patients, insurance,
