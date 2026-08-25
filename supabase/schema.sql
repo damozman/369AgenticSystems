@@ -412,3 +412,82 @@ ALTER TABLE leads ADD CONSTRAINT leads_call_id_unique UNIQUE (call_id);
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS vertical TEXT;
 CREATE INDEX IF NOT EXISTS idx_leads_vertical ON leads(vertical);
 
+
+
+-- ── Lead Engine (2026-08-23) ─────────────────────────────────────────────────
+-- The mini-site product's own tables. Its own tenant record keyed by owner_email, NOT an
+-- agent_subscriptions row: that table is voice-shaped (NOT NULL vertical, a Starter/Pro/Elite
+-- tier CHECK) and lib/onboard-client.ts buys a Retell phone number before writing it.
+--
+-- The canonical definition, with the reasoning and the RLS policies, is
+-- supabase/migrations/2026-08-23-lead-engine.sql. Reproduced here only so this file stays a
+-- complete reference — if the two ever disagree, the migration is what production ran.
+
+CREATE TABLE IF NOT EXISTS public.lead_engine_sites (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  owner_email   text NOT NULL,                 -- the tenant boundary
+  slug          text NOT NULL UNIQUE,          -- /sites/<slug>
+  business_name text NOT NULL,
+  status        text NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('draft','awaiting_answers','in_build','live','suspended','cancelled')),
+  -- Design layer: template is section order, theme is identity, brand is the customer's own
+  -- accent/font/logo validated within a theme. None of it lives in `content`.
+  template      text NOT NULL DEFAULT 'service_clean'
+    CHECK (template IN ('trade_classic','service_clean','showcase_grid','practice','supply')),
+  theme         text NOT NULL DEFAULT 'counsel'
+    CHECK (theme IN ('ironclad','counsel','threshold','ledger','yard','clinic')),
+  brand         jsonb NOT NULL DEFAULT '{}'::jsonb,
+  client_domain text,                          -- the Ava seam; NULL until they buy voice too
+  questionnaire jsonb,                         -- what the customer typed
+  content       jsonb,                         -- what actually renders
+  needs_review  boolean NOT NULL DEFAULT false,
+  notify_email  text,
+  revisions_used int NOT NULL DEFAULT 0,
+  launched_at   timestamptz,
+  cancelled_at  timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_engine_submissions (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  site_id      uuid NOT NULL REFERENCES public.lead_engine_sites(id) ON DELETE CASCADE,
+  name text, email text, phone text, message text, service_interest text,
+  status       text NOT NULL DEFAULT 'new'
+    CHECK (status IN ('new','contacted','won','lost','spam')),
+  notified_at  timestamptz,
+  notify_error text                            -- a silent notification failure is a lost lead
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_engine_photos (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  site_id       uuid NOT NULL REFERENCES public.lead_engine_sites(id) ON DELETE CASCADE,
+  storage_path  text NOT NULL UNIQUE,          -- bucket: lead-engine-photos (public); largest webp variant
+  caption       text,
+  sort_order    int NOT NULL DEFAULT 0,
+  bytes         int,
+  content_type  text,
+  width         int,
+  height        int,
+  aspect_ratio  numeric,                       -- post-EXIF-rotation width/height
+  dominant_hex  text,
+  variants      jsonb,                         -- [{width,webp,jpg}, ...] ascending by width
+  is_primary    boolean NOT NULL DEFAULT false -- customer's stated best photo; at most one per site
+);
+CREATE UNIQUE INDEX IF NOT EXISTS lead_engine_photos_one_primary_per_site
+  ON public.lead_engine_photos (site_id) WHERE is_primary;
+
+CREATE TABLE IF NOT EXISTS public.lead_engine_change_requests (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  site_id     uuid NOT NULL REFERENCES public.lead_engine_sites(id) ON DELETE CASCADE,
+  body        text NOT NULL,
+  status      text NOT NULL DEFAULT 'open' CHECK (status IN ('open','done','declined')),
+  billable    boolean NOT NULL DEFAULT false,
+  resolved_at timestamptz
+);
+
+-- Unlike every table above, these carry REAL per-tenant RLS rather than USING (true).
+-- See the migration for the policies and the is_369_admin() carve-out.

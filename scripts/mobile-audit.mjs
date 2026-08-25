@@ -45,6 +45,10 @@ const PAGES = [
   '/legal-automation/', '/dental-leads/', '/saas-optimization/',
   '/roofing', '/event-rentals', '/dumpster-rental', '/equipment-rental',
   '/roofing/roi-calculator', '/event-rentals/roi-calculator',
+  // Lead Engine mini-sites are per-customer and their slugs are data, not routes, so they cannot
+  // be listed here. Pass them with --pages, e.g.
+  //   --pages /sites/review-trade-classic,/sites/review-showcase-grid
+  ...arg('--pages', '').split(',').map(s => s.trim()).filter(Boolean),
 ]
 
 /** Runs in the page. Finds elements wider than the viewport, and small tap targets. */
