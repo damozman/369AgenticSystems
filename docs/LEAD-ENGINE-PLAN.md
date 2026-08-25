@@ -8,29 +8,51 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-24 (fifth session that day).**
+**Last updated: 2026-08-25.**
 
 ### Where this session ended
 
-**Chunk B is MERGED TO `master`.** PR #48, merge commit `d18b1d0`. Before merging, the Chunk B
-verify-run cleanup was re-confirmed independently and live (not by trusting the prior session's own
-claim) — a fresh query against production Supabase found zero `lead_engine_sites` rows matching
-`verify-lead-engine-%` and zero `lead_engine_submissions` rows of any kind, matching the standard
-already set by the photo-pipeline delete. tsc was clean and 559/559 tests passed on the branch
-immediately before the merge.
+**Chunk B is MERGED TO `master`.** PR #48, merge commit `d18b1d0`. Work continues on
+`feature/lead-engine-chunk-c`, cut from `master` after that merge — the old `feature/lead-engine`
+branch is superseded, not deleted, do not build on it.
 
-**Work has moved to a new branch, `feature/lead-engine-chunk-c`, cut from `master` AFTER the
-merge** — not a continuation of the old `feature/lead-engine`, which is left in place (not deleted)
-but superseded. Any future Lead Engine session should be on `feature/lead-engine-chunk-c` or its
-successor, not on `feature/lead-engine`.
+**The real-business run is DONE — Miller Storm, a real roofing company (millerstorm.com), taken all
+the way through the merged pipeline:**
+1. Site created (`e980a426-5c8c-41ba-8ef6-1dde27e78d81`, slug `miller-storm`, vertical `roofing` →
+   `trade_classic` / `ironclad`).
+2. Questionnaire filled out for real — 6 services, service areas, credentials, differentiator,
+   years in business, Google profile — through the real public questionnaire route.
+3. **14 of 18 photos uploaded** through the admin harness — confirmed live against
+   `lead_engine_photos`, and 14 is not arbitrary: it is the exact number the allocator can use for a
+   6-service site (`1 hero + 1 band + 6 ladder + 6 gallery`), verified by reading `allocatePhotos()`
+   and `servicesLayout()` directly rather than assumed.
+4. **`content` built and saved** via `contentFrom()` (the same function the seed script uses) —
+   this is a real production write, done by hand because the admin edit page that should do this
+   doesn't exist yet.
+5. **The finished page verified rendering for real** at `/sites/miller-storm` (locally, preview
+   mode — the site's `status` is still `in_build`, not `live`, so nothing public serves it yet):
+   confirmed in the raw HTML that services, differentiator, credentials, years-in-business, the
+   Why-us section, and real uploaded photos are all present and correctly assembled.
 
-**🛑 Chunk C has NOT started. Hold here — do not begin building it.** Chris is running one real
-business through the full merged pipeline first — real questionnaire answers, real photos, the
-whole path — specifically so Chunk C gets prioritized from what that run actually surfaces rather
-than from a guess made before anyone had used it end to end. He will come back with findings; until
-then there is nothing to build. **Do not start on `PhotoUploader.tsx` or the admin list/edit page
-on your own initiative** — either could turn out to be the wrong first thing once a real run has
-happened.
+**This whole run found five concrete, real gaps in what a customer-facing (or Chris-facing) UI
+needs that the current internal tooling doesn't have — all logged in dated entries under
+"Known, deliberate gaps" / the Chunk C candidate list below, each with the exact moment it was
+found:** the photo harness only listing `review-%` sites (fixed), no `isPrimary`/`caption` exposed
+at upload, no running count of accepted photos, no signal for the useful 14-vs-18 ceiling, and no
+explicit "I'm done" action anywhere in the flow. Treat these as real requirements gathered from
+actual use, not hypothetical polish.
+
+**Two content issues in Miller Storm's live row, deliberately NOT fixed by me — they're Chris's own
+words, not mine to silently edit:** a typo in credentials ("Licensed and Insured **accross** the
+nation") and the photo-per-service assignment in the ladder is FIFO-by-upload-order, not matched to
+which photo actually shows that service.
+
+**🛑 Chunk C has still NOT started — hold until Chris explicitly says to begin building.** The real
+run is now complete and has produced real requirements (above), which is exactly what the hold was
+waiting on. That does not by itself mean start building — wait for the explicit go-ahead rather
+than inferring it from the run being finished.
+
+### Chunk B build detail (2026-08-24) — kept for reference, not current state
 
 **Verified two independent ways, both real, neither skipped:**
 1. **By hand, in a browser, by Chris** — not by me. He opened the real questionnaire at
@@ -169,11 +191,12 @@ delete it whenever Chunk C's real dashboard photo uploader makes it redundant, n
 `feature/lead-engine-chunk-c`, cut from `master` after the merge — the old `feature/lead-engine`
 branch is superseded, do not build on it.
 
-**🛑 Do not start Chunk C work until Chris returns.** He is running one real business through the
-full merged pipeline himself — real questionnaire, real photos, everything Chunk A/B shipped —
-before deciding what Chunk C should prioritize. The candidates below are what looked like the next
-build BEFORE that real run; treat them as a starting hypothesis, not a queue, and expect Chris's
-findings to reorder or replace them.
+**The real run Chris said he'd do is DONE — see "Where this session ended" above for the full
+account.** Miller Storm went through questionnaire → 14 photos → hand-built content → a verified
+rendered page. **Still do not start Chunk C build work until Chris explicitly says to begin** —
+the run being finished produced the requirements below, which is what it was for; it is not itself
+the go-ahead to start building them. The list below is no longer a pre-run hypothesis — every item
+under #1 is a requirement gathered from the real run, dated and specific. #2 and #3 are unchanged.
 
 1. **Photo upload wired into the customer dashboard** — `PhotoUploader.tsx` is still unbuilt; today
    a photo can only reach a site through the internal `/admin/lead-engine-photos` harness.
