@@ -43,11 +43,11 @@ test('only the intended verticals resolve to the default pair', () => {
 // ── resolveForVertical ───────────────────────────────────────────────────────
 
 test('every vertical in the mapping returns its documented pair', () => {
-  assert.deepEqual(resolveForVertical('roofing'),         { template: 'trade_classic', theme: 'ironclad' })
-  assert.deepEqual(resolveForVertical('tree-service'),    { template: 'trade_classic', theme: 'ironclad' })
+  assert.deepEqual(resolveForVertical('roofing'),         { template: 'trade_classic', theme: 'forge' })
+  assert.deepEqual(resolveForVertical('tree-service'),    { template: 'trade_classic', theme: 'forge' })
   assert.deepEqual(resolveForVertical('real-estate'),     { template: 'trade_classic', theme: 'threshold' })
   assert.deepEqual(resolveForVertical('legal'),           { template: 'service_clean', theme: 'counsel' })
-  assert.deepEqual(resolveForVertical('event-rentals'),   { template: 'showcase_grid', theme: 'yard' })
+  assert.deepEqual(resolveForVertical('event-rentals'),   { template: 'showcase_grid', theme: 'forge' })
   assert.deepEqual(resolveForVertical('wholesale'),       { template: 'supply',        theme: 'ledger' })
   assert.deepEqual(resolveForVertical('dental'),          { template: 'practice',      theme: 'clinic' })
 })
@@ -168,6 +168,7 @@ test('the font list is a copy, so a caller cannot mutate the allowlist', () => {
 
 const REQUIRED_TOKENS = [
   '--le-ink', '--le-structure', '--le-paper', '--le-edge', '--le-accent', '--le-accent-derived',
+  '--le-accent-text',
   '--le-font-display', '--le-font-body', '--le-font-utility',
   '--le-display-weight', '--le-display-tracking', '--le-body-line',
   '--le-utility-weight', '--le-utility-tracking', '--le-utility-transform',
@@ -195,6 +196,29 @@ test('no theme emits a token that is not documented', () => {
       assert.ok(REQUIRED_TOKENS.includes(key), `${t} emits undocumented token ${key}`)
     }
   }
+})
+
+test('every kit paints accent TEXT at 4.5:1 on its own paper', () => {
+  // The bug this guards, measured 2026-08-25 before the fix: .le-eyebrow, .le-tel and the inline
+  // links all colour text from the accent, and FOUR of the seven kits failed there on their own
+  // accent, with no customer override involved —
+  //     yard 1.97   forge 3.43   clinic 3.82   ironclad 3.96
+  // Yard's 1.97 is the same equipment yellow whose FILL bug accentModeFor already documents; this
+  // is the text half of it, and it needed its own token because surface_only deliberately keeps
+  // accent_derived equal to the accent (asserted two tests up).
+  for (const t of THEMES) {
+    const tokens = tokensFor(t)
+    const ratio = contrastRatio(tokens['--le-accent-text'], tokens['--le-paper'])
+    assert.ok(ratio >= 4.5, `${t} paints accent text at ${ratio.toFixed(2)}:1`)
+  }
+})
+
+test('a brand accent is corrected for text too, not only for fill', () => {
+  // A customer's own colour reaches the same rules. Equipment yellow on Counsel's near-white paper
+  // is the worst case in the file: unusable as fill AND as text.
+  const tokens = tokensFor('counsel', { accent: '#FFE500' })
+  assert.equal(tokens['--le-accent'], '#FFE500', 'the customer colour itself is preserved')
+  assert.ok(contrastRatio(tokens['--le-accent-text'], tokens['--le-paper']) >= 4.5)
 })
 
 test('brand cannot override anything the SKILL marks non-overridable', () => {

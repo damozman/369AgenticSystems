@@ -8,117 +8,137 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-25 (second session that day).**
+**Last updated: 2026-08-25 (third session that day).**
 
-### Where this session ended — 2026-08-25, second session
+### Where this session ended — 2026-08-25, third session
 
-**A design pass on what the generated sites actually LOOK like.** Chris's opening: the templates
-are "very generic" next to commercial themes he'd been shown. Reading the real Miller Storm render
-end to end showed most of the gap was NOT the design system — it was content shape, and a bold
-re-skin would have left it untouched.
+**Design item 1 is built: Forge and Counsel are real `template × theme` pairs, wired to the
+verticals Chris's split names.** Both published mockups were read end to end and used as the spec.
+`npx tsc --noEmit` clean apart from the known `xlsx` container failure, **579 tests** (577 + 2),
+`verify-lead-engine.mjs` style check clean.
 
-**Two reference mockups, published, both built only from fields the questionnaire already
-collects.** Both carry a "Show field sources" overlay that tags every string on the page:
-- **Forge** (bold trades direction) — https://claude.ai/code/artifact/8f36454e-9535-458a-8e41-509ed2968646
-- **Counsel** (restrained legal direction) — https://claude.ai/code/artifact/9ca925d6-7434-4fc7-bb00-9532b0569cd9
+**Chris applied `2026-08-25-lead-engine-headline-noun.sql`** — the hero noun is live, that item is
+gone from this list.
 
-**🔴 THE RULE THAT CAME OUT OF IT, and it is the important part of this session:**
+#### What shipped
+
+1. **`forge` — a seventh kit, and the only one allowed a structural reversal.** Deeper navy
+   structure (`#17222F`), the hotter accent (`#E4551D`), 6px card / 3px button radius and a real
+   two-layer elevation, against Ironclad's flat-and-square. Type is Ironclad's, unchanged: the
+   difference is chrome, colour and elevation, not the faces.
+2. **The vertical split.** Trades (7) and rentals/hauling (4) resolve to `forge`. Templates are
+   untouched — a rental yard still leads with a grid, in Forge's identity rather than Yard's.
+   **Ironclad and Yard are now unmapped but still in `THEMES`**, deliberately: they stay
+   operator-selectable and any live row carrying one must keep rendering as it did. Removing a kit
+   is a migration question, not a design one.
+3. **Forge's chrome, which is the part that answers "very generic".** A palette swap alone would
+   have left the page in exactly the shape Chris objected to. Three things changed that no token
+   can express, so they sit behind a new `data-theme` hook on `ThemeShell` — the only per-kit
+   selector in the stylesheet, and it should stay that way:
+   - dark sticky header
+   - the split-anchor hero becomes **full-bleed under a scrim** — same DOM, `.le-hero-media` lifted
+     out of the grid, so the no-photo fallback to `HeroEditorial` is untouched
+   - the proof bar in the accent (`le-proof-band` on the two Forge templates' proof sections)
+4. **Counsel gains ONE photograph — design item 2, inseparable from item 1.** `HeroEditorial` takes
+   an optional `photo` in columns 8–12; the proof facts move to a hairline row directly beneath,
+   **inside the hero element**. That placement is load-bearing: `heroCarriesProof(template)` is what
+   tells `sectionCount` this template has no proof section, and making that predicate depend on
+   whether a customer uploaded a photo is exactly the drift its own doc forbids. With no photograph
+   every line renders as it did before — verified in a browser, not by reading.
+   `TEMPLATE_RENDERS_GALLERY.service_clean` stays **false**; the two rules that had been collapsed
+   ("must survive with zero photos" ≠ "must never show photos") are now separated in the doc there.
+
+#### 🔴 A real bug the kit found: four of seven kits painted accent TEXT below 4.5:1
+
+`.le-eyebrow`, `.le-tel`, the footer links and the focus outline all coloured text from
+`--le-accent-derived`. In `surface_only` that token **equals the accent by design and by test** —
+that mode means "the original works as a FILL", and derived is corrected for the fill. Measured on
+each kit's own accent, no customer override involved:
+
+| | accent on its own paper | now |
+|---|---|---|
+| yard | **1.97** | 4.66 |
+| forge | **3.43** | 4.72 |
+| clinic | **3.82** | 4.50 |
+| ironclad | **3.96** | 4.71 |
+
+Same shape as the bug `accentModeFor` already documents one function down — a kit's own accent
+failing on a page nobody had measured. The fill half was fixed then; this is the text half.
+
+Fixed with a **third token, `--le-accent-text`**, rather than by redefining `accent_derived`: the
+two genuinely answer different questions, which is why the Forge mockup itself carries both an
+`--accent` and an `--accent-txt`. `accent_derived`'s tested semantics are unchanged. Guarded by a
+test over every kit, so an eighth kit cannot ship this again.
+
+**One place the mockup is wrong and the validator is right:** the mockup sets the proof band's
+labels white on the orange. That is ~3.4:1. The band uses `--le-ink`, which is what
+`data-accent-mode="surface_only"` already concluded for every other fill on the page.
+
+#### Corrections to the previous handoff — design item 3 was already done
+
+It listed two placement bugs as "fixed in the mockups; neither is fixed in the real templates yet."
+**Neither exists in the real templates.** `SiteContent` has no email field at all
+(`lib/lead-engine/types.ts`), `contentFrom` never reads `notify_email`, and the footer renders
+business name, phone and Google profile only — `notify_email` reaches `notify.ts` and nothing else.
+The wordmark is already `logo_url ?? business_name` verbatim. Both were bugs in the mockup HTML,
+not in the templates it was standing in for. **Item 3 is deleted from the list below rather than
+carried.**
+
+## ▶ START HERE NEXT SESSION
+
+**Chunk C proper still has NOT started, and still waits on Chris's scope conversation.** Do not
+start the uploader or the admin page without it.
+
+**Approved and NOT yet built — what is left of the design work:**
+
+1. **Forge's services mosaic.** The one structural piece of the Forge mockup not built: photo tiles
+   in a 3-column mosaic with `wide` spans, in place of the alternating ladder. Deliberately left —
+   it is a THIRD layout in `Services`, a shared primitive used by five templates, and it needs
+   changes to `servicesLayout` and to photo allocation. That deserves its own pass with fixture
+   verification rather than being tacked onto a kit.
+2. **"Fixed copy" is template-scoped, not global.** The law-firm footer needs its disclaimer ("does
+   not create an attorney–client relationship, do not send confidential information through this
+   form"); that string is mandatory for legal and meaningless for roofing.
+3. **`cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.** Raised, not fixed. A
+   cleaning company's buying question is "can I trust you in my house", which is the trade
+   question, not the professional one. It did NOT move to Forge in this session's split, because
+   Chris's split names trades and rentals/hauling and cleaning is in neither list — worth settling
+   deliberately rather than by inclusion.
+
+**Two things seen while reading the rendered pages, neither introduced this session, both worth a
+look and neither urgent:**
+- **The display font falls back to `Georgia, serif` on every kit.** Fine for Counsel, Threshold and
+  Clinic; for Forge, Ironclad, Yard and Ledger a failed webfont load renders a trades site in a
+  serif. One shared fallback stack across seven kits is the cause.
+- **In the ZERO-photo editorial hero, the stacked facts sit flush against the next section.**
+  `.le-hero-facts` is `align-self: end` and gains no bottom padding of its own, so on
+  `counsel-no-photos` the last fact's baseline lands on the band edge. Cosmetic, unchanged by this
+  session, visible on `review-sparse` too.
+
+**How the rendering was checked**, since `--live` needs Supabase credentials the cloud container
+does not have: the templates were rendered offline to static HTML with `react-dom/server` and
+screenshotted in the pre-installed Chromium at 1440, 390 and 320px — five cases (Forge trade, Forge
+showcase, Counsel with photos, and both zero-photo fallbacks), no horizontal scroll at 320 on any
+of them. **The harness was deliberately not committed**: it duplicates fixture data that
+`seed-lead-engine-review.mjs` already owns, and a second copy of that data is the two-writers shape
+this repo has been bitten by twice. **Re-run `verify-lead-engine.mjs --live` locally before the
+deploy** — this session could not.
+
+**Still true from earlier sessions, unchanged:** the five photo-uploader requirements from the
+Miller Storm run are Chunk C item 1 and are recorded in full further down. Both mockup URLs remain
+the spec for anything Forge or Counsel:
+- **Forge** — https://claude.ai/code/artifact/8f36454e-9535-458a-8e41-509ed2968646
+- **Counsel** — https://claude.ai/code/artifact/9ca925d6-7434-4fc7-bb00-9532b0569cd9
+
+**🔴 THE RULE, unchanged and still the important part:**
 
 > Every string on a generated site is either **derived from a questionnaire field** or **fixed copy
 > that asserts nothing**. There is no third category.
 
-The first draft of the Forge mockup broke this in FIVE places, all of which read as harmless
-template copy: *"Six services, one crew"* (a claim about how the business staffs jobs — a roofer
-who subcontracts would have a lie on his own site), *"Roofs we finished this season"*, *"What you
-get, in writing"*, *"Most estimates are scheduled within a day"*, and *"+ surrounding areas"* on
-the coverage list (asserting reach beyond the five cities they typed). Same shape as the failure
-CLAUDE.md already records twice: **prose is where a truthfulness rule leaks, not logic.** The
-overlay exists so the next person catches it by construction rather than by eye.
-
-**The overlay also caught two PLACEMENT bugs, which is arguably worth more than the invention
-check:** the footer rendered `notify_email` on the public page (publishing the owner's private
-lead-notification address — spam bait, and not what "Where should new lead notifications go?"
-implies), and the nav wordmark hand-trimmed `business_name` from "Brightwell Roofing" to
-"Brightwell." while still tagged as that field. A tag claiming a field but showing something else
-is the worst kind of leak, because it looks verified. Both fixed in the mockups; **neither is fixed
-in the real templates yet** — see the open list below.
-
-### What shipped to `feature/lead-engine-chunk-c`
-
-Two commits, 577 tests passing, tsc clean.
-
-1. **`5f10d04` — service names render as typed, minus the shouting.** One real submission produced
-   "Roofing REPLACEMENT", "Roof REPAIR", "STORM DAMAGE", "GARAGE DOORS", "WINDOW SCREENS" and
-   "Gutters": five capitalisation patterns in one list, rendered verbatim as six headings.
-   `serviceDisplayName()` corrects shouting and nothing else — capitalisation is typing, not
-   wording. **The rule is not "title-case everything" because HVAC, TPO, EPDM and A/C are real
-   answers** and "Hvac" is worse than the bug. Applied at RENDER, never in `servicesFrom`: the
-   questionnaire has to show a customer their own words back, and a normaliser on the write path
-   is the second-writer shape this repo has been bitten by twice.
-2. **`056162f` — the hero says what the business does, and Q4a stops printing twice.**
-
-**⚠ `056162f` NEEDS A MIGRATION APPLIED:**
-`supabase/migrations/2026-08-25-lead-engine-headline-noun.sql` — adds a nullable `headline_noun`
-to `lead_engine_sites`. Every existing row is null and renders exactly as before, so code and
-schema can go live in either order.
-
-**The headline decision, and why it is not what it first looks like.** The hero used to be
-`<h1>{businessName}</h1>`. It is now "<noun> in <primary area>". The obvious implementation —
-persist the vertical on the site row — **directly contradicts `site.ts`'s own written rule**: the
-vertical is an INPUT, template/theme are its resolved OUTPUT, and storing both invites them to
-disagree. So what is stored is the **resolved noun**, which is a leaf: nothing derives a template,
-theme or layout from it. It also lets an operator override a business that sells itself as
-something the map cannot know ("Storm restoration", not "Roofing"). `VERTICAL_NOUNS` is separate
-from `labelFor()` on purpose — that one names a vertical for an operator picking from a select,
-and "Legal in Fort Worth" is not English.
-
-**Deliberate consequence: `WhyUs`'s three-column grid is GONE.** With Q4a promoted to the hero,
-`whyUsItems` returns at most two, so that branch became unreachable and was removed with its
-now-dead CSS rather than left as code no test can enter. It is in git history if a third item is
-ever added.
-
-## ▶ START HERE NEXT SESSION
-
-**Chunk C proper has still NOT started.** The two commits above are content-model fixes on the
-Chunk C branch, not Chunk C itself. Chris's go-ahead for Chunk C is given but he wants to discuss
-scope first — do not start building the uploader or the admin page without that conversation.
-
-**Approved and NOT yet built — the design work, in order:**
-
-1. **Forge and Counsel as real `template` × `theme` pairs.** Forge is a bold evolution of Ironclad
-   (deeper navy, hotter accent `#E4551D` vs the muted `#C8542B`, and the reversal the kit currently
-   forbids: 6px radius and elevation). Counsel keeps `radius: 0` / `shadow: none` and gains ONE
-   photograph plus a few bronze accents. Chris on the first flat draft: *"very nice but a bit too
-   clean"* — the fix was a photo and accents, **not** elevation. Both mockups are the spec.
-2. **`service_clean` should render a hero photo.** `TEMPLATE_RENDERS_GALLERY.service_clean = false`
-   is right — a wall of six photos is wrong for a law firm. But `theme.ts` describes it as "a page
-   with no photos at all", which is the rationale for it being the DEFAULT fallback template, and
-   the two rules got collapsed into one. **"Must survive with zero photos" ≠ "must never show
-   photos"**, and for professional services the photo is the pitch: people hire a person.
-3. **The two placement bugs found by the overlay** (above): stop rendering `notify_email` publicly,
-   and set the wordmark from `logo_url ?? business_name` verbatim — never a hand-trim.
-4. **"Fixed copy" is template-scoped, not global.** The law-firm footer needs its disclaimer ("does
-   not create an attorney–client relationship, do not send confidential information through this
-   form"); that string is mandatory for legal and meaningless for roofing.
-5. **Which verticals get the bold treatment.** Agreed split: **trades (7) and rentals/hauling (4)
-   get Forge**; property, supply, professional and health keep their own kits and take only the
-   structural upgrades. A law firm with an orange full-bleed hero reads as less credible, not more.
-
-**Raised, not fixed — `cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.**
-A cleaning company's buying question is "can I trust you in my house", which is the trade question,
-not the professional one. Looks like a mis-mapping; worth a second look independently of the above.
-
-**Still true from the previous session, unchanged:** the five photo-uploader requirements from the
-Miller Storm run (per-slot labelled sections, a running count of accepted photos, the useful-14 vs
-hard-18 ceiling, `isPrimary`/`caption` at upload, an explicit "I'm done" action) are Chunk C item 1
-and are recorded in full further down this doc. The mockups' labelled photo slots (Hero, Service
-1–4, Gallery 1–6) are the visual counterpart to that uploader.
-
 **⚠ Environment note for cloud sessions:** `npm install` FAILS in Claude Code's remote container.
-`xlsx` is served from `cdn.sheetjs.com`, which the network policy denies with a 403 on CONNECT
-(confirmed via `curl "$HTTPS_PROXY/__agentproxy/status"`). Install without it to verify — the five
-resulting `lib/ops-brief-parse.ts` type errors are the workaround, not the code. **Re-run
-`npx tsc --noEmit` locally before any deploy.** Chris confirmed it is clean on his machine.
+`xlsx` is served from `cdn.sheetjs.com`, which the network policy denies with a 403 on CONNECT.
+The five resulting `lib/ops-brief-parse.ts` type errors are the workaround, not the code. **Re-run
+`npx tsc --noEmit` locally before any deploy.**
 
 ### Chunk B build detail (2026-08-24) — kept for reference, not current state
 

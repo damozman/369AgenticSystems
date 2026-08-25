@@ -53,11 +53,16 @@ export function ThemeShell({
   density?: 'full' | 'compact'
   children: ReactNode
 }) {
+  // `data-theme` is the only per-KIT hook in the stylesheet, and it stays that way deliberately.
+  // Everything a theme decides is a token; this attribute exists for the handful of STRUCTURAL
+  // reversals a kit is allowed to make — today, Forge's dark chrome and full-bleed hero. A rule
+  // keyed on it is a design decision no token can express, not a shortcut past the token layer.
   return (
     <div
       className={`le-site${fontClass ? ` ${fontClass}` : ''}`}
       data-accent-mode={accentMode}
       data-density={density}
+      data-theme={theme}
       style={tokensFor(theme, brand) as React.CSSProperties}
     >
       <style dangerouslySetInnerHTML={{ __html: SITE_CSS }} />
@@ -118,7 +123,7 @@ const SITE_CSS = `
   .le-grid, .le-hero-inner, .le-proof, .le-svc-list, .le-cover, .le-team, .le-hero-facts,
   .le-gal, .le-gal-stack, .le-header-inner, .le-header-actions, .le-actions, .le-faq
 ) > * { min-width: 0; }
-.le-site :focus-visible { outline: 2px solid var(--le-accent-derived); outline-offset: 2px; }
+.le-site :focus-visible { outline: 2px solid var(--le-accent-text); outline-offset: 2px; }
 
 /* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */
 .le-wrap { max-width: 1280px; margin: 0 auto; padding: 0 48px; }
@@ -128,6 +133,7 @@ const SITE_CSS = `
 .le-c1-7  { grid-column: 1 / 8;  }
 .le-c1-8  { grid-column: 1 / 9;  }
 .le-c7-12 { grid-column: 7 / 13; }
+.le-c8-12 { grid-column: 8 / 13; }
 .le-c9-12 { grid-column: 9 / 13; }
 .le-c1-12 { grid-column: 1 / -1; }
 
@@ -159,7 +165,11 @@ const SITE_CSS = `
   font-weight: var(--le-utility-weight);
   letter-spacing: var(--le-utility-tracking);
   text-transform: var(--le-utility-transform);
-  color: var(--le-accent-derived);
+  /* --le-accent-text, never --le-accent-derived. The derived value is corrected for use as a FILL
+     and equals the accent in surface_only mode, so four kits painted this eyebrow below 4.5:1 on
+     their own paper — Yard at 1.97. See accentTextFor in theme.ts. Every rule in this file that
+     paints TEXT in the accent reads this token; the two fill rules keep the other one. */
+  color: var(--le-accent-text);
   margin: 0 0 24px;
 }
 
@@ -218,7 +228,7 @@ const SITE_CSS = `
   display: inline-flex; align-items: center; min-height: 44px;
   padding: 6px 10px; margin: -6px -10px;
   border-radius: var(--le-radius-button);
-  color: var(--le-accent-derived); text-decoration: none;
+  color: var(--le-accent-text); text-decoration: none;
   font-size: var(--le-display-m); font-weight: 600;
   font-family: var(--le-font-display), Georgia, serif;
 }
@@ -305,6 +315,18 @@ const SITE_CSS = `
    all on the right. 68ch is a measure, not a width in px, so it scales with the theme's type. */
 .le-hero-centred { max-width: 68ch; margin-inline: auto; }
 
+/* The editorial hero's ONE photograph, columns 8-12. Taller than it is wide on purpose: this is a
+   portrait slot, and allocatePhotos already hands the hero the least-wide photo in the pool for
+   exactly that reason. */
+.le-hero-portrait { min-height: 440px; align-self: stretch; }
+.le-hero-portrait img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: var(--le-radius-image);
+}
+/* With the photograph in 8-12 the facts have nowhere to stack, so they draw as a hairline row
+   under the hero instead — the same .le-proof treatment, still inside the header element. */
+.le-hero-factrow { margin-top: 8px; }
+
 /* ── Proof bar ─────────────────────────────────────────────────────────────── */
 .le-proof {
   border-top: 1px solid var(--le-edge); border-bottom: 1px solid var(--le-edge);
@@ -344,8 +366,7 @@ const SITE_CSS = `
 .le-access dd { font-size: var(--le-body-l); font-weight: 500; line-height: 1.4; }
 /* The one fact a patient scans for. The accent draws the eye to it in both directions — a clear
    "not right now" is as useful to read as a yes. */
-.le-access div[data-open] dd { color: var(--le-accent); }
-.le-site[data-accent-mode="derived"] .le-access div[data-open] dd { color: var(--le-accent-derived); }
+.le-access div[data-open] dd { color: var(--le-accent-text); }
 
 .le-team { display: grid; column-gap: 32px; row-gap: 48px; list-style: none; }
 .le-team li { border-top: 1px solid var(--le-edge); padding-top: 20px; }
@@ -490,7 +511,7 @@ textarea.le-field { min-height: 96px; resize: vertical; }
 /* ── Footer ────────────────────────────────────────────────────────────────── */
 .le-foot { border-top: 1px solid var(--le-edge); padding: 40px 0 56px; }
 .le-foot a {
-  color: var(--le-accent-derived); display: inline-block;
+  color: var(--le-accent-text); display: inline-block;
   padding: 13px 8px; margin: -13px -8px; min-height: 44px;
 }
 .le-foot .le-tel { font-size: var(--le-body); font-family: var(--le-font-body), system-ui, sans-serif; }
@@ -502,6 +523,88 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-cover { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* ── Forge: the one kit allowed a structural reversal ──────────────────────────
+   Everything above is kit-agnostic and driven by tokens. This block is not, and it is the only
+   block in the file that is not — see ThemeShell's note on data-theme.
+
+   Forge is the trades-and-yards kit, and what makes it read as a real commercial site rather than
+   a template is chrome, not palette: a dark sticky bar, a hero photograph that fills the viewport
+   under a scrim instead of sitting beside the text, and a proof bar in the accent. None of those
+   three is expressible as a token value, because each one changes which element paints which
+   surface. A palette swap alone leaves the page in exactly the shape that read as generic.
+
+   No hex literals here either. Every tone is derived from --le-structure and --le-paper with
+   color-mix, the same technique .le-band already uses to rebuild --le-edge on a dark ground. */
+
+.le-site[data-theme="forge"] .le-header {
+  background: var(--le-structure);
+  border-bottom-color: color-mix(in oklab, var(--le-paper) 14%, transparent);
+}
+.le-site[data-theme="forge"] .le-header-name,
+.le-site[data-theme="forge"] .le-header .le-tel { color: var(--le-paper); }
+
+/* The split-anchor hero becomes a full-bleed one. The DOM is unchanged: .le-hero-media is lifted
+   out of the grid to fill the header, a scrim goes over it, and the text rides on top — so a site
+   with no photo still falls back to HeroEditorial exactly as before, and nothing about the
+   zero-photo guarantee moves. */
+.le-site[data-theme="forge"] .le-hero { isolation: isolate; background: var(--le-structure); }
+.le-site[data-theme="forge"] .le-hero-inner { grid-template-columns: 1fr; }
+.le-site[data-theme="forge"] .le-hero-media {
+  position: absolute; inset: 0; z-index: 0;
+  /* height, not just min-height: the mobile rule below pins .le-hero-media to 320px, and an
+     absolutely positioned box with top/bottom/height all set drops the bottom rather than the
+     height. Both are released here so inset wins at every width. */
+  min-height: 0; height: auto;
+}
+.le-site[data-theme="forge"] .le-hero::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklab, var(--le-structure) 94%, transparent) 0%,
+    color-mix(in oklab, var(--le-structure) 86%, transparent) 42%,
+    color-mix(in oklab, var(--le-structure) 48%, transparent) 100%
+  );
+}
+.le-site[data-theme="forge"] .le-hero-inner .le-hero-text {
+  position: relative; z-index: 2; color: var(--le-paper);
+  padding-top: 140px; padding-bottom: 140px;
+  padding-right: max(48px, calc(50vw - 640px + 48px));
+}
+.le-site[data-theme="forge"] .le-hero-inner .le-hero-text .le-eyebrow { color: var(--le-paper); opacity: 0.78; }
+.le-site[data-theme="forge"] .le-hero-inner .le-hero-text .le-tel { color: var(--le-paper); }
+
+/* The proof bar in the accent — Forge's signature band, and the reason the class exists at all.
+   The label colour is INK, not paper: this accent is surface_only on every kit that uses it, which
+   is precisely the finding that says a paper label on this fill is unreadable. The mockup set it
+   white; the mockup is wrong about that one value and the validator is right. */
+.le-site[data-theme="forge"] .le-proof-band {
+  background: var(--le-accent); color: var(--le-ink);
+  --le-edge: color-mix(in oklab, var(--le-ink) 22%, transparent);
+}
+.le-site[data-theme="forge"] .le-proof-band .le-proof { border-top: 0; border-bottom: 0; }
+.le-site[data-theme="forge"] .le-proof-band .le-proof dt { opacity: 0.72; }
+
+/* The mobile rules below reset .le-hero-text's padding for the SPLIT hero, and the desktop Forge
+   rule above outranks them on specificity, so Forge needs its own. Written here rather than inside
+   the mobile block so the whole kit reads in one place. */
+@media (max-width: 720px) {
+  .le-site[data-theme="forge"] .le-hero-inner .le-hero-text {
+    padding-top: 88px; padding-bottom: 88px; padding-left: 20px; padding-right: 20px;
+  }
+  /* The 105deg scrim reaches its transparent end at the right edge of a WIDE viewport. At 390px
+     the whole hero sits in the opaque half of that gradient and the photograph is invisible —
+     checked in a browser at 390px, not reasoned about. Vertical here instead: dark where the text
+     is, clear at the top, so the photo is actually seen on the device most of these visitors use. */
+  .le-site[data-theme="forge"] .le-hero::after {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--le-structure) 52%, transparent) 0%,
+      color-mix(in oklab, var(--le-structure) 82%, transparent) 46%,
+      color-mix(in oklab, var(--le-structure) 94%, transparent) 100%
+    );
+  }
+}
+
 /* ── Mobile ────────────────────────────────────────────────────────────────── */
 @media (max-width: 720px) {
   .le-wrap { padding: 0 20px; }
@@ -509,7 +612,7 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-anchor    { padding: var(--le-space-anchor-m) 0; }
   .le-connector { padding: var(--le-space-connector-m) 0; }
 
-  .le-c1-5, .le-c1-6, .le-c1-7, .le-c1-8, .le-c7-12, .le-c9-12, .le-c1-12,
+  .le-c1-5, .le-c1-6, .le-c1-7, .le-c1-8, .le-c7-12, .le-c8-12, .le-c9-12, .le-c1-12,
   .le-ladder-img, .le-ladder-txt,
   .le-cta-left, .le-cta-right, .le-faq,
   .le-ladder-row:nth-child(even) .le-ladder-img,
@@ -726,19 +829,30 @@ export function HeroSplit({
  *   on a thin site the proof bar refuses to render it.
  */
 export function HeroEditorial({
-  content, eyebrow, facts,
-}: { content: SiteContent; eyebrow?: string; facts?: ProofFact[] }) {
+  content, eyebrow, facts, photo,
+}: { content: SiteContent; eyebrow?: string; facts?: ProofFact[]; photo?: SitePhoto }) {
   // Default preserves the split hero's fallback behaviour: the bar below still renders, so the hero
   // shows only what the bar refused.
   const carried = facts ?? (proofBarRenders(content) ? [] : proofFacts(content))
-  const stacked = carried.length >= 2
-  const stranded = stacked ? [] : carried
+  // A photograph takes columns 8–12, so the facts cannot also stack there. They move to a hairline
+  // row directly beneath, inside this same header — NOT to a section of its own. That distinction
+  // is load-bearing: `heroCarriesProof(template)` is what tells `sectionCount` this template has no
+  // proof section, and making that predicate depend on whether a photo exists would let the count
+  // drift from what renders, which is the one thing its own doc says must not happen. The hero
+  // still carries the proof; it just draws it as a row rather than as a column.
+  const stacked = !photo && carried.length >= 2
+  const rowed = photo ? carried : []
+  const stranded = stacked || rowed.length ? [] : carried
 
   return (
     <header className="le-hero" id="top">
       <div className="le-wrap">
         <div className="le-grid">
-          <div className={stacked ? 'le-c1-7 le-hero-text' : 'le-c1-12 le-hero-text le-hero-centred'}>
+          <div className={
+            photo ? 'le-c1-7 le-hero-text'
+              : stacked ? 'le-c1-7 le-hero-text'
+                : 'le-c1-12 le-hero-text le-hero-centred'
+          }>
             {eyebrow ? <p className="le-eyebrow">{eyebrow}</p> : null}
             <h1 className="le-h1">{heroHeadline(content)}</h1>
             {heroLede(content) ? <p className="le-p le-lede" style={{ marginTop: 24 }}>{heroLede(content)}</p> : null}
@@ -763,7 +877,35 @@ export function HeroEditorial({
               ))}
             </dl>
           ) : null}
+
+          {/* One photograph, and only one. "Must survive with zero photos" is why Service Clean is
+              the universal fallback; it is not the same rule as "must never show photos", and the
+              two had been collapsed into one. For a professional practice the photo IS the pitch —
+              people hire a person. The gallery stays off (TEMPLATE_RENDERS_GALLERY.service_clean),
+              because a wall of six office shots is the filler that reads as generated. */}
+          {photo ? (
+            <div className="le-c8-12 le-hero-portrait">
+              <SitePhotoImg
+                photo={photo}
+                alt={photo.caption ?? content.businessName}
+                sizes="(max-width: 900px) 100vw, 42vw"
+                loading="eager"
+                fetchPriority="high"
+              />
+            </div>
+          ) : null}
         </div>
+
+        {rowed.length ? (
+          <dl className={`le-proof le-proof-${Math.min(rowed.length, 4)} le-hero-factrow`}>
+            {rowed.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
     </header>
   )
@@ -1168,7 +1310,7 @@ export function Footer({ content }: { content: SiteContent }) {
   )
 }
 
-/** Full-bleed photo band — Ironclad's signature, breaking the container edge to edge. */
+/** Full-bleed photo band — the trades kit's signature, breaking the container edge to edge. */
 export function PhotoBand({ photo, businessName }: { photo?: SitePhoto; businessName: string }) {
   if (!photo) return null
   return (

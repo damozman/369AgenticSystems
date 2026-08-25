@@ -91,7 +91,7 @@ export default function ShowcaseGrid({
 
       {/* On a band, breaking the run of paper sections. These are the facts a hire customer checks
           before ringing — and they are facts we actually hold. */}
-      <Section density="connector" band>
+      <Section density="connector" band className="le-proof-band">
         <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 

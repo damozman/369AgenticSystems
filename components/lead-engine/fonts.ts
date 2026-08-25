@@ -1,18 +1,18 @@
 /**
  * The type faces each theme kit needs.
  *
- * ── Why all six are declared here rather than loaded per request ──
+ * ── Why every face is declared here rather than loaded per request ──
  * `next/font/google` only works at module scope: the faces are resolved, subset and self-hosted at
  * BUILD time, so "load only the resolved theme's faces" cannot be a runtime decision. Declaring
  * them conditionally is not possible, and a dynamic import does not inject the CSS.
  *
  * What is possible, and what this does: `preload: false` on every face, plus applying only the
  * resolved theme's variable class to the page. The stylesheet then carries `@font-face` rules for
- * all six kits, but a browser downloads a face only when rendered text actually uses it — so a
+ * every kit, but a browser downloads a face only when rendered text actually uses it — so a
  * roofer's visitor fetches Archivo and Archivo Black, and never Fraunces or Newsreader.
  *
  * The cost is losing next/font's preload hint on the display face, which is a real but small LCP
- * penalty. The alternative — preloading all six kits' faces on every site — is roughly a megabyte
+ * penalty. The alternative — preloading every kit's faces on every site — is roughly a megabyte
  * of fonts a visitor will never see, on pages sold to businesses whose customers are on phones in
  * a driveway. Revisit if LCP measurements say otherwise; measure before changing it.
  *
@@ -72,6 +72,9 @@ const karla    = Karla({ subsets: ['latin'], display: 'swap', preload: false, va
  */
 const FONT_CLASSES: Record<Theme, string[]> = {
   ironclad:  [archivoBlack.variable, archivo.variable],
+  // Forge is Ironclad's type, unchanged — the kit's differences are chrome, colour and elevation,
+  // not the faces. It reuses the same two declarations rather than adding a seventh pair.
+  forge:     [archivoBlack.variable, archivo.variable],
   counsel:   [newsreader.variable, publicSans.variable],
   threshold: [instrumentSerif.variable, dmSans.variable],
   ledger:    [plexSans.variable, plexMono.variable],

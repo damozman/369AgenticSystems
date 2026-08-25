@@ -11,7 +11,7 @@
  * ── Background rhythm ──
  * Every kit defines a --structure dark tone, and until this pass it was used in exactly one place
  * on this template: the terminal CTA. Nine content sections ran paper-paper-paper-paper-paper-
- * paper-paper-paper before hitting the first non-paper background — Ironclad, the template's own
+ * paper-paper-paper before hitting the first non-paper background — Forge, the template's own
  * reference kit, had ZERO non-paper sections outside the CTA.
  *
  * Proof always bands when it renders (wrapped directly, not through `bandPlan` — nothing precedes
@@ -57,13 +57,13 @@ export default function TradeClassic({
       <SiteHeader content={content} logoUrl={logoUrl} />
       <HeroSplit content={content} photo={shot.hero} />
 
-      <Section density="connector" band>
+      <Section density="connector" band className="le-proof-band">
         <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
       <Services content={content} photos={shot.ladder} layout={layout} />
 
-      {/* Ironclad's signature, and the break in the run of paper sections before Why us. */}
+      {/* The trades kit's signature, and the break in the run of paper sections before Why us. */}
       <PhotoBand photo={shot.band} businessName={content.businessName} />
 
       <WhyUs content={content} band={whyBand} />

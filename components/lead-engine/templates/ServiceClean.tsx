@@ -8,7 +8,7 @@
  *
  * Also the **universal fallback** — any site with no usable photos renders this layout whatever its
  * stated template, and the theme does not change with it. A roofer with no photos gets this
- * structure in Ironclad's identity and still reads as a roofer. So nothing here assumes photos
+ * structure in Forge's identity and still reads as a roofer. So nothing here assumes photos
  * exist, and it still renders a gallery when they do.
  *
  * Why us sits on a structure band: with no hero image, hero → services → why would be three
@@ -24,6 +24,21 @@
  *   photographs, which is not what "a gallery is filler here" was ever meant to mean.
  * • **The hero carries the proof facts** in columns 9–12 and the proof bar is dropped. The bar was
  *   the same four facts one section lower, while the hero left four columns empty.
+ *
+ * ── ONE photograph in the hero, added 2026-08-25 ──
+ * Two rules had been collapsed into one. "Must survive with zero photos" is why this template is
+ * the universal fallback and is untouched. "Must never show photos" is a different claim, it was
+ * never argued for, and for a professional practice it is wrong: people hire a person, and the
+ * photograph IS the pitch. The gallery stays off — `TEMPLATE_RENDERS_GALLERY.service_clean` is
+ * still false, because a wall of six office shots is the filler the decision above removed.
+ *
+ * The photograph takes columns 8–12, which is where the proof facts used to stack, so they move to
+ * a hairline row directly beneath — still inside the hero element. That is deliberate rather than
+ * incidental: `heroCarriesProof(template)` tells `sectionCount` this template has no proof section,
+ * and if that predicate had to depend on whether a customer uploaded a photo, the count would drift
+ * from what renders. The hero still carries the proof; it draws it as a row instead of a column.
+ *
+ * With no photograph, every line of this renders exactly as it did before.
  *
  * ── Background rhythm ──
  * With the proof bar absorbed into the hero, this template's only pre-existing band was Why us,
@@ -63,12 +78,16 @@ export default function ServiceClean({
   content, photos, logoUrl, siteId,
 }: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const services = content.services ?? []
-  const layout = servicesLayout(services.length, photos.length)
+  // One fewer photo is available to the ladder than the customer uploaded, because the hero takes
+  // the first pick. Counting the full array here is how a ladder gets chosen and then rendered with
+  // its last row empty — the same arithmetic Trade Classic already does with its own hero and band.
+  const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   // The band is asked for ONLY when the ladder is not in use. `allocatePhotos` hands out the band
   // before the ladder, so requesting both on a customer with exactly enough photos would take one
   // away from a ladder row and leave it half-built — degrading the structural thing to feed the
   // decorative one, which is the reverse of that module's rule.
   const shot = allocatePhotos(photos, {
+    hero: true,
     band: layout === 'list',
     ladderRows: layout === 'ladder' ? services.length : 0,
   })
@@ -86,8 +105,15 @@ export default function ServiceClean({
   return (
     <>
       <SiteHeader content={content} logoUrl={logoUrl} />
-      {/* Areas get their own section further down, so the hero would only repeat them. */}
-      <HeroEditorial content={content} facts={editorialHeroFacts(content, { showAreas: !coverageRenders(content) })} />
+      {/* Areas get their own section further down, so the hero would only repeat them.
+          The photograph, when there is one, takes columns 8-12 and the facts move to a hairline
+          row beneath — inside the hero, so `heroCarriesProof` stays true and the section count
+          does not change with whether a customer uploaded anything. */}
+      <HeroEditorial
+        content={content}
+        photo={shot.hero}
+        facts={editorialHeroFacts(content, { showAreas: !coverageRenders(content) })}
+      />
 
       <Services content={content} photos={shot.ladder} layout={layout} band={servicesBand} />
       <WhyUs content={content} band={whyBand} />

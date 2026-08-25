@@ -25,7 +25,7 @@ export type Template =
   | 'practice' | 'supply'
 
 export type Theme =
-  | 'ironclad' | 'counsel' | 'threshold'
+  | 'ironclad' | 'forge' | 'counsel' | 'threshold'
   | 'ledger' | 'yard' | 'clinic'
 
 export type AccentMode = 'text_safe' | 'surface_only' | 'derived'
@@ -47,7 +47,7 @@ export const TEMPLATES: readonly Template[] =
   ['trade_classic', 'service_clean', 'showcase_grid', 'practice', 'supply']
 
 export const THEMES: readonly Theme[] =
-  ['ironclad', 'counsel', 'threshold', 'ledger', 'yard', 'clinic']
+  ['ironclad', 'forge', 'counsel', 'threshold', 'ledger', 'yard', 'clinic']
 
 /**
  * The safest pair, not the commonest one.
@@ -73,13 +73,18 @@ export interface TemplateThemePair { template: Template; theme: Theme }
  */
 export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
   // Trades — "Can I trust you with my property?"
-  'roofing':             { template: 'trade_classic', theme: 'ironclad' },
-  'hvac':                { template: 'trade_classic', theme: 'ironclad' },
-  'plumbing':            { template: 'trade_classic', theme: 'ironclad' },
-  'electrical':          { template: 'trade_classic', theme: 'ironclad' },
-  'concrete':            { template: 'trade_classic', theme: 'ironclad' },
-  'tree-service':        { template: 'trade_classic', theme: 'ironclad' },
-  'general-contracting': { template: 'trade_classic', theme: 'ironclad' },
+  //
+  // Forge, not Ironclad, since 2026-08-25. Chris's split: the trades and the rental yards take the
+  // bold kit, and property, supply, professional and health keep their own. A law firm with an
+  // orange full-bleed hero reads as less credible, not more — which is the whole reason this is a
+  // split rather than a global re-skin.
+  'roofing':             { template: 'trade_classic', theme: 'forge' },
+  'hvac':                { template: 'trade_classic', theme: 'forge' },
+  'plumbing':            { template: 'trade_classic', theme: 'forge' },
+  'electrical':          { template: 'trade_classic', theme: 'forge' },
+  'concrete':            { template: 'trade_classic', theme: 'forge' },
+  'tree-service':        { template: 'trade_classic', theme: 'forge' },
+  'general-contracting': { template: 'trade_classic', theme: 'forge' },
 
   // Property — same buying question, different identity.
   'real-estate':   { template: 'trade_classic', theme: 'threshold' },
@@ -94,10 +99,13 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
   'cleaning':   { template: 'service_clean', theme: 'counsel' },
 
   // Rentals and hauling — "What have you got, and is it available?"
-  'dumpster-rental':  { template: 'showcase_grid', theme: 'yard' },
-  'equipment-rental': { template: 'showcase_grid', theme: 'yard' },
-  'event-rentals':    { template: 'showcase_grid', theme: 'yard' },
-  'hauling':          { template: 'showcase_grid', theme: 'yard' },
+  //
+  // Also Forge, per the same split. The template does NOT change with the kit: a rental yard still
+  // leads with a grid of what it has, it just does so in Forge's identity rather than Yard's.
+  'dumpster-rental':  { template: 'showcase_grid', theme: 'forge' },
+  'equipment-rental': { template: 'showcase_grid', theme: 'forge' },
+  'event-rentals':    { template: 'showcase_grid', theme: 'forge' },
+  'hauling':          { template: 'showcase_grid', theme: 'forge' },
 
   // Supply — "Can you supply what I need, at my volume, on my timeline?"
   'wholesale':    { template: 'supply', theme: 'ledger' },
@@ -279,6 +287,35 @@ const KITS: Record<Theme, Kit> = {
     radiusButton: '2px', radiusCard: '4px', radiusImage: '0px', shadowCard: 'none',
     fonts: ['Archivo Black', 'Oswald', 'Archivo'],
   },
+  /**
+   * A bold evolution of Ironclad, and the one kit that is allowed elevation and radius.
+   *
+   * Every other kit in this file is flat and square-ish by design. Forge deliberately reverses
+   * that for the trades and the rental yards, where the buying question is "can I trust you with
+   * my property" and the answer is a page that looks like it cost money. The reference is the
+   * published Forge mockup, not this comment: values below are transcribed from it.
+   *
+   * What actually separates it from Ironclad, in the order the difference is visible:
+   *   structure  a deeper, cooler navy (#17222F vs #2C3A47) that can carry a full-bleed hero scrim
+   *   accent     hotter (#E4551D vs the muted #C8542B) — surface_only on paper, like Ironclad's own
+   *   radius     6px card / 3px button, against Ironclad's 4/2
+   *   shadow     a real two-layer elevation, against Ironclad's none
+   *
+   * Ironclad itself stays in THEMES and is unchanged: nothing maps to it any more (see
+   * VERTICAL_MAP), but it remains selectable by an operator and a live site already carrying it
+   * must keep rendering exactly as it did. A kit is removed when no row references it, which is a
+   * migration question, not a design one.
+   */
+  forge: {
+    ink: '#131A22', structure: '#17222F', accent: '#E4551D', edge: '#DFDDD6',
+    paper: { light: '#FAFAF7', default: '#F6F5F2', warm: '#F3F0E9' },
+    fontDisplay: 'Archivo Black', fontBody: 'Archivo', fontUtility: 'Archivo',
+    displayWeight: '800', displayTracking: '-0.025em', bodyLine: '1.6',
+    utilityWeight: '700', utilityTracking: '0.12em', utilityTransform: 'uppercase',
+    radiusButton: '3px', radiusCard: '6px', radiusImage: '4px',
+    shadowCard: '0 1px 2px rgba(19,26,34,0.06), 0 8px 24px -12px rgba(19,26,34,0.22)',
+    fonts: ['Archivo Black', 'Oswald', 'Archivo'],
+  },
   counsel: {
     ink: '#1A1A17', structure: '#3D4A3F', accent: '#7A5C2E', edge: '#E0DFD9',
     paper: { light: '#FFFFFF', default: '#FAFAF8', warm: '#F8F6F0' },
@@ -401,15 +438,47 @@ export function validateAccent(
     return { accent, accent_derived: accent, accent_mode: 'surface_only' }
   }
 
-  // Darken in OKLCH until it clears 4.5:1 or hits the lightness floor, preserving hue.
-  const { L, C, H } = rgbToOklch(rgb)
-  let derived = accent
-  for (let l = L - 0.02; l >= 0.15; l -= 0.02) {
-    derived = toHex(oklchToRgbInGamut(l, C, H))
-    if (contrastRatio(derived, paper) >= 4.5) break
-  }
+  return { accent, accent_derived: darkenUntilReadable(rgb, paper), accent_mode: 'derived' }
+}
 
-  return { accent, accent_derived: derived, accent_mode: 'derived' }
+/** Darken in OKLCH until it clears 4.5:1 on `paper`, or hits the lightness floor. Hue preserved. */
+function darkenUntilReadable(rgb: [number, number, number], paper: string): string {
+  const { L, C, H } = rgbToOklch(rgb)
+  let out = toHex(rgb)
+  for (let l = L - 0.02; l >= 0.15; l -= 0.02) {
+    out = toHex(oklchToRgbInGamut(l, C, H))
+    if (contrastRatio(out, paper) >= 4.5) break
+  }
+  return out
+}
+
+/**
+ * The accent as TEXT — always ≥ 4.5:1 on the page's own paper, whatever mode the accent is in.
+ *
+ * `accent_derived` does not answer this question and was never asked it. In `surface_only` it
+ * equals the accent by design (and by test): that mode means "the original works as a FILL", and
+ * the fill is what `accent_derived` is corrected for. But `.le-eyebrow`, `.le-tel` and the inline
+ * links all set a text COLOUR from it, and in surface_only that text inherits the accent's failing
+ * contrast — **Yard's equipment yellow rendered every eyebrow on every rental site at 1.97:1**,
+ * and Ironclad's own burnt red sits at 4.03:1, just under.
+ *
+ * Same shape as the bug `accentModeFor` documents one function down: a kit's own accent, no
+ * customer override involved, failing on a page nobody had measured. The fill case was fixed then;
+ * this is the text case, and it needs its own token rather than a redefinition of the fill's,
+ * because the two answers genuinely differ — that is exactly why the Forge mockup carries both an
+ * `--accent` and an `--accent-txt`.
+ */
+export function accentTextFor(theme: Theme, brand?: Brand): string {
+  const kit = KITS[theme] ?? KITS[DEFAULT_THEME]
+  const shade: PaperShade =
+    brand?.paper_shade === 'light' || brand?.paper_shade === 'warm' ? brand.paper_shade : 'default'
+  const paper = kit.paper[shade]
+
+  const { accent } = validateAccent(theme, brand?.accent ?? kit.accent)
+  if (contrastRatio(accent, paper) >= 4.5) return accent
+
+  const rgb = parseHex(accent)
+  return rgb ? darkenUntilReadable(rgb, paper) : accent
 }
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -455,6 +524,9 @@ export function tokensFor(theme: Theme, brand?: Brand): Record<string, string> {
     '--le-edge':      kit.edge,
     '--le-accent':          resolved.accent,
     '--le-accent-derived':  resolved.accent_derived,
+    // Never the same question as the two above — see accentTextFor. Every rule that paints TEXT
+    // in the accent reads this one.
+    '--le-accent-text':     accentTextFor(theme, brand),
 
     '--le-font-display': `"${display}"`,
     '--le-font-body':    `"${kit.fontBody}"`,

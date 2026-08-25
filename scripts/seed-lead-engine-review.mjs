@@ -49,7 +49,7 @@ const supabase = createClient(
  * `review-threshold` proves the model: SAME template as the roofer, different theme, plus a brand
  * accent. If those two pages look like the same site, the theme layer is not working.
  *
- * `review-brand-fail` carries #FFE500 on Ironclad — 1.21:1 on that kit's paper, so validateAccent
+ * `review-brand-fail` carries #FFE500 on Forge — 1.21:1 on that kit's paper, so validateAccent
  * takes its `derived` branch. What to check on the page: buttons stay readable, and the original
  * yellow still shows where it is used as a large fill rather than as text.
  *
@@ -62,14 +62,14 @@ const supabase = createClient(
 const SITES = [
   {
     slug: `${PREFIX}trade-classic`,
-    vertical: 'roofing',            // -> trade_classic + ironclad
+    vertical: 'roofing',            // -> trade_classic + forge
     photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Northside Roofing Company',
       phone: '(817) 612-6757',
       // Five on purpose. Trade Classic is the template most customers will get, and at 7+ services
       // it takes the two-column list — so its signature block, the image ladder, would never be
-      // seen on the flagship. Ladder now appears on Ironclad and Threshold; the list on Counsel,
+      // seen on the flagship. Ladder now appears on Forge and Threshold; the list on Counsel,
       // Yard, Clinic and Ledger. Both layouts, at least two themes each.
       services: [
         { name: 'Roof replacement', description: 'Full tear-off and re-roof, with the old material hauled away the same day.' },
@@ -190,7 +190,7 @@ const SITES = [
   },
   {
     slug: `${PREFIX}showcase-grid`,
-    vertical: 'event-rentals',      // -> showcase_grid + yard
+    vertical: 'event-rentals',      // -> showcase_grid + forge
     photos: MAX_PHOTOS_PER_SITE,
     answers: {
       business_name: 'Lone Star Party Rentals',
@@ -336,11 +336,11 @@ const SITES = [
     },
   },
   {
-    // The brand-failure case. #FFE500 measures 1.21:1 on Ironclad's paper, so validateAccent takes
+    // The brand-failure case. #FFE500 measures 1.21:1 on Forge's paper, so validateAccent takes
     // its `derived` branch: the interface uses a darkened value while the original yellow survives
     // for large fills and the logo.
     slug: `${PREFIX}brand-fail`,
-    vertical: 'roofing',            // -> trade_classic + ironclad
+    vertical: 'roofing',            // -> trade_classic + forge
     photos: MAX_PHOTOS_PER_SITE,
     brand: { accent: '#FFE500' },
     answers: {
@@ -378,8 +378,8 @@ const SITES = [
     },
   },
   {
-    // The regression case. Resolves to trade_classic + ironclad, but with zero photos it RENDERS
-    // Service Clean — in Ironclad's identity. It should still read as a plumber, not a law firm.
+    // The regression case. Resolves to trade_classic + forge, but with zero photos it RENDERS
+    // Service Clean — in Forge's identity. It should still read as a plumber, not a law firm.
     // Testimonials and FAQs are present so the degrade is judged at realistic density.
     slug: `${PREFIX}sparse`,
     vertical: 'plumbing',
