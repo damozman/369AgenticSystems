@@ -8,9 +8,32 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-08-25 (third session that day).**
+**Last updated: 2026-09-01.**
 
-### Where this session ended — 2026-08-25, third session
+### Where this session ended — 2026-09-01
+
+**The branch is verified end to end for the first time.** `verify-lead-engine.mjs --live` reports
+**All checks passed** — all three jobs, including the questionnaire round-trip and the real lead
+submission that had never completed. 600 unit tests, `tsc` clean apart from the known `xlsx`
+container failure. Nothing on this branch is now blocked on a migration or on a verification.
+
+**Applied and verified by Chris this session:** the forge theme CHECK constraint, `headline_noun`,
+`footer_note`, and — a separate initiative on `master` — the pg_cron scheduler that replaces the
+Vercel Pro question for `dossier-build` / `audit-calls`.
+
+**Two rendering defects fixed**, both carried from the previous handoff and both deleted from the
+list below rather than marked done: the per-face display fallback, and the hero facts' flush bottom
+edge. Details are in "Approved and NOT yet built" further down.
+
+**One decision is still open and is Chris's, not a build:** `cleaning` currently resolves to
+`service_clean` × `counsel`, the law-firm kit. A cleaning company's buying question is "can I trust
+you in my house", which is the trade question rather than the professional one — but cleaning is in
+neither list of Chris's vertical split, so it should be settled deliberately rather than by
+inclusion. Nothing is broken while it stands.
+
+**Chunk C proper still has not started and still waits on the scope conversation.**
+
+### The session before — 2026-08-25, third session
 
 **Design item 1 is built: Forge and Counsel are real `template × theme` pairs, wired to the
 verticals Chris's split names.** Both published mockups were read end to end and used as the spec.
@@ -106,11 +129,32 @@ render. Run it before the merge, not after, and treat a red Job 3 as blocking.
 `THEMES` / `TEMPLATES` member appears in the latest matching CHECK constraint, both directions.
 That closes defect 1's shape permanently. Nothing closes defect 2's shape except running it.
 
-**⚠ STILL OUTSTANDING:** `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql` is NOT YET
-APPLIED, and **Job 3 has therefore never completed** — the questionnaire round-trip, the real lead
-submission and the owner notification are still unproven against this branch's work. Apply the
-migration, re-run, and expect exactly ONE "sent at" line: an earlier version of this script sent 21
-real emails across four runs, which is fixed, and more than one would mean that regressed.
+**✅ ALL THREE JOBS GREEN 2026-09-01, for the first time on this branch.** Chris applied the forge
+migration and re-ran: the style check passes, `createSite()` succeeds, the questionnaire round-trip
+and the real lead submission complete, and the honeypot/throttle block reports **exactly one "sent
+at" line**. That last count is the one to keep reading — an earlier version of this script sent 21
+real emails across four runs, and more than one would mean that regressed.
+
+**🔴 HOW TO INVOKE IT, because a wrong invocation looks exactly like nine code defects.** A run
+without `ONBOARDING_TOKEN_SECRET` fails at `no token minted` and then cascades: two 403s from the
+route correctly refusing an unsigned link, `status is "draft"`, and six more. Nothing is wrong with
+the code. The secret is deliberately absent from `.env.local`, so **the dev server and the script
+each need the same throwaway value** — they only have to agree with each other. PowerShell, two
+windows, and restart the server if it was already running (Node reads the env at process start):
+
+```powershell
+# window 1
+$env:ONBOARDING_TOKEN_SECRET = "local-verify-secret"
+npm run dev
+
+# window 2
+$env:ONBOARDING_TOKEN_SECRET = "local-verify-secret"
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
+```
+
+CLAUDE.md documents this for `verify-dossier-pipeline.mjs`; it is true of this script for the same
+reason, verified at `scripts/verify-lead-engine.mjs:461` → `lib/security/onboarding-token.ts:30`,
+which reads `ONBOARDING_TOKEN_SECRET` and has no fallback.
 
 ## ▶ START HERE NEXT SESSION
 
@@ -192,15 +236,19 @@ start the uploader or the admin page without it.
    Chris's split names trades and rentals/hauling and cleaning is in neither list — worth settling
    deliberately rather than by inclusion.
 
-**Two things seen while reading the rendered pages, neither introduced this session, both worth a
-look and neither urgent:**
-- **The display font falls back to `Georgia, serif` on every kit.** Fine for Counsel, Threshold and
-  Clinic; for Forge, Ironclad, Yard and Ledger a failed webfont load renders a trades site in a
-  serif. One shared fallback stack across seven kits is the cause.
-- **In the ZERO-photo editorial hero, the stacked facts sit flush against the next section.**
-  `.le-hero-facts` is `align-self: end` and gains no bottom padding of its own, so on
-  `counsel-no-photos` the last fact's baseline lands on the band edge. Cosmetic, unchanged by this
-  session, visible on `review-sparse` too.
+**Both rendering defects noted in the previous handoff are FIXED 2026-09-01:**
+- **The display fallback is now per-face, not one `Georgia, serif` shared by seven kits.**
+  `DISPLAY_FALLBACKS` in `theme.ts` maps each face to a serif, sans or condensed-sans stack and
+  `--le-font-display-fallback` carries it; the stylesheet's seven hardcoded fallbacks read the
+  token. **Keyed off the RESOLVED face rather than the kit**, because Clinic's three alternates are
+  not one classification — Fraunces and Bitter are serifs and Nunito is a sans, and a per-kit
+  fallback would be wrong for precisely the face an operator went out of their way to pick.
+  Guarded by `display-fallback.test.ts` in both directions, **proven by deleting an entry and
+  watching it fail** rather than by trusting that it would.
+- **`.le-hero-facts` gains a bottom padding matching `.le-hero-text`'s** (96px desktop, 40px
+  mobile). The cause was structural rather than cosmetic: the facts are a sibling grid item with
+  `align-self: end`, so their bottom edge pinned to the row's bottom, and the row is as tall as the
+  text column *including* the 96px of padding the text column reserves for itself.
 
 **A defect the tests could not have caught, found by rendering it.** The first mosaic CSS had a
 two-column state between 640 and 900px, and at six services it produced rows filling 100%, 49%,
@@ -234,7 +282,8 @@ outright with `violates check constraint "lead_engine_sites_theme_check"`. **Ele
 twenty-seven selectable verticals could not have a site created at all.**
 
 **Fixed by `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql`** (widen only; drop and
-recreate, since a constraint cannot be widened in place). **⚠ NOT YET APPLIED.**
+recreate, since a constraint cannot be widened in place). **APPLIED AND VERIFIED 2026-09-01** —
+`createSite()` now succeeds for the forge verticals in a live run.
 
 **The lesson, and it is a new shape for this file: `tsc` and the test suite cannot see a Postgres
 CHECK.** `THEMES` gained a member, types were clean, 593 tests passed, and the only thing that
@@ -400,35 +449,10 @@ touching this code again:**
 The admin test page (`/admin/lead-engine-photos`) is still there, admin-gated, harmless to leave —
 delete it whenever Chunk C's real dashboard photo uploader makes it redundant, not before.
 
-### 🔴 RUN `verify-lead-engine.mjs --live` BEFORE MERGING TO MASTER, NOT AFTER
+## Chunk C — the requirements, gathered from the real Miller Storm run
 
-Two runs on 2026-09-01 found **two defects in two runs**, and neither was visible to `tsc`, to the
-596 unit tests, or to any amount of reading:
-
-1. **The `forge` CHECK constraint.** The kit shipped in code on 2026-08-25; the constraint still
-   listed six themes. `createSite` did not degrade — it FAILED, for all 11 verticals mapped to
-   forge. Only a script that actually inserts a row could see it.
-2. **The empty-section floor tripping on `why`.** A downstream consequence of `056162f` moving Q4a
-   to the hero: `whyUsItems()` now returns at most two, and the compact pull-quote renders eyebrow
-   + quote when there is one — 2 elements against a floor of 3. Exempted, with the reasoning in the
-   script; `WhyUs` already returns null when empty, so a rendered `why` is non-empty by
-   construction and the element count was never what guaranteed it.
-
-**Both were introduced by changes that passed everything else.** The pattern is the same one this
-project keeps paying for: `tsc` cannot see a Postgres CHECK, and a unit test cannot see a section
-render. Run it before the merge, not after, and treat a red Job 3 as blocking.
-
-**Cheap guard added the same day:** `theme.test.ts` now parses the migrations and asserts every
-`THEMES` / `TEMPLATES` member appears in the latest matching CHECK constraint, both directions.
-That closes defect 1's shape permanently. Nothing closes defect 2's shape except running it.
-
-**⚠ STILL OUTSTANDING:** `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql` is NOT YET
-APPLIED, and **Job 3 has therefore never completed** — the questionnaire round-trip, the real lead
-submission and the owner notification are still unproven against this branch's work. Apply the
-migration, re-run, and expect exactly ONE "sent at" line: an earlier version of this script sent 21
-real emails across four runs, which is fixed, and more than one would mean that regressed.
-
-## ▶ START HERE NEXT SESSION
+**This is the reference list the handoff above points at, not a second "start here".** Chunk C
+build work still waits on Chris's scope conversation.
 
 **Merge decision is RESOLVED: merged.** PR #48 → `master` at `d18b1d0`. Work continues on
 `feature/lead-engine-chunk-c`, cut from `master` after the merge — the old `feature/lead-engine`

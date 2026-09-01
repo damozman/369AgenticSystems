@@ -170,7 +170,7 @@ test('the font list is a copy, so a caller cannot mutate the allowlist', () => {
 const REQUIRED_TOKENS = [
   '--le-ink', '--le-structure', '--le-paper', '--le-edge', '--le-accent', '--le-accent-derived',
   '--le-accent-text',
-  '--le-font-display', '--le-font-body', '--le-font-utility',
+  '--le-font-display', '--le-font-display-fallback', '--le-font-body', '--le-font-utility',
   '--le-display-weight', '--le-display-tracking', '--le-body-line',
   '--le-utility-weight', '--le-utility-tracking', '--le-utility-transform',
   '--le-radius-button', '--le-radius-card', '--le-radius-image', '--le-shadow-card',
