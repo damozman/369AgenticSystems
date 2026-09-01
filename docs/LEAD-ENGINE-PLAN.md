@@ -198,6 +198,37 @@ the spec for anything Forge or Counsel:
 - **Forge** — https://claude.ai/code/artifact/8f36454e-9535-458a-8e41-509ed2968646
 - **Counsel** — https://claude.ai/code/artifact/9ca925d6-7434-4fc7-bb00-9532b0569cd9
 
+**🔴 FORGE COULD NOT BE SAVED — a production-blocking bug, found 2026-09-01 by the first
+`--live` run after the kit shipped.** The Forge theme went in on 2026-08-25 and the vertical map
+was repointed so 7 trades and 4 rental/hauling verticals resolve to it. **The CHECK constraint
+still listed the original six**, so `createSite` did not degrade for those verticals — it failed
+outright with `violates check constraint "lead_engine_sites_theme_check"`. **Eleven of
+twenty-seven selectable verticals could not have a site created at all.**
+
+**Fixed by `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql`** (widen only; drop and
+recreate, since a constraint cannot be widened in place). **⚠ NOT YET APPLIED.**
+
+**The lesson, and it is a new shape for this file: `tsc` and the test suite cannot see a Postgres
+CHECK.** `THEMES` gained a member, types were clean, 593 tests passed, and the only thing that
+could possibly notice was a script that actually inserts a row. Guarded now —
+`theme.test.ts` parses the migrations for the latest `..._theme_check` / `..._template_check`
+definition and asserts every `THEMES` and `TEMPLATES` member appears in it, and that the
+constraints carry nothing the code does not know. Verified by deleting the migration and watching
+the test fail, rather than trusting that it would.
+
+**⚠ The style check behaved DIFFERENTLY on two machines from the same bytes — fixed 2026-09-01.**
+`verify-lead-engine.mjs`'s `scannableNoCss` stripped the stylesheet with a regex ending `` `\n ``,
+requiring a bare LF after the closing backtick. On a Windows checkout the line ends CRLF, so the
+strip matched NOTHING and the whole `SITE_CSS` block was scanned for colours, fonts, radii and
+shadows — a check that fails for Chris and passes in the cloud container on identical source. Now
+`` `\r?\n ``.
+
+**Nobody hit it before because that block had never contained a hex literal for the broken strip to
+catch.** It surfaced only when the mosaic added `color: #FFF` — itself a real fault, now
+`var(--le-paper)`, which is what the rest of the file uses for light text on a dark surface. So the
+run found two things: the literal it was designed to catch, and the reason it could only catch it
+on one of the two machines.
+
 **🔴 THE RULE, unchanged and still the important part:**
 
 > Every string on a generated site is either **derived from a questionnaire field** or **fixed copy

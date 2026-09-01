@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   DEFAULT_TEMPLATE, DEFAULT_THEME, INTENTIONAL_DEFAULT_PAIR_VERTICALS, TEMPLATES, THEMES,
   VERTICAL_MAP, accentModeFor, contrastRatio, effectiveTemplate, fontsFor, resolveForVertical, tokensFor,
@@ -359,4 +360,53 @@ test('the accent mode reflects the KIT accent when the customer supplied none', 
   // A customer override takes over when there is one.
   assert.equal(accentModeFor('ironclad', { accent: '#FFE500' }), 'derived')
   assert.equal(accentModeFor('yard', { accent: '#1F6F8B' }), 'text_safe')
+})
+
+// ── The schema has to agree with these unions ────────────────────────────────
+
+/**
+ * The LAST definition of a named CHECK constraint across the migrations, in filename order.
+ *
+ * Constraints are dropped and recreated rather than widened, so the newest file wins — reading
+ * only the original migration would report a constraint that no longer exists.
+ */
+function checkConstraintValues(name: string): string[] {
+  const dir = 'supabase/migrations'
+  let latest: string[] | null = null
+  for (const file of readdirSync(dir).sort()) {
+    if (!file.endsWith('.sql')) continue
+    const sql = readFileSync(`${dir}/${file}`, 'utf8')
+    const re = new RegExp(`ADD\\s+CONSTRAINT ${name}\\s+CHECK \\([a-z_]+ IN \\(([^)]*)\\)\\)`, 'i')
+    const m = sql.match(re)
+    if (m) latest = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1])
+  }
+  assert.ok(latest, `no ${name} constraint found in ${dir}`)
+  return latest!
+}
+
+test('EVERY THEME IS ACCEPTED BY THE DATABASE', () => {
+  // Forge shipped in code on 2026-08-25 with no migration. tsc was clean, 593 tests passed, and
+  // createSite FAILED OUTRIGHT for all 11 verticals mapped to it -- a CHECK violation, not a
+  // degrade. Nothing connects a TypeScript union to a Postgres CHECK, so this is that connection.
+  const allowed = new Set(checkConstraintValues('lead_engine_sites_theme_check'))
+  const missing = THEMES.filter(t => !allowed.has(t))
+  assert.deepEqual(missing, [], 'themes in code that the schema would refuse — write a migration')
+})
+
+test('every template is accepted by the database', () => {
+  const allowed = new Set(checkConstraintValues('lead_engine_sites_template_check'))
+  const missing = TEMPLATES.filter(t => !allowed.has(t))
+  assert.deepEqual(missing, [], 'templates in code that the schema would refuse — write a migration')
+})
+
+test('the constraints carry no value the code does not know', () => {
+  // The other direction. A stale value left in a constraint is harmless to writes but means the
+  // schema is describing a kit nobody can select, which is how a doc goes quietly wrong.
+  for (const [name, known] of [
+    ['lead_engine_sites_theme_check', THEMES as readonly string[]],
+    ['lead_engine_sites_template_check', TEMPLATES as readonly string[]],
+  ] as const) {
+    const extra = checkConstraintValues(name).filter(v => !known.includes(v))
+    assert.deepEqual(extra, [], `${name} allows values absent from the code`)
+  }
 })
