@@ -123,8 +123,21 @@ start the uploader or the admin page without it.
    **⚠ Both columns are now SELECTED BY NAME in `SITE_COLUMNS`, so a schema/code mismatch takes out
    every mini-site at once rather than degrading one field.** `loadSiteBySlug` asks PostgREST for
    `headline_noun, footer_note`; a missing column errors the whole query and the page 404s. That is
-   the highest-consequence failure mode in this change and it is invisible until somebody loads a
-   site — so load one (`/sites/miller-storm`, preview mode) after applying.
+   the highest-consequence failure mode in this change. **Check it with one query, not a page
+   load:**
+   ```sql
+   select column_name from information_schema.columns
+    where table_name = 'lead_engine_sites' and column_name in ('headline_noun', 'footer_note');
+   ```
+   Two rows means both applied, which is the whole question — a missing column is the only way
+   `SITE_COLUMNS` breaks.
+
+   **Do NOT check this on production.** Production runs `master`, whose `SITE_COLUMNS` does not name
+   either column, so it renders identically either way and proves nothing. (Equally: adding nullable
+   columns cannot break it, so the migrations carried no risk to the live site.) And a preview page
+   load has two unrelated ways to 404 that look like a schema fault: `previewEnabled()` needs
+   `LEAD_ENGINE_PREVIEW === 'true'` **baked in at build time** or an `in_build` site is filtered
+   out, and previews are SSO-protected so `curl` gets 401.
 
    **The override is worth as much as the default.** A roofer needs no disclaimer but often needs a
    state contractor licence number in the footer — something no map can know. Same field.
