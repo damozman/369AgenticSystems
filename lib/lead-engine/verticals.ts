@@ -182,3 +182,39 @@ export const VERTICAL_NOUNS: Readonly<Record<string, string>> = {
 export function headlineNounFor(vertical: string | null | undefined): string | undefined {
   return VERTICAL_NOUNS[normaliseVertical(vertical)]
 }
+
+/**
+ * The footer line a vertical conventionally carries, as a STARTING POINT.
+ *
+ * ── Why this is not scoped by template, which is what the plan said ──
+ * `service_clean` serves legal, insurance, accounting, consulting and cleaning. Scoping an
+ * attorney-client disclaimer to that template prints it on a cleaning company's website. The need
+ * follows the VERTICAL, and the vertical is not stored — so, exactly like `headline_noun`, what is
+ * stored is the resolved text.
+ *
+ * ── These are defaults for an operator to confirm, not legal advice ──
+ * They are the conventional, minimal form and assert nothing about the business. **A real firm's
+ * own wording wins every time**, which is why the column is operator-editable and why nothing here
+ * is applied to a site without passing through `createSite`. Most verticals are deliberately absent:
+ * a roofer needs no disclaimer, though many need a licence number, which no map can know and which
+ * is exactly what the override is for.
+ */
+export const VERTICAL_FOOTER_NOTES: Readonly<Record<string, string>> = {
+  legal:
+    'This website is for general information only and does not create an attorney-client '
+    + 'relationship. Do not send confidential information through this form.',
+
+  // Health practices. Deliberately narrower than the legal one: it disclaims advice and says
+  // nothing about privacy, because a claim about how data is handled has to be true of the system
+  // handling it, and this form's handling is the same as every other vertical's.
+  dental:       'This website is for general information only and is not medical advice.',
+  medical:      'This website is for general information only and is not medical advice.',
+  chiropractic: 'This website is for general information only and is not medical advice.',
+  optometry:    'This website is for general information only and is not medical advice.',
+  veterinary:   'This website is for general information only and is not veterinary advice.',
+}
+
+/** The default footer note for a vertical, or `undefined` when it conventionally needs none. */
+export function footerNoteFor(vertical: string | null | undefined): string | undefined {
+  return VERTICAL_FOOTER_NOTES[normaliseVertical(vertical)]
+}

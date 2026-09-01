@@ -169,6 +169,13 @@ export interface SiteContent {
    * questionnaire never asks for it, and re-submitting the questionnaire must not change it.
    */
   headlineNoun?: string
+  /**
+   * A verbatim footer line — a professional disclaimer, a contractor licence number.
+   *
+   * Like `headlineNoun`, a column rather than questionnaire content: the questionnaire never asks
+   * for it and re-submitting must not clear it.
+   */
+  footerNote?: string
   phone?: string
   services?: ServiceItem[]
   serviceAreas?: string[]
@@ -199,6 +206,11 @@ export interface LeadEngineSite {
    * stored. Null falls the hero back to the business name.
    */
   headline_noun: string | null
+  /**
+   * Verbatim footer line, defaulted from VERTICAL_FOOTER_NOTES at creation and
+   * operator-overridable. Null renders no note, which is the common case.
+   */
+  footer_note: string | null
   /** Stated intent. The no-photo degrade is computed at render and never stored. */
   template: Template
   theme: Theme

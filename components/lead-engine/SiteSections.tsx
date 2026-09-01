@@ -238,13 +238,36 @@ const SITE_CSS = `
 
 .le-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 40px; }
 
-/* ── Site header ───────────────────────────────────────────────────────────── */
+/* -- Site header ------------------------------------------------------------ */
+/* The height is a VARIABLE because two unrelated things must agree on it: the header
+   itself, and the scroll offset every in-page anchor needs to clear it. Written twice
+   as a literal, they drift the first time anyone adjusts the header -- the derived-value
+   trap this repo already has a lesson for. Redefined once at the mobile breakpoint,
+   where both follow automatically. */
+.le-site { --le-header-h: 72px; }
 .le-header {
-  position: sticky; top: 0; z-index: 50; height: 72px;
+  position: sticky; top: 0; z-index: 50; height: var(--le-header-h);
   background: var(--le-paper); border-bottom: 1px solid var(--le-edge);
   backdrop-filter: blur(8px);
 }
-.le-header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; gap: 24px; }
+.le-header-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: var(--le-header-h); gap: 24px;
+}
+
+/* Anchors clear the sticky header.
+   NOT a bug fix, and the first version of this comment wrongly said it was. Measured:
+   with no scroll-margin the HEADINGS already cleared the bar, because a section's top
+   padding (140px at #contact, 173px at #services) is larger than the 72px header. What
+   does slide under is the section's own top EDGE, which is visible on a banded section
+   as its colour block starting behind the bar.
+   It is kept for the narrower reason: without it the anchor is correct only by accident,
+   depending on section padding staying larger than the header. Both numbers move --
+   padding shrinks at the mobile breakpoint already -- and nothing connects them. This
+   makes the offset follow the header instead of hoping.
+   Applied to every id rather than the two that are linked today (#contact from every CTA,
+   #top from the wordmark): the rest carry ids for deep links and future nav. */
+.le-site [id] { scroll-margin-top: calc(var(--le-header-h) + 16px); }
 .le-header-name {
   font-family: var(--le-font-display), Georgia, serif;
   font-size: var(--le-display-m); font-weight: var(--le-display-weight);
@@ -399,6 +422,13 @@ const SITE_CSS = `
 .le-svc-item { border-top: 1px solid var(--le-edge); padding-top: 20px; }
 .le-svc-item h3 { margin-bottom: 12px; }
 .le-svc-item p { margin: 0; max-width: 38ch; opacity: 0.7; }
+
+/* The footer note -- a professional disclaimer or a licence number. Set narrow and quiet:
+   it is required text, not a claim the business is making for itself. */
+.le-foot-note {
+  margin: 16px 0 0; max-width: 68ch;
+  font-size: var(--le-body); line-height: var(--le-body-line); opacity: 0.72;
+}
 
 /* -- Services mosaic ------------------------------------------------------- */
 /* Three columns; mosaicSpans guarantees every row fills, so there is never a
@@ -663,7 +693,7 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-ladder-row:nth-child(even) .le-ladder-img,
   .le-ladder-row:nth-child(even) .le-ladder-txt { grid-column: 1 / -1; }
 
-  .le-header, .le-header-inner { height: 60px; }
+  .le-site { --le-header-h: 60px; }
   .le-header .le-btn { display: none; }
 
   /* Photo above the text on mobile, per the SKILL's split-anchor note. */
@@ -1381,6 +1411,9 @@ export function Footer({ content }: { content: SiteContent }) {
         {content.googleProfileUrl ? (
           <> · <a href={content.googleProfileUrl} rel="noopener noreferrer" target="_blank">Google Business Profile</a></>
         ) : null}
+        {/* Verbatim, never reformatted: it is either the business's own wording or a
+            conventional disclaimer an operator confirmed, and neither is ours to edit. */}
+        {content.footerNote ? <p className="le-foot-note">{content.footerNote}</p> : null}
         <p className="le-credit">Site by 369 Agentic Systems</p>
       </div>
     </footer>

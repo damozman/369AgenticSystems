@@ -2,9 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { CANONICAL_VERTICALS } from '@/lib/verticals/index'
 import {
-  ALL_VERTICAL_OPTIONS, LEAD_ENGINE_ONLY_VERTICALS, LEAD_ENGINE_VERTICALS,
-  VERTICAL_KEY_FORMAT, VERTICAL_NOUNS, VERTICAL_OPTION_GROUPS, headlineNounFor, labelFor,
-  normaliseVertical,
+  ALL_VERTICAL_OPTIONS, footerNoteFor, headlineNounFor, labelFor, LEAD_ENGINE_ONLY_VERTICALS, LEAD_ENGINE_VERTICALS, normaliseVertical, VERTICAL_FOOTER_NOTES, VERTICAL_KEY_FORMAT, VERTICAL_NOUNS, VERTICAL_OPTION_GROUPS,
 } from '@/lib/lead-engine/verticals'
 
 test('every Lead Engine vertical is canonical or explicitly Lead-Engine-only', () => {
@@ -110,5 +108,51 @@ test('an unknown vertical yields no noun rather than a guess', () => {
   // Worth" would be a headline that says nothing while looking like it says something.
   for (const raw of ['saas', 'not-a-vertical', '', null, undefined]) {
     assert.equal(headlineNounFor(raw), undefined)
+  }
+})
+
+// ── Footer notes ─────────────────────────────────────────────────────────────
+
+test('THE ATTORNEY DISCLAIMER NEVER REACHES A CLEANING COMPANY', () => {
+  // The plan called this "template-scoped fixed copy". It is not: `service_clean` serves legal,
+  // insurance, accounting, consulting AND cleaning, so scoping by template would print an
+  // attorney-client disclaimer on a cleaning company's website. This test is the disproof.
+  assert.ok(footerNoteFor('legal')?.includes('attorney-client'))
+  for (const v of ['insurance', 'accounting', 'consulting', 'cleaning']) {
+    assert.equal(footerNoteFor(v), undefined, `${v} shares a template with legal but not its note`)
+  }
+})
+
+test('most verticals carry no footer note at all', () => {
+  // Absence is the common case. A roofer needs no disclaimer -- many need a licence NUMBER, which
+  // no map can know, and which is what the operator override exists for.
+  for (const v of ['roofing', 'hvac', 'plumbing', 'wholesale', 'hauling', 'real-estate']) {
+    assert.equal(footerNoteFor(v), undefined)
+  }
+})
+
+test('a health practice disclaims advice and says nothing about privacy', () => {
+  // A claim about how data is handled has to be true of the system handling it, and this form's
+  // handling is the same as every other vertical's.
+  for (const v of ['dental', 'medical', 'chiropractic', 'optometry']) {
+    const note = footerNoteFor(v)
+    assert.ok(note?.includes('not medical advice'), v)
+    assert.ok(!/privacy|confidential|HIPAA|secure|encrypted/i.test(note ?? ''), `${v} must claim nothing about data`)
+  }
+  assert.ok(footerNoteFor('veterinary')?.includes('not veterinary advice'))
+})
+
+test('every footer note is a real vertical, spelled the way the rest of the repo spells it', () => {
+  const known = new Set(ALL_VERTICAL_OPTIONS.map(o => o.value))
+  for (const key of Object.keys(VERTICAL_FOOTER_NOTES)) {
+    assert.ok(known.has(key), `${key} is not a vertical an operator can pick`)
+    assert.ok(VERTICAL_KEY_FORMAT.test(key), `${key} breaks the spelling rule`)
+  }
+})
+
+test('footerNoteFor tolerates the brief spelling and unknown input', () => {
+  assert.equal(footerNoteFor('  LEGAL  '), VERTICAL_FOOTER_NOTES.legal)
+  for (const raw of ['not-a-vertical', '', null, undefined]) {
+    assert.equal(footerNoteFor(raw), undefined)
   }
 })

@@ -43,7 +43,7 @@ const TEMPLATES = {
  * status by hand.
  */
 function contentOf(
-  site: Pick<LeadEngineSite, 'content' | 'business_name' | 'headline_noun'>,
+  site: Pick<LeadEngineSite, 'content' | 'business_name' | 'headline_noun' | 'footer_note'>,
 ): SiteContent {
   const base: SiteContent = site.content ?? {
     businessName: site.business_name,
@@ -53,7 +53,11 @@ function contentOf(
   // The noun is a COLUMN, not questionnaire content — merged in here so the sections can read one
   // object. Keeping it off `content` is what stops a re-submitted questionnaire from silently
   // clearing it: `contentFrom` rebuilds that jsonb wholesale and knows nothing about this field.
-  return site.headline_noun ? { ...base, headlineNoun: site.headline_noun } : base
+  return {
+    ...base,
+    ...(site.headline_noun ? { headlineNoun: site.headline_noun } : {}),
+    ...(site.footer_note ? { footerNote: site.footer_note } : {}),
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

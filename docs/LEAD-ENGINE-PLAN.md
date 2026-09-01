@@ -109,9 +109,24 @@ start the uploader or the admin page without it.
    field called `ladder` feeding a mosaic is the misleading-name trap this repo already has a
    lesson for.
 
-2. **"Fixed copy" is template-scoped, not global.** The law-firm footer needs its disclaimer ("does
-   not create an attorney–client relationship, do not send confidential information through this
-   form"); that string is mandatory for legal and meaningless for roofing.
+2. ~~**"Fixed copy" is template-scoped**~~ — **BUILT 2026-09-01, and the plan item was WRONG.**
+   It is not template-scoped. `service_clean` serves legal, insurance, accounting, consulting AND
+   **cleaning**, so scoping an attorney-client disclaimer to that template prints it on a cleaning
+   company's website. The need follows the VERTICAL.
+
+   Which the schema deliberately cannot answer, since `createSite` does not store the vertical — so
+   the same solution as the headline: `VERTICAL_FOOTER_NOTES` supplies a default at creation and the
+   RESOLVED text is stored as `footer_note`, operator-overridable, nullable, null being the common
+   case. Requires `supabase/migrations/2026-09-01-lead-engine-footer-note.sql`.
+
+   **The override is worth as much as the default.** A roofer needs no disclaimer but often needs a
+   state contractor licence number in the footer — something no map can know. Same field.
+
+   **The health notes disclaim advice and say nothing about privacy**, asserted by a test: a claim
+   about how data is handled has to be true of the system handling it, and this form's handling is
+   the same as every other vertical's. These are conventional defaults for an operator to confirm,
+   not legal advice; a firm's own wording wins.
+
 3. **`cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.** Raised, not fixed. A
    cleaning company's buying question is "can I trust you in my house", which is the trade
    question, not the professional one. It did NOT move to Forge in this session's split, because

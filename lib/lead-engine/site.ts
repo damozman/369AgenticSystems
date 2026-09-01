@@ -14,13 +14,13 @@ import type {
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
-import { headlineNounFor, normaliseVertical } from '@/lib/lead-engine/verticals'
+import { footerNoteFor, headlineNounFor, normaliseVertical } from '@/lib/lead-engine/verticals'
 import { previewEnabled } from '@/lib/lead-engine/preview'
 
 export const PHOTO_BUCKET = 'lead-engine-photos'
 
 const SITE_COLUMNS =
-  'id, slug, business_name, status, template, theme, brand, content, headline_noun, notify_email, client_domain, launched_at, revisions_used'
+  'id, slug, business_name, status, template, theme, brand, content, headline_noun, footer_note, notify_email, client_domain, launched_at, revisions_used'
 
 /**
  * Whether an error means "the migration has not been applied yet".
@@ -171,6 +171,12 @@ export async function createSite(input: {
    * offer this prefilled; until it exists the map's answer stands.
    */
   headlineNoun?: string | null
+  /**
+   * Overrides the vertical's default footer note — a contractor licence number, or a firm's own
+   * wording in place of ours. Passing it EMPTY clears the note deliberately; omitting it takes
+   * the default.
+   */
+  footerNote?: string | null
   notifyEmail?: string | null
 }): Promise<CreateSiteResult> {
   const ownerEmail = input.ownerEmail.trim().toLowerCase()
@@ -203,6 +209,9 @@ export async function createSite(input: {
       headline_noun: input.headlineNoun === undefined
         ? headlineNounFor(input.vertical) ?? null
         : input.headlineNoun?.trim() || null,
+      footer_note: input.footerNote === undefined
+        ? footerNoteFor(input.vertical) ?? null
+        : input.footerNote?.trim() || null,
       brand:         {},
       notify_email:  input.notifyEmail?.trim().toLowerCase() || null,
       status:        'draft',
