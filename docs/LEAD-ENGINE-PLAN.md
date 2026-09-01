@@ -84,6 +84,34 @@ The wordmark is already `logo_url ?? business_name` verbatim. Both were bugs in 
 not in the templates it was standing in for. **Item 3 is deleted from the list below rather than
 carried.**
 
+## 🔴 RUN `verify-lead-engine.mjs --live` BEFORE MERGING TO MASTER, NOT AFTER
+
+Two runs on 2026-09-01 found **two defects in two runs**, and neither was visible to `tsc`, to the
+596 unit tests, or to any amount of reading:
+
+1. **The `forge` CHECK constraint.** The kit shipped in code on 2026-08-25; the constraint still
+   listed six themes. `createSite` did not degrade — it FAILED, for all 11 verticals mapped to
+   forge. Only a script that actually inserts a row could see it.
+2. **The empty-section floor tripping on `why`.** A downstream consequence of `056162f` moving Q4a
+   to the hero: `whyUsItems()` now returns at most two, and the compact pull-quote renders eyebrow
+   + quote when there is one — 2 elements against a floor of 3. Exempted, with the reasoning in the
+   script; `WhyUs` already returns null when empty, so a rendered `why` is non-empty by
+   construction and the element count was never what guaranteed it.
+
+**Both were introduced by changes that passed everything else.** The pattern is the same one this
+project keeps paying for: `tsc` cannot see a Postgres CHECK, and a unit test cannot see a section
+render. Run it before the merge, not after, and treat a red Job 3 as blocking.
+
+**Cheap guard added the same day:** `theme.test.ts` now parses the migrations and asserts every
+`THEMES` / `TEMPLATES` member appears in the latest matching CHECK constraint, both directions.
+That closes defect 1's shape permanently. Nothing closes defect 2's shape except running it.
+
+**⚠ STILL OUTSTANDING:** `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql` is NOT YET
+APPLIED, and **Job 3 has therefore never completed** — the questionnaire round-trip, the real lead
+submission and the owner notification are still unproven against this branch's work. Apply the
+migration, re-run, and expect exactly ONE "sent at" line: an earlier version of this script sent 21
+real emails across four runs, which is fixed, and more than one would mean that regressed.
+
 ## ▶ START HERE NEXT SESSION
 
 **Chunk C proper still has NOT started, and still waits on Chris's scope conversation.** Do not
@@ -372,7 +400,35 @@ touching this code again:**
 The admin test page (`/admin/lead-engine-photos`) is still there, admin-gated, harmless to leave —
 delete it whenever Chunk C's real dashboard photo uploader makes it redundant, not before.
 
-### ▶ START HERE NEXT SESSION
+### 🔴 RUN `verify-lead-engine.mjs --live` BEFORE MERGING TO MASTER, NOT AFTER
+
+Two runs on 2026-09-01 found **two defects in two runs**, and neither was visible to `tsc`, to the
+596 unit tests, or to any amount of reading:
+
+1. **The `forge` CHECK constraint.** The kit shipped in code on 2026-08-25; the constraint still
+   listed six themes. `createSite` did not degrade — it FAILED, for all 11 verticals mapped to
+   forge. Only a script that actually inserts a row could see it.
+2. **The empty-section floor tripping on `why`.** A downstream consequence of `056162f` moving Q4a
+   to the hero: `whyUsItems()` now returns at most two, and the compact pull-quote renders eyebrow
+   + quote when there is one — 2 elements against a floor of 3. Exempted, with the reasoning in the
+   script; `WhyUs` already returns null when empty, so a rendered `why` is non-empty by
+   construction and the element count was never what guaranteed it.
+
+**Both were introduced by changes that passed everything else.** The pattern is the same one this
+project keeps paying for: `tsc` cannot see a Postgres CHECK, and a unit test cannot see a section
+render. Run it before the merge, not after, and treat a red Job 3 as blocking.
+
+**Cheap guard added the same day:** `theme.test.ts` now parses the migrations and asserts every
+`THEMES` / `TEMPLATES` member appears in the latest matching CHECK constraint, both directions.
+That closes defect 1's shape permanently. Nothing closes defect 2's shape except running it.
+
+**⚠ STILL OUTSTANDING:** `supabase/migrations/2026-09-01-lead-engine-forge-theme.sql` is NOT YET
+APPLIED, and **Job 3 has therefore never completed** — the questionnaire round-trip, the real lead
+submission and the owner notification are still unproven against this branch's work. Apply the
+migration, re-run, and expect exactly ONE "sent at" line: an earlier version of this script sent 21
+real emails across four runs, which is fixed, and more than one would mean that regressed.
+
+## ▶ START HERE NEXT SESSION
 
 **Merge decision is RESOLVED: merged.** PR #48 → `master` at `d18b1d0`. Work continues on
 `feature/lead-engine-chunk-c`, cut from `master` after the merge — the old `feature/lead-engine`
