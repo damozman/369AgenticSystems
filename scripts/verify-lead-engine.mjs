@@ -278,8 +278,15 @@ if (!LIVE) {
     // only ever counted the LEFT column's own intro <p> — a real form with six controls and no
     // <p>/<li>/<img> of its own read as "near-empty" by this regex alone, which is backwards for
     // the single most action-oriented section on the page.
+    // `why` is exempt from the 3-element floor: since 056162f (2026-08-25) moved Q4a to the hero,
+    // `whyUsItems()` returns at most two items, and the compact pull-quote treatment renders
+    // eyebrow + quote with no caption when there is only one — legitimately 2 elements, not a
+    // bug. `WhyUs` itself already returns null when `items.length === 0`, so any `why` section
+    // that reaches the page at all is guaranteed non-empty by construction; this check would
+    // otherwise flag every single-item fixture (review-sparse included) as a false positive.
     const CONTENT_EL = /<(?:img|li|p|details|blockquote|dd|input|textarea|button|select)\b/g
     const emptySections = [...html.matchAll(/<section[^>]*id="([^"]+)"[\s\S]*?<\/section>/g)]
+      .filter(([, id]) => id !== 'why')
       .filter(([block]) => (block.match(CONTENT_EL) ?? []).length < 3)
       .map(([, id]) => id)
     if (emptySections.length) {
