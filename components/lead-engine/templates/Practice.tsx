@@ -50,7 +50,7 @@ export default function Practice({
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   const shot = allocatePhotos(photos, {
     hero: true,
-    ladderRows: layout === 'ladder' ? services.length : 0,
+    serviceSlots: layout === 'list' ? 0 : services.length,
   })
 
   // Two bars of four cells in a row is one bar too many, and the access facts are the ones a
@@ -93,7 +93,7 @@ export default function Practice({
 
       {/* Grouped by care type in the SKILL; we hold a flat list, so it renders flat rather than
           being invented into groups the practice never stated. */}
-      <Services content={content} photos={shot.ladder} layout={layout} eyebrow="What we treat" heading="Our services" />
+      <Services content={content} photos={shot.services} layout={layout} eyebrow="What we treat" heading="Our services" />
 
       <Team content={content} />
       <NewPatientInfo content={content} band={newPatientsBand} />

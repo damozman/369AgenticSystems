@@ -91,11 +91,24 @@ start the uploader or the admin page without it.
 
 **Approved and NOT yet built — what is left of the design work:**
 
-1. **Forge's services mosaic.** The one structural piece of the Forge mockup not built: photo tiles
-   in a 3-column mosaic with `wide` spans, in place of the alternating ladder. Deliberately left —
-   it is a THIRD layout in `Services`, a shared primitive used by five templates, and it needs
-   changes to `servicesLayout` and to photo allocation. That deserves its own pass with fixture
-   verification rather than being tacked onto a kit.
+1. ~~**Forge's services mosaic**~~ — **BUILT 2026-09-01.** `servicesLayout` gains `mosaic`,
+   `mosaicSpans` / `mosaicPlan` decide the tiles, `Services` renders them, Trade Classic opts in.
+
+   **It is opt-in, and NOT keyed off the kit.** Four templates share `servicesLayout`; a photo
+   mosaic of "practice areas" is wrong for a law firm. And `data-theme` is deliberately bounded to
+   paint and chrome on identical markup — a mosaic is different markup, so driving it from `forge`
+   would quietly turn a theme into a layout.
+
+   **The mosaic needs half the photos the ladder does, which is the whole point.** A ladder row
+   without an image is broken; a mosaic tile without one is a deliberate colour block. So it renders
+   in the band where the ladder cannot (half the services up to all of them) and where the
+   two-column list would throw every photo away. Widest tiles take photographs first — a flat block
+   at feature size reads as a missing image, at one column it reads as intent.
+
+   **`ladderRows`/`.ladder` on the allocator are renamed `serviceSlots`/`.services`**, because a
+   field called `ladder` feeding a mosaic is the misleading-name trap this repo already has a
+   lesson for.
+
 2. **"Fixed copy" is template-scoped, not global.** The law-firm footer needs its disclaimer ("does
    not create an attorney–client relationship, do not send confidential information through this
    form"); that string is mandatory for legal and meaningless for roofing.
@@ -114,6 +127,15 @@ look and neither urgent:**
   `.le-hero-facts` is `align-self: end` and gains no bottom padding of its own, so on
   `counsel-no-photos` the last fact's baseline lands on the band edge. Cosmetic, unchanged by this
   session, visible on `review-sparse` too.
+
+**A defect the tests could not have caught, found by rendering it.** The first mosaic CSS had a
+two-column state between 640 and 900px, and at six services it produced rows filling 100%, 49%,
+100%, 49%, 100%, 49% — three half-empty rows, the exact failure the span table exists to prevent,
+reintroduced at the tablet breakpoint. **A 2-column grid can only fill perfectly when the count is
+even**, so there is now deliberately NO two-column state: three columns, then one. Measured, not
+eyeballed — tile bounding boxes summed per row, for every count 3-6 at nine widths from 320 to
+1440. Screenshotting alone would have missed it; the ragged row is only obvious if you know to
+look at the tablet width.
 
 **How the rendering was checked**, since `--live` needs Supabase credentials the cloud container
 does not have: the templates were rendered offline to static HTML with `react-dom/server` and

@@ -89,7 +89,7 @@ export default function ServiceClean({
   const shot = allocatePhotos(photos, {
     hero: true,
     band: layout === 'list',
-    ladderRows: layout === 'ladder' ? services.length : 0,
+    serviceSlots: layout === 'list' ? 0 : services.length,
   })
 
   const [servicesBand, whyBand, coverageBand, trustBand] = bandPlan(
@@ -115,7 +115,7 @@ export default function ServiceClean({
         facts={editorialHeroFacts(content, { showAreas: !coverageRenders(content) })}
       />
 
-      <Services content={content} photos={shot.ladder} layout={layout} band={servicesBand} />
+      <Services content={content} photos={shot.services} layout={layout} band={servicesBand} />
       <WhyUs content={content} band={whyBand} />
       <PhotoBand photo={shot.band} businessName={content.businessName} />
       <Coverage content={content} band={coverageBand} />

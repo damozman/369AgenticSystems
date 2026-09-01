@@ -54,7 +54,7 @@ export default function ShowcaseGrid({
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   const shot = allocatePhotos(photos, {
     hero: true,
-    ladderRows: layout === 'ladder' ? services.length : 0,
+    serviceSlots: layout === 'list' ? 0 : services.length,
   })
 
   // Proof is always band when it renders and nothing (a fallback proof bar, say) ever renders it
@@ -83,7 +83,7 @@ export default function ShowcaseGrid({
 
       <Services
         content={content}
-        photos={shot.ladder}
+        photos={shot.services}
         layout={layout}
         eyebrow="What we hire out"
         heading="Everything we stock"

@@ -28,6 +28,7 @@ import type { FaqItem, ServiceItem, SiteContent, SitePhoto, Testimonial } from '
 import type { Brand, Theme } from '@/lib/lead-engine/theme'
 import { tokensFor } from '@/lib/lead-engine/theme'
 import { telHref } from '@/lib/lead-engine/content'
+import { mosaicPlan } from '@/lib/lead-engine/photos'
 import {
   accessBarRenders, accessFacts, coverageColumns, coverageRenders, editorialHeroFacts, galleryLayout, heroHeadline, heroLede, newPatientRenders, proofBarRenders, proofFacts, serviceDisplayName, servicesColumns, teamColumns, teamRenders, whyUsItems,
 } from '@/lib/lead-engine/sections'
@@ -398,6 +399,50 @@ const SITE_CSS = `
 .le-svc-item { border-top: 1px solid var(--le-edge); padding-top: 20px; }
 .le-svc-item h3 { margin-bottom: 12px; }
 .le-svc-item p { margin: 0; max-width: 38ch; opacity: 0.7; }
+
+/* -- Services mosaic ------------------------------------------------------- */
+/* Three columns; mosaicSpans guarantees every row fills, so there is never a
+   trailing half-empty row. Kit-agnostic by construction: every colour, radius and
+   shadow here comes from a token, so the mosaic looks native on any theme rather
+   than being a Forge-only layout. NB: this block is a template literal -- no
+   backticks in these comments. */
+.le-mosaic { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; }
+.le-tile {
+  position: relative; overflow: hidden; min-height: 260px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 26px; border-radius: var(--le-radius-card);
+}
+.le-tile-wide { grid-column: span 2; }
+.le-tile-img { position: absolute; inset: 0; z-index: 0; }
+.le-tile-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.le-tile-scrim {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.08) 100%);
+}
+.le-tile-txt { position: relative; z-index: 2; }
+/* A tile carrying a photograph sits on its own scrim, so its text is always light
+   regardless of the kit's ink colour. */
+.le-tile:not(.le-tile-accent):not(.le-tile-structure) .le-tile-txt,
+.le-tile:not(.le-tile-accent):not(.le-tile-structure) .le-tile-txt .le-h3 { color: #FFF; }
+.le-tile-txt p { margin: 8px 0 0; font-size: var(--le-body); line-height: var(--le-body-line); }
+
+/* The colour tiles. A service with no usable photograph becomes a deliberate block
+   rather than a hole -- the whole reason the mosaic needs fewer photos than the ladder. */
+.le-tile-accent { background: var(--le-accent); }
+.le-tile-accent .le-tile-txt, .le-tile-accent .le-tile-txt .le-h3 { color: var(--le-paper); }
+.le-tile-structure { background: var(--le-structure); }
+.le-tile-structure .le-tile-txt, .le-tile-structure .le-tile-txt .le-h3 { color: var(--le-paper); }
+
+/* Three columns, then straight to one -- there is deliberately NO two-column state.
+   A 2-column grid can only fill perfectly when the service count is even, so at 3 or 5
+   services it strands a half row; and with the span table's wide tiles it stranded one
+   at SIX services too, measured at 700-900px as rows of 100%, 49%, 100%, 49%. Three
+   columns fills exactly for every count the mosaic accepts (3-6), and one column
+   trivially does. Anything between is a layout that only sometimes works. */
+@media (max-width: 780px) {
+  .le-mosaic { grid-template-columns: 1fr; gap: 14px; }
+  .le-tile, .le-tile-wide { grid-column: span 1; min-height: 220px; }
+}
 
 /* ── Why us ────────────────────────────────────────────────────────────────── */
 /* The sticky-heading three-column grid (.le-why-head / .le-why-items / .le-why-item) was removed
@@ -947,7 +992,7 @@ export function Services({
 }: {
   content: SiteContent
   photos?: SitePhoto[]
-  layout: 'ladder' | 'list'
+  layout: 'mosaic' | 'ladder' | 'list'
   eyebrow?: string
   heading?: string
   band?: boolean
@@ -961,7 +1006,39 @@ export function Services({
         <div className="le-c1-6"><SectionHead eyebrow={eyebrow} heading={heading} /></div>
       </div>
 
-      {layout === 'ladder' ? (
+      {layout === 'mosaic' ? (
+        <div className="le-mosaic">
+          {mosaicPlan(services.length, photos.length).map((tile, i) => {
+            const s = services[i]
+            const photo = tile.photoIndex === null ? undefined : photos[tile.photoIndex]
+            return (
+              <div
+                key={s.name}
+                className={`le-tile${tile.span === 2 ? ' le-tile-wide' : ''}${tile.fill ? ` le-tile-${tile.fill}` : ''}`}
+              >
+                {photo ? (
+                  <>
+                    <div className="le-tile-img">
+                      <SitePhotoImg
+                        photo={photo}
+                        alt={photo.caption ?? `${content.businessName} — ${serviceDisplayName(s.name)}`}
+                        sizes="(max-width: 640px) 100vw, (max-width: 900px) 50vw, 33vw"
+                      />
+                    </div>
+                    {/* The scrim, not a text-shadow: a photograph can be light or dark anywhere,
+                        and only an opaque gradient makes the label legible on both. */}
+                    <div className="le-tile-scrim" />
+                  </>
+                ) : null}
+                <div className="le-tile-txt">
+                  <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
+                  {s.description ? <p>{s.description}</p> : null}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : layout === 'ladder' ? (
         <div>
           {services.map((s, i) => (
             <div className="le-grid le-ladder-row" key={s.name}>
@@ -969,7 +1046,7 @@ export function Services({
                 <div className="le-ladder-img">
                   <SitePhotoImg
                     photo={photos[i]}
-                    alt={photos[i].caption ?? `${content.businessName} — ${s.name}`}
+                    alt={photos[i].caption ?? `${content.businessName} — ${serviceDisplayName(s.name)}`}
                     sizes="(max-width: 900px) 100vw, 50vw"
                   />
                 </div>

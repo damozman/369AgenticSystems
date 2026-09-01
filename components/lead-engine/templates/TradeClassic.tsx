@@ -35,11 +35,13 @@ export default function TradeClassic({
   content, photos, logoUrl, siteId,
 }: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
   const services = content.services ?? []
-  const layout = servicesLayout(services.length, Math.max(0, photos.length - 2))
+  // The only template that asks for the mosaic. See `servicesLayout` for why it is opt-in here
+  // rather than global or keyed off the kit.
+  const layout = servicesLayout(services.length, Math.max(0, photos.length - 2), { allowMosaic: true })
   const shot = allocatePhotos(photos, {
     hero: true,
     band: true,
-    ladderRows: layout === 'ladder' ? services.length : 0,
+    serviceSlots: layout === 'list' ? 0 : services.length,
   })
 
   // Services is `bandable: false` and its slot in the returned array is unused — it is here only
@@ -61,7 +63,7 @@ export default function TradeClassic({
         <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
-      <Services content={content} photos={shot.ladder} layout={layout} />
+      <Services content={content} photos={shot.services} layout={layout} />
 
       {/* The trades kit's signature, and the break in the run of paper sections before Why us. */}
       <PhotoBand photo={shot.band} businessName={content.businessName} />
