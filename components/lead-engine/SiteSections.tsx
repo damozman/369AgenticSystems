@@ -453,7 +453,7 @@ const SITE_CSS = `
 /* A tile carrying a photograph sits on its own scrim, so its text is always light
    regardless of the kit's ink colour. */
 .le-tile:not(.le-tile-accent):not(.le-tile-structure) .le-tile-txt,
-.le-tile:not(.le-tile-accent):not(.le-tile-structure) .le-tile-txt .le-h3 { color: #FFF; }
+.le-tile:not(.le-tile-accent):not(.le-tile-structure) .le-tile-txt .le-h3 { color: var(--le-paper); }
 .le-tile-txt p { margin: 8px 0 0; font-size: var(--le-body); line-height: var(--le-body-line); }
 
 /* The colour tiles. A service with no usable photograph becomes a deliberate block

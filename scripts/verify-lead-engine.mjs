@@ -79,7 +79,13 @@ function scannable(source) {
  * exist to catch.
  */
 function scannableNoCss(source) {
-  return scannable(source).replace(/const SITE_CSS = `[\s\S]*?`\n/, '')
+  // `\r?\n`, not `\n`. With a bare LF this strip silently does NOTHING on a Windows checkout,
+  // where the line ends CRLF — so the whole stylesheet gets scanned for colours, fonts, radii and
+  // shadows, and the check fails on one developer's machine and passes on another's from the same
+  // bytes. Found 2026-09-01: Chris's run flagged a hex literal inside the CSS block that the cloud
+  // container's run did not. Nobody hit it earlier only because that block had contained no hex
+  // literal for the broken strip to catch.
+  return scannable(source).replace(/const SITE_CSS = `[\s\S]*?`\r?\n/, '')
 }
 
 const RULES_SCAN_CSS = new Set(['grid-template-columns with a literal px', 'max-width in px'])
