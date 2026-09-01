@@ -61,17 +61,25 @@ and `audit-calls` (*/15) with **pg_cron + pg_net**, calling the same authenticat
 was calling. The routes are ordinary `Bearer ${CRON_SECRET}` GETs — Vercel Cron was never
 privileged, only a caller.
 
-**⚠ NOT LIVE UNTIL TWO THINGS HAPPEN.** The migration must be applied, and two Vault secrets must
-be created by hand (they are deliberately not in the migration — it lives in git, a secret must
-not):
-```
-select vault.create_secret('https://369agenticsystems.com', 'app_base_url', '...');
-select vault.create_secret('<CRON_SECRET from Vercel>',     'cron_secret',  '...');
-```
-**Verify through the RESPONSE, not the job.** A 401 from a mismatched secret is indistinguishable
-from success inside `cron.job_run_details`; `select status_code, content::text from
-net._http_response order by created desc limit 10` is the check that answers the real question.
-The migration carries all three queries in its footer.
+**✅ LIVE AND VERIFIED 2026-09-01.** Migration applied, both Vault secrets set, and the route
+answered `200 {"ok":true,"considered":0,"built":0}` through the full pg_cron → pg_net → Vercel
+path at 03:06:24 UTC. `considered: 0` is correct and healthy — `dossiers` is empty and the
+existing `system_audits` rows are outside the 7-day lookback.
+
+**Two gotchas that cost an hour, worth knowing before touching Vault again:**
+1. **The Supabase SQL editor runs a pasted batch as ONE transaction.** Two `vault.create_secret`
+   calls where the first hits a duplicate-key error roll back the second as well — so
+   `cron_secret` silently kept a stale value from an earlier attempt while `app_base_url` looked
+   fine. Run them one at a time, or use `vault.update_secret` for anything that may already exist.
+2. **Length is not equality.** `length(decrypted_secret)` was used to compare the vault against
+   Vercel and it agreed at 20 while the values still differed. The check that actually answers it
+   is `decrypted_secret = 'the-value'`. Same shape as this file's own "a copied value can only be
+   checked against its source".
+
+**Also: `net._http_response` is APPEND-ONLY and asynchronous.** `order by created desc limit 5`
+right after firing shows the PREVIOUS tick's rows, because the new reply has not landed yet — which
+reads exactly like "the fix did not work". `net.http_get` returns a request id; query
+`where id = <that id>` instead and the ambiguity disappears.
 
 **Vercel's own entries were KEPT, daily, as backstops** — offset to :07 so they can never coincide
 with a `*/15` or `*/20` tick, since `dossier-build` reads "already queued" and then writes.
@@ -85,7 +93,8 @@ hours) passes with nothing settled — and in the second case the dossier is bui
 section OMITTED. With `audit-calls` at daily, a submission waits up to ~24h for its first call to
 even be placed, so the 2-hour fallback wins nearly every time. **Flipping `AUDIT_CALLS_ENABLED`
 while both crons are daily would produce call-less dossiers while the feature looked switched on.**
-Nothing would error. Do not flip that switch until the pg_cron schedule is verified live.
+Nothing would error. **That blocker is now CLEARED** — the schedule is verified live as of
+2026-09-01. The disclosure line is still required and is a separate, unchanged gate.
 
 **The Vercel Pro decision is therefore no longer about the dossier pipeline.** If it is revisited,
 it should be on its own merits — Hobby only guarantees cron timing "within the hour" even for daily
