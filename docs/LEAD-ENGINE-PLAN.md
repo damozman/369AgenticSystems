@@ -117,8 +117,9 @@ start the uploader or the admin page without it.
    Which the schema deliberately cannot answer, since `createSite` does not store the vertical — so
    the same solution as the headline: `VERTICAL_FOOTER_NOTES` supplies a default at creation and the
    RESOLVED text is stored as `footer_note`, operator-overridable, nullable, null being the common
-   case. **`supabase/migrations/2026-09-01-lead-engine-footer-note.sql` is APPLIED** (Chris,
-   2026-09-01), as is `-headline-noun.sql`.
+   case. **Both migrations are APPLIED AND VERIFIED** (Chris, 2026-09-01):
+   `-footer-note.sql` and `-headline-noun.sql`. Not "applied" on anyone's say-so — the
+   `information_schema` query below was run against production and returned both column names.
 
    **⚠ Both columns are now SELECTED BY NAME in `SITE_COLUMNS`, so a schema/code mismatch takes out
    every mini-site at once rather than degrading one field.** `loadSiteBySlug` asks PostgREST for
