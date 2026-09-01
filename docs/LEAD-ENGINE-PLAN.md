@@ -124,8 +124,18 @@ start the uploader or the admin page without it.
 
    **The health notes disclaim advice and say nothing about privacy**, asserted by a test: a claim
    about how data is handled has to be true of the system handling it, and this form's handling is
-   the same as every other vertical's. These are conventional defaults for an operator to confirm,
-   not legal advice; a firm's own wording wins.
+   the same as every other vertical's.
+
+   **🔴 CHRIS'S CALL 2026-09-01: the shipped notes are PLACEHOLDERS.** *"I would consider them
+   placeholders and if not needed at the time we will adjust."* So they are not settled legal text
+   and must never be treated as reviewed — they are a default that saves typing, confirmed or
+   cleared per site at build time.
+
+   **What that means for the admin create/edit page when it is built (Chunk C item 2):** the
+   footer-note field must be presented as REQUIRING confirmation, not prefilled and forgotten. A
+   default nobody reads is still a claim on a law firm's website, and clearing it is one keystroke
+   — `footerNote: ''` stores null deliberately, which is why absent and empty are kept distinct in
+   `createSite`.
 
 3. **`cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.** Raised, not fixed. A
    cleaning company's buying question is "can I trust you in my house", which is the trade
