@@ -54,19 +54,43 @@ promises a 24-hour reply, and at once-daily `dossier-build`, a real submission c
 ~24 hours before even entering the approval queue — enough to blow that promise on the very first
 real submission, since it used to build within ~20 minutes of becoming eligible.
 
-**🔴 OPEN DECISION, Chris's own words: "I'll address the cron tomorrow."** He was given the real
-tradeoff and hasn't picked yet:
-- **Upgrade to Vercel Pro — $20/month flat** (includes $20/mo usage credit, so likely near-zero
-  net cost at this traffic level). Removes the Hobby restriction entirely, restores both crons to
-  their designed cadence, no behavior change. Confirmed against Vercel's own current docs, not
-  assumed. This is the fix Chris leans toward in principle — *"I'd rather pay for the right plan
-  than silently degrade a live product."*
-- **Stay on Hobby, keep both crons daily.** Free, already shipped, but `dossier-build` at daily
-  is a real, live degradation of the dossier pipeline's responsiveness, not cosmetic.
-- Do **not** independently decide this or nudge toward one option — it's explicitly parked for
-  Chris to pick up. If a future session needs `audit-calls` at its designed multi-call-per-day
-  cadence (the disclosure-line/`AUDIT_CALLS_ENABLED` item below), this decision blocks that too —
-  a single daily cron tick cannot drive "call at business hours, call again in the evening."
+**✅ ADDRESSED 2026-09-01 — the frequent crons run from SUPABASE, and Pro is no longer needed
+for this.** Chris asked for an alternative to the subscription; there was a good one, in the stack
+already. `supabase/migrations/2026-09-01-pg-cron-scheduler.sql` schedules `dossier-build` (*/20)
+and `audit-calls` (*/15) with **pg_cron + pg_net**, calling the same authenticated routes Vercel
+was calling. The routes are ordinary `Bearer ${CRON_SECRET}` GETs — Vercel Cron was never
+privileged, only a caller.
+
+**⚠ NOT LIVE UNTIL TWO THINGS HAPPEN.** The migration must be applied, and two Vault secrets must
+be created by hand (they are deliberately not in the migration — it lives in git, a secret must
+not):
+```
+select vault.create_secret('https://369agenticsystems.com', 'app_base_url', '...');
+select vault.create_secret('<CRON_SECRET from Vercel>',     'cron_secret',  '...');
+```
+**Verify through the RESPONSE, not the job.** A 401 from a mismatched secret is indistinguishable
+from success inside `cron.job_run_details`; `select status_code, content::text from
+net._http_response order by created desc limit 10` is the check that answers the real question.
+The migration carries all three queries in its footer.
+
+**Vercel's own entries were KEPT, daily, as backstops** — offset to :07 so they can never coincide
+with a `*/15` or `*/20` tick, since `dossier-build` reads "already queued" and then writes.
+(`audit-calls` is safe regardless: it claims a row `scheduled → placed` before dialling, the same
+shape as `provisioning_claims`.) If Supabase pauses or a secret is missing, the pipeline degrades
+to today's once-daily behaviour rather than to nothing.
+
+**🔴 The finding that makes this a PREREQUISITE for step 5, not a tidy-up.** `decideReadiness`
+marks a submission ready either when a call SETTLES or when `BUILD_WITHOUT_CALLS_AFTER_MS` (2
+hours) passes with nothing settled — and in the second case the dossier is built with the call
+section OMITTED. With `audit-calls` at daily, a submission waits up to ~24h for its first call to
+even be placed, so the 2-hour fallback wins nearly every time. **Flipping `AUDIT_CALLS_ENABLED`
+while both crons are daily would produce call-less dossiers while the feature looked switched on.**
+Nothing would error. Do not flip that switch until the pg_cron schedule is verified live.
+
+**The Vercel Pro decision is therefore no longer about the dossier pipeline.** If it is revisited,
+it should be on its own merits — Hobby only guarantees cron timing "within the hour" even for daily
+jobs, and Pro buys per-minute precision. Confirmed 2026-09-01: both plans allow 100 cron jobs, so
+job COUNT was never the constraint; only frequency ever was.
 
 **✅ RESOLVED 2026-08-25 — push-to-deploy DOES work. The previous claim here was wrong.**
 This section used to say the project had "no visible Git integration" in `vercel project inspect`
