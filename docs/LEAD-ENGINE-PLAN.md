@@ -117,7 +117,14 @@ start the uploader or the admin page without it.
    Which the schema deliberately cannot answer, since `createSite` does not store the vertical — so
    the same solution as the headline: `VERTICAL_FOOTER_NOTES` supplies a default at creation and the
    RESOLVED text is stored as `footer_note`, operator-overridable, nullable, null being the common
-   case. Requires `supabase/migrations/2026-09-01-lead-engine-footer-note.sql`.
+   case. **`supabase/migrations/2026-09-01-lead-engine-footer-note.sql` is APPLIED** (Chris,
+   2026-09-01), as is `-headline-noun.sql`.
+
+   **⚠ Both columns are now SELECTED BY NAME in `SITE_COLUMNS`, so a schema/code mismatch takes out
+   every mini-site at once rather than degrading one field.** `loadSiteBySlug` asks PostgREST for
+   `headline_noun, footer_note`; a missing column errors the whole query and the page 404s. That is
+   the highest-consequence failure mode in this change and it is invisible until somebody loads a
+   site — so load one (`/sites/miller-storm`, preview mode) after applying.
 
    **The override is worth as much as the default.** A roofer needs no disclaimer but often needs a
    state contractor licence number in the footer — something no map can know. Same field.
