@@ -25,13 +25,14 @@ Vercel Pro question for `dossier-build` / `audit-calls`.
 list below rather than marked done: the per-face display fallback, and the hero facts' flush bottom
 edge. Details are in "Approved and NOT yet built" further down.
 
-**One decision is still open and is Chris's, not a build:** `cleaning` currently resolves to
-`service_clean` × `counsel`, the law-firm kit. A cleaning company's buying question is "can I trust
-you in my house", which is the trade question rather than the professional one — but cleaning is in
-neither list of Chris's vertical split, so it should be settled deliberately rather than by
-inclusion. Nothing is broken while it stands.
+**`cleaning` is settled** — Chris answered the trade question directly, and it moved to
+`trade_classic` × `threshold`. Detail in "Approved and NOT yet built" below. **He will review the
+rendered result and adjust**, so treat the kit choice as his to change; the template half is the
+part carrying an argument.
 
 **Chunk C proper still has not started and still waits on the scope conversation.**
+
+**Nothing on this branch is now waiting on a decision or a migration.**
 
 ### The session before — 2026-08-25, third session
 
@@ -230,11 +231,33 @@ start the uploader or the admin page without it.
    — `footerNote: ''` stores null deliberately, which is why absent and empty are kept distinct in
    `createSite`.
 
-3. **`cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit.** Raised, not fixed. A
-   cleaning company's buying question is "can I trust you in my house", which is the trade
-   question, not the professional one. It did NOT move to Forge in this session's split, because
-   Chris's split names trades and rentals/hauling and cleaning is in neither list — worth settling
-   deliberately rather than by inclusion.
+3. ~~**`cleaning` is mapped to `service_clean` × `counsel`, the LAW FIRM kit**~~ — **SETTLED
+   2026-09-01, Chris's call: "lets answer that trade question."** Now `trade_classic` ×
+   `threshold`, and moved into the Trades group in the admin select so the grouping still matches
+   the mapping.
+
+   **The TEMPLATE half is the substantive one, and the argument is mechanical rather than
+   aesthetic.** `TEMPLATE_RENDERS_GALLERY.service_clean` is false, so a cleaning company could
+   upload photos and **none of them would render**. Before-and-after is that trade's single
+   strongest proof; the old pair was throwing away the best evidence the business has. Asserted
+   through `TEMPLATE_RENDERS_GALLERY` in `theme.test.ts` rather than by eye — "it looks better"
+   would not fail if someone mapped it back. **Proven by mapping it back and watching two tests
+   fail**, the new one and the pre-existing `INTENTIONAL_DEFAULT_PAIR_VERTICALS` guard.
+
+   **Threshold rather than Forge**, on the same reasoning that gives Property its own kit: Forge is
+   built for "trust me with your property" at industrial scale — deep navy, hot orange, full-bleed
+   scrim — and the person hiring a cleaner is usually standing in the home being cleaned. The trade
+   TEMPLATE is right; the industrial IDENTITY is not. **Commercial janitorial is the case that
+   argues for Forge, and is the one to revisit if a real commercial client lands.** Chris will
+   review the rendered page and adjust — the kit is his to change, the template is the half with an
+   argument behind it.
+
+   **One doc-rot trap closed on the way:** the footer-note rationale, in both `verticals.ts` and
+   its test, used cleaning as its worked example — "scoping an attorney-client disclaimer to
+   `service_clean` prints it on a cleaning company's website". True when written, false the moment
+   cleaning left the template. The example moved to `accounting`; the rule never depended on which
+   vertical carried it. **A comment that cites a mapping is a claim about that mapping, and changing
+   the mapping without changing the comment is how this repo has produced wrong facts four times.**
 
 **Both rendering defects noted in the previous handoff are FIXED 2026-09-01:**
 - **The display fallback is now per-face, not one `Georgia, serif` shared by seven kits.**

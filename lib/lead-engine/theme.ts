@@ -96,7 +96,22 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
   'insurance':  { template: 'service_clean', theme: 'counsel' },
   'accounting': { template: 'service_clean', theme: 'counsel' },
   'consulting': { template: 'service_clean', theme: 'counsel' },
-  'cleaning':   { template: 'service_clean', theme: 'counsel' },
+
+  // Cleaning — moved off the law-firm pair 2026-09-01, Chris's call: the buying question is "can I
+  // trust you in my house", which is the TRADE question, not the professional one. It had only ever
+  // been here because cleaning appears in neither list of the 2026-08-25 split.
+  //
+  // The template change is the substantive half, and it is mechanical rather than aesthetic:
+  // TEMPLATE_RENDERS_GALLERY.service_clean is false, so a cleaning company could upload photos and
+  // NONE of them would render. Before-and-after is that trade's single strongest proof — the pair
+  // was throwing away the best evidence the business has.
+  //
+  // Threshold rather than Forge, on the same reasoning that gives Property its own kit: Forge is
+  // built for "trust me with your property" at industrial scale — deep navy, hot orange, full-bleed
+  // scrim — and the person hiring a cleaner is usually standing in the home being cleaned. The
+  // trade TEMPLATE is right; the industrial IDENTITY is not. Commercial janitorial is the case that
+  // argues for Forge, and it is the one to revisit if a real commercial client lands.
+  'cleaning':   { template: 'trade_classic', theme: 'threshold' },
 
   // Rentals and hauling — "What have you got, and is it available?"
   //
@@ -121,7 +136,7 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
 }
 
 /**
- * The five verticals that map to the default pair ON PURPOSE.
+ * The four verticals that map to the default pair ON PURPOSE.
  *
  * If a test fails because you added a vertical: confirm that landing on the default pair
  * (`service_clean` + `counsel`) is deliberate for it, and if so add it to this list. A future
@@ -132,7 +147,7 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
  * unintended ones visible.
  */
 export const INTENTIONAL_DEFAULT_PAIR_VERTICALS: readonly string[] =
-  ['legal', 'insurance', 'accounting', 'consulting', 'cleaning']
+  ['legal', 'insurance', 'accounting', 'consulting']
 
 /** Never throws. An unknown vertical gets the safe pair, not an exception on a customer's page. */
 export function resolveForVertical(vertical: string | null | undefined): TemplateThemePair {

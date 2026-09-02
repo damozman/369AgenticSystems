@@ -7,6 +7,7 @@ import {
   validateAccent,
 } from '@/lib/lead-engine/theme'
 import { ALL_VERTICAL_OPTIONS } from '@/lib/lead-engine/verticals'
+import { TEMPLATE_RENDERS_GALLERY } from '@/lib/lead-engine/sections'
 import type { Theme } from '@/lib/lead-engine/theme'
 
 // ── The two assertions that guard the admin select ───────────────────────────
@@ -18,6 +19,26 @@ test('every option the admin can pick is an explicit key in VERTICAL_MAP', () =>
   for (const { value } of ALL_VERTICAL_OPTIONS) {
     assert.ok(value in VERTICAL_MAP, `${value} is offered in the select but is not mapped`)
   }
+})
+
+test('cleaning resolves to the trade pair, and its photos therefore render', () => {
+  // Moved off service_clean x counsel on 2026-09-01, Chris's call: the buying question is "can I
+  // trust you in my house", which is the trade question rather than the professional one.
+  //
+  // The TEMPLATE half is the substantive one and it is mechanical, not aesthetic: service_clean
+  // renders no gallery, so a cleaning company could upload photos and none would render --
+  // throwing away before-and-after, which is that trade's single strongest proof. Asserted here
+  // through TEMPLATE_RENDERS_GALLERY rather than by eye, because "it looks better" would not fail
+  // if someone mapped it back.
+  const pair = resolveForVertical('cleaning')
+  assert.equal(pair.template, 'trade_classic')
+  assert.equal(pair.theme, 'threshold')
+  assert.equal(TEMPLATE_RENDERS_GALLERY[pair.template], true, 'cleaning photos would not render')
+
+  // Threshold rather than Forge: the person hiring a cleaner is usually standing in the home being
+  // cleaned, so the trade template is right and the industrial identity is not. Commercial
+  // janitorial is the case that argues for Forge and is the one to revisit.
+  assert.notEqual(pair.theme, 'forge')
 })
 
 test('only the intended verticals resolve to the default pair', () => {
