@@ -8,73 +8,56 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-09-13 (third session).**
+**Last updated: 2026-09-14.**
 
-### Where this session ended — 2026-09-13, third session
+### Where this session ended — 2026-09-14
 
-**ALL FIVE STEPS OF CHUNK C ARE BUILT.** Branch `feature/lead-engine-chunk-c`, clean, pushed.
-619 tests, `tsc` clean apart from the known `xlsx` container failure, style check clean.
+**Chunk C is built AND has been driven end to end by a person for the first time.** Chris ran a
+site locally: uploaded photos, captioned them, pinned them to slots, edited the content, published,
+and looked at the rendered page. 642 tests, `tsc` clean apart from the known `xlsx` container
+failure, style check clean, build compiles.
 
-| # | What | Commit |
-|---|---|---|
-| 1 | `loadPhotos()` reads back what the ingest writes | `f39d1d1` |
-| 2 | A site can be published | `74e685b` |
-| 3 | Photo tool: captions, hero pick, multi-upload, a real list | `de6180a` |
-| 4 | Admin site list | `24a7a7d` |
-| 5 | Admin review + publish page | `287771c` |
+**Every defect this session was found by LOOKING AT THE PAGE, and nothing else could have found any
+of them.** Four in one afternoon, all against a green suite:
 
-A site now goes from submitted answers to a live URL entirely through the UI at
-`/admin/lead-engine`. No SQL, no scripts.
+| What he saw | What it actually was |
+|---|---|
+| "Too small for the hero" on photos that looked large | The rule was right. Nothing showed the requirement or the photo's pixel size — on-screen size and pixel size are different numbers and the UI named neither |
+| A "gallery only" photo became the hero | The message was fiction: `allocatePhotos` had **never** looked at photo size |
+| A bedroom on the "Drain cleaning" tile | Service tiles were paired with photos BY POSITION; nothing knew what any photo depicted |
+| A **white** service tile | Two bugs at once — the band ate a service-pinned photo, and a tile pointing at a hole got no colour fill |
 
-#### 🔴 THE FIRST THING TO DO NEXT: click through it, then run `--live`
+**The one worth remembering:** his three services happened to share a mosaic span, so a scrambled
+photo-to-tile mapping was the identity *by accident* and two of three tiles looked correct. **At
+four services it scrambles outright.** The visible symptom was far smaller than the defect.
 
-**Nothing in steps 3, 4 or 5 has been browser-tested.** This container has no `.env.local`, so
-there is no Supabase to authenticate against and no admin session to reach any of the pages with.
-All of it **compiles** — verified with `next build`, whose only failure is `/api/audit/call`
-wanting `RETELL_API_KEY`, unrelated. **Compiling is not working.** Until someone opens
-`/admin/lead-engine` and drives a real site from answers to published, this is unproven code that
-type-checks.
+#### What shipped
 
-`next build` cannot complete here at all because `xlsx` installs from a CDN URL the proxy blocks.
-Stub `node_modules/xlsx` (gitignored, ephemeral) to get past it; remove it afterwards.
+- **Photo slot pinning** — `slot` + `slot_key` on `lead_engine_photos`. A photo can be pinned to
+  the hero, the band, the gallery, or a **named service**. Matched by name rather than index,
+  because service lists get reordered constantly; a renamed service degrades to automatic and the
+  tool says so on that photo rather than silently losing it.
+  **`supabase/migrations/2026-09-14-lead-engine-photo-slots.sql` is APPLIED** — the picker
+  demonstrably works, which is the only proof that counts.
+- **Hero and band prefer photos at or above `WARN_PHOTO_LONG_EDGE`** — a preference with a
+  fallback, never a filter. A pinned or `isPrimary` photo wins regardless of size: that is a person
+  pointing at a photo, and overriding it on pixel count is the system second-guessing intent.
+- **The photo page states its requirements** and shows each photo's real pixel dimensions.
+- **`mosaicPlan` takes which tiles hold a photo**, so tile *i* shows photo *i* and an unfilled tile
+  renders as a deliberate colour block.
 
-**Then run `verify-lead-engine.mjs --live`**, which has NOT been run against steps 1–5. PowerShell,
-two windows, the same throwaway value in both — without it the run dies at `no token minted` and
-cascades into ~9 failures that look like defects and are not:
+#### ▶ What is left
 
-```powershell
-$env:ONBOARDING_TOKEN_SECRET = "local-verify-secret"   # both windows; restart the server if running
-npm run dev
-node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
-```
-
-**Worth adding to that script while there:** post edited answers to
-`POST /api/lead-engine/sites/[id]/content` and assert the stored `content` changed while the stored
-`questionnaire` did **not**. That is the whole two-writers guarantee of step 5 and it is invisible
-to `tsc`.
-
-#### The design decision in step 5 worth not undoing
-
-**The admin form edits ANSWERS, not `SiteContent`.** Save re-runs `contentFrom()` over the edited
-copy and stores only the result; the edited answers are never persisted. Two reasons, and the
-first is mechanical: `list()` and `servicesFrom()` are private to `content.ts`, so editing
-`SiteContent` directly would need a second parser for the same strings. The second is that
-`questionnaire` stays the customer's untouched record, which keeps `saveContent`'s single-writer
-promise honest.
-
-**`headlineNoun` and `footerNote` are the exception and go to their COLUMNS** via
-`updateSiteFields()`. `contentOf()` spreads those columns *over* `content`, so an override written
-into the jsonb is silently ignored whenever the column is non-null.
-
-#### What is left of Chunk C
-
-Only the **customer-facing photo uploader**, deferred by decision — "admin tool first, customer
-later". Requirements are under "Chunk C — the requirements" below, gathered from the Miller Storm
-run. **Revisit them after a real client has been through the admin tool once**: a second real run
-turns them from a good guess into a spec.
-
-Not started, and not blocking: merging to `master`. Hold until `--live` is green on the final
-state, per this file's own rule.
+1. **The templates and themes need design work.** Chris has now raised this twice and it is the
+   only outstanding product-quality item: *"I still think the themes need some template work."*
+   Worth a real conversation about which kits feel wrong and why, rather than a guessing pass.
+2. **The customer-facing photo uploader**, still deferred by decision. The admin tool has now been
+   through a real run, which was the stated precondition — revisit the per-slot requirements under
+   "Chunk C — the requirements" below with that experience in hand.
+3. **`verify-lead-engine.mjs --live` has still not been run against steps 1–5.** PowerShell, two
+   windows, the same throwaway `ONBOARDING_TOKEN_SECRET` in both — without it the run dies at
+   `no token minted` and cascades into ~9 failures that read as defects and are not.
+4. **Merging to `master`** — hold until that `--live` run is green, per this file's own rule.
 
 ### The session before — 2026-09-13
 
