@@ -1259,6 +1259,22 @@ node --env-file=.env.local scripts/retell/update-demo-script.mjs       aborts on
   fields out longhand.
 - A hook blocks writing to `.env*` files. Pass secrets inline (`VAR=value node ...`) instead.
 
+## How Chris wants answers written — asked for directly, 2026-09-13
+
+**Plain language, bullet points, and end with the decision or the question.** Chris is the product
+owner, not the engineer: *"There's so many super technical things in here that I just don't
+understand."* He does not need the finite detail, and the detail costs him tokens he is paying for.
+
+- **Lead with what it means, not what it is.** "The hero photo picker won't work until we fix how
+  photos are loaded" beats a file path and a SELECT statement.
+- **Bullets over paragraphs.** Prose buries the decision.
+- **End every plan or update with the ASK** — what he needs to decide, or what happens next. That is
+  the part he is reading for.
+- **Keep the technical reasoning in the plan file and the code comments**, where the next session
+  will find it. It does not belong in chat.
+- **Never drop the truthfulness rules to simplify.** Plain does not mean vague: if something is
+  unproven, broken, or a guess, say so in plain words rather than smoothing it over.
+
 ## Project Overview
 Next.js 14 App Router marketing site + client portal for an AI automation agency.
 9 verticals: roofing, hvac, plumbing, legal, real-estate, insurance, saas, dental, wholesale.
