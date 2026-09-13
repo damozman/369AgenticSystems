@@ -89,7 +89,9 @@ export default function ServiceClean({
   const shot = allocatePhotos(photos, {
     hero: true,
     band: layout === 'list',
-    serviceSlots: layout === 'list' ? 0 : services.length,
+    // Names, not just a count: a photo pinned to "Drain cleaning" can only find its tile if the
+    // allocator knows which tile is which. Empty when the list layout renders no photos at all.
+    serviceNames: layout === 'list' ? [] : services.map(s => s.name),
   })
 
   const [servicesBand, whyBand, coverageBand, trustBand] = bandPlan(

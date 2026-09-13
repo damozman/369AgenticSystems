@@ -25,7 +25,7 @@ export interface PhotoAllocation {
    * a field called `ladder` feeding a mosaic is exactly the misleading-name trap this repo has
    * already been bitten by.
    */
-  services: SitePhoto[]
+  services: (SitePhoto | undefined)[]
   gallery: SitePhoto[]
 }
 
@@ -51,12 +51,35 @@ export interface PhotoAllocation {
  */
 export function allocatePhotos(
   photos: SitePhoto[],
-  need: { hero?: boolean; band?: boolean; serviceSlots?: number } = {},
+  need: { hero?: boolean; band?: boolean; serviceSlots?: number; serviceNames?: string[] } = {},
 ): PhotoAllocation {
   const pool = [...photos]
 
+  /** Pull one photo out of the pool by predicate, or undefined. */
+  const claim = (match: (p: SitePhoto) => boolean): SitePhoto | undefined => {
+    const i = pool.findIndex(match)
+    return i === -1 ? undefined : pool.splice(i, 1)[0]
+  }
+
+  // ── Explicit placements come out FIRST, before anything automatic runs ──
+  // An operator pointing at a photo and naming its slot is a stated intent, and the automatic
+  // rules exist only to answer the question nobody answered. Claiming these up front is also what
+  // guarantees disjointness: a pinned photo is out of the pool before any preference can pick it.
+  const pinnedHero = need.hero ? claim(p => p.slot === 'hero') : undefined
+  const pinnedBand = need.band ? claim(p => p.slot === 'band') : undefined
+
+  // Photos pinned to the gallery are held back so no automatic slot can take them, and put back
+  // at the end. Without this a "gallery" pin would be silently ignored whenever a service tile
+  // needed filling.
+  const pinnedGallery: SitePhoto[] = []
+  for (;;) {
+    const g = claim(p => p.slot === 'gallery')
+    if (!g) break
+    pinnedGallery.push(g)
+  }
+
   let primary: SitePhoto | undefined
-  if (need.hero) {
+  if (need.hero && !pinnedHero) {
     const i = pool.findIndex(p => p.isPrimary)
     if (i !== -1) primary = pool.splice(i, 1)[0]
   }
@@ -100,17 +123,47 @@ export function allocatePhotos(
   // `primary` is NOT size-checked, deliberately. It is a person pointing at a photo and saying
   // "this one"; overriding a stated choice on pixel count is the system second-guessing intent.
   // The size preference governs only the automatic pick.
-  const hero = need.hero ? (primary ?? takeByAspect('narrowest', true)) : undefined
-  const band = need.band ? takeByAspect('widest', true) : undefined
+  const hero = need.hero ? (pinnedHero ?? primary ?? takeByAspect('narrowest', true)) : undefined
+  const band = need.band ? (pinnedBand ?? takeByAspect('widest', true)) : undefined
 
-  const services: SitePhoto[] = []
-  for (let i = 0; i < (need.serviceSlots ?? 0); i++) {
-    const next = pool.shift()
-    if (!next) break
-    services.push(next)
+  // ── Services: named pins land on their own tile, the rest fill in order ──
+  // `serviceNames` is what makes a pin resolvable at all; without it there is nothing to match a
+  // slotKey against and the old positional behaviour is the only thing available. Callers that do
+  // not care still pass `serviceSlots`.
+  const names = need.serviceNames
+  const slotCount = names?.length ?? need.serviceSlots ?? 0
+  const services: (SitePhoto | undefined)[] = new Array(slotCount).fill(undefined)
+
+  if (names) {
+    // Exact, case-insensitive match on the service name. A slotKey that matches nothing -- the
+    // service was renamed after the photo was pinned -- simply does not claim a tile, and the
+    // photo falls back to the automatic fill below. Stale intent degrades; it does not vanish.
+    names.forEach((name, i) => {
+      const key = name.trim().toLowerCase()
+      services[i] = claim(p => p.slot === 'service' && (p.slotKey ?? '').trim().toLowerCase() === key)
+    })
   }
 
-  return { hero, band, services, gallery: pool.slice(0, MAX_GALLERY_PHOTOS) }
+  // Fill whatever is still empty from the pool, in order. A tile left empty by an unmatched pin
+  // gets a photo here rather than rendering blank.
+  for (let i = 0; i < slotCount; i++) {
+    if (services[i]) continue
+    const next = pool.shift()
+    if (!next) break
+    services[i] = next
+  }
+
+  // Trailing empties are dropped so `services.length` still means "how many photos this section
+  // actually has" for the layout maths. Interior holes are kept: they belong to a named tile that
+  // could not be filled, and both the ladder and the mosaic already guard on a missing photo.
+  while (services.length > 0 && !services[services.length - 1]) services.pop()
+
+  return {
+    hero,
+    band,
+    services,
+    gallery: [...pinnedGallery, ...pool].slice(0, MAX_GALLERY_PHOTOS),
+  }
 }
 
 /**

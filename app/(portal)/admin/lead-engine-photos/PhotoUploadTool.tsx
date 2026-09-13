@@ -26,6 +26,8 @@ interface Photo {
   height?: number
   dominantHex?: string
   isPrimary?: boolean
+  slot?: 'hero' | 'band' | 'service' | 'gallery'
+  slotKey?: string
 }
 
 type Phase = 'idle' | 'working' | 'done' | 'error'
@@ -45,6 +47,7 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
   const [error, setError] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
   const [photos, setPhotos] = useState<Photo[]>([])
+  const [services, setServices] = useState<string[]>([])
   const [max, setMax] = useState(18)
   const [loadingList, setLoadingList] = useState(false)
 
@@ -53,9 +56,10 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
     setLoadingList(true)
     try {
       const res = await fetch(`/api/lead-engine/photos?siteId=${encodeURIComponent(id)}`)
-      const data: { photos?: Photo[]; max?: number; error?: string } = await res.json()
+      const data: { photos?: Photo[]; services?: string[]; max?: number; error?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not load photos')
       setPhotos(data.photos ?? [])
+      setServices(data.services ?? [])
       if (data.max) setMax(data.max)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load photos')
@@ -144,6 +148,33 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
       // Refresh either way. A batch that failed on file 4 still landed files 1-3, and the list is
       // the only place that says so.
       await refresh(siteId)
+    }
+  }
+
+  /**
+   * `value` is the <select>'s own encoding: '' for automatic, a bare slot name, or
+   * `service:<name>` for a specific tile. Kept as one control because "where does this go" is one
+   * decision, and splitting it into a slot picker plus a service picker makes an invalid pair
+   * (service with no name) reachable.
+   */
+  async function assign(photoId: string, value: string) {
+    setError(null)
+    const isService = value.startsWith('service:')
+    try {
+      const res = await fetch('/api/lead-engine/photos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photoId,
+          slot: value === '' ? null : isService ? 'service' : value,
+          ...(isService ? { slotKey: value.slice('service:'.length) } : {}),
+        }),
+      })
+      const data: { error?: string } = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not move that photo')
+      await refresh(siteId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not move that photo')
     }
   }
 
@@ -285,10 +316,31 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
                 style={p.dominantHex ? { background: p.dominantHex } : undefined}
               />
               <div className="p-2 space-y-1 text-xs">
-                {p.isPrimary && (
+                <select
+                  value={p.slot === 'service' ? `service:${p.slotKey ?? ''}` : p.slot ?? ''}
+                  onChange={e => assign(p.id, e.target.value)}
+                  className="w-full border rounded px-1 py-0.5 text-xs dark:bg-slate-800 dark:border-slate-600"
+                >
+                  <option value="">Automatic</option>
+                  <option value="hero">Hero (top of page)</option>
+                  <option value="band">Wide band</option>
+                  <option value="gallery">Gallery only</option>
+                  {services.map(name => (
+                    <option key={name} value={`service:${name}`}>Service — {name}</option>
+                  ))}
+                </select>
+                {p.isPrimary && !p.slot && (
                   <span className="inline-block px-1.5 py-0.5 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
                     Hero
                   </span>
+                )}
+                {p.slot === 'service' && !services.includes(p.slotKey ?? '') && (
+                  // The service was renamed or removed after this photo was pinned to it. The
+                  // photo still renders -- it falls back to automatic -- but the stated intent is
+                  // stale and silently ignoring that is how an operator stops trusting the tool.
+                  <div className="text-amber-700 dark:text-amber-400">
+                    &ldquo;{p.slotKey}&rdquo; is no longer a service — placed automatically
+                  </div>
                 )}
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {p.caption ?? <span className="text-slate-400">No caption</span>}

@@ -6,9 +6,10 @@ import {
   PHOTOS_BUCKET, PHOTOS_INCOMING_BUCKET,
 } from '@/lib/lead-engine/photo-storage'
 import { decidePhotoUpload, MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
-import { loadPhotos } from '@/lib/lead-engine/site'
+import { loadPhotos, loadSiteById } from '@/lib/lead-engine/site'
 import { normalizeToRaster, processPhoto } from '@/lib/lead-engine/photo-pipeline'
 import type { PhotoVariant } from '@/lib/lead-engine/types'
+import { PHOTO_SLOTS } from '@/lib/lead-engine/types'
 
 /**
  * Step 2 of 2 — see `lib/lead-engine/photo-storage.ts` for why this is a JSON call naming a
@@ -191,7 +192,106 @@ export async function GET(request: NextRequest) {
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const photos = await loadPhotos(siteId)
-  return NextResponse.json({ photos, count: photos.length, max: MAX_PHOTOS_PER_SITE })
+
+  // The service NAMES, so the slot picker can offer real tiles rather than asking someone to type
+  // a name that has to match exactly. An unbuilt site has no content yet and returns none, which
+  // the UI shows as "build the page content first" rather than an empty dropdown.
+  const full = await loadSiteById(siteId)
+  const services = (full?.content?.services ?? []).map(svc => svc.name)
+
+  return NextResponse.json({ photos, services, count: photos.length, max: MAX_PHOTOS_PER_SITE })
+}
+
+/**
+ * Re-assign an existing photo: where it goes, its caption, whether it is the hero.
+ *
+ * The reason this exists rather than only accepting slots at upload time: by the time anyone can
+ * SEE that the "Drain cleaning" tile is showing a bedroom, the photo is already uploaded. Fixing
+ * it by deleting and re-uploading would mean re-running a HEIC decode and four resize passes to
+ * change one text field.
+ *
+ * Singleton slots are cleared before being claimed. `hero` and `band` have partial unique indexes
+ * per site, so assigning a second one would otherwise fail on a constraint the operator cannot
+ * see -- the same shape the existing `is_primary` write already handles by clearing first.
+ */
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let body: { photoId?: string; slot?: string | null; slotKey?: string | null; caption?: string | null; isPrimary?: boolean }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const photoId = body.photoId?.trim()
+  if (!photoId) return NextResponse.json({ error: 'photoId is required' }, { status: 400 })
+
+  const admin = createStorageAdminClient()
+  const { data: photo } = await admin
+    .from('lead_engine_photos')
+    .select('id, site_id')
+    .eq('id', photoId)
+    .maybeSingle()
+  if (!photo) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const site = await resolveOwnedSite(admin, photo.site_id, user.email)
+  if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const patch: Record<string, unknown> = {}
+
+  if (body.slot !== undefined) {
+    const slot = body.slot
+    if (slot !== null && !(PHOTO_SLOTS as readonly string[]).includes(slot)) {
+      return NextResponse.json(
+        { error: `slot must be null or one of: ${PHOTO_SLOTS.join(', ')}` },
+        { status: 400 },
+      )
+    }
+    // A service pin without a name cannot resolve to a tile, so it would silently behave as
+    // "automatic" while the UI showed it as assigned. Refuse rather than store the ambiguity.
+    if (slot === 'service' && !body.slotKey?.trim()) {
+      return NextResponse.json({ error: 'Pick which service this photo belongs to.' }, { status: 400 })
+    }
+    patch.slot = slot
+    patch.slot_key = slot === 'service' ? body.slotKey!.trim() : null
+
+    if (slot === 'hero' || slot === 'band') {
+      await admin.from('lead_engine_photos')
+        .update({ slot: null, slot_key: null })
+        .eq('site_id', photo.site_id).eq('slot', slot).neq('id', photoId)
+    }
+  }
+
+  if (body.caption !== undefined) patch.caption = body.caption?.trim() || null
+
+  if (body.isPrimary !== undefined) {
+    patch.is_primary = body.isPrimary === true
+    if (body.isPrimary === true) {
+      await admin.from('lead_engine_photos')
+        .update({ is_primary: false })
+        .eq('site_id', photo.site_id).eq('is_primary', true).neq('id', photoId)
+    }
+  }
+
+  if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true })
+
+  const { error } = await admin.from('lead_engine_photos').update(patch).eq('id', photoId)
+  if (error) {
+    // The unique indexes are the last word on "one photo per service". Surfaced in the operator's
+    // terms rather than as a Postgres constraint name.
+    if (error.code === '23505') {
+      return NextResponse.json(
+        { error: 'Another photo is already assigned there. Move that one first.' },
+        { status: 409 },
+      )
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(request: NextRequest) {

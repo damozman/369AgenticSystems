@@ -223,6 +223,10 @@ export interface LeadEngineSite {
 }
 
 /** One generated size of a photo, always both encodings at the same width. */
+/** Where a photo can be pinned. Must match the CHECK in 2026-09-14-lead-engine-photo-slots.sql. */
+export const PHOTO_SLOTS = ['hero', 'band', 'service', 'gallery'] as const
+export type PhotoSlot = (typeof PHOTO_SLOTS)[number]
+
 export interface PhotoVariant {
   width: number
   webp: string
@@ -258,4 +262,16 @@ export interface SitePhoto {
   dominantHex?: string
   /** The customer's stated best photo — overrides sort_order for the hero slot only. */
   isPrimary?: boolean
+  /**
+   * An explicit placement, chosen by an operator. Undefined means "allocate automatically", which
+   * is the common case and every photo uploaded before slots existed.
+   */
+  slot?: PhotoSlot
+  /**
+   * Which one, when `slot` is `'service'` — the service NAME as it appears in the content.
+   *
+   * A name rather than an index because service lists get reordered during review, and an
+   * index would silently reshuffle every service photo the first time a row moved.
+   */
+  slotKey?: string
 }

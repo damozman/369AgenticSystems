@@ -9,8 +9,10 @@
 
 import { createAdminClient } from '@/lib/supabase-admin'
 import type {
-  LeadEngineSite, PhotoVariant, QuestionnaireAnswers, SiteContent, SitePhoto, SiteStatus, Template, Theme,
+  LeadEngineSite, PhotoSlot, PhotoVariant, QuestionnaireAnswers, SiteContent, SitePhoto, SiteStatus,
+  Template, Theme,
 } from '@/lib/lead-engine/types'
+import { PHOTO_SLOTS } from '@/lib/lead-engine/types'
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
@@ -121,6 +123,10 @@ export async function loadSiteById(id: string): Promise<LeadEngineSite | null> {
  * `variants` already holds full public URLs — the upload route calls `getPublicUrl()` before
  * storing — so they pass through untouched. Only `storage_path` needs a URL built.
  */
+function isPhotoSlot(v: unknown): v is PhotoSlot {
+  return typeof v === 'string' && (PHOTO_SLOTS as readonly string[]).includes(v)
+}
+
 export function photoFromRow(row: Record<string, unknown>, base: string): SitePhoto {
   const ratio = Number(row.aspect_ratio)
   const w = Number(row.width)
@@ -138,6 +144,8 @@ export function photoFromRow(row: Record<string, unknown>, base: string): SitePh
     ...(Number.isFinite(h) && h > 0 ? { height: h } : {}),
     ...(dominant ? { dominantHex: dominant } : {}),
     ...(row.is_primary === true ? { isPrimary: true } : {}),
+    ...(isPhotoSlot(row.slot) ? { slot: row.slot } : {}),
+    ...(typeof row.slot_key === 'string' && row.slot_key ? { slotKey: row.slot_key } : {}),
   }
 }
 
@@ -161,7 +169,7 @@ export async function loadPhotos(siteId: string): Promise<SitePhoto[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('lead_engine_photos')
-    .select('id, storage_path, caption, is_primary, aspect_ratio, variants, dominant_hex, width, height')
+    .select('id, storage_path, caption, is_primary, aspect_ratio, variants, dominant_hex, width, height, slot, slot_key')
     .eq('site_id', siteId)
     .order('sort_order', { ascending: true })
     .limit(MAX_PHOTOS_PER_SITE)

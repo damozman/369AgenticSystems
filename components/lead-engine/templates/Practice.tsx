@@ -50,7 +50,9 @@ export default function Practice({
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   const shot = allocatePhotos(photos, {
     hero: true,
-    serviceSlots: layout === 'list' ? 0 : services.length,
+    // Names, not just a count: a photo pinned to "Drain cleaning" can only find its tile if the
+    // allocator knows which tile is which. Empty when the list layout renders no photos at all.
+    serviceNames: layout === 'list' ? [] : services.map(s => s.name),
   })
 
   // Two bars of four cells in a row is one bar too many, and the access facts are the ones a

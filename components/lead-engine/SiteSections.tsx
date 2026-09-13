@@ -1029,7 +1029,12 @@ export function Services({
   content, photos = [], layout, eyebrow = 'What we do', heading = 'Services', band,
 }: {
   content: SiteContent
-  photos?: SitePhoto[]
+  /**
+   * Index-aligned with `content.services`. An entry may be undefined: a tile pinned to a named
+   * service whose photo could not be resolved keeps its position rather than shifting every later
+   * service onto the wrong picture. Both layouts below guard on it.
+   */
+  photos?: (SitePhoto | undefined)[]
   layout: 'mosaic' | 'ladder' | 'list'
   eyebrow?: string
   heading?: string
@@ -1078,13 +1083,15 @@ export function Services({
         </div>
       ) : layout === 'ladder' ? (
         <div>
-          {services.map((s, i) => (
+          {services.map((s, i) => {
+            const photo = photos[i]
+            return (
             <div className="le-grid le-ladder-row" key={s.name}>
-              {photos[i] ? (
+              {photo ? (
                 <div className="le-ladder-img">
                   <SitePhotoImg
-                    photo={photos[i]}
-                    alt={photos[i].caption ?? `${content.businessName} — ${serviceDisplayName(s.name)}`}
+                    photo={photo}
+                    alt={photo.caption ?? `${content.businessName} — ${serviceDisplayName(s.name)}`}
                     sizes="(max-width: 900px) 100vw, 50vw"
                   />
                 </div>
@@ -1094,7 +1101,8 @@ export function Services({
                 {s.description ? <p>{s.description}</p> : null}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <div className="le-svc-list" style={{ gridTemplateColumns: servicesColumns(services.length) === 1 ? '1fr' : '1fr 1fr' }}>

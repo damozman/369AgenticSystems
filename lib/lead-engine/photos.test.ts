@@ -293,3 +293,84 @@ test('the small photo still gets used — it lands further down the page', () =>
   assert.notEqual(a.band?.id, 'small')
   assert.ok(a.gallery.some(p => p.id === 'small'), 'the small photo was dropped rather than demoted')
 })
+
+// ── Explicit slot assignment ─────────────────────────────────────────────────
+//
+// Added after Chris watched a plumbing site render a photograph of a bedroom on its "Drain
+// cleaning" service tile. Nothing was broken: service tiles were paired with photos BY POSITION
+// and the allocator had no idea what any photo depicted. No automatic rule can fix that, because
+// the information did not exist anywhere in the system until `slot` / `slotKey` did.
+
+const pinned = (id: string, slot: SitePhoto['slot'], slotKey?: string): SitePhoto =>
+  ({ id, url: `/${id}.jpg`, caption: null, slot, ...(slotKey ? { slotKey } : {}) })
+
+const plain = (id: string): SitePhoto => ({ id, url: `/${id}.jpg`, caption: null })
+
+test('a photo pinned to a named service lands on THAT service, not on position', () => {
+  // The bug, directly: "drain" is last in upload order and must still land on the first tile.
+  const a = allocatePhotos(
+    [plain('bedroom'), plain('sink'), pinned('drain', 'service', 'Drain cleaning')],
+    { serviceNames: ['Drain cleaning', 'Water heaters', 'Leak repair'] },
+  )
+  assert.equal(a.services[0]?.id, 'drain')
+})
+
+test('service names match case- and whitespace-insensitively', () => {
+  const a = allocatePhotos([pinned('p', 'service', '  drain CLEANING ')], { serviceNames: ['Drain cleaning'] })
+  assert.equal(a.services[0]?.id, 'p')
+})
+
+test('unpinned tiles still fill automatically around the pinned ones', () => {
+  const a = allocatePhotos(
+    [plain('a'), pinned('leak', 'service', 'Leak repair'), plain('b')],
+    { serviceNames: ['Drain cleaning', 'Water heaters', 'Leak repair'] },
+  )
+  assert.equal(a.services[2]?.id, 'leak', 'the pin did not hold its tile')
+  assert.deepEqual([a.services[0]?.id, a.services[1]?.id], ['a', 'b'])
+})
+
+test('⚠ a RENAMED service degrades to automatic — the photo does not vanish', () => {
+  // The operator pinned it to a name that no longer exists. Their intent is stale, not wrong, and
+  // a missing photo is a worse answer than a differently-placed one.
+  const a = allocatePhotos(
+    [pinned('orphan', 'service', 'Drain cleaning')],
+    { serviceNames: ['Drain jetting'] },
+  )
+  assert.equal(a.services[0]?.id, 'orphan', 'the orphaned pin was dropped instead of falling back')
+})
+
+test('hero and band pins beat every automatic preference', () => {
+  const a = allocatePhotos(
+    [sized('huge', 4000, 3000), pinned('myhero', 'hero'), pinned('myband', 'band')],
+    { hero: true, band: true },
+  )
+  assert.equal(a.hero?.id, 'myhero')
+  assert.equal(a.band?.id, 'myband')
+})
+
+test('a gallery pin is not stolen by a service tile that needed filling', () => {
+  // Without holding these back, "put this in the gallery" would be silently overridden by the
+  // first slot that happened to be short.
+  const a = allocatePhotos(
+    [pinned('keep', 'gallery'), plain('other')],
+    { serviceNames: ['A', 'B'] },
+  )
+  assert.ok(a.gallery.some(p => p.id === 'keep'), 'a gallery pin was taken for a service tile')
+  assert.ok(!a.services.some(p => p?.id === 'keep'))
+})
+
+test('no photo is ever used twice across slots', () => {
+  const a = allocatePhotos(
+    [pinned('h', 'hero'), pinned('b', 'band'), pinned('s', 'service', 'A'), plain('x'), plain('y')],
+    { hero: true, band: true, serviceNames: ['A', 'B'] },
+  )
+  const all = [a.hero, a.band, ...a.services, ...a.gallery].filter(Boolean).map(p => p!.id)
+  assert.equal(new Set(all).size, all.length, `a photo appeared in two slots: ${all.join(', ')}`)
+})
+
+test('sites with no pins behave exactly as before', () => {
+  // Every existing photo has no slot. This is the regression that would break every live site.
+  const a = allocatePhotos([plain('1'), plain('2'), plain('3')], { hero: true, serviceNames: ['A', 'B'] })
+  assert.equal(a.hero?.id, '1')
+  assert.deepEqual([a.services[0]?.id, a.services[1]?.id], ['2', '3'])
+})
