@@ -8,9 +8,89 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-09-01.**
+**Last updated: 2026-09-13.**
 
-### Where this session ended — 2026-09-01
+### Where this session ended — 2026-09-13
+
+**No code changed this session.** The branch is exactly where 2026-09-01 left it (`96bc5f4`, clean,
+pushed). What this session produced is a **scoping read of Chunk C**, and two confirmed defects that
+change what Chunk C actually is. Both were found by reading the calling path, not inferred from a
+signature — and both are cheap to fix and expensive to rediscover, which is why they are written
+here rather than left to the next exploration.
+
+#### 🔴 Finding 1 — `loadPhotos()` throws away five columns, so half of Chunk B is dead on the page
+
+`lib/lead-engine/site.ts:112` selects **`id, storage_path, caption`** and nothing else. It is the
+*only* feeder into `allocatePhotos()` on the live render path (`app/sites/[slug]/page.tsx:90`), so
+`is_primary`, `aspect_ratio`, `variants` and `dominant_hex` are **written on every upload and never
+read back**. Consequences, none of which error:
+
+- **The hero-photo pick never fires.** `allocatePhotos` splices `isPrimary` out first for the hero
+  slot — with the field absent, it falls through to `pool.shift()`, i.e. upload order.
+- **The hero/band aspect-ratio preferences never fire.** `takeByAspect('narrowest')` /
+  `('widest')` degrade to the same `pool.shift()` when no photo in the pool carries a numeric ratio.
+- **`srcSet` and the dominant-colour placeholder are dead.** `SitePhotoImg` degrades to a plain
+  `<img src>` without `variants`, so the four-width responsive work from 2026-08-24 reaches nobody.
+
+**Why this is the finding that reorders Chunk C:** "let the person uploading choose the hero photo"
+is the headline requirement of the uploader, and it is currently impossible **for a reason that has
+nothing to do with the UI**. `POST /api/lead-engine/photos` already accepts `isPrimary` and
+`caption`; the column already exists with a partial unique index enforcing one primary per site.
+The value is accepted, stored, and then discarded at render. **Fixing the SELECT is the whole fix**
+— and it must land before any uploader work, or the uploader will ship a control that demonstrably
+does nothing.
+
+#### 🔴 Finding 2 — nothing in the codebase can publish a site
+
+**Nothing in the app or in `scripts/` ever sets `status: 'live'`, and nothing ever sets
+`launched_at`.** Grepped both. The only status transition that exists anywhere is
+`saveQuestionnaireAnswers()` moving `draft | awaiting_answers → in_build` on first submission
+(`lib/lead-engine/site.ts:307`). `suspended` and `cancelled` are equally unreachable.
+
+So a site can be created, answered, photographed and rendered — and then **cannot be published
+except by hand-editing the database.** `loadSiteBySlug` gates on `status = 'live'` unless
+`previewEnabled()`, so every site built today is visible only in local preview.
+
+#### How Chunk C actually splits — three things, not one list
+
+The list under "Chunk C — the requirements" further down is accurate about *what* is wanted, but it
+reads as one body of work. It is three, with very different sizes and risk:
+
+**A. The two findings above — small, and not really Chunk C.** They are unfinished Chunk B: a
+SELECT list and a status write. Neither needs a design decision. **A is a prerequisite for C**, per
+the hero-pick reasoning above.
+
+**B. The admin review/publish page — medium.** Most of it already exists in pieces:
+`contentFrom()` is pure and tested, `saveContent()` already writes `content` + `needs_review:false`,
+`loadSiteById` / `listSubmissions` / `listChangeRequests` are all present, and
+**`scripts/seed-lead-engine-review.mjs` is effectively the spec** — its own sequence (load answers →
+`contentFrom()` → resolve the pair → write the row) is the flow the page would automate. The
+established admin pattern is a thin server page plus a sibling `'use client'` tool
+(`admin/ops-brief/`, `admin/lead-engine-photos/`), gated by `middleware.ts` on `/admin/:path*`.
+
+**C. The customer photo uploader — large, and the only part with real open questions.**
+Per-slot sections, live counts, caption + hero pick, an "I'm done" action.
+**`decideBatchPhotoUpload()` in `lib/lead-engine/limits.ts` already exists and is called from
+nowhere** — written for the multi-select dashboard that was never built, so some groundwork is laid.
+
+#### ▶ The scope conversation is OPEN and is where to resume
+
+Two questions were put to Chris and **not yet answered** — he stopped to check the handoff state
+first. Ask these before building anything in B or C:
+
+1. **Who uploads photos for the first real sites?** Chris on the client's behalf (upgrade the admin
+   harness, no customer UI yet) · customer self-serve (build the full dashboard uploader now) ·
+   both, admin first (design the per-slot UI against a real workflow rather than a guess).
+   **This decides whether C is built at all right now.** With zero paying clients and hands-on
+   onboarding, "Chris does it" is a defensible answer that makes C mostly unnecessary for months.
+2. **How much editing does the admin page need?** Review-and-publish only · review with targeted
+   overrides · full field-by-field editing. The tension: review-only ships fastest but means a typo
+   requires the client to resubmit the questionnaire.
+
+**A is worth doing regardless of either answer** — both findings are defects on work already
+shipped, and neither depends on how B or C are scoped.
+
+### The session before — 2026-09-01
 
 **The branch is verified end to end for the first time.** `verify-lead-engine.mjs --live` reports
 **All checks passed** — all three jobs, including the questionnaire round-trip and the real lead
@@ -159,8 +239,14 @@ which reads `ONBOARDING_TOKEN_SECRET` and has no fallback.
 
 ## ▶ START HERE NEXT SESSION
 
-**Chunk C proper still has NOT started, and still waits on Chris's scope conversation.** Do not
-start the uploader or the admin page without it.
+**Chunk C proper still has NOT started.** The scope conversation is **OPEN but unanswered** — two
+questions were put to Chris on 2026-09-13 and are recorded verbatim in the handoff at the top of
+this file. **Do not start the uploader (C) or the admin page (B) without those answers.**
+
+**Two defects found 2026-09-13 are exempt from that hold** and should be fixed regardless of how
+the scope lands: `loadPhotos()` drops five columns so the hero pick and `srcSet` are dead on every
+live page, and nothing in the codebase can set `status: 'live'`. Both are unfinished Chunk B, both
+are small, and the first is a hard prerequisite for the uploader. Full write-up in the handoff.
 
 **Approved and NOT yet built — what is left of the design work:**
 
