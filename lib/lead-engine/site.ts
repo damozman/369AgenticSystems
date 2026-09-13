@@ -274,6 +274,121 @@ export async function createSite(input: {
 }
 
 /**
+ * Which status changes are legal, as a pure table.
+ *
+ * Pure and exported so every pair can be asserted without a database. The transitions are
+ * deliberately few: this lists what an operator actually does, not every arrow that could be drawn
+ * between six statuses.
+ *
+ * `cancelled` has no entries in either direction and stays unreachable — nothing in the product
+ * cancels a site yet, and inventing the transition now would mean guessing what it should do to a
+ * live URL a customer is handing out. `suspended` IS reachable, because it is the only takedown
+ * lever for a client who stops paying, and it is reversible.
+ *
+ * `live -> in_build` is unpublish: it pulls the page (`loadSiteBySlug` gates on `status = 'live'`)
+ * without destroying anything, which is what makes it safe to offer next to a publish button.
+ */
+const ALLOWED_TRANSITIONS: Readonly<Record<SiteStatus, readonly SiteStatus[]>> = {
+  draft:            ['live'],
+  awaiting_answers: ['live'],
+  in_build:         ['live'],
+  live:             ['suspended', 'in_build'],
+  suspended:        ['live'],
+  cancelled:        [],
+}
+
+export function canTransition(from: SiteStatus, to: SiteStatus): boolean {
+  return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false
+}
+
+export type SetStatusResult =
+  | { ok: true; slug: string; status: SiteStatus; alreadyInStatus: boolean; needsReview: boolean }
+  | { ok: false; error: string }
+
+/**
+ * Move a site between statuses — the only way to publish one.
+ *
+ * Before this existed, nothing in the app or in `scripts/` ever wrote `status: 'live'` or
+ * `launched_at`. A site could be created, answered, photographed and rendered, and then only
+ * published by hand-editing the database.
+ *
+ * ── `launched_at` is written ONCE and never overwritten ──
+ * `decideRevision` (lib/lead-engine/limits.ts) reads a null `launchedAt` as "still in build, so
+ * revisions are free". Overwriting the timestamp on a republish would therefore reset the
+ * customer's revision window and silently hand them a fresh set of free revisions — a billing
+ * consequence hiding inside a status write. Unpublishing and republishing keeps the original
+ * launch date, which is also the honest answer to "when did this site go live".
+ *
+ * ── `needs_review` is REPORTED, not enforced ──
+ * It means the customer changed their answers after the content was built. That is worth telling
+ * the operator and is not grounds for refusing to publish: the content on the page may be exactly
+ * right, and only a human looking at both can say. Blocking here would turn a warning into a
+ * dead end with no override.
+ */
+export async function setSiteStatus(siteId: string, to: SiteStatus): Promise<SetStatusResult> {
+  const supabase = createAdminClient()
+
+  const { data: site, error: loadError } = await supabase
+    .from('lead_engine_sites')
+    .select('id, slug, status, content, launched_at, needs_review')
+    .eq('id', siteId)
+    .maybeSingle()
+
+  if (loadError) {
+    console.error(`[LEAD-ENGINE] Could not load site ${siteId} for status change: ${loadError.message}`)
+    return { ok: false, error: 'Could not load that site.' }
+  }
+  if (!site) return { ok: false, error: 'No such site.' }
+
+  const from = site.status as SiteStatus
+  const needsReview = site.needs_review === true
+
+  // Idempotent: clicking publish twice is a double-click, not an error. Reported so a caller can
+  // tell "I changed it" from "it was already that", which matters for the confirmation message.
+  if (from === to) {
+    return { ok: true, slug: site.slug as string, status: to, alreadyInStatus: true, needsReview }
+  }
+
+  if (!canTransition(from, to)) {
+    return { ok: false, error: `A site cannot go from ${from} to ${to}.` }
+  }
+
+  // Publishing is the one transition that puts a page in front of strangers, so it is the one that
+  // validates. Every check below is something a visitor would otherwise see broken.
+  if (to === 'live') {
+    const content = site.content as SiteContent | null
+    if (!content) {
+      return { ok: false, error: 'This site has no content yet — build it from the answers first.' }
+    }
+    if (!content.businessName?.trim()) {
+      return { ok: false, error: 'The content has no business name, so the page would have no heading.' }
+    }
+    if (!content.cta) {
+      return { ok: false, error: 'The content has no call to action, so a visitor could not contact them.' }
+    }
+    if (!validateSlug(site.slug as string).valid) {
+      return { ok: false, error: `The web address "${site.slug}" is not valid, so the page would 404.` }
+    }
+  }
+
+  const patch: Record<string, unknown> = { status: to }
+  if (to === 'live' && !site.launched_at) patch.launched_at = new Date().toISOString()
+
+  const { error: writeError } = await supabase
+    .from('lead_engine_sites')
+    .update(patch)
+    .eq('id', siteId)
+
+  if (writeError) {
+    console.error(`[LEAD-ENGINE] Could not set ${siteId} to ${to}: ${writeError.message}`)
+    return { ok: false, error: 'Could not save that change.' }
+  }
+
+  console.log(`[LEAD-ENGINE] ${siteId} (/sites/${site.slug}) ${from} -> ${to}`)
+  return { ok: true, slug: site.slug as string, status: to, alreadyInStatus: false, needsReview }
+}
+
+/**
  * Replace a site's rendered content.
  *
  * Only ever writes `content`, never `questionnaire`. The two columns have two different writers —
