@@ -8,9 +8,60 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-09-13.**
+**Last updated: 2026-09-13 (second session).**
 
-### Where this session ended — 2026-09-13
+### Where this session ended — 2026-09-13, second session
+
+**Steps 1–4 of Chunk C are BUILT, committed and pushed. Step 5 is the only one left.**
+Branch `feature/lead-engine-chunk-c`, clean, level with origin. 613 tests, `tsc` clean apart from
+the known `xlsx` container failure, style check clean.
+
+| # | What | Commit |
+|---|---|---|
+| 1 | `loadPhotos()` reads back what the ingest writes | `f39d1d1` |
+| 2 | A site can be published — `canTransition` / `setSiteStatus` / status route | `74e685b` |
+| 3 | Photo tool: captions, hero pick, multi-upload, a real list | `de6180a` |
+| 4 | Admin site list + `listSitesForAdmin()` | `24a7a7d` |
+
+#### ▶ STEP 5 IS NEXT — the admin review/publish page
+
+The full design is in "The work, in order" below and in the plan file. In short:
+`app/(portal)/admin/lead-engine/[id]/page.tsx` + a sibling `'use client'` `ReviewTool.tsx`,
+matching `ops-brief/page.tsx` + `OpsUploadTool.tsx`. It shows the raw answers, `contentFrom()`
+output as a prefilled form, the photo allocation, a Regenerate button, Save and Publish.
+
+**The one design constraint that is easy to get wrong:** `headlineNoun` and `footerNote` overrides
+must be written to their **columns**, not into `content`. `contentOf()`
+(`app/sites/[slug]/page.tsx:45`) spreads those columns *over* `content`, so an override written
+into the jsonb is silently ignored whenever the column is non-null. Everything else goes to
+`content` via the existing `saveContent()`. A new `updateSiteFields()` is needed for the two
+columns. **No `content_overrides` column and no merge function** — the reasoning is in the plan
+file; adding one would introduce the two-writers shape this repo has been bitten by twice.
+
+Publish already works end to end via `POST /api/lead-engine/sites/[id]/status`; step 5 gives it a
+button, it does not need to reimplement it.
+
+#### 🔴 NOTHING IN STEPS 3 OR 4 HAS BEEN BROWSER-TESTED
+
+This container has no `.env.local`, so there is no Supabase to authenticate against and no admin
+session to reach `/admin/lead-engine` or `/admin/lead-engine-photos` with. Both pages **compile** —
+verified with `next build`, whose only failure is `/api/audit/call` wanting `RETELL_API_KEY`,
+unrelated. Compiling is not working. **Click through both locally before relying on them**,
+especially the multi-file upload and the delete button.
+
+`next build` cannot complete in the cloud container because `xlsx` installs from a CDN URL the
+proxy blocks. Stubbing `node_modules/xlsx` (gitignored, ephemeral) gets past it and lets the build
+answer the only question that matters — does this code compile. Remove the stub afterwards.
+
+#### Still unanswered, and still worth asking before step 5 ships
+
+Nothing blocks step 5. But the customer-facing photo uploader (deferred by decision — "admin tool
+first, customer later") should be designed against a REAL workflow. **After a real client has been
+through the admin tool once, revisit the per-slot uploader requirements** recorded under "Chunk C —
+the requirements" below. They were written from the Miller Storm run and are still good, but a
+second real run is what turns them from a guess into a spec.
+
+### The session before — 2026-09-13
 
 **No code changed this session.** The branch is exactly where 2026-09-01 left it (`96bc5f4`, clean,
 pushed). What this session produced is a **scoping read of Chunk C**, and two confirmed defects that
