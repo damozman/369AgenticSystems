@@ -8,58 +8,73 @@ snapshot, not a changelog. Delete an item once it's actually resolved rather tha
 This section is scoped to `feature/lead-engine` only; `CLAUDE.md`'s own Session Handoff is a
 separate initiative on `master` (dossier / audit-calls) — do not conflate the two.
 
-**Last updated: 2026-09-13 (second session).**
+**Last updated: 2026-09-13 (third session).**
 
-### Where this session ended — 2026-09-13, second session
+### Where this session ended — 2026-09-13, third session
 
-**Steps 1–4 of Chunk C are BUILT, committed and pushed. Step 5 is the only one left.**
-Branch `feature/lead-engine-chunk-c`, clean, level with origin. 613 tests, `tsc` clean apart from
-the known `xlsx` container failure, style check clean.
+**ALL FIVE STEPS OF CHUNK C ARE BUILT.** Branch `feature/lead-engine-chunk-c`, clean, pushed.
+619 tests, `tsc` clean apart from the known `xlsx` container failure, style check clean.
 
 | # | What | Commit |
 |---|---|---|
 | 1 | `loadPhotos()` reads back what the ingest writes | `f39d1d1` |
-| 2 | A site can be published — `canTransition` / `setSiteStatus` / status route | `74e685b` |
+| 2 | A site can be published | `74e685b` |
 | 3 | Photo tool: captions, hero pick, multi-upload, a real list | `de6180a` |
-| 4 | Admin site list + `listSitesForAdmin()` | `24a7a7d` |
+| 4 | Admin site list | `24a7a7d` |
+| 5 | Admin review + publish page | `287771c` |
 
-#### ▶ STEP 5 IS NEXT — the admin review/publish page
+A site now goes from submitted answers to a live URL entirely through the UI at
+`/admin/lead-engine`. No SQL, no scripts.
 
-The full design is in "The work, in order" below and in the plan file. In short:
-`app/(portal)/admin/lead-engine/[id]/page.tsx` + a sibling `'use client'` `ReviewTool.tsx`,
-matching `ops-brief/page.tsx` + `OpsUploadTool.tsx`. It shows the raw answers, `contentFrom()`
-output as a prefilled form, the photo allocation, a Regenerate button, Save and Publish.
+#### 🔴 THE FIRST THING TO DO NEXT: click through it, then run `--live`
 
-**The one design constraint that is easy to get wrong:** `headlineNoun` and `footerNote` overrides
-must be written to their **columns**, not into `content`. `contentOf()`
-(`app/sites/[slug]/page.tsx:45`) spreads those columns *over* `content`, so an override written
-into the jsonb is silently ignored whenever the column is non-null. Everything else goes to
-`content` via the existing `saveContent()`. A new `updateSiteFields()` is needed for the two
-columns. **No `content_overrides` column and no merge function** — the reasoning is in the plan
-file; adding one would introduce the two-writers shape this repo has been bitten by twice.
+**Nothing in steps 3, 4 or 5 has been browser-tested.** This container has no `.env.local`, so
+there is no Supabase to authenticate against and no admin session to reach any of the pages with.
+All of it **compiles** — verified with `next build`, whose only failure is `/api/audit/call`
+wanting `RETELL_API_KEY`, unrelated. **Compiling is not working.** Until someone opens
+`/admin/lead-engine` and drives a real site from answers to published, this is unproven code that
+type-checks.
 
-Publish already works end to end via `POST /api/lead-engine/sites/[id]/status`; step 5 gives it a
-button, it does not need to reimplement it.
+`next build` cannot complete here at all because `xlsx` installs from a CDN URL the proxy blocks.
+Stub `node_modules/xlsx` (gitignored, ephemeral) to get past it; remove it afterwards.
 
-#### 🔴 NOTHING IN STEPS 3 OR 4 HAS BEEN BROWSER-TESTED
+**Then run `verify-lead-engine.mjs --live`**, which has NOT been run against steps 1–5. PowerShell,
+two windows, the same throwaway value in both — without it the run dies at `no token minted` and
+cascades into ~9 failures that look like defects and are not:
 
-This container has no `.env.local`, so there is no Supabase to authenticate against and no admin
-session to reach `/admin/lead-engine` or `/admin/lead-engine-photos` with. Both pages **compile** —
-verified with `next build`, whose only failure is `/api/audit/call` wanting `RETELL_API_KEY`,
-unrelated. Compiling is not working. **Click through both locally before relying on them**,
-especially the multi-file upload and the delete button.
+```powershell
+$env:ONBOARDING_TOKEN_SECRET = "local-verify-secret"   # both windows; restart the server if running
+npm run dev
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-lead-engine.mjs --live
+```
 
-`next build` cannot complete in the cloud container because `xlsx` installs from a CDN URL the
-proxy blocks. Stubbing `node_modules/xlsx` (gitignored, ephemeral) gets past it and lets the build
-answer the only question that matters — does this code compile. Remove the stub afterwards.
+**Worth adding to that script while there:** post edited answers to
+`POST /api/lead-engine/sites/[id]/content` and assert the stored `content` changed while the stored
+`questionnaire` did **not**. That is the whole two-writers guarantee of step 5 and it is invisible
+to `tsc`.
 
-#### Still unanswered, and still worth asking before step 5 ships
+#### The design decision in step 5 worth not undoing
 
-Nothing blocks step 5. But the customer-facing photo uploader (deferred by decision — "admin tool
-first, customer later") should be designed against a REAL workflow. **After a real client has been
-through the admin tool once, revisit the per-slot uploader requirements** recorded under "Chunk C —
-the requirements" below. They were written from the Miller Storm run and are still good, but a
-second real run is what turns them from a guess into a spec.
+**The admin form edits ANSWERS, not `SiteContent`.** Save re-runs `contentFrom()` over the edited
+copy and stores only the result; the edited answers are never persisted. Two reasons, and the
+first is mechanical: `list()` and `servicesFrom()` are private to `content.ts`, so editing
+`SiteContent` directly would need a second parser for the same strings. The second is that
+`questionnaire` stays the customer's untouched record, which keeps `saveContent`'s single-writer
+promise honest.
+
+**`headlineNoun` and `footerNote` are the exception and go to their COLUMNS** via
+`updateSiteFields()`. `contentOf()` spreads those columns *over* `content`, so an override written
+into the jsonb is silently ignored whenever the column is non-null.
+
+#### What is left of Chunk C
+
+Only the **customer-facing photo uploader**, deferred by decision — "admin tool first, customer
+later". Requirements are under "Chunk C — the requirements" below, gathered from the Miller Storm
+run. **Revisit them after a real client has been through the admin tool once**: a second real run
+turns them from a good guess into a spec.
+
+Not started, and not blocking: merging to `master`. Hold until `--live` is green on the final
+state, per this file's own rule.
 
 ### The session before — 2026-09-13
 
@@ -300,14 +315,14 @@ which reads `ONBOARDING_TOKEN_SECRET` and has no fallback.
 
 ## ▶ START HERE NEXT SESSION
 
-**Chunk C proper still has NOT started.** The scope conversation is **OPEN but unanswered** — two
-questions were put to Chris on 2026-09-13 and are recorded verbatim in the handoff at the top of
-this file. **Do not start the uploader (C) or the admin page (B) without those answers.**
+**Chunk C steps 1–5 are BUILT.** Both scope questions were answered 2026-09-13 (admin tool first,
+customer uploader later; review with targeted overrides), both defects are fixed, and a site now
+goes from answers to a live URL through `/admin/lead-engine` with no SQL.
 
-**Two defects found 2026-09-13 are exempt from that hold** and should be fixed regardless of how
-the scope lands: `loadPhotos()` drops five columns so the hero pick and `srcSet` are dead on every
-live page, and nothing in the codebase can set `status: 'live'`. Both are unfinished Chunk B, both
-are small, and the first is a hard prerequisite for the uploader. Full write-up in the handoff.
+**The next task is not code: click through it, then run `--live`.** None of steps 3, 4 or 5 has
+been opened in a browser — they compile and that is all that is known. The full instruction,
+including the `ONBOARDING_TOKEN_SECRET` invocation that a run fails confusingly without, is in the
+handoff at the top of this file.
 
 **Approved and NOT yet built — what is left of the design work:**
 
