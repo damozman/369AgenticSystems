@@ -16,7 +16,8 @@
  */
 
 import { useState, useEffect, use } from 'react'
-import type { CtaKind, ServiceItem } from '@/lib/lead-engine/types'
+import type { CtaKind, FaqItem, ServiceItem } from '@/lib/lead-engine/types'
+import { SERVICE_PAGE_MIN_WORDS } from '@/lib/lead-engine/sections'
 
 type FormAnswers = {
   business_name: string
@@ -25,6 +26,9 @@ type FormAnswers = {
   differentiator: string
   customer_impression: string
   credentials: string
+  /** Kept apart from `credentials`, which is free prose. A licence NUMBER is a specific,
+   *  verifiable fact and it renders in the trust row on its own. */
+  licence_number: string
   years_in_business: string
   primary_cta: CtaKind | ''
   primary_cta_other: string
@@ -39,6 +43,7 @@ const EMPTY: FormAnswers = {
   business_name: '', phone: '', service_areas: '', differentiator: '', customer_impression: '',
   credentials: '', years_in_business: '', primary_cta: '', primary_cta_other: '',
   google_profile_url: '', has_photos: null, pain_points: '', notify_email: '', preferred_slug: '',
+  licence_number: '',
 }
 
 export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +51,21 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
 
   const [form, setForm] = useState<FormAnswers>(EMPTY)
   const [services, setServices] = useState<ServiceItem[]>([{ name: '', description: '' }])
+  const [faqs, setFaqs] = useState<FaqItem[]>([{ question: '', answer: '' }])
+  // Which services have their extra detail expanded. The three page-worthy questions are real work
+  // to answer, and showing 24 empty boxes at once to someone filling this in on a phone between
+  // jobs is how a form gets abandoned. Opt in per service, with the reason stated.
+  const [openDetail, setOpenDetail] = useState<Record<number, boolean>>({})
+
+  const setFaq = (i: number, patch: Partial<FaqItem>) =>
+    setFaqs(prev => prev.map((f, j) => (j === i ? { ...f, ...patch } : f)))
+  const addFaq = () => setFaqs(prev => [...prev, { question: '', answer: '' }])
+  const removeFaq = (i: number) => setFaqs(prev => prev.filter((_, j) => j !== i))
+
+  /** Words across a service's own copy — the same measure `serviceEarnsPage` applies. */
+  const serviceWords = (s: ServiceItem): number =>
+    [s.description, s.involves, s.expect, ...(s.signs ?? [])]
+      .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
 
   const [businessNameOnFile, setBusinessNameOnFile] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -80,8 +100,20 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
             return next
           })
           if (Array.isArray(a.services) && a.services.length > 0) {
-            setServices(a.services.map((s: unknown) =>
-              typeof s === 'string' ? { name: s } : (s as ServiceItem)))
+            const loaded = a.services.map((s: unknown) =>
+              typeof s === 'string' ? { name: s } : (s as ServiceItem))
+            setServices(loaded)
+            // Expand the detail for any service that already has some, so a re-submit cannot
+            // silently drop answers the form never showed. This project has shipped exactly that
+            // bug once already, on the voice questionnaire: a form that cannot show what is stored
+            // cannot round-trip it.
+            setOpenDetail(Object.fromEntries(
+              loaded.flatMap((s: ServiceItem, i: number) =>
+                s.involves || s.expect || s.signs?.length ? [[i, true]] : []),
+            ))
+          }
+          if (Array.isArray(a.faqs) && a.faqs.length > 0) {
+            setFaqs(a.faqs as FaqItem[])
           }
         }
       })
@@ -113,6 +145,7 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
           t: token,
           ...form,
           services: services.filter(s => s.name.trim() !== ''),
+          faqs: faqs.filter(f => f.question.trim() !== '' && f.answer.trim() !== ''),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -186,17 +219,77 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
 
         <label>What services do you mainly offer?</label>
         <p className="hint">Add each one separately — a short description is optional but helps.</p>
-        {services.map((s, i) => (
+        {services.map((s, i) => {
+          const wc = serviceWords(s)
+          const ready = wc >= SERVICE_PAGE_MIN_WORDS
+          return (
           <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
               <input placeholder="Service name" value={s.name} onChange={e => setService(i, { name: e.target.value })} />
               <input placeholder="Short description (optional)" value={s.description ?? ''} onChange={e => setService(i, { description: e.target.value })} />
+
+              {s.name.trim() !== '' && !openDetail[i] && (
+                <button
+                  type="button"
+                  className="add-row"
+                  onClick={() => setOpenDetail(p => ({ ...p, [i]: true }))}
+                  style={{ marginTop: 4 }}
+                >
+                  + Tell us more about {s.name.trim()} — gives it its own page
+                </button>
+              )}
+
+              {openDetail[i] && (
+                <div style={{ marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #ddd' }}>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Answer these and {s.name.trim() || 'this service'} gets a page of its own, which
+                    is how people searching for it find you. Skip them and it still appears on your
+                    main page.
+                  </p>
+
+                  <label>What&rsquo;s involved?</label>
+                  <textarea
+                    rows={3}
+                    value={s.involves ?? ''}
+                    onChange={e => setService(i, { involves: e.target.value })}
+                    placeholder="How you actually do the job, in your own words."
+                  />
+
+                  <label>How does someone know they need this?</label>
+                  <p className="hint">
+                    One per line. People search what is happening to them, not the name of the
+                    job — this is often what brings them to you.
+                  </p>
+                  <textarea
+                    rows={4}
+                    value={(s.signs ?? []).join('\n')}
+                    onChange={e => setService(i, { signs: e.target.value.split('\n') })}
+                    placeholder={'Water backing up in more than one place\nA gurgle from the toilet when the washer drains'}
+                  />
+
+                  <label>What should they expect on price or timing? <span style={{ fontWeight: 400 }}>(optional)</span></label>
+                  <p className="hint">Leave this blank if you would rather not say — we will leave it off.</p>
+                  <textarea
+                    rows={2}
+                    value={s.expect ?? ''}
+                    onChange={e => setService(i, { expect: e.target.value })}
+                    placeholder="Most are done in under an hour. We tell you the price before we start."
+                  />
+
+                  <p className="hint" style={{ fontWeight: 500 }}>
+                    {ready
+                      ? `Enough for its own page.`
+                      : `About ${SERVICE_PAGE_MIN_WORDS - wc} more words and this gets its own page.`}
+                  </p>
+                </div>
+              )}
             </div>
             {services.length > 1 && (
               <button type="button" className="remove-row" onClick={() => removeService(i)}>Remove</button>
             )}
           </div>
-        ))}
+          )
+        })}
         {services.length < 8 && (
           <button type="button" className="add-row" onClick={addService}>+ Add another service</button>
         )}
@@ -213,6 +306,61 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
 
         <label>Any guarantees, licences or certifications customers should know about?</label>
         <input value={form.credentials} onChange={e => set('credentials', e.target.value)} placeholder="Licensed and insured in Texas" />
+
+        <label>Licence number</label>
+        <p className="hint">
+          Shown on its own so customers can check it. Leave it blank if your trade does not use one.
+        </p>
+        <input
+          value={form.licence_number}
+          onChange={e => set('licence_number', e.target.value)}
+          placeholder="Texas M-41234"
+        />
+
+        <label>What do customers ask you before they book?</label>
+        <p className="hint">
+          Your four or five most common questions, answered the way you would answer them on the
+          phone. These do more work than anything else on the page — Google often shows them
+          directly in search results.
+        </p>
+        {faqs.map((f, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <input
+                placeholder="Do you charge a call-out fee?"
+                value={f.question}
+                onChange={e => setFaq(i, { question: e.target.value })}
+              />
+              <textarea
+                rows={2}
+                placeholder="No call-out fee within Fort Worth. You pay for the time and the parts."
+                value={f.answer}
+                onChange={e => setFaq(i, { answer: e.target.value })}
+              />
+              {/* Tagging is optional and only offered once there are named services to tag to.
+                  An untagged question stays on the main page, which is the common case. */}
+              {services.some(sv => sv.name.trim() !== '') && (
+                <select
+                  value={f.service ?? ''}
+                  onChange={e => setFaq(i, { service: e.target.value || undefined })}
+                >
+                  <option value="">Shows on the main page</option>
+                  {services
+                    .filter(sv => sv.name.trim() !== '')
+                    .map(sv => (
+                      <option key={sv.name} value={sv.name}>Shows with {sv.name.trim()}</option>
+                    ))}
+                </select>
+              )}
+            </div>
+            {faqs.length > 1 && (
+              <button type="button" className="remove-row" onClick={() => removeFaq(i)}>Remove</button>
+            )}
+          </div>
+        ))}
+        {faqs.length < 6 && (
+          <button type="button" className="add-row" onClick={addFaq}>+ Add another question</button>
+        )}
 
         <label>Roughly how long have you been in business?</label>
         <input value={form.years_in_business} onChange={e => set('years_in_business', e.target.value)} placeholder="12 years" />

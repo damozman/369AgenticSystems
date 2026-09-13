@@ -26,6 +26,7 @@ export const dynamic = 'force-dynamic'
 const STRING_FIELDS = [
   'business_name', 'phone', 'service_areas', 'differentiator', 'customer_impression', 'credentials',
   'years_in_business', 'primary_cta_other', 'google_profile_url', 'pain_points', 'notify_email',
+  'licence_number',
   'preferred_slug', 'hours', 'location', 'first_visit', 'patient_forms_url',
 ] as const satisfies readonly (keyof QuestionnaireAnswers)[]
 
@@ -58,10 +59,39 @@ function parseAnswers(body: Record<string, unknown>): QuestionnaireAnswers {
         const name = str(entry, 60)
         return name ? [{ name }] : []
       }
-      const name = str((entry as { name?: unknown })?.name, 60)
+      const e = entry as Record<string, unknown>
+      const name = str(e?.name, 60)
       if (!name) return []
-      const description = str((entry as { description?: unknown })?.description, 140)
-      return [description ? { name, description } : { name }]
+      const description = str(e?.description, 140)
+      // ⚠ The three page-worthy fields must survive this function. Dropping them here is
+      // invisible: the form posts, the route answers 200, and the customer's answers are gone.
+      // Round-tripping them is asserted in the tests for exactly that reason.
+      const involves = str(e?.involves, 700)
+      const expect   = str(e?.expect, 700)
+      const signs = Array.isArray(e?.signs)
+        ? (e.signs as unknown[]).map(x => str(x, 160)).filter((x): x is string => !!x).slice(0, 8)
+        : undefined
+      return [{
+        name,
+        ...(description ? { description } : {}),
+        ...(involves ? { involves } : {}),
+        ...(signs?.length ? { signs } : {}),
+        ...(expect ? { expect } : {}),
+      }]
+    })
+  }
+
+  // FAQs were never accepted here at all, because the form never asked for them — the type
+  // supported them, contentFrom read them, the templates rendered them, and only the seed script
+  // ever wrote any. A real client's page had no FAQ section.
+  if (Array.isArray(body.faqs)) {
+    out.faqs = body.faqs.slice(0, 8).flatMap(entry => {
+      const e = entry as Record<string, unknown>
+      const question = str(e?.question, 160)
+      const answer   = str(e?.answer, 600)
+      if (!question || !answer) return []
+      const service = str(e?.service, 60)
+      return [{ question, answer, ...(service ? { service } : {}) }]
     })
   }
 

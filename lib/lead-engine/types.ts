@@ -162,6 +162,9 @@ export interface QuestionnaireAnswers {
   customer_impression?: string
   /** Q5. Feeds the proof bar always, and a third Why-us item when answered — see `sections.ts`'s `credentialWhyUsLine`. */
   credentials?: string
+  /** A licence NUMBER, kept apart from the free-prose `credentials` because it is a specific,
+   *  checkable fact and renders on its own in the trust row. */
+  licence_number?: string
   years_in_business?: string
   primary_cta?: CtaKind
   primary_cta_other?: string
@@ -213,6 +216,8 @@ export interface SiteContent {
   /** Q4b, verbatim — the second guaranteed Why-us item. */
   customerImpression?: string
   credentials?: string
+  /** A checkable licence number, shown on its own in the trust row. */
+  licenceNumber?: string
   yearsInBusiness?: string
   googleProfileUrl?: string
   testimonials?: Testimonial[]

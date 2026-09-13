@@ -244,3 +244,66 @@ test('a non-practice questionnaire produces no practice fields at all', () => {
   assert.equal(c.team, undefined)
   assert.equal(c.newPatientInfo, undefined)
 })
+
+// ── The service-page fields and FAQs, end to end ─────────────────────────────
+//
+// These exist because the failure mode is SILENT. A field the route drops still returns 200, the
+// form still says saved, and the customer's answers are simply gone. `item`, `sms_consent`,
+// `booking_token`, `isPrimary` and `caption` have all been that bug on this project already.
+
+test('the three service-page fields survive contentFrom', () => {
+  const c = contentFrom({
+    business_name: 'Bell Avenue Plumbing',
+    services: [{
+      name: 'Drain cleaning',
+      description: 'Cabling and jetting.',
+      involves: 'Cabling clears most blockages the same day.',
+      signs: ['Water backing up in more than one fixture', 'A gurgle from the toilet'],
+      expect: 'Most are cleared in under an hour.',
+    }],
+  }, 'Fallback')
+
+  const s = c.services![0]
+  assert.equal(s.involves, 'Cabling clears most blockages the same day.')
+  assert.deepEqual(s.signs, ['Water backing up in more than one fixture', 'A gurgle from the toilet'])
+  assert.equal(s.expect, 'Most are cleared in under an hour.')
+})
+
+test('a service with only a name is unchanged — every existing site', () => {
+  const c = contentFrom({ services: [{ name: 'Drain cleaning' }] }, 'X')
+  assert.deepEqual(c.services, [{ name: 'Drain cleaning' }], 'an untouched service grew fields')
+})
+
+test('empty service-page fields are OMITTED, not stored blank', () => {
+  // serviceEarnsPage counts words; a present-but-empty string would still read as absent there,
+  // but an empty `signs: ['']` would render a bullet with nothing in it.
+  const c = contentFrom({
+    services: [{ name: 'Drain cleaning', involves: '   ', expect: '', signs: ['', '  '] }],
+  }, 'X')
+  const s = c.services![0]
+  assert.ok(!('involves' in s))
+  assert.ok(!('expect' in s))
+  assert.ok(!('signs' in s), 'a list of empty strings became a list of empty bullets')
+})
+
+test('an FAQ keeps its service tag', () => {
+  const c = contentFrom({
+    faqs: [
+      { question: 'Do you charge a call-out fee?', answer: 'No call-out fee in Fort Worth.', service: 'Drain cleaning' },
+      { question: 'Are you open at weekends?', answer: 'For emergencies, yes.' },
+    ],
+  }, 'X')
+  assert.equal(c.faqs![0].service, 'Drain cleaning')
+  assert.ok(!('service' in c.faqs![1]), 'an untagged FAQ gained a tag')
+})
+
+test('the licence number comes through separately from credentials', () => {
+  // Two different things: `credentials` is free prose, a licence number is a checkable fact that
+  // renders on its own. Collapsing them would mean the trust row cannot show one without the other.
+  const c = contentFrom({
+    credentials: 'Licensed and insured in Texas',
+    licence_number: 'Texas M-41234',
+  }, 'X')
+  assert.equal(c.credentials, 'Licensed and insured in Texas')
+  assert.equal(c.licenceNumber, 'Texas M-41234')
+})

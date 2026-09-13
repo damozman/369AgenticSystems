@@ -288,6 +288,7 @@ export function contentFrom(answers: QuestionnaireAnswers, fallbackBusinessName:
     differentiator:      text(answers.differentiator),
     customerImpression:  text(answers.customer_impression),
     credentials:         text(answers.credentials),
+    licenceNumber:       text(answers.licence_number, 60),
     yearsInBusiness:     text(answers.years_in_business, 40),
     googleProfileUrl:    profileUrlFrom(answers.google_profile_url),
     access:              accessFrom(answers),
