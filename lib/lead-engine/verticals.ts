@@ -91,9 +91,9 @@ export interface VerticalOptionGroup { group: string; options: VerticalOption[] 
  * Requiring a real choice is what stops every site defaulting to Counsel.
  */
 export const VERTICAL_OPTION_GROUPS: readonly VerticalOptionGroup[] = [
-  { group: 'Trades',                 options: ['roofing', 'hvac', 'plumbing', 'electrical', 'concrete', 'tree-service', 'general-contracting'] },
+  { group: 'Trades',                 options: ['roofing', 'hvac', 'plumbing', 'electrical', 'concrete', 'tree-service', 'general-contracting', 'cleaning'] },
   { group: 'Property',               options: ['real-estate', 'property-mgmt', 'mortgage'] },
-  { group: 'Professional services',  options: ['legal', 'insurance', 'accounting', 'consulting', 'cleaning'] },
+  { group: 'Professional services',  options: ['legal', 'insurance', 'accounting', 'consulting'] },
   { group: 'Rentals & hauling',      options: ['dumpster-rental', 'equipment-rental', 'event-rentals', 'hauling'] },
   { group: 'Supply & distribution',  options: ['wholesale', 'distribution', 'b2b-supply'] },
   { group: 'Health practices',       options: ['dental', 'medical', 'veterinary', 'chiropractic', 'optometry'] },
@@ -187,10 +187,15 @@ export function headlineNounFor(vertical: string | null | undefined): string | u
  * The footer line a vertical conventionally carries, as a STARTING POINT.
  *
  * ── Why this is not scoped by template, which is what the plan said ──
- * `service_clean` serves legal, insurance, accounting, consulting and cleaning. Scoping an
- * attorney-client disclaimer to that template prints it on a cleaning company's website. The need
- * follows the VERTICAL, and the vertical is not stored — so, exactly like `headline_noun`, what is
- * stored is the resolved text.
+ * `service_clean` serves legal, insurance, accounting AND consulting. Scoping an attorney-client
+ * disclaimer to that template prints it on an accountant's website. The need follows the VERTICAL,
+ * and the vertical is not stored — so, exactly like `headline_noun`, what is stored is the
+ * resolved text.
+ *
+ * (This paragraph used to name cleaning as the example, which was the sharpest version of it —
+ * `service_clean` also served a cleaning company then. Cleaning moved to `trade_classic`
+ * × `threshold` on 2026-09-01, so the example moved with it. The argument never depended on which
+ * vertical it was: one template, several trades, one disclaimer that is true of only one of them.)
  *
  * ── These are defaults for an operator to confirm, not legal advice ──
  * They are the conventional, minimal form and assert nothing about the business. **A real firm's

@@ -96,7 +96,22 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
   'insurance':  { template: 'service_clean', theme: 'counsel' },
   'accounting': { template: 'service_clean', theme: 'counsel' },
   'consulting': { template: 'service_clean', theme: 'counsel' },
-  'cleaning':   { template: 'service_clean', theme: 'counsel' },
+
+  // Cleaning — moved off the law-firm pair 2026-09-01, Chris's call: the buying question is "can I
+  // trust you in my house", which is the TRADE question, not the professional one. It had only ever
+  // been here because cleaning appears in neither list of the 2026-08-25 split.
+  //
+  // The template change is the substantive half, and it is mechanical rather than aesthetic:
+  // TEMPLATE_RENDERS_GALLERY.service_clean is false, so a cleaning company could upload photos and
+  // NONE of them would render. Before-and-after is that trade's single strongest proof — the pair
+  // was throwing away the best evidence the business has.
+  //
+  // Threshold rather than Forge, on the same reasoning that gives Property its own kit: Forge is
+  // built for "trust me with your property" at industrial scale — deep navy, hot orange, full-bleed
+  // scrim — and the person hiring a cleaner is usually standing in the home being cleaned. The
+  // trade TEMPLATE is right; the industrial IDENTITY is not. Commercial janitorial is the case that
+  // argues for Forge, and it is the one to revisit if a real commercial client lands.
+  'cleaning':   { template: 'trade_classic', theme: 'threshold' },
 
   // Rentals and hauling — "What have you got, and is it available?"
   //
@@ -121,7 +136,7 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
 }
 
 /**
- * The five verticals that map to the default pair ON PURPOSE.
+ * The four verticals that map to the default pair ON PURPOSE.
  *
  * If a test fails because you added a vertical: confirm that landing on the default pair
  * (`service_clean` + `counsel`) is deliberate for it, and if so add it to this list. A future
@@ -132,7 +147,7 @@ export const VERTICAL_MAP: Readonly<Record<string, TemplateThemePair>> = {
  * unintended ones visible.
  */
 export const INTENTIONAL_DEFAULT_PAIR_VERTICALS: readonly string[] =
-  ['legal', 'insurance', 'accounting', 'consulting', 'cleaning']
+  ['legal', 'insurance', 'accounting', 'consulting']
 
 /** Never throws. An unknown vertical gets the safe pair, not an exception on a customer's page. */
 export function resolveForVertical(vertical: string | null | undefined): TemplateThemePair {
@@ -481,6 +496,61 @@ export function accentTextFor(theme: Theme, brand?: Brand): string {
   return rgb ? darkenUntilReadable(rgb, paper) : accent
 }
 
+// ── Display-face fallbacks ───────────────────────────────────────────────────
+
+/**
+ * What the display face degrades to when its webfont does not load.
+ *
+ * Every rule that paints display type used to end `Georgia, serif` — one stack shared by all seven
+ * kits. On Counsel, Threshold and Clinic that is roughly right; on Forge, Ironclad, Yard and Ledger
+ * a failed font load renders a roofing or rental-yard site in a book serif, which is the opposite
+ * of the identity the kit exists to assert. A font that fails to load is not a rare case: it is a
+ * blocked CDN, a captive-portal wifi, or the first paint before the face arrives.
+ *
+ * **Keyed by the RESOLVED face, not by the kit.** `tokensFor` lets an operator pick any of the
+ * kit's three `fonts`, and Clinic's alternates are not all the same classification — Fraunces and
+ * Bitter are serifs, Nunito is a rounded sans. A per-kit fallback would be wrong for exactly the
+ * case an operator went out of their way to choose. A per-face table is right in every case and is
+ * one table.
+ *
+ * A condensed face gets a condensed fallback: substituting a normal-width sans for Saira Condensed
+ * or Oswald reflows a headline that was set to fit, and "Arial Narrow" is the one narrow face that
+ * is genuinely installed nearly everywhere.
+ *
+ * `display-fallback.test.ts` asserts every face named in every kit has an entry here, both
+ * directions, so an eighth kit cannot ship without one — the same guard shape `theme.test.ts` uses
+ * for the CHECK constraints, and for the same reason: nothing else would notice.
+ */
+const SANS = '"Helvetica Neue", Arial, sans-serif'
+const SANS_CONDENSED = '"Arial Narrow", "Helvetica Neue", Arial, sans-serif'
+const SERIF = 'Georgia, "Times New Roman", serif'
+
+export const DISPLAY_FALLBACKS: Record<string, string> = {
+  // Ironclad / Forge
+  'Archivo Black': SANS,
+  'Archivo': SANS,
+  'Oswald': SANS_CONDENSED,
+  // Counsel
+  'Newsreader': SERIF,
+  'Source Serif 4': SERIF,
+  'Libre Baskerville': SERIF,
+  // Threshold
+  'Instrument Serif': SERIF,
+  'Lora': SERIF,
+  'Cormorant': SERIF,
+  // Ledger
+  'IBM Plex Sans': SANS,
+  'Roboto Condensed': SANS_CONDENSED,
+  'Space Grotesk': SANS,
+  // Yard
+  'Saira Condensed': SANS_CONDENSED,
+  'Anton': SANS_CONDENSED,
+  // Clinic
+  'Fraunces': SERIF,
+  'Bitter': SERIF,
+  'Nunito': SANS,
+}
+
 // ── Tokens ───────────────────────────────────────────────────────────────────
 
 /**
@@ -529,6 +599,9 @@ export function tokensFor(theme: Theme, brand?: Brand): Record<string, string> {
     '--le-accent-text':     accentTextFor(theme, brand),
 
     '--le-font-display': `"${display}"`,
+    // Not decoration: this is what the page looks like for the seconds before the webfont lands,
+    // and permanently if it never does. SERIF is the fallback only where the kit is a serif kit.
+    '--le-font-display-fallback': DISPLAY_FALLBACKS[display] ?? SERIF,
     '--le-font-body':    `"${kit.fontBody}"`,
     '--le-font-utility': `"${kit.fontUtility}"`,
     '--le-display-weight':   kit.displayWeight,

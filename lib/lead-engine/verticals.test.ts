@@ -113,14 +113,21 @@ test('an unknown vertical yields no noun rather than a guess', () => {
 
 // ── Footer notes ─────────────────────────────────────────────────────────────
 
-test('THE ATTORNEY DISCLAIMER NEVER REACHES A CLEANING COMPANY', () => {
+test('THE ATTORNEY DISCLAIMER NEVER REACHES ANOTHER TRADE ON THE SAME TEMPLATE', () => {
   // The plan called this "template-scoped fixed copy". It is not: `service_clean` serves legal,
-  // insurance, accounting, consulting AND cleaning, so scoping by template would print an
-  // attorney-client disclaimer on a cleaning company's website. This test is the disproof.
+  // insurance, accounting AND consulting, so scoping by template would print an attorney-client
+  // disclaimer on an accountant's website. This test is the disproof.
+  //
+  // It was named for cleaning until 2026-09-01, when cleaning moved off this template entirely --
+  // which is a MOVED example, not a closed hole. The reason the test exists is that one template
+  // serves several trades, and that is still true of the four below.
   assert.ok(footerNoteFor('legal')?.includes('attorney-client'))
-  for (const v of ['insurance', 'accounting', 'consulting', 'cleaning']) {
+  for (const v of ['insurance', 'accounting', 'consulting']) {
     assert.equal(footerNoteFor(v), undefined, `${v} shares a template with legal but not its note`)
   }
+  // Belt and braces on the vertical that prompted the rule in the first place: it no longer shares
+  // legal's template, and it must not have picked up legal's note on the way out either.
+  assert.equal(footerNoteFor('cleaning'), undefined)
 })
 
 test('most verticals carry no footer note at all', () => {

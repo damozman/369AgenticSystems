@@ -175,7 +175,7 @@ const SITE_CSS = `
 }
 
 .le-h1, .le-h2, .le-h3 {
-  font-family: var(--le-font-display), Georgia, serif;
+  font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-weight: var(--le-display-weight);
   letter-spacing: var(--le-display-tracking);
   margin: 0;
@@ -231,7 +231,7 @@ const SITE_CSS = `
   border-radius: var(--le-radius-button);
   color: var(--le-accent-text); text-decoration: none;
   font-size: var(--le-display-m); font-weight: 600;
-  font-family: var(--le-font-display), Georgia, serif;
+  font-family: var(--le-font-display), var(--le-font-display-fallback);
 }
 .le-tel:hover { text-decoration: underline; }
 .le-band .le-tel { color: var(--le-paper); }
@@ -269,7 +269,7 @@ const SITE_CSS = `
    #top from the wordmark): the rest carry ids for deep links and future nav. */
 .le-site [id] { scroll-margin-top: calc(var(--le-header-h) + 16px); }
 .le-header-name {
-  font-family: var(--le-font-display), Georgia, serif;
+  font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-size: var(--le-display-m); font-weight: var(--le-display-weight);
   letter-spacing: var(--le-display-tracking);
   text-decoration: none; color: var(--le-ink);
@@ -321,9 +321,14 @@ const SITE_CSS = `
 
 /* The editorial hero's right-hand columns. Without these the block sat in 1-8 and 9-12 was empty,
    which is four dead columns and half the first viewport on Counsel and Ledger. */
+/* padding-bottom matches .le-hero-text's, and is load-bearing rather than cosmetic. The facts are
+   a sibling grid item with align-self:end, so their bottom edge pins to the ROW's bottom -- and the
+   row is as tall as the text column INCLUDING its 96px of bottom padding. Without a matching pad
+   the last fact's baseline lands flush on the hero's bottom edge while the headline column stops
+   96px short, which reads as a broken section boundary rather than as a design. */
 .le-hero-facts {
   margin: 0; align-self: end; display: grid; row-gap: 28px;
-  border-left: 1px solid var(--le-edge); padding-left: 32px;
+  border-left: 1px solid var(--le-edge); padding-left: 32px; padding-bottom: 96px;
 }
 .le-hero-facts dt {
   font-family: var(--le-font-utility), system-ui, sans-serif;
@@ -332,7 +337,7 @@ const SITE_CSS = `
   opacity: 0.6; margin: 0 0 6px;
 }
 .le-hero-facts dd {
-  margin: 0; font-family: var(--le-font-display), Georgia, serif;
+  margin: 0; font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-size: var(--le-display-m); font-weight: 600; line-height: 1.3;
 }
 /* With no facts to sit beside it the block centres instead, so the margin is balanced rather than
@@ -375,7 +380,7 @@ const SITE_CSS = `
 }
 .le-proof dd {
   margin: 0; font-size: var(--le-display-m); font-weight: 600;
-  font-family: var(--le-font-display), Georgia, serif; line-height: 1.25;
+  font-family: var(--le-font-display), var(--le-font-display-fallback); line-height: 1.25;
   /* A cap, not a fit: with content-sized columns below 4 facts, an unbounded "Serving: Fort Worth
      · Arlington · Keller" would stretch its own track far past a short neighbouring fact like "12
      years", undoing the centring by making the row lopsided again. */
@@ -489,7 +494,7 @@ const SITE_CSS = `
    this is the business's own claim about itself, not a customer's words, and Trust sits close
    enough on the page that a literal quote here would misread as a second set of testimonials. */
 .le-why-quote {
-  margin: 0; font-family: var(--le-font-display), Georgia, serif;
+  margin: 0; font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-size: var(--le-display-m); font-weight: var(--le-display-weight);
   letter-spacing: var(--le-display-tracking); line-height: 1.3;
 }
@@ -532,7 +537,7 @@ const SITE_CSS = `
 .le-faq summary {
   display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
   padding: 24px 0; cursor: pointer; list-style: none;
-  font-family: var(--le-font-display), Georgia, serif;
+  font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-size: var(--le-display-m); font-weight: var(--le-display-weight);
   letter-spacing: var(--le-display-tracking); line-height: 1.25;
 }
@@ -727,7 +732,10 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   .le-cover { grid-template-columns: repeat(2, 1fr); }
   .le-team  { grid-template-columns: 1fr !important; row-gap: 32px; }
   /* The facts stack below the headline rather than beside it; the border moves to the top edge. */
-  .le-hero-facts { border-left: 0; border-top: 1px solid var(--le-edge); padding: 32px 20px 0; row-gap: 20px; }
+  /* Same flush-edge fix as the desktop rule, at the mobile hero's own 40px rhythm: here the facts
+     stack BELOW the text, so they are the last thing in the hero and their own bottom padding is
+     the only thing separating them from the next section. */
+  .le-hero-facts { border-left: 0; border-top: 1px solid var(--le-edge); padding: 32px 20px 40px; row-gap: 20px; }
   .le-hero-centred { max-width: none; }
   .le-cta-band { padding: 56px 0; }
   .le-btn { width: 100%; }
