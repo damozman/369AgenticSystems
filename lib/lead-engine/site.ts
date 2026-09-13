@@ -123,6 +123,8 @@ export async function loadSiteById(id: string): Promise<LeadEngineSite | null> {
  */
 export function photoFromRow(row: Record<string, unknown>, base: string): SitePhoto {
   const ratio = Number(row.aspect_ratio)
+  const w = Number(row.width)
+  const h = Number(row.height)
   const variants = Array.isArray(row.variants) ? (row.variants as PhotoVariant[]) : []
   const dominant = typeof row.dominant_hex === 'string' ? row.dominant_hex : null
 
@@ -132,6 +134,8 @@ export function photoFromRow(row: Record<string, unknown>, base: string): SitePh
     caption: (row.caption as string | null) ?? null,
     ...(variants.length ? { variants } : {}),
     ...(Number.isFinite(ratio) && ratio > 0 ? { aspectRatio: ratio } : {}),
+    ...(Number.isFinite(w) && w > 0 ? { width: w } : {}),
+    ...(Number.isFinite(h) && h > 0 ? { height: h } : {}),
     ...(dominant ? { dominantHex: dominant } : {}),
     ...(row.is_primary === true ? { isPrimary: true } : {}),
   }
@@ -157,7 +161,7 @@ export async function loadPhotos(siteId: string): Promise<SitePhoto[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('lead_engine_photos')
-    .select('id, storage_path, caption, is_primary, aspect_ratio, variants, dominant_hex')
+    .select('id, storage_path, caption, is_primary, aspect_ratio, variants, dominant_hex, width, height')
     .eq('site_id', siteId)
     .order('sort_order', { ascending: true })
     .limit(MAX_PHOTOS_PER_SITE)

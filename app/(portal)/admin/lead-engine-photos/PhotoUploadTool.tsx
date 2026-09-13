@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { decideBatchPhotoUpload } from '@/lib/lead-engine/limits'
+import { decideBatchPhotoUpload, WARN_PHOTO_LONG_EDGE } from '@/lib/lead-engine/limits'
 
 interface SiteOption {
   id: string
@@ -22,6 +22,8 @@ interface Photo {
   caption: string | null
   variants?: PhotoVariant[]
   aspectRatio?: number
+  width?: number
+  height?: number
   dominantHex?: string
   isPrimary?: boolean
 }
@@ -292,10 +294,15 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
                   {p.caption ?? <span className="text-slate-400">No caption</span>}
                 </div>
                 <div className="text-slate-500">
-                  {p.aspectRatio ? `${p.aspectRatio.toFixed(2)}:1` : 'no ratio'}
-                  {' · '}
-                  {p.variants?.length ? `${p.variants.length} sizes` : 'no variants'}
+                  {p.width && p.height ? `${p.width} × ${p.height}` : 'size unknown'}
                 </div>
+                {p.width && p.height && Math.max(p.width, p.height) < WARN_PHOTO_LONG_EDGE && (
+                  // The number that was missing. A photo can look large on screen and still be
+                  // under the threshold, and without this the hero warning is unfalsifiable.
+                  <div className="text-amber-700 dark:text-amber-400">
+                    Gallery only — under {WARN_PHOTO_LONG_EDGE}px
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => handleDelete(p.id)}

@@ -143,18 +143,25 @@ export type ResolutionDecision =
  * EXIF orientation can have rotated 90 degrees.
  */
 export function decideResolution(longEdgePx: number): ResolutionDecision {
+  // Both messages name the photo's OWN size and the number it needed. The first version of the
+  // warning said only "a bit small for the hero", which is true and unactionable: it sent the
+  // first person to use this tool into several blind retries with photos that looked large on
+  // screen, because on-screen size and pixel size are different things and nothing said which one
+  // was being judged.
   if (longEdgePx < MIN_PHOTO_LONG_EDGE) {
     return {
       status: 'reject',
-      message: "This one's too small to print clearly on your page. If you shrank it to email it, "
-              + 'send the original instead.',
+      message: `This one is ${longEdgePx}px on its longest side and needs at least `
+              + `${MIN_PHOTO_LONG_EDGE}px to print clearly. If you shrank it to email it, send the `
+              + 'original instead.',
     }
   }
   if (longEdgePx < WARN_PHOTO_LONG_EDGE) {
     return {
       status: 'warn',
-      message: 'This photo is a bit small for the hero or the full-width band — it will still work '
-              + 'for the gallery.',
+      message: `Saved. At ${longEdgePx}px on its longest side this is fine for the gallery, but the `
+              + `hero and the full-width band want ${WARN_PHOTO_LONG_EDGE}px or more — they are `
+              + 'displayed much larger, so a smaller photo softens.',
     }
   }
   return { status: 'ok' }

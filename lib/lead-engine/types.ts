@@ -245,6 +245,15 @@ export interface SitePhoto {
   variants?: PhotoVariant[]
   /** width / height of the source, after EXIF rotation. Undefined when never measured. */
   aspectRatio?: number
+  /**
+   * Stored pixel dimensions, after EXIF rotation. Undefined on a pre-pipeline photo.
+   *
+   * Read back so an operator can see WHY a photo was flagged too small for the hero — the
+   * resolution rules judge pixels while a person judges how big it looks on screen, and those are
+   * different numbers. Without this the warning is unfalsifiable from the UI.
+   */
+  width?: number
+  height?: number
   /** Placeholder background while the real image loads. */
   dominantHex?: string
   /** The customer's stated best photo — overrides sort_order for the hero slot only. */

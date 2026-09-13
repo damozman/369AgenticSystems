@@ -85,6 +85,26 @@ test('junk values are refused rather than propagated', () => {
   assert.ok(!('isPrimary' in p), 'only a literal true is primary')
 })
 
+test('pixel dimensions are read back — the number the hero warning is about', () => {
+  // Added after the first real use of the photo tool: the resolution rules judge PIXELS while a
+  // person judges how big a photo looks on screen, and those are different numbers. Without these
+  // two fields reaching the UI, "too small for the hero" is unfalsifiable and the only way to
+  // learn the requirement is repeated failed uploads. That is exactly what happened.
+  const p = photoFromRow({ id: 'p', storage_path: 'a.jpg', caption: null, width: 1600, height: 1200 }, BASE)
+  assert.equal(p.width, 1600)
+  assert.equal(p.height, 1200)
+})
+
+test('dimensions coerce from strings and refuse junk, same as the ratio', () => {
+  const fromStrings = photoFromRow({ id: 'p', storage_path: 'a.jpg', caption: null, width: '2400', height: '1800' }, BASE)
+  assert.equal(fromStrings.width, 2400)
+  assert.equal(fromStrings.height, 1800)
+
+  const junk = photoFromRow({ id: 'p', storage_path: 'a.jpg', caption: null, width: null, height: 'wide' }, BASE)
+  assert.ok(!('width' in junk), 'a null width must be absent, not NaN')
+  assert.ok(!('height' in junk), 'an unparseable height must be absent')
+})
+
 test('an empty variants array is treated as no variants', () => {
   const p = photoFromRow({ id: 'p', storage_path: 'a.jpg', caption: null, variants: [] }, BASE)
   assert.ok(!('variants' in p), 'an empty array would make SitePhotoImg build an empty srcSet')
