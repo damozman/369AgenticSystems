@@ -9,7 +9,7 @@
 
 import { createAdminClient } from '@/lib/supabase-admin'
 import type {
-  LeadEngineSite, QuestionnaireAnswers, SiteContent, SitePhoto, SiteStatus, Template, Theme,
+  LeadEngineSite, PhotoVariant, QuestionnaireAnswers, SiteContent, SitePhoto, SiteStatus, Template, Theme,
 } from '@/lib/lead-engine/types'
 import { proposeSlug, validateSlug } from '@/lib/lead-engine/slug'
 import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
@@ -102,18 +102,62 @@ export async function loadSiteById(id: string): Promise<LeadEngineSite | null> {
 }
 
 /**
+ * One `lead_engine_photos` row as the renderer needs it.
+ *
+ * Exported and pure so it can be tested without Supabase — the bug it exists to prevent is
+ * invisible to a type check and was invisible to 601 tests.
+ *
+ * ── Every optional field degrades on its OWN ──
+ * A photo uploaded before the Part B pipeline has none of the four; a photo uploaded after has all
+ * of them. Both must render. So each field is omitted rather than defaulted, matching what
+ * `SitePhoto` already documents — `allocatePhotos` and `SitePhotoImg` both branch on presence.
+ *
+ * ⚠ `aspect_ratio` is Postgres `numeric`, and PostgREST returns numeric as a STRING to preserve
+ * arbitrary precision. `allocatePhotos` filters on `typeof p.aspectRatio === 'number'`, so passing
+ * the value through unconverted leaves that filter false forever: the hero/band aspect preference
+ * would stay exactly as dead as it was before this function existed, with types clean and tests
+ * green. Coerced here, and the string case is asserted in the tests for that reason.
+ *
+ * `variants` already holds full public URLs — the upload route calls `getPublicUrl()` before
+ * storing — so they pass through untouched. Only `storage_path` needs a URL built.
+ */
+export function photoFromRow(row: Record<string, unknown>, base: string): SitePhoto {
+  const ratio = Number(row.aspect_ratio)
+  const variants = Array.isArray(row.variants) ? (row.variants as PhotoVariant[]) : []
+  const dominant = typeof row.dominant_hex === 'string' ? row.dominant_hex : null
+
+  return {
+    id: row.id as string,
+    url: `${base}/storage/v1/object/public/${PHOTO_BUCKET}/${row.storage_path as string}`,
+    caption: (row.caption as string | null) ?? null,
+    ...(variants.length ? { variants } : {}),
+    ...(Number.isFinite(ratio) && ratio > 0 ? { aspectRatio: ratio } : {}),
+    ...(dominant ? { dominantHex: dominant } : {}),
+    ...(row.is_primary === true ? { isPrimary: true } : {}),
+  }
+}
+
+/**
  * A site's photos, in display order, with public URLs already built.
  *
  * Returns an empty array on any failure. A gallery that fails to load must degrade to a page
  * without a gallery — `effectiveTemplate` then picks the copy-forward layout — rather than taking
  * the whole site down. The photos are the most decorative part of the page and the least worth a
  * 500 to a visitor who is trying to find a phone number.
+ *
+ * ⚠ The SELECT list is load-bearing, and was the bug. It named only `id, storage_path, caption`
+ * while the ingest wrote four more columns, and this is the ONLY feeder into `allocatePhotos()` on
+ * the live path — so `is_primary`, `aspect_ratio`, `variants` and `dominant_hex` were written on
+ * every upload and read back by nobody. The hero pick never fired, the aspect preferences never
+ * fired, and the four-width `srcSet` reached no visitor. Nothing errored, because every consumer
+ * treats those fields as optional by design. **A column added to the ingest must be added here in
+ * the same change, or it is decoration.**
  */
 export async function loadPhotos(siteId: string): Promise<SitePhoto[]> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('lead_engine_photos')
-    .select('id, storage_path, caption')
+    .select('id, storage_path, caption, is_primary, aspect_ratio, variants, dominant_hex')
     .eq('site_id', siteId)
     .order('sort_order', { ascending: true })
     .limit(MAX_PHOTOS_PER_SITE)
@@ -128,11 +172,7 @@ export async function loadPhotos(siteId: string): Promise<SitePhoto[]> {
   }
 
   const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')
-  return (data ?? []).map(row => ({
-    id: row.id as string,
-    url: `${base}/storage/v1/object/public/${PHOTO_BUCKET}/${row.storage_path as string}`,
-    caption: (row.caption as string | null) ?? null,
-  }))
+  return (data ?? []).map(row => photoFromRow(row as Record<string, unknown>, base))
 }
 
 export type CreateSiteResult =
