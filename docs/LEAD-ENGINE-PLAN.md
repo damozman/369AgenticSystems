@@ -319,10 +319,9 @@ which reads `ONBOARDING_TOKEN_SECRET` and has no fallback.
 customer uploader later; review with targeted overrides), both defects are fixed, and a site now
 goes from answers to a live URL through `/admin/lead-engine` with no SQL.
 
-**The next task is not code: click through it, then run `--live`.** None of steps 3, 4 or 5 has
-been opened in a browser — they compile and that is all that is known. The full instruction,
-including the `ONBOARDING_TOKEN_SECRET` invocation that a run fails confusingly without, is in the
-handoff at the top of this file.
+**It has now been driven in a browser** (2026-09-14) and four defects came out of that one
+session, none of which any test could have caught. `--live` has still not been run. The remaining
+work and the exact invocation are in the handoff at the top of this file.
 
 **Approved and NOT yet built — what is left of the design work:**
 
