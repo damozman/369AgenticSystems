@@ -434,6 +434,57 @@ export async function setSiteStatus(siteId: string, to: SiteStatus): Promise<Set
 }
 
 /**
+ * Update the two content fields that live in COLUMNS rather than in `content`.
+ *
+ * ── Why these two are not part of `saveContent` ──
+ * `contentOf()` (app/sites/[slug]/page.tsx) spreads `headline_noun` and `footer_note` **over**
+ * whatever `content` holds, so an override written into the jsonb is silently ignored whenever the
+ * column is non-null. They are columns precisely so a re-submitted questionnaire cannot clear
+ * them: `contentFrom` rebuilds that jsonb wholesale and knows nothing about either field.
+ *
+ * Writing them here, and never in `saveContent`, keeps that single-writer property intact.
+ *
+ * ── Absent and empty mean different things, same as `createSite` ──
+ * Omitting a field leaves the column alone. Passing `''` stores NULL — an operator deliberately
+ * clearing a placeholder, and the shipped footer notes ARE placeholders. Clearing one must not be
+ * undone by a default reappearing behind them.
+ */
+export interface SiteFieldsInput { headlineNoun?: string; footerNote?: string }
+
+/**
+ * The column patch for `updateSiteFields`, separated out so the absent-vs-empty rule is testable
+ * without a database. That rule is the whole behaviour here and it is the kind that fails
+ * silently: getting it wrong reinstates a default over a placeholder an operator deliberately
+ * cleared, on a real business's public page, with nothing erroring.
+ */
+export function siteFieldsPatch(fields: SiteFieldsInput): Record<string, unknown> {
+  const patch: Record<string, unknown> = {}
+  if (fields.headlineNoun !== undefined) patch.headline_noun = fields.headlineNoun.trim() || null
+  if (fields.footerNote !== undefined) patch.footer_note = fields.footerNote.trim() || null
+  return patch
+}
+
+export async function updateSiteFields(
+  siteId: string,
+  fields: SiteFieldsInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const patch = siteFieldsPatch(fields)
+
+  // Nothing to do is success, not a no-op write. An UPDATE with an empty patch would still fire
+  // the updated_at trigger and reorder the admin list for a save that changed nothing.
+  if (Object.keys(patch).length === 0) return { ok: true }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('lead_engine_sites').update(patch).eq('id', siteId)
+
+  if (error) {
+    console.error(`[LEAD-ENGINE] Could not update fields for ${siteId}: ${error.message}`)
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
+}
+
+/**
  * Replace a site's rendered content.
  *
  * Only ever writes `content`, never `questionnaire`. The two columns have two different writers —

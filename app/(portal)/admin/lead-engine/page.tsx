@@ -78,7 +78,9 @@ export default async function LeadEngineSitesPage() {
             {sites.map((s: AdminSiteRow) => (
               <tr key={s.id} className="border-b border-slate-200 dark:border-slate-800 align-top">
                 <td className="py-3 pr-4">
-                  <div className="font-medium text-slate-900 dark:text-white">{s.business_name}</div>
+                  <Link href={`/admin/lead-engine/${s.id}`} className="font-medium text-slate-900 dark:text-white underline">
+                    {s.business_name}
+                  </Link>
                   <div className="text-xs text-slate-500 font-mono">{s.slug}</div>
                   <div className="text-xs text-slate-500">{s.owner_email}</div>
                 </td>
@@ -95,8 +97,8 @@ export default async function LeadEngineSitesPage() {
                 <td className="py-3 pr-4 text-slate-600 dark:text-slate-400">{when(s.launched_at)}</td>
                 <td className="py-3 pr-4 text-slate-600 dark:text-slate-400">{when(s.updated_at)}</td>
                 <td className="py-3">
-                  <Link href="/admin/lead-engine-photos" className="underline text-slate-700 dark:text-slate-300">
-                    Photos
+                  <Link href={`/admin/lead-engine/${s.id}`} className="underline text-slate-700 dark:text-slate-300">
+                    Review
                   </Link>
                   {s.status === 'live' && (
                     <>
