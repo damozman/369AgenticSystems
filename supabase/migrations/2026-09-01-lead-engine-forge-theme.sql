@@ -18,6 +18,18 @@
 -- original migration already uses for both of these.
 --
 -- Widening only. Every existing row keeps its theme, and no row anywhere is rewritten.
+--
+-- ── THIS FILE IS THE ONLY WRITER OF lead_engine_sites_theme_check. Keep it that way. ──
+-- A duplicate, `2026-08-25-lead-engine-forge-theme.sql`, briefly existed alongside this one:
+-- a second session found the same bug independently, without knowing this file had already been
+-- written and applied. The two were functionally identical, so nothing broke and nothing would
+-- have -- which is exactly what made it worth deleting rather than leaving. Two migrations
+-- defining one constraint is the two-writers shape this project has been bitten by twice, and the
+-- tiebreak was invisible: `theme.test.ts` sorts migration filenames and takes the LAST match, so
+-- this file won on its date and nobody would have noticed if it had lost.
+--
+-- If an eighth kit is ever added, widen it HERE with a new later-dated migration, and do not
+-- resurrect a parallel file.
 
 ALTER TABLE public.lead_engine_sites DROP CONSTRAINT IF EXISTS lead_engine_sites_theme_check;
 ALTER TABLE public.lead_engine_sites ADD  CONSTRAINT lead_engine_sites_theme_check

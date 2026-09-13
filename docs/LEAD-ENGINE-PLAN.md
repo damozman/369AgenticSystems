@@ -18,6 +18,16 @@ change what Chunk C actually is. Both were found by reading the calling path, no
 signature — and both are cheap to fix and expensive to rediscover, which is why they are written
 here rather than left to the next exploration.
 
+**Two sessions collided on this branch and it is now merged, not lost.** A second session found the
+forge CHECK bug independently on 2026-09-12 and pushed its own
+`2026-08-25-lead-engine-forge-theme.sql` — functionally identical to the `2026-09-01` file already
+written and applied here. Merged rather than rewritten, then the duplicate was **deleted at Chris's
+direction**; the surviving migration carries the full reasoning. The lesson is in that file, not
+here: two migrations defining one constraint broke nothing and would have broken nothing, and the
+tiebreak (`theme.test.ts` sorts filenames and takes the last) was invisible. **`git fetch` before
+concluding another session's work was abandoned** — this one had already pushed when it was
+described as being closed out.
+
 #### 🔴 Finding 1 — `loadPhotos()` throws away five columns, so half of Chunk B is dead on the page
 
 `lib/lead-engine/site.ts:112` selects **`id, storage_path, caption`** and nothing else. It is the
