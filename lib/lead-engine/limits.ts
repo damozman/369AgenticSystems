@@ -159,9 +159,9 @@ export function decideResolution(longEdgePx: number): ResolutionDecision {
   if (longEdgePx < WARN_PHOTO_LONG_EDGE) {
     return {
       status: 'warn',
-      message: `Saved. At ${longEdgePx}px on its longest side this is fine for the gallery, but the `
-              + `hero and the full-width band want ${WARN_PHOTO_LONG_EDGE}px or more — they are `
-              + 'displayed much larger, so a smaller photo softens.',
+      message: `Saved. At ${longEdgePx}px on its longest side it is under the ${WARN_PHOTO_LONG_EDGE}px `
+              + 'the hero and the full-width band want, so a larger photo will be used for those if '
+              + 'you upload one. It is a good size everywhere else on the page.',
     }
   }
   return { status: 'ok' }

@@ -236,3 +236,60 @@ test('mosaicPlan is safe on counts the layout would never send it', () => {
   assert.deepEqual(mosaicPlan(9, 3), [])
   assert.deepEqual(mosaicSpans(7), [])
 })
+
+// ── Resolution preference on the hero and band ───────────────────────────────
+//
+// Added after Chris uploaded three photos, was told they were "gallery only", and watched one
+// become his hero. The message was false: the allocator had never looked at photo size at all.
+// Fixed by making the promise true rather than by softening the words.
+
+const sized = (id: string, w: number, h: number, extra: Partial<SitePhoto> = {}): SitePhoto => ({
+  id, url: `/${id}.jpg`, caption: null, width: w, height: h, aspectRatio: w / h, ...extra,
+})
+
+test('the hero prefers a photo big enough to render large', () => {
+  // Small one first in sort order, so only the size preference can change the outcome.
+  const a = allocatePhotos([sized('small', 1600, 1200), sized('big', 3000, 2250)], { hero: true })
+  assert.equal(a.hero?.id, 'big', 'a sub-threshold photo was chosen for the hero over a large one')
+})
+
+test('the band prefers a big photo too', () => {
+  const a = allocatePhotos([sized('small', 1800, 900), sized('big', 3200, 1600)], { band: true })
+  assert.equal(a.band?.id, 'big')
+})
+
+test('⚠ it is a PREFERENCE — a site of small photos still gets a hero', () => {
+  // The failure this guards: filtering instead of preferring would leave the hero empty for any
+  // customer whose photos are all under the threshold, which is a worse page than a soft one.
+  const a = allocatePhotos([sized('a', 1500, 1200), sized('b', 1600, 1000)], { hero: true, band: true })
+  assert.ok(a.hero, 'no hero at all when every photo is under the threshold')
+  assert.ok(a.band, 'no band at all when every photo is under the threshold')
+  assert.notEqual(a.hero!.id, a.band!.id, 'the same photo was used twice')
+})
+
+test('an explicitly chosen hero WINS even when it is small', () => {
+  // isPrimary is a person pointing at a photo. Overriding that on pixel count is the system
+  // second-guessing a stated intent, which is a different thing from picking well automatically.
+  const a = allocatePhotos(
+    [sized('chosen', 1400, 1000, { isPrimary: true }), sized('big', 4000, 3000)],
+    { hero: true },
+  )
+  assert.equal(a.hero?.id, 'chosen')
+})
+
+test('a photo with no dimensions is still eligible', () => {
+  // Everything uploaded before the Part B pipeline has no width/height. Treating unknown as too
+  // small would empty the hero on every older site.
+  const a = allocatePhotos([{ id: 'old', url: '/old.jpg', caption: null }], { hero: true })
+  assert.equal(a.hero?.id, 'old')
+})
+
+test('the small photo still gets used — it lands further down the page', () => {
+  const a = allocatePhotos(
+    [sized('small', 1500, 1100), sized('big', 3000, 2000), sized('big2', 3200, 1600)],
+    { hero: true, band: true },
+  )
+  assert.notEqual(a.hero?.id, 'small')
+  assert.notEqual(a.band?.id, 'small')
+  assert.ok(a.gallery.some(p => p.id === 'small'), 'the small photo was dropped rather than demoted')
+})

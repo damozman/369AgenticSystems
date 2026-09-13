@@ -300,7 +300,7 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
                   // The number that was missing. A photo can look large on screen and still be
                   // under the threshold, and without this the hero warning is unfalsifiable.
                   <div className="text-amber-700 dark:text-amber-400">
-                    Gallery only — under {WARN_PHOTO_LONG_EDGE}px
+                    Under {WARN_PHOTO_LONG_EDGE}px — a larger photo wins the hero
                   </div>
                 )}
                 <button

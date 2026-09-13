@@ -12,6 +12,7 @@
  */
 
 import type { SitePhoto } from '@/lib/lead-engine/types'
+import { WARN_PHOTO_LONG_EDGE } from '@/lib/lead-engine/limits'
 
 export const MAX_GALLERY_PHOTOS = 6
 
@@ -60,10 +61,33 @@ export function allocatePhotos(
     if (i !== -1) primary = pool.splice(i, 1)[0]
   }
 
-  const takeByAspect = (prefer: 'widest' | 'narrowest'): SitePhoto | undefined => {
+  /**
+   * Whether a photo is big enough for a slot that renders it very large.
+   *
+   * Unknown size counts as eligible. Every photo uploaded before the Part B pipeline has no
+   * dimensions, and excluding those would empty the hero on every older site — the same
+   * degrade-don't-disappear rule the aspect preference already follows.
+   */
+  const bigEnough = (p: SitePhoto): boolean =>
+    typeof p.width !== 'number' || typeof p.height !== 'number'
+      ? true
+      : Math.max(p.width, p.height) >= WARN_PHOTO_LONG_EDGE
+
+  const takeByAspect = (prefer: 'widest' | 'narrowest', needsSize = false): SitePhoto | undefined => {
     if (pool.length === 0) return undefined
-    const withRatio = pool.filter(p => typeof p.aspectRatio === 'number')
-    if (withRatio.length === 0) return pool.shift()
+
+    // Resolution first, aspect second -- a softened hero is more visible than a slightly
+    // wrong crop. A PREFERENCE with a fallback, never a filter: if nothing in the pool clears
+    // the threshold, the slot still gets the best available rather than rendering empty.
+    const eligible = needsSize && pool.some(bigEnough) ? pool.filter(bigEnough) : pool
+
+    const withRatio = eligible.filter(p => typeof p.aspectRatio === 'number')
+    if (withRatio.length === 0) {
+      const first = eligible[0]
+      if (!first) return undefined
+      pool.splice(pool.indexOf(first), 1)
+      return first
+    }
     let best = withRatio[0]
     for (const p of withRatio) {
       const better = prefer === 'widest' ? p.aspectRatio! > best.aspectRatio! : p.aspectRatio! < best.aspectRatio!
@@ -73,8 +97,11 @@ export function allocatePhotos(
     return best
   }
 
-  const hero = need.hero ? (primary ?? takeByAspect('narrowest')) : undefined
-  const band = need.band ? takeByAspect('widest') : undefined
+  // `primary` is NOT size-checked, deliberately. It is a person pointing at a photo and saying
+  // "this one"; overriding a stated choice on pixel count is the system second-guessing intent.
+  // The size preference governs only the automatic pick.
+  const hero = need.hero ? (primary ?? takeByAspect('narrowest', true)) : undefined
+  const band = need.band ? takeByAspect('widest', true) : undefined
 
   const services: SitePhoto[] = []
   for (let i = 0; i < (need.serviceSlots ?? 0); i++) {

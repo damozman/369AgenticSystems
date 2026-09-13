@@ -29,9 +29,10 @@ export default async function LeadEnginePhotosTestPage() {
           <strong className="block mb-1 text-slate-900 dark:text-white">What a photo needs</strong>
           <ul className="space-y-1 list-disc pl-5">
             <li>
-              <strong>{WARN_PHOTO_LONG_EDGE}px or more</strong> on the longest side to be used as
-              the hero or the full-width band. Those are displayed very large, so anything smaller
-              softens.
+              <strong>{WARN_PHOTO_LONG_EDGE}px or more</strong> on the longest side to win the hero
+              or the full-width band. Those are displayed very large, so anything smaller softens.
+              A smaller photo is still used there if nothing bigger exists — better a soft hero
+              than none — and marking one as the hero yourself always wins, whatever its size.
             </li>
             <li>
               <strong>At least {MIN_PHOTO_LONG_EDGE}px</strong> on the longest side to be accepted
