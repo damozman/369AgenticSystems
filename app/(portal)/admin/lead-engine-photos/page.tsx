@@ -1,24 +1,16 @@
+import Link from 'next/link'
 import { unstable_noStore as noStore } from 'next/cache'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { listSitesForAdmin } from '@/lib/lead-engine/site'
 import PhotoUploadTool from './PhotoUploadTool'
 
 // Auto-protected by middleware.ts (config.matcher includes /admin/:path*).
 export default async function LeadEnginePhotosTestPage() {
   noStore()
 
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  // Every site, not just the 8 seeded review fixtures — this harness is also the only way to
-  // attach a real photo to a real site until Chunk C's admin edit page exists. Originally scoped
-  // to `review-%` only; widened 2026-08-25 when the first real site (created outside the seed
-  // script) couldn't appear in the dropdown at all.
-  const { data: sites } = await supabaseAdmin
-    .from('lead_engine_sites')
-    .select('id, slug, business_name')
-    .order('slug')
+  // Shared with /admin/lead-engine rather than queried inline here. This page ran its own select
+  // and drifted once already: it was scoped to `review-%` and could not see the first real site at
+  // all, which is precisely the two-readers-of-one-table shape that keeps costing this project.
+  const sites = await listSitesForAdmin()
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -29,6 +21,11 @@ export default async function LeadEnginePhotosTestPage() {
           dashboard uploader is built. Pick a site, attach photos (several at once, HEIC included),
           caption them and choose which one is the hero. The list underneath is what is actually on
           the site right now.
+        </p>
+        <p className="mt-2 text-sm">
+          <Link href="/admin/lead-engine" className="underline text-slate-700 dark:text-slate-300">
+            ← All sites
+          </Link>
         </p>
       </div>
       <PhotoUploadTool sites={sites ?? []} />

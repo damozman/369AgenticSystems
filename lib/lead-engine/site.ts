@@ -273,6 +273,51 @@ export async function createSite(input: {
   return { ok: true, id: data.id as string, slug: data.slug as string }
 }
 
+export interface AdminSiteRow {
+  id: string
+  slug: string
+  business_name: string
+  owner_email: string
+  status: SiteStatus
+  needs_review: boolean
+  launched_at: string | null
+  updated_at: string
+}
+
+/**
+ * Every site, for the operator views. Newest activity first.
+ *
+ * Deliberately NOT `SITE_COLUMNS`: a list page needs eight small fields across every row, and
+ * `content` alone is a multi-kilobyte jsonb blob. Selecting the full column set here would pull
+ * every site's rendered content into memory to draw a table that shows none of it.
+ *
+ * `needs_review` is included and `SITE_COLUMNS` omits it, which is the reason this is its own
+ * query rather than a filter over `loadSiteById`. It is the whole point of the list: it marks the
+ * sites where the customer has changed their answers since the content was built, and those are
+ * the ones needing a human.
+ *
+ * One writer for this query. The photo tool's page used to run its own inline `select` for the
+ * same purpose and drifted once already — it was scoped to `review-%` and could not see the first
+ * real site at all.
+ */
+export async function listSitesForAdmin(): Promise<AdminSiteRow[]> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_sites')
+    .select('id, slug, business_name, owner_email, status, needs_review, launched_at, updated_at')
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    if (isMissingTable(error.code)) {
+      console.error('[LEAD-ENGINE] lead_engine_sites does not exist — apply supabase/migrations/2026-08-23-lead-engine.sql')
+    } else {
+      console.error(`[LEAD-ENGINE] Could not list sites: ${error.message}`)
+    }
+    return []
+  }
+  return (data ?? []) as unknown as AdminSiteRow[]
+}
+
 /**
  * Which status changes are legal, as a pure table.
  *
