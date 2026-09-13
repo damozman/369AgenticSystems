@@ -522,3 +522,106 @@ export function serviceDisplayName(raw: string): string {
   if (words.length === 1 && letters.length <= 5) return value
   return titleCase(value)
 }
+
+// ── Which services earn their own page ───────────────────────────────────────
+
+/** Words of the service's own copy needed before a standalone page is worth landing on. */
+export const SERVICE_PAGE_MIN_WORDS = 120
+
+function words(...parts: (string | string[] | undefined)[]): number {
+  return parts
+    .flatMap(p => (Array.isArray(p) ? p : [p]))
+    .filter((v): v is string => typeof v === 'string')
+    .join(' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .length
+}
+
+/** Case- and whitespace-insensitive, the same comparison the photo slots use. */
+function sameName(a: string | undefined, b: string | undefined): boolean {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+export interface ServicePageReadiness {
+  /** Whether this service gets its own page. */
+  earns: boolean
+  wordCount: number
+  wordsNeeded: number
+  hasPhoto: boolean
+  faqCount: number
+  testimonialCount: number
+  /** What is missing, in the operator's words. Empty when it earns a page. */
+  missing: string[]
+}
+
+/**
+ * Whether a service has enough of its own content to deserve a standalone page.
+ *
+ * ── Why this is measured rather than switched ──
+ * The alternative was a per-client toggle, and a toggle means someone makes a judgement call on
+ * every build with no evidence in front of them — so some clients get thin pages and nobody finds
+ * out. Thinness is the actual risk, so thinness is what gets measured. Same shape as
+ * `servicesLayout()` choosing a layout from what is genuinely available rather than from a flag.
+ *
+ * ── Two conditions, and the second one matters ──
+ * Word count alone would pass a wall of text with nothing to look at and nothing to corroborate
+ * it. A supporting element — a photograph of the work, a question someone actually asked, a
+ * customer who named this job — is what separates a page worth landing on from padding.
+ *
+ * A service that does not earn a page is NOT hidden: it stays a section on the home page, which is
+ * exactly where it is today. Failing this test costs a client nothing they currently have.
+ *
+ * Never generates copy to clear the bar. The rule this project runs on is that the model may shape
+ * the customer's words and may never invent facts about their business.
+ */
+export function serviceEarnsPage(
+  service: { name: string; description?: string; involves?: string; signs?: string[]; expect?: string },
+  context: {
+    photos?: { slot?: string; slotKey?: string }[]
+    faqs?: { service?: string }[]
+    testimonials?: { jobType?: string }[]
+  } = {},
+): ServicePageReadiness {
+  const wordCount = words(service.description, service.involves, service.signs, service.expect)
+
+  const hasPhoto = (context.photos ?? []).some(
+    p => p.slot === 'service' && sameName(p.slotKey, service.name),
+  )
+  const faqCount = (context.faqs ?? []).filter(f => sameName(f.service, service.name)).length
+  const testimonialCount = (context.testimonials ?? []).filter(
+    t => sameName(t.jobType, service.name),
+  ).length
+
+  const hasSupport = hasPhoto || faqCount > 0 || testimonialCount > 0
+  const missing: string[] = []
+  if (wordCount < SERVICE_PAGE_MIN_WORDS) {
+    missing.push(`${wordCount} words, needs about ${SERVICE_PAGE_MIN_WORDS}`)
+  }
+  if (!hasSupport) missing.push('no photo, question or review tagged to it')
+
+  return {
+    earns: wordCount >= SERVICE_PAGE_MIN_WORDS && hasSupport,
+    wordCount,
+    wordsNeeded: Math.max(0, SERVICE_PAGE_MIN_WORDS - wordCount),
+    hasPhoto,
+    faqCount,
+    testimonialCount,
+    missing,
+  }
+}
+
+/**
+ * The services that get their own pages, in the order they appear in the content.
+ *
+ * One caller for the nav, the sitemap, the home page's links and the route itself, so none of them
+ * can disagree about which pages exist — a nav offering a link that 404s is worse than no nav.
+ */
+export function servicePages(
+  content: SiteContent,
+  context: Parameters<typeof serviceEarnsPage>[1] = {},
+): string[] {
+  return (content.services ?? [])
+    .filter(s => serviceEarnsPage(s, context).earns)
+    .map(s => s.name)
+}

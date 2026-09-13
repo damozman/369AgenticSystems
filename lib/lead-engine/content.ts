@@ -124,6 +124,10 @@ export function profileUrlFrom(raw: unknown): string | undefined {
 }
 
 const MAX_DESCRIPTION = 140
+/** The three service-page fields. Longer than a description because they carry the page. */
+const MAX_SERVICE_PROSE = 700
+const MAX_SIGNS = 8
+const MAX_SIGN_LENGTH = 160
 const MAX_TESTIMONIALS = 3
 const MAX_FAQS = 6
 
@@ -144,10 +148,23 @@ function servicesFrom(raw: unknown): ServiceItem[] | undefined {
     if (!name) continue
     const key = name.toLowerCase()
     if (seen.has(key)) continue
-    const description = typeof entry === 'object' && entry
-      ? text((entry as ServiceItem).description, MAX_DESCRIPTION)
-      : undefined
-    seen.set(key, description ? { name, description } : { name })
+    const obj = typeof entry === 'object' && entry ? (entry as ServiceItem) : null
+    const description = obj ? text(obj.description, MAX_DESCRIPTION) : undefined
+
+    // The three page-worthy fields. Each omitted when unanswered rather than defaulted, so a
+    // service that has only ever had a name keeps behaving exactly as it did — which is every
+    // service on every site that exists today.
+    const involves = obj ? text(obj.involves, MAX_SERVICE_PROSE) : undefined
+    const expect   = obj ? text(obj.expect, MAX_SERVICE_PROSE) : undefined
+    const signs    = obj ? list(obj.signs, MAX_SIGNS, MAX_SIGN_LENGTH) : undefined
+
+    seen.set(key, {
+      name,
+      ...(description ? { description } : {}),
+      ...(involves ? { involves } : {}),
+      ...(signs?.length ? { signs } : {}),
+      ...(expect ? { expect } : {}),
+    })
     if (seen.size >= MAX_SERVICES) break
   }
   return seen.size > 0 ? [...seen.values()] : undefined
@@ -179,7 +196,11 @@ function faqsFrom(raw: unknown): FaqItem[] | undefined {
     const question = text((entry as FaqItem)?.question, 160)
     const answer   = text((entry as FaqItem)?.answer, 600)
     if (!question || !answer) continue
-    out.push({ question, answer })
+    // The service tag is carried verbatim and matched at render time, never resolved here:
+    // `contentFrom` does not know the service list is about to be edited, and a tag validated now
+    // would go stale the moment an operator renames a service on the review page.
+    const service = text((entry as FaqItem).service, MAX_SERVICE_LENGTH)
+    out.push({ question, answer, ...(service ? { service } : {}) })
     if (out.length >= MAX_FAQS) break
   }
   return out.length > 0 ? out : undefined

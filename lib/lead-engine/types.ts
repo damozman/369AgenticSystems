@@ -33,6 +33,26 @@ export type CtaKind = (typeof CTA_KINDS)[number]
 export interface ServiceItem {
   name: string
   description?: string
+  /**
+   * ── The three fields that let a service have its own page ──
+   *
+   * A name plus one line of description is roughly forty words, which is a thin page: real unique
+   * content wrapped in shared boilerplate, and actively harmful to the ranking these sites exist
+   * to earn. `serviceEarnsPage()` measures what is here and only builds a page when there is
+   * enough to be worth landing on.
+   *
+   * All optional, and nothing is ever generated to fill them — the customer's own words or the
+   * section is omitted.
+   */
+  /** What the work actually involves. */
+  involves?: string
+  /** How someone recognises they need this — the symptoms, not the service name.
+   *  People search what is happening to them, so this is the strongest long-tail content a trade
+   *  has, and the one field with no equivalent anywhere else on the site. */
+  signs?: string[]
+  /** What to expect on price or timing. Deliberately optional: plenty of trades will not commit
+   *  to a number, and a vague sentence is worse than no section. */
+  expect?: string
 }
 
 /** A real customer quote. Trust renders only from these and never invents one. */
@@ -46,6 +66,15 @@ export interface Testimonial {
 export interface FaqItem {
   question: string
   answer: string
+  /**
+   * Which service this belongs to, matched by NAME against the service list.
+   *
+   * Untagged FAQs stay on the home page, which is the existing behaviour and the common case. A
+   * tag that matches no service falls back to the home page rather than vanishing — the same
+   * degrade rule the photo slots follow, and for the same reason: a renamed service makes the
+   * operator's intent stale, not wrong.
+   */
+  service?: string
 }
 
 /**
