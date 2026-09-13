@@ -5,7 +5,8 @@ import {
   createStorageAdminClient, resolveOwnedSite, variantPath,
   PHOTOS_BUCKET, PHOTOS_INCOMING_BUCKET,
 } from '@/lib/lead-engine/photo-storage'
-import { decidePhotoUpload } from '@/lib/lead-engine/limits'
+import { decidePhotoUpload, MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
+import { loadPhotos } from '@/lib/lead-engine/site'
 import { normalizeToRaster, processPhoto } from '@/lib/lead-engine/photo-pipeline'
 import type { PhotoVariant } from '@/lib/lead-engine/types'
 
@@ -162,6 +163,35 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
+}
+
+/**
+ * Every photo on a site, in display order.
+ *
+ * Added for the admin tool, which previously showed only the single most-recently-uploaded photo —
+ * so after uploading several there was no way to tell from the page how many had actually landed,
+ * or which one was the hero. "How many did that take?" had to be answered by querying the database
+ * by hand.
+ *
+ * Reuses `photoFromRow` rather than mapping again here: the renderer and this tool must agree
+ * about what a photo IS, and the bug that function exists to prevent was precisely two readers
+ * disagreeing about which columns matter. `isPrimary` shown here is the same field the hero slot
+ * reads, which is the whole point of showing it.
+ */
+export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const siteId = new URL(request.url).searchParams.get('siteId')
+  if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
+
+  const admin = createStorageAdminClient()
+  const site = await resolveOwnedSite(admin, siteId, user.email)
+  if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const photos = await loadPhotos(siteId)
+  return NextResponse.json({ photos, count: photos.length, max: MAX_PHOTOS_PER_SITE })
 }
 
 export async function DELETE(request: NextRequest) {

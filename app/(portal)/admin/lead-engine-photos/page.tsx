@@ -23,12 +23,12 @@ export default async function LeadEnginePhotosTestPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Lead Engine — Photo Upload Test</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Lead Engine — Photos</h1>
         <p className="text-slate-600 dark:text-slate-400">
-          Internal test harness for the Part B photo pipeline — no client-facing polish, not part of
-          the product. Exercises the real routes: <code>POST /api/lead-engine/photos/sign</code>,
-          a direct browser upload to Supabase Storage, then <code>POST /api/lead-engine/photos</code>.
-          Pick one of the review fixture sites below and attach a real photo to it, HEIC included.
+          Internal tool, not client-facing — this is how photos get onto a site until the customer
+          dashboard uploader is built. Pick a site, attach photos (several at once, HEIC included),
+          caption them and choose which one is the hero. The list underneath is what is actually on
+          the site right now.
         </p>
       </div>
       <PhotoUploadTool sites={sites ?? []} />
