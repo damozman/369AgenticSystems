@@ -78,6 +78,24 @@ export function allocatePhotos(
     pinnedGallery.push(g)
   }
 
+  // ⚠ SERVICE PINS COME OUT NOW, not when the tiles are filled further down.
+  //
+  // This line is the whole bug it was written to fix, and it is worth being blunt about: the first
+  // version claimed hero/band/gallery pins here and left service pins in the pool until the
+  // services loop. By then `takeByAspect` had already run for the band -- and on a real site it
+  // chose the widest photo in the pool, which was the one pinned to "Drain cleaning". The band got
+  // a service's photograph and the drain tile rendered empty.
+  //
+  // Held as a list rather than resolved against `serviceNames` here, because an unmatched pin (the
+  // service was renamed) must fall back into the automatic pool rather than disappear -- so the
+  // ones that find no tile are returned below.
+  const pinnedServices: SitePhoto[] = []
+  for (;;) {
+    const sv = claim(p => p.slot === 'service')
+    if (!sv) break
+    pinnedServices.push(sv)
+  }
+
   let primary: SitePhoto | undefined
   if (need.hero && !pinnedHero) {
     const i = pool.findIndex(p => p.isPrimary)
@@ -135,14 +153,19 @@ export function allocatePhotos(
   const services: (SitePhoto | undefined)[] = new Array(slotCount).fill(undefined)
 
   if (names) {
-    // Exact, case-insensitive match on the service name. A slotKey that matches nothing -- the
-    // service was renamed after the photo was pinned -- simply does not claim a tile, and the
-    // photo falls back to the automatic fill below. Stale intent degrades; it does not vanish.
+    // Exact, case-insensitive match on the service name.
     names.forEach((name, i) => {
       const key = name.trim().toLowerCase()
-      services[i] = claim(p => p.slot === 'service' && (p.slotKey ?? '').trim().toLowerCase() === key)
+      const j = pinnedServices.findIndex(p => (p.slotKey ?? '').trim().toLowerCase() === key)
+      if (j !== -1) services[i] = pinnedServices.splice(j, 1)[0]
     })
   }
+
+  // Any pin that matched no tile -- its service was renamed or deleted after the photo was pinned
+  // -- rejoins the pool at the front rather than being dropped. Stale intent degrades to automatic
+  // placement; it never costs the customer a photograph. `unshift` keeps them ahead of genuinely
+  // unassigned photos, since someone did at least mean these to appear in the services section.
+  pool.unshift(...pinnedServices)
 
   // Fill whatever is still empty from the pool, in order. A tile left empty by an unmatched pin
   // gets a photo here rather than rendering blank.
@@ -240,18 +263,41 @@ export function mosaicSpans(serviceCount: number): (1 | 2)[] {
  * allocator assigned to this section — lands on the largest tile rather than wherever it happens
  * to fall in document order.
  */
-export function mosaicPlan(serviceCount: number, photosAvailable: number): MosaicTile[] {
+export function mosaicPlan(
+  serviceCount: number,
+  photosAvailable: number,
+  /**
+   * Which tiles actually hold a photo, index-aligned with the services.
+   *
+   * ⚠ Pass this whenever the caller knows, which is every real render. Without it the photo index
+   * is a COUNTER handed out widest-tile-first, so tile 3 can point at photo 1 — fine when photos
+   * are an interchangeable pool, wrong the moment a photo is pinned to a named service, and the
+   * reason a pinned mosaic scrambles at four services or more. It also cannot express a hole: a
+   * tile pointing at a missing photo rendered with no image AND no colour fill, which is a white
+   * box on a customer's page.
+   *
+   * The count-only form is kept for the pure span tests below, which have no photos at all.
+   */
+  hasPhotoAt?: readonly boolean[],
+): MosaicTile[] {
   const spans = mosaicSpans(serviceCount)
   if (spans.length === 0) return []
 
-  // Widest first, ties broken by position, so the result is deterministic rather than
-  // sort-implementation dependent.
-  const byWidth = spans.map((span, i) => ({ span, i }))
-    .sort((a, b) => b.span - a.span || a.i - b.i)
-
   const photoAt = new Map<number, number>()
-  for (const { i } of byWidth.slice(0, Math.max(0, Math.min(photosAvailable, serviceCount)))) {
-    photoAt.set(i, photoAt.size)
+
+  if (hasPhotoAt) {
+    // Identity: tile i shows photo i. The allocator already decided which service gets which
+    // photograph, and that decision may have been made by a person.
+    spans.forEach((_, i) => { if (hasPhotoAt[i]) photoAt.set(i, i) })
+  } else {
+    // Widest first, ties broken by position, so the result is deterministic rather than
+    // sort-implementation dependent.
+    const byWidth = spans.map((span, i) => ({ span, i }))
+      .sort((a, b) => b.span - a.span || a.i - b.i)
+
+    for (const { i } of byWidth.slice(0, Math.max(0, Math.min(photosAvailable, serviceCount)))) {
+      photoAt.set(i, photoAt.size)
+    }
   }
 
   let colourTurn = 0

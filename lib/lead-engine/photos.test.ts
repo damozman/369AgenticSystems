@@ -374,3 +374,71 @@ test('sites with no pins behave exactly as before', () => {
   assert.equal(a.hero?.id, '1')
   assert.deepEqual([a.services[0]?.id, a.services[1]?.id], ['2', '3'])
 })
+
+// ── The two bugs the first pinned site actually hit ──────────────────────────
+//
+// Both shipped in the commit that ADDED pinning, both passed 637 tests, and both were visible
+// within a minute of looking at the rendered page. Neither was reachable from the unit tests that
+// existed, because each needed a specific combination the tests never built.
+
+test('⚠ REGRESSION: the band must not eat a photo pinned to a service', () => {
+  // Chris's Bell Avenue site, exactly. The first version claimed hero/band/gallery pins up front
+  // but left SERVICE pins in the pool until the tiles were filled -- by which time takeByAspect
+  // had already chosen the widest photo in the pool for the band, and the widest happened to be
+  // the one pinned to "Drain cleaning". The band got a service's photograph and the drain tile
+  // rendered empty.
+  const photos = [
+    sized('sink',    1408, 768,  { slot: 'service', slotKey: 'Drain cleaning' }),
+    sized('living',  1428, 912,  { slot: 'service', slotKey: 'Water heaters' }),
+    sized('bedroom', 1493, 904,  { slot: 'service', slotKey: 'Leak repair' }),
+    sized('threads', 4000, 3000, { isPrimary: true }),
+  ]
+  const a = allocatePhotos(photos, {
+    hero: true, band: true,
+    serviceNames: ['Drain cleaning', 'Water heaters', 'Leak repair'],
+  })
+
+  assert.equal(a.hero?.id, 'threads')
+  assert.equal(a.services[0]?.id, 'sink', 'the drain tile lost its photo to the band')
+  assert.equal(a.services[1]?.id, 'living')
+  assert.equal(a.services[2]?.id, 'bedroom')
+  assert.notEqual(a.band?.id, 'sink', 'the band took a photo pinned to a service')
+})
+
+test('an unmatched service pin rejoins the pool rather than being lost', () => {
+  // Holding service pins back up front creates a new way to lose one: if its service no longer
+  // exists, nothing puts it back. It must still reach the page.
+  const a = allocatePhotos(
+    [pinned('orphan', 'service', 'Gone'), plain('x')],
+    { band: true, serviceNames: ['Still here'] },
+  )
+  const everywhere = [a.band, ...a.services, ...a.gallery].filter(Boolean).map(p => p!.id)
+  assert.ok(everywhere.includes('orphan'), 'an orphaned pin vanished from the page entirely')
+})
+
+test('⚠ REGRESSION: the mosaic puts photo i on tile i, not on the widest tile', () => {
+  // mosaicPlan handed out photo indexes as a COUNTER, widest tile first. Harmless when photos are
+  // an interchangeable pool; wrong the moment one is pinned to a named service. At four services
+  // the spans are [2,1,1,2], so tile 3 received photo 1 and every pin after the first scrambled.
+  const plan = mosaicPlan(4, 4, [true, true, true, true])
+  assert.deepEqual(plan.map(t => t.photoIndex), [0, 1, 2, 3])
+})
+
+test('⚠ REGRESSION: a tile with no photo is a colour block, never a white gap', () => {
+  // The visible half of the same bug: a tile pointing at a missing photo rendered no image and no
+  // fill class, which is a white box on a customer's page. Chris highlighted the text to check it
+  // was even there.
+  const plan = mosaicPlan(3, 3, [false, true, true])
+  assert.equal(plan[0].photoIndex, null, 'the empty tile still claimed a photo')
+  assert.ok(plan[0].fill, 'the empty tile has no colour fill — it renders white')
+  assert.equal(plan[1].photoIndex, 1)
+  assert.equal(plan[2].photoIndex, 2)
+})
+
+test('without the per-tile argument the old widest-first behaviour is unchanged', () => {
+  // The count-only form still serves the pure span tests, and must not drift.
+  const plan = mosaicPlan(4, 2)
+  const withPhotos = plan.filter(t => t.photoIndex !== null)
+  assert.equal(withPhotos.length, 2)
+  assert.deepEqual(withPhotos.map(t => t.span), [2, 2], 'photos no longer go to the widest tiles')
+})

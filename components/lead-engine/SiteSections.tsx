@@ -1051,7 +1051,10 @@ export function Services({
 
       {layout === 'mosaic' ? (
         <div className="le-mosaic">
-          {mosaicPlan(services.length, photos.length).map((tile, i) => {
+          {/* The third argument is not optional in practice — see mosaicPlan. It is what keeps a
+              photo pinned to a named service on that service's tile, and what turns an unfilled
+              tile into a deliberate colour block rather than a white gap. */}
+          {mosaicPlan(services.length, photos.length, services.map((_, i) => Boolean(photos[i]))).map((tile, i) => {
             const s = services[i]
             const photo = tile.photoIndex === null ? undefined : photos[tile.photoIndex]
             return (
