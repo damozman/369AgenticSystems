@@ -51,25 +51,50 @@ an origin, and every mini-site is served from this domain, so that file would be
 looks like coverage. `app/robots.ts` governs these pages and allows them. It becomes real work the
 day a customer's own domain is mapped to their site.
 
+#### ✅ `verify-lead-engine.mjs --live` is GREEN — 2026-09-14
+
+First clean full run this branch has ever had: **all checks passed**, against production Supabase
+and a real dev server on 3001. It took three attempts, and the two failed ones are the lesson.
+
+**Attempt 1 — 1 failure, and the run was almost entirely hollow.** `✓ all 0 review fixtures are
+draft` was a green tick for an EMPTY SET, so `Rendering`, `Button contrast` and `320px` each printed
+their heading and then iterated nothing. One red line, twenty-four checks that never ran, and it
+read as thorough. **Absence of a failure is not a pass** — an empty fixture set now fails and names
+the seed command.
+
+**Attempt 2 — 24 rendering checks passed and tested none of this session's work.** The fixtures
+predate the three per-service questions, so no service earned a page and every service-page path
+walked an empty list. The same trap, one layer down, two runs in a row. Fixed at the source:
+`review-trade-classic`'s first two services now carry `involves`/`signs`/`expect` with an FAQ tagged
+to each, verified through the real `contentFrom` → `serviceReadiness` path (186 words, earns) rather
+than by counting words by eye — **the FAQ's `service` tag surviving `contentFrom` was the half most
+likely to be dropped silently**, and that is exactly the field this branch added.
+
+Attempt 2's nine failures were all one cause — `ONBOARDING_TOKEN_SECRET` unset in the runner's
+shell — and are not defects. **The secret does not need to be the real one.** Both halves of the
+check are local: the script signs a link, the local server verifies it, so any value works as long
+as the two shells agree. The real one is in Vercel and is deliberately absent from `.env.local`.
+
+**The verifier gained a section it did not have**: it asks each site's sitemap what pages exist,
+then over HTTP confirms every URL answers, is linked from the home page, and that an invented
+service slug 404s rather than serving a thin page — plus that the root sitemap lists no draft
+fixture. It fails loudly when no fixture has a service page.
+
+**One thing is still unexplained and is NOT a security hole.** On attempt 1 a deliberately bad token
+was refused with **404 where 403 was expected** — refused either way, no data returned, and it has
+not recurred. The assertion now prints the response body, which distinguishes the two gates, so a
+recurrence names its own cause instead of being a dead end.
+
 #### ▶ What is left
 
-1. **Nothing here has been opened in a browser, and nothing has been run against real data.**
-   This container has **no Supabase credentials at all** — no `.env.local` — so the sitemap was
-   proven by unit tests and by fetching `/sitemap.xml` and `/robots.txt` from a real dev server,
-   and the per-site sitemap and every new page were proven by `tsc` and the route manifest only.
-   **This is the gap, and this project's own record says it is the one that matters**: every defect
-   found on this branch was found by looking at the page, and none by a test. Drive a site through
-   before merging.
-2. **`verify-lead-engine.mjs --live` has still not been run** against Chunk C steps 1–5 or any of
-   this. PowerShell, two windows, the same throwaway `ONBOARDING_TOKEN_SECRET` in both — without it
-   the run dies at `no token minted` and cascades into ~9 failures that read as defects and are not.
-3. **Re-seed the review fixtures.** Bell Avenue's stored theme predates the forge remap, and no
-   fixture answers the three new per-service questions — so nothing on hand currently earns a
-   service page. Seeding one that does is the fastest route to item 1.
-4. **The templates and themes still need design work.** Chris has raised it twice: *"I still think
+1. **Nobody has LOOKED at a service page.** `--live` is green and that is a different question:
+   every defect found on this branch was found by reading the rendered page, and none by a test.
+   Open `/sites/review-trade-classic`, click through to one of the two service pages, and read it
+   as the customer would. **This is the last gate before merging.**
+2. **The templates and themes still need design work.** Chris has raised it twice: *"I still think
    the themes need some template work."* Worth a real conversation about which kits feel wrong.
-5. **The customer-facing photo uploader**, deferred by decision until the first few clients.
-6. **Merging to `master`** — hold until items 1 and 2 are green, per this file's own rule.
+3. **The customer-facing photo uploader**, deferred by decision until the first few clients.
+4. **Merging to `master`** — hold until item 1 is done, per this file's own rule.
 
 ### The session before — 2026-09-13
 
