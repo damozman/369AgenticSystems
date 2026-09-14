@@ -236,8 +236,16 @@ if (!LIVE) {
   const notDraft = (fixtures ?? []).filter(s => s.status !== 'draft')
   if (notDraft.length) {
     for (const s of notDraft) fail(`${s.slug} is status "${s.status}" — review fixtures must be draft`)
+  } else if ((fixtures?.length ?? 0) === 0) {
+    // ⚠ Zero fixtures used to print "✓ all 0 review fixtures are draft" — a green tick for an empty
+    // set, and every rendering check below then iterated nothing and printed nothing under its own
+    // heading. The run finished with one failure and looked thorough while the entire rendering
+    // half had tested NOTHING. Same shape as this project's "a webhook that returns 200 is not a
+    // webhook that did anything": the absence of a failure is not a pass.
+    fail('no review fixtures exist, so every rendering check below tests nothing — '
+       + 'run: node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --apply')
   } else {
-    pass(`all ${fixtures?.length ?? 0} review fixtures are draft, so production serves none of them`)
+    pass(`all ${fixtures.length} review fixtures are draft, so production serves none of them`)
   }
 
   if (!previewOn) {
@@ -507,7 +515,14 @@ if (!LIVE) {
         : fail(`the read path did not return what was saved — got ${JSON.stringify(afterBody.answers?.differentiator)}`)
 
       const badGet = await fetch(`${base}/api/lead-engine/questionnaire/${chunkBSiteId}?t=not-a-real-token`)
-      badGet.status === 403 ? pass('a bad token is refused with 403') : fail(`a bad token returned ${badGet.status}, expected 403`)
+      const badBody = await badGet.text().catch(() => '')
+      // The BODY is what distinguishes the two refusals, and without it a wrong status is a dead
+      // end: 403 comes from `questionnaireAuthFailure`, 404 from `loadSiteForQuestionnaire`
+      // returning null — which means the row was not read at all, a different fault entirely.
+      // Either way the data was refused; the status says WHICH gate stopped it.
+      badGet.status === 403
+        ? pass('a bad token is refused with 403')
+        : fail(`a bad token returned ${badGet.status}, expected 403 — body: ${badBody.slice(0, 200)}`)
 
       console.log('\nChunk B — honeypot and throttle')
 
