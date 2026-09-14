@@ -14,6 +14,7 @@
  *   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs
  *   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --apply
  *   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --cleanup --apply
+ *   node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/seed-lead-engine-review.mjs --clear-photos review-trade-classic --apply
  *
  * It writes to PRODUCTION Supabase — there is no other Supabase here — but it buys nothing, calls
  * no external API, and sends no mail.
@@ -28,6 +29,20 @@ import { resolveForVertical } from '@/lib/lead-engine/theme'
 
 const APPLY   = process.argv.includes('--apply')
 const CLEANUP = process.argv.includes('--cleanup')
+/**
+ * `--clear-photos <slug>` — empty ONE fixture's photos so real ones can be loaded into it.
+ *
+ * The fixtures are seeded to the 18-photo cap on purpose: that is what exercises the hero, the
+ * band, the ladder and the gallery all at once, and it is the right shape for judging a design.
+ * It is the wrong shape for the other thing an operator does on this screen, which is put actual
+ * photographs on a site — a full site refuses every upload until something is deleted, and that is
+ * eighteen clicks.
+ *
+ * Refuses any slug outside the `review-` prefix. These are fixtures; a real client's photos are
+ * not something a seed script should be able to reach.
+ */
+const CLEAR_AT = process.argv.indexOf('--clear-photos')
+const CLEAR_PHOTOS = CLEAR_AT === -1 ? null : process.argv[CLEAR_AT + 1] ?? null
 
 const OWNER = 'chris@369agenticsystems.com'
 const PREFIX = 'review-'
@@ -669,5 +684,49 @@ async function seed() {
   }
 }
 
-const run = CLEANUP ? cleanup : seed
+async function clearPhotos() {
+  if (!CLEAR_PHOTOS) throw new Error('--clear-photos needs a slug, e.g. --clear-photos review-trade-classic')
+  if (!CLEAR_PHOTOS.startsWith(PREFIX)) {
+    throw new Error(`REFUSING to touch "${CLEAR_PHOTOS}" — this only ever clears ${PREFIX}* fixtures.`)
+  }
+
+  const { data: site, error } = await supabase
+    .from('lead_engine_sites')
+    .select('id, slug, business_name')
+    .eq('slug', CLEAR_PHOTOS)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!site) throw new Error(`No site with slug "${CLEAR_PHOTOS}".`)
+
+  const { count } = await supabase
+    .from('lead_engine_photos')
+    .select('id', { count: 'exact', head: true })
+    .eq('site_id', site.id)
+
+  console.log(`${APPLY ? 'Clearing' : 'Would clear'} ${count ?? 0} photo(s) from ${site.business_name} (/sites/${site.slug})`)
+  if (!APPLY) { console.log('\nDry run — add --apply to delete.'); return }
+
+  // Storage first, then rows. The other order leaves files with nothing pointing at them, which is
+  // the state `probe-lead-engine-photos.mjs` reports as orphans.
+  const { data: files } = await supabase.storage.from(PHOTO_BUCKET).list(site.id, { limit: 1000 })
+  if (files?.length) {
+    const { error: rmErr } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .remove(files.map(f => `${site.id}/${f.name}`))
+    if (rmErr) throw new Error(`could not remove files: ${rmErr.message}`)
+  }
+  const { error: delErr } = await supabase.from('lead_engine_photos').delete().eq('site_id', site.id)
+  if (delErr) throw new Error(`could not delete rows: ${delErr.message}`)
+
+  // Read it back rather than trusting the delete — the same discipline the seed now uses.
+  const { count: left } = await supabase
+    .from('lead_engine_photos')
+    .select('id', { count: 'exact', head: true })
+    .eq('site_id', site.id)
+  if (left) { console.error(`✗ ${left} photo(s) still there`); process.exitCode = 1; return }
+
+  console.log(`✓ ${site.business_name} is now empty — upload your own at /admin/lead-engine-photos`)
+}
+
+const run = CLEAR_PHOTOS !== null ? clearPhotos : CLEANUP ? cleanup : seed
 run().catch(e => { console.error(`\n✗ ${e.message}`); process.exitCode = 1 })

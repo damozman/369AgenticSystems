@@ -293,8 +293,19 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
 
       <section>
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
-          On this site: {photos.length} of {max}
+          {photos.length === 0
+            ? `No photos yet — room for ${max}`
+            : `${photos.length} photo${photos.length === 1 ? '' : 's'} on this site, of ${max}`}
         </h2>
+        {/* The tiles below are photos that are ALREADY on the site, not empty slots waiting to be
+            filled. "18 of 18" read as "eighteen places to put something" to the first person who
+            used this, which is a fair reading of a counter next to a grid of boxes. Say which it
+            is, and say it only when the distinction matters. */}
+        {photos.length >= max && (
+          <p className="text-sm text-amber-700 dark:text-amber-400 mb-2">
+            This site is full. Every tile below is a photo already on it — delete one to make room.
+          </p>
+        )}
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
           {hasPrimary
             ? 'One photo is marked as the hero.'
