@@ -10,54 +10,66 @@ separate initiative on `master` (dossier / audit-calls) — do not conflate the 
 
 **Last updated: 2026-09-14.**
 
-### Where this session ended — 2026-09-14
+### Where this session ended — 2026-09-14 (later)
 
-**Chunk C is built AND has been driven end to end by a person for the first time.** Chris ran a
-site locally: uploaded photos, captioned them, pinned them to slots, edited the content, published,
-and looked at the rendered page. 642 tests, `tsc` clean apart from the known `xlsx` container
-failure, style check clean, build compiles.
-
-**Every defect this session was found by LOOKING AT THE PAGE, and nothing else could have found any
-of them.** Four in one afternoon, all against a green suite:
-
-| What he saw | What it actually was |
-|---|---|
-| "Too small for the hero" on photos that looked large | The rule was right. Nothing showed the requirement or the photo's pixel size — on-screen size and pixel size are different numbers and the UI named neither |
-| A "gallery only" photo became the hero | The message was fiction: `allocatePhotos` had **never** looked at photo size |
-| A bedroom on the "Drain cleaning" tile | Service tiles were paired with photos BY POSITION; nothing knew what any photo depicted |
-| A **white** service tile | Two bugs at once — the band ate a service-pinned photo, and a tile pointing at a hole got no colour fill |
-
-**The one worth remembering:** his three services happened to share a mosaic span, so a scrambled
-photo-to-tile mapping was the identity *by accident* and two of three tiles looked correct. **At
-four services it scrambles outright.** The visible symptom was far smaller than the defect.
+**The mini-site became a real website this session.** It is no longer one page marked `noindex`; it
+is a home page plus a page per service that earns one, it is indexable, it carries structured data,
+and it has a sitemap. Branch `feature/lead-engine-chunk-c`, head `75fa27f`, pushed. **690 tests**,
+`tsc` clean apart from the known `xlsx` container failure, style check clean.
 
 #### What shipped
 
-- **Photo slot pinning** — `slot` + `slot_key` on `lead_engine_photos`. A photo can be pinned to
-  the hero, the band, the gallery, or a **named service**. Matched by name rather than index,
-  because service lists get reordered constantly; a renamed service degrades to automatic and the
-  tool says so on that photo rather than silently losing it.
-  **`supabase/migrations/2026-09-14-lead-engine-photo-slots.sql` is APPLIED** — the picker
-  demonstrably works, which is the only proof that counts.
-- **Hero and band prefer photos at or above `WARN_PHOTO_LONG_EDGE`** — a preference with a
-  fallback, never a filter. A pinned or `isPrimary` photo wins regardless of size: that is a person
-  pointing at a photo, and overriding it on pixel count is the system second-guessing intent.
-- **The photo page states its requirements** and shows each photo's real pixel dimensions.
-- **`mosaicPlan` takes which tiles hold a photo**, so tile *i* shows photo *i* and an unfilled tile
-  renders as a deliberate colour block.
+- **A page per service — for the services that earn one.** `serviceEarnsPage()` is a measured
+  threshold, not a switch: **≈120 words of the service's own copy AND at least one supporting
+  element** (a photo pinned to it, a question tagged to it, or a review naming it). A service that
+  falls short stays a section on the home page, exactly where it is today, so failing the test
+  costs a client nothing they currently have. **No copy is ever generated to clear the bar.**
+- **Three new questions per service** in the questionnaire — what's involved, how someone knows they
+  need it, what to expect on price or timing — plus an optional service tag on each FAQ. That is
+  what makes a service page honest rather than thin; the page is a questionnaire change first.
+- **SEO**: `robots: noindex` removed (Chris's decision — the mini-site IS the customer's website),
+  `LocalBusiness` / `Service` / `FAQPage` JSON-LD, titles that name the trade and the town.
+  `aggregateRating` is emitted **only** from a rating the customer actually supplied.
+- **Sitemaps**: `/sites/<slug>/sitemap.xml` per site, and the root `/sitemap.xml` now lists every
+  live site's pages — that is the file `robots.txt` points at and the only one a crawler finds by
+  itself. Both from one `sitePaths()`, so neither can advertise a URL that 404s.
+- **The review screen now shows per-service readiness** — word count, what is missing, and a link
+  to the page when it exists — phrased as what to go back and ask the customer for.
+
+#### The defect worth carrying forward
+
+**`NEXT_PUBLIC_SITE_ORIGIN` is read in three places and set in none of them.** Every reader did
+`?? ''`, so the JSON-LD shipped earlier the same day had been emitting `"url": "/sites/<slug>"` — a
+relative URL, which schema.org does not allow and Google's parser drops without a word. Same shape
+as `item`, `sms_consent`, `booking_token` and the five columns `loadPhotos` used to discard:
+**built, wired, never fed.** `lib/lead-engine/origin.ts` now settles it and never returns an empty
+string, because a wrong-but-absolute URL is visibly wrong while an empty one looks fine and does
+nothing. **If a mini-site ever gets its own domain, set that env var** — that is what it is for.
+
+**No per-site `robots.txt`, deliberately.** A crawler only ever reads robots.txt from the ROOT of
+an origin, and every mini-site is served from this domain, so that file would be decoration that
+looks like coverage. `app/robots.ts` governs these pages and allows them. It becomes real work the
+day a customer's own domain is mapped to their site.
 
 #### ▶ What is left
 
-1. **The templates and themes need design work.** Chris has now raised this twice and it is the
-   only outstanding product-quality item: *"I still think the themes need some template work."*
-   Worth a real conversation about which kits feel wrong and why, rather than a guessing pass.
-2. **The customer-facing photo uploader**, still deferred by decision. The admin tool has now been
-   through a real run, which was the stated precondition — revisit the per-slot requirements under
-   "Chunk C — the requirements" below with that experience in hand.
-3. **`verify-lead-engine.mjs --live` has still not been run against steps 1–5.** PowerShell, two
-   windows, the same throwaway `ONBOARDING_TOKEN_SECRET` in both — without it the run dies at
-   `no token minted` and cascades into ~9 failures that read as defects and are not.
-4. **Merging to `master`** — hold until that `--live` run is green, per this file's own rule.
+1. **Nothing here has been opened in a browser, and nothing has been run against real data.**
+   This container has **no Supabase credentials at all** — no `.env.local` — so the sitemap was
+   proven by unit tests and by fetching `/sitemap.xml` and `/robots.txt` from a real dev server,
+   and the per-site sitemap and every new page were proven by `tsc` and the route manifest only.
+   **This is the gap, and this project's own record says it is the one that matters**: every defect
+   found on this branch was found by looking at the page, and none by a test. Drive a site through
+   before merging.
+2. **`verify-lead-engine.mjs --live` has still not been run** against Chunk C steps 1–5 or any of
+   this. PowerShell, two windows, the same throwaway `ONBOARDING_TOKEN_SECRET` in both — without it
+   the run dies at `no token minted` and cascades into ~9 failures that read as defects and are not.
+3. **Re-seed the review fixtures.** Bell Avenue's stored theme predates the forge remap, and no
+   fixture answers the three new per-service questions — so nothing on hand currently earns a
+   service page. Seeding one that does is the fastest route to item 1.
+4. **The templates and themes still need design work.** Chris has raised it twice: *"I still think
+   the themes need some template work."* Worth a real conversation about which kits feel wrong.
+5. **The customer-facing photo uploader**, deferred by decision until the first few clients.
+6. **Merging to `master`** — hold until items 1 and 2 are green, per this file's own rule.
 
 ### The session before — 2026-09-13
 
