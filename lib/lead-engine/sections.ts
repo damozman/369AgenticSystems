@@ -329,8 +329,18 @@ export interface GalleryLayout {
   /** The bottom row, with the column span each item takes in a 12-column grid. */
   rest: SitePhoto[]
   restSpan: number
-  /** Everything beyond the feature block, in upload order. Rendered as further rows of three. */
-  extra?: SitePhoto[]
+  /**
+   * Everything beyond the feature block, in rows of at most three. The last row may be short, and
+   * the renderer widens its items to fill — never leaving a hole in the corner.
+   */
+  extraRows?: SitePhoto[][]
+}
+
+/** Split into rows of at most `size`. Kept local — nothing else here needs it. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
+  return out
 }
 
 /**
@@ -359,9 +369,12 @@ export function galleryLayout(photos: SitePhoto[]): GalleryLayout | null {
     // The tool accepts 18 and calls that the limit; the page spent 1 on the hero, 1 on the band
     // and 5 on service tiles, and the gallery took 6 — so a customer who uploaded the 18 they were
     // invited to upload had 5 photographs of their own work appear nowhere, with nothing saying so.
-    // Handed back as rows of three rather than folded into `rest`, which is the bottom row of the
-    // feature block and whose span is computed from its own length.
-    extra: photos.slice(6),
+    // Rows rather than a flat list, so the LAST one can span to fill. A trailing row of one or two
+    // items at a fixed third-width leaves a hole in the bottom-right corner — Chris's read of the
+    // rendered page: "I would like to fill in the gap at the bottom right ... to even the page
+    // out". Same answer `restSpan` already gives the feature block's bottom row: compute the span
+    // from what is actually in the row rather than assuming three.
+    extraRows: chunk(photos.slice(6), 3),
   }
 }
 

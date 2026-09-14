@@ -42,6 +42,12 @@ export default async function LeadEnginePhotosTestPage() {
               Under {MAX_PHOTO_BYTES / (1024 * 1024)}MB each, up to {MAX_PHOTOS_PER_SITE} per site.
               JPEG, PNG, WebP or HEIC — straight off a phone is fine.
             </li>
+            <li>
+              <strong>Tag several photos to the same service</strong> when it has its own page. The
+              first one tagged leads that page; the next three fill the row underneath it. Tagging
+              even one turns the automatic picks off for that service, so tag all four or none —
+              otherwise the page shows a lead photo and no row.
+            </li>
           </ul>
           <p className="mt-2 text-slate-500">
             This is about <em>pixels</em>, not how big it looks on your screen. A photo that fills

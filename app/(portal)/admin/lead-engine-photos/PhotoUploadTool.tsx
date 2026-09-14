@@ -178,6 +178,27 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
     }
   }
 
+  /**
+   * Where a tagged photo lands on its service's page — read from the same order the page reads.
+   *
+   * Returns null for anything not tagged to a service, and for a tag naming a service that no
+   * longer exists (the stale-tag warning above already covers that case, and saying "leads Drain
+   * cleaning" about a service that is gone would contradict it).
+   */
+  function servicePosition(photo: Photo): string | null {
+    if (photo.slot !== 'service' || !photo.slotKey) return null
+    if (!services.some(name => name.trim().toLowerCase() === photo.slotKey!.trim().toLowerCase())) return null
+
+    const siblings = photos.filter(
+      q => q.slot === 'service'
+        && q.slotKey?.trim().toLowerCase() === photo.slotKey!.trim().toLowerCase(),
+    )
+    const i = siblings.findIndex(q => q.id === photo.id)
+    if (i === 0) return `Leads the ${photo.slotKey} page`
+    if (i > 0 && i <= 3) return `In the ${photo.slotKey} strip (${i} of 3)`
+    return `Tagged to ${photo.slotKey}, but its page shows only the first four`
+  }
+
   async function handleDelete(photoId: string) {
     if (!confirm('Delete this photo? The variants are removed from Storage too — this cannot be undone.')) return
     setError(null)
@@ -352,6 +373,12 @@ export default function PhotoUploadTool({ sites }: { sites: SiteOption[] }) {
                   <div className="text-amber-700 dark:text-amber-400">
                     &ldquo;{p.slotKey}&rdquo; is no longer a service — placed automatically
                   </div>
+                )}
+                {servicePosition(p) && (
+                  // Several photos may now name the same service, and WHICH one leads that
+                  // service's page is decided by upload order. Without saying so, an operator
+                  // tagging four photos has no idea which becomes the big one at the top.
+                  <div className="text-slate-600 dark:text-slate-400">{servicePosition(p)}</div>
                 )}
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {p.caption ?? <span className="text-slate-400">No caption</span>}

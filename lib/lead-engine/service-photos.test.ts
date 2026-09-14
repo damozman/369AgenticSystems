@@ -18,13 +18,47 @@ test('with nothing pinned anywhere, a service page still gets photos', () => {
   assert.deepEqual(got.more.map(x => x.id), ['b', 'c'])
 })
 
-test('a photo pinned to THIS service leads, ahead of unpinned ones', () => {
+test('one tag means a lead and NO strip — nothing automatic is mixed in beside it', () => {
+  // Topping the strip up with whatever is spare puts a finished re-roof next to three pictures of
+  // hail damage, and hides that only one photo was tagged.
   const got = servicePagePhotos(
-    [p('a'), p('pinned', { slot: 'service', slotKey: 'Roof replacement' }), p('b')],
+    [p('a'), p('tagged', { slot: 'service', slotKey: 'Roof replacement' }), p('b')],
     'Roof replacement',
   )
-  assert.equal(got.lead?.id, 'pinned')
-  assert.deepEqual(got.more.map(x => x.id), ['a', 'b'])
+  assert.equal(got.lead?.id, 'tagged')
+  assert.deepEqual(got.more, [])
+})
+
+test('several tags on one service fill the lead and the strip, in order', () => {
+  const tagged = (id) => p(id, { slot: 'service', slotKey: 'Roof replacement' })
+  const got = servicePagePhotos(
+    [p('spare'), tagged('t1'), tagged('t2'), tagged('t3'), tagged('t4')],
+    'Roof replacement',
+  )
+  assert.equal(got.lead?.id, 't1')
+  assert.deepEqual(got.more.map(x => x.id), ['t2', 't3', 't4'])
+})
+
+test('two services with tags show entirely different photographs', () => {
+  const all = [
+    p('roof1', { slot: 'service', slotKey: 'Roof replacement' }),
+    p('roof2', { slot: 'service', slotKey: 'Roof replacement' }),
+    p('storm1', { slot: 'service', slotKey: 'Storm damage repair' }),
+    p('storm2', { slot: 'service', slotKey: 'Storm damage repair' }),
+  ]
+  const roof = servicePagePhotos(all, 'Roof replacement', { serviceIndex: 0 })
+  const storm = servicePagePhotos(all, 'Storm damage repair', { serviceIndex: 1 })
+
+  const ids = (r) => [r.lead?.id, ...r.more.map(x => x.id)].filter(Boolean)
+  assert.deepEqual(ids(roof), ['roof1', 'roof2'])
+  assert.deepEqual(ids(storm), ['storm1', 'storm2'])
+})
+
+test('untagged services still differ from each other', () => {
+  const free = Array.from({ length: 8 }, (_, i) => p(`f${i}`))
+  const a = servicePagePhotos(free, 'A', { serviceIndex: 0 })
+  const b = servicePagePhotos(free, 'B', { serviceIndex: 1 })
+  assert.notEqual(a.lead?.id, b.lead?.id, 'two service pages opening with the same image reads as a template')
 })
 
 test('name matching ignores case and surrounding space, like every other slot match', () => {

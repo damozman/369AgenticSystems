@@ -1324,15 +1324,20 @@ export function Gallery({
             <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
           </figure>
         ))}
-        {/* Everything past the feature block, in even rows of three. These used to be discarded:
-            the tool invites 18 photos and the page showed 13, so a customer's own work went
-            nowhere with nothing saying so. A four-column span is 12/3 — the same grid, no new
-            layout. */}
-        {(layout.extra ?? []).map(p => (
-          <figure className="le-gal-rest" key={p.id} style={{ margin: 0, gridColumn: 'span 4' }}>
-            <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
-          </figure>
-        ))}
+        {/* Everything past the feature block. Span computed per ROW from what is in it, so a final
+            row of one or two widens to fill rather than leaving a hole in the bottom-right corner.
+            The same rule the feature block's bottom row already follows. */}
+        {(layout.extraRows ?? []).flatMap(row =>
+          row.map(p => (
+            <figure
+              className="le-gal-rest"
+              key={p.id}
+              style={{ margin: 0, gridColumn: `span ${12 / row.length}` }}
+            >
+              <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
+            </figure>
+          )),
+        )}
       </div>
     </Section>
   )

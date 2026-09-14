@@ -563,15 +563,28 @@ test('the gallery keeps every photo past the sixth instead of discarding it', ()
     layout?.feature,
     ...(layout?.stack ?? []),
     ...(layout?.rest ?? []),
-    ...(layout?.extra ?? []),
+    ...(layout?.extraRows ?? []).flat(),
   ].filter(Boolean)
 
   assert.equal(shown.length, 11, 'every photo handed to the gallery must render somewhere')
-  assert.equal(layout?.extra?.length, 5)
+  assert.deepEqual(layout?.extraRows?.map(r => r.length), [3, 2])
+})
+
+test('the last extra row is never left short of the edge', () => {
+  // A trailing row of one or two at a fixed third-width leaves a hole in the bottom-right corner.
+  // The renderer spans 12/row.length, so this asserts the ROWS are shaped for that.
+  for (const n of [7, 8, 9, 10, 11, 12, 13]) {
+    const rows = galleryLayout(photos(n))?.extraRows ?? []
+    for (const row of rows) {
+      assert.ok(row.length >= 1 && row.length <= 3, `row of ${row.length} cannot span a 12-column grid evenly`)
+      assert.equal(12 % row.length, 0, `a row of ${row.length} does not divide 12`)
+    }
+    assert.equal(rows.flat().length, Math.max(0, n - 6), 'every leftover is in a row')
+  }
 })
 
 test('six or fewer needs no extra row', () => {
-  assert.deepEqual(galleryLayout(photos(6))?.extra, [])
-  assert.deepEqual(galleryLayout(photos(4))?.extra, [])
-  assert.equal(galleryLayout(photos(3))?.extra, undefined, 'the short branch has no feature block to overflow')
+  assert.deepEqual(galleryLayout(photos(6))?.extraRows, [])
+  assert.deepEqual(galleryLayout(photos(4))?.extraRows, [])
+  assert.equal(galleryLayout(photos(3))?.extraRows, undefined, 'the short branch has no feature block to overflow')
 })

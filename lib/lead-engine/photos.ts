@@ -363,7 +363,13 @@ export function servicePagePhotos(
     ? free.map((_, i) => free[(i + ((opts.serviceIndex ?? 0) * (1 + more))) % free.length])
     : free
 
-  const ordered = [...pinnedHere, ...rotated]
+  // ── A tag wins outright: no automatic photo is mixed in beside one ──
+  // Tagging is how an operator says "THESE are the storm-damage photographs". Topping the strip up
+  // with whatever happens to be spare puts a shot of a finished re-roof next to three pictures of
+  // hail damage, which is worse than a shorter strip — and it hides the fact that only one photo
+  // was tagged, so nobody goes and tags the rest. A service with one tag gets a lead and no strip,
+  // deliberately. Everything automatic is for the sites nobody has tagged at all, which is most.
+  const ordered = pinnedHere.length ? pinnedHere : rotated
   return {
     ...(ordered[0] ? { lead: ordered[0] } : {}),
     more: ordered.slice(1, 1 + more),
