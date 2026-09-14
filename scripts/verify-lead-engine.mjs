@@ -308,6 +308,80 @@ if (!LIVE) {
     }
   }
 
+  // ── Service pages and sitemaps, from the consumer's side ───────────────────
+  //
+  // Asked over HTTP rather than by calling `servicePages()` and comparing it with itself. The
+  // sitemap is the site's own statement about which pages exist; every URL in it must actually
+  // answer, and a service that did not earn a page must 404 rather than serve a thin one. That is
+  // the whole rule, checked the way a crawler checks it.
+  //
+  // A sitemap listing URLs that 404 is not neutral — it is the signal that tells a search engine
+  // the site is unmaintained, which is the opposite of what removing `noindex` was for.
+  console.log('\nService pages and sitemaps')
+
+  let anyServicePage = false
+  for (const site of live ?? []) {
+    let locs = []
+    try {
+      const res = await fetch(`${base}/sites/${site.slug}/sitemap.xml`)
+      if (!res.ok) { fail(`/sites/${site.slug}/sitemap.xml returned ${res.status}`); continue }
+      const xml = await res.text()
+      locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
+    } catch (e) {
+      fail(`/sites/${site.slug}/sitemap.xml — ${e.message}`)
+      continue
+    }
+
+    if (locs.length === 0) { fail(`/sites/${site.slug}/sitemap.xml lists nothing, not even the home page`); continue }
+    if (!locs[0].endsWith(`/sites/${site.slug}`)) {
+      fail(`/sites/${site.slug}/sitemap.xml does not list the home page first — got ${locs[0]}`)
+    }
+
+    // Every URL it advertises must answer, and must be linked from the home page. A page nobody
+    // can click is discoverable only to a crawler, which is backwards.
+    const home = await fetch(`${base}/sites/${site.slug}`).then(r => r.text()).catch(() => '')
+    let broken = 0
+    for (const loc of locs.slice(1)) {
+      anyServicePage = true
+      const path = new URL(loc).pathname
+      const res = await fetch(`${base}${path}`)
+      if (!res.ok) { fail(`sitemap lists ${path} but it returned ${res.status}`); broken++; continue }
+      if (!home.includes(`href="${path}"`)) fail(`${path} exists but the home page links nowhere to it`)
+    }
+
+    // The other half of the rule, and the one a renderer change breaks silently: a service that
+    // has NOT earned a page must 404. Serving it thin is what the whole threshold exists to stop.
+    const invented = await fetch(`${base}/sites/${site.slug}/a-service-nobody-offers`)
+    if (invented.status !== 404) fail(`/sites/${site.slug}/a-service-nobody-offers returned ${invented.status}, expected 404`)
+
+    if (!broken) pass(`/sites/${site.slug} — ${locs.length - 1} service page(s), all reachable and linked`)
+  }
+
+  if (!anyServicePage) {
+    // Zero service pages across every fixture means this entire section proved only that 404s
+    // still 404. Same empty-set trap as the fixture count above.
+    fail('no fixture has a service page, so nothing here tested one — re-seed with '
+       + 'scripts/seed-lead-engine-review.mjs --apply on the current branch')
+  }
+
+  // The root sitemap is what robots.txt points a crawler at. Draft fixtures must never appear in
+  // it: they are eight fictional businesses, and the whole point of keeping them draft is that
+  // production serves none of them.
+  try {
+    const rootRes = await fetch(`${base}/sitemap.xml`)
+    const rootXml = rootRes.ok ? await rootRes.text() : ''
+    if (!rootRes.ok) {
+      fail(`/sitemap.xml returned ${rootRes.status}`)
+    } else {
+      const leaked = (live ?? []).filter(site => rootXml.includes(`/sites/${site.slug}`))
+      leaked.length
+        ? fail(`the root sitemap lists draft fixtures: ${leaked.map(s => s.slug).join(', ')}`)
+        : pass('the root sitemap lists no draft fixture')
+    }
+  } catch (e) {
+    fail(`/sitemap.xml — ${e.message}`)
+  }
+
   // ── 320px: no horizontal scroll, on every fixture ──────────────────────────
   //
   // This is the regression test for layout overflow, and it has to render rather than read source.

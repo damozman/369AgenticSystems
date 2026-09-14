@@ -72,8 +72,36 @@ const SITES = [
       // seen on the flagship. Ladder now appears on Forge and Threshold; the list on Counsel,
       // Yard, Clinic and Ledger. Both layouts, at least two themes each.
       services: [
-        { name: 'Roof replacement', description: 'Full tear-off and re-roof, with the old material hauled away the same day.' },
-        { name: 'Storm damage repair', description: 'Emergency assessment and repair after hail or wind, documented for your insurer.' },
+        // ── The two that EARN their own page ──
+        // `serviceEarnsPage` needs ~120 words of a service's own copy AND one supporting element,
+        // so these two carry involves/signs/expect and have FAQs tagged to them below. Without a
+        // fixture that clears the bar, every service-page check in the verifier iterates an empty
+        // list and prints nothing — the same silent pass that made the whole rendering half look
+        // thorough while testing nothing.
+        {
+          name: 'Roof replacement',
+          description: 'Full tear-off and re-roof, with the old material hauled away the same day.',
+          involves: 'We strip the existing covering down to the deck, replace any boards that have gone soft, and lay new underlayment across the whole roof before a single shingle goes on. Flashing around chimneys, valleys and vents is replaced rather than reused, because that is where almost every leak we are called out to actually starts. The old material goes straight into a dumpster on the drive and leaves with us the same day, and we run a magnetic sweeper over the driveway and lawn before we go.',
+          signs: [
+            'Shingles curling at the edges or losing their grit into the gutters',
+            'Daylight visible through the boards when you stand in the loft',
+            'Stains spreading across an upstairs ceiling after heavy rain',
+            'A roof past twenty years old that has already been patched twice',
+          ],
+          expect: 'A typical single-family roof is one to two days on site, weather permitting. You get a written figure before any work starts, a deposit is taken on scheduling, and the balance is only due once the owner has inspected the finished job.',
+        },
+        {
+          name: 'Storm damage repair',
+          description: 'Emergency assessment and repair after hail or wind, documented for your insurer.',
+          involves: 'We get out to look the same day where we can, photograph every impact point on the roof and the soft metal around it, and put that into a written report your adjuster can work from. If water is getting in we tarp the roof that night so the damage stops there. Once the claim is settled we carry out the repair itself, which may be a section rather than the whole roof — we will tell you plainly which one it is.',
+          signs: [
+            'Dents in gutters, vents or the air-conditioning housing after hail',
+            'Shingles lifted, cracked or missing entirely after high wind',
+            'Grit from the shingles collecting at the bottom of downspouts',
+            'A neighbour has already had a claim approved on the same storm',
+          ],
+          expect: 'The assessment and the written report cost you nothing. Tarping is same-day. The repair itself is scheduled once your insurer has responded, and we meet the adjuster on site rather than leaving you to explain the damage yourself.',
+        },
         { name: 'Gutter installation', description: 'Seamless gutters formed on site to fit the run exactly.' },
         { name: 'Free roof inspections', description: 'A written report with photographs, whether or not you go ahead with us.' },
         { name: 'Emergency tarping', description: 'Same-day cover to stop water getting in while a claim is assessed.' },
@@ -94,8 +122,8 @@ const SITES = [
       ],
       faqs: [
         { question: 'How much does a new roof cost?', answer: 'Most residential replacements in this area land between $9,000 and $22,000 depending on size, pitch and material. We give you a written figure before any work starts.' },
-        { question: 'Will my insurance cover storm damage?', answer: 'Often, yes. We document the damage, meet your adjuster on site, and give you the report they need. We do not file the claim for you, but we make it straightforward.' },
-        { question: 'How long does a replacement take?', answer: 'A typical single-family roof is one to two days on site, weather permitting. Larger or steeper roofs can run to three.' },
+        { question: 'Will my insurance cover storm damage?', answer: 'Often, yes. We document the damage, meet your adjuster on site, and give you the report they need. We do not file the claim for you, but we make it straightforward.', service: 'Storm damage repair' },
+        { question: 'How long does a replacement take?', answer: 'A typical single-family roof is one to two days on site, weather permitting. Larger or steeper roofs can run to three.', service: 'Roof replacement' },
         { question: 'Do you need permits?', answer: 'Yes, and we pull them. The permit fee is itemised on your quote rather than buried in the total.' },
         { question: 'What happens to my garden and driveway?', answer: 'We tarp landscaping, use a magnetic sweeper over the drive and lawn at the end of every day, and haul the old material away ourselves.' },
         { question: 'When do I pay?', answer: 'A deposit on scheduling and the balance once the owner has inspected the finished work. Never the full amount up front.' },
