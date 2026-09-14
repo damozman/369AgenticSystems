@@ -412,7 +412,7 @@ if (!LIVE) {
   // selector is edited, if a theme's accent regresses, or if a new button class is added without
   // the correction — none of which a pure test can see.
   if (browser) {
-    console.log('\nButton contrast, as painted')
+    console.log('\nButton and link contrast, as painted')
     for (const site of fixtures ?? []) {
       const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
       try {
@@ -435,13 +435,28 @@ if (!LIVE) {
             }
             return [255, 255, 255]
           }
-          return [...document.querySelectorAll('.le-btn, .le-submit')].map(el => {
+          // Buttons AND every link. The link half was added after Chris opened the page and saw
+          // "washed out text in the blue bar": four link classes shipped with no `color` at all,
+          // so they fell back to the user agent's #0000EE — 1.4:1 on Forge's dark header. This
+          // check was green through all of it, because it only ever looked at .le-btn.
+          //
+          // `opacity` is composited in, not ignored: .le-nav a sits at 0.78, and a check that
+          // reads the declared colour alone would pass a link the eye cannot read.
+          const els = [...document.querySelectorAll(
+            '.le-btn, .le-submit, .le-nav a, .le-svc-go, .le-crumb, .le-other-item, .le-tel, .le-header-name, .le-foot a',
+          )]
+          return els.map(el => {
             const cs = getComputedStyle(el)
-            const fg = parse(cs.color)
             const bg = behind(el)
+            const raw = parse(cs.color)
+            // Opacity can come from the element or any ancestor, so take what actually reaches it.
+            let alpha = 1
+            for (let n = el; n; n = n.parentElement) alpha *= Number(getComputedStyle(n).opacity || 1)
+            const fg = raw.map((v, i) => v * alpha + bg[i] * (1 - alpha))
             const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x)
             return {
               text: (el.textContent ?? '').trim().slice(0, 28),
+              kind: el.classList.contains('le-btn') || el.classList.contains('le-submit') ? 'button' : 'link',
               ratio: (a + 0.05) / (b + 0.05),
               fg: cs.color, bg: cs.backgroundColor,
             }
@@ -453,17 +468,19 @@ if (!LIVE) {
           fail(`${site.slug}: .le-site carries no data-accent-mode — the button-contrast rules cannot match`)
         }
 
-        // 3:1 is WCAG's large-text threshold, and a button label is large or bold text.
-        const unreadable = buttons.filter(b => b.ratio < 3.0)
+        // Two thresholds, because they are two different things. 3:1 is WCAG's LARGE-text bar and
+        // a button label is large or bold. A nav link is ordinary body text and needs 4.5:1.
+        const unreadable = buttons.filter(b => b.ratio < (b.kind === 'button' ? 3.0 : 4.5))
         if (!buttons.length) {
-          fail(`${site.slug}: no buttons found — this check silently proved nothing`)
+          fail(`${site.slug}: no buttons or links found — this check silently proved nothing`)
         } else if (unreadable.length) {
           for (const b of unreadable) {
-            fail(`${site.slug} [${mode}] "${b.text}" is ${b.ratio.toFixed(2)}:1 — ${b.fg} on ${b.bg}`)
+            fail(`${site.slug} [${mode}] ${b.kind} "${b.text}" is ${b.ratio.toFixed(2)}:1 — ${b.fg} on ${b.bg}`)
           }
         } else {
           const worst = Math.min(...buttons.map(b => b.ratio))
-          pass(`${site.slug} [${mode}] — ${buttons.length} buttons, worst ${worst.toFixed(2)}:1`)
+          const nButtons = buttons.filter(b => b.kind === 'button').length
+          pass(`${site.slug} [${mode}] — ${nButtons} buttons, ${buttons.length - nButtons} links, worst ${worst.toFixed(2)}:1`)
         }
       } catch (e) {
         fail(`${site.slug} button contrast — ${e.message}`)

@@ -130,6 +130,7 @@ const SITE_CSS = `
   display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
   font-family: var(--le-font-body), system-ui, sans-serif;
   font-size: var(--le-body-s, 0.9rem); font-weight: 600; text-decoration: none;
+  color: var(--le-ink);
   border: 1px solid var(--le-edge); border-radius: var(--le-radius-button); padding: 9px 14px;
 }
 .le-svc-go::after { content: '\\2192'; opacity: 0.6; }
@@ -137,6 +138,12 @@ const SITE_CSS = `
 
 .le-nav { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; }
 .le-nav a {
+  /* ⚠ colour is REQUIRED here, not optional polish. Without it an <a> falls back to the browser's
+     default link blue (#0000EE), which on Forge's dark header measures 1.4:1 — Chris saw it as
+     "washed out text in the blue bar" and he was reading the user agent stylesheet. Every link
+     class in this file needs an explicit colour for the same reason; four of them were missing it
+     when service pages shipped. */
+  color: var(--le-ink);
   text-decoration: none; font-size: var(--le-body-s, 0.94rem); opacity: 0.78;
   padding: 4px 0; border-bottom: 2px solid transparent;
 }
@@ -148,7 +155,7 @@ const SITE_CSS = `
    Three blocks the home page has no equivalent of, plus the links out. Built
    from the same tokens as everything else -- a service page that drifts from
    the site it belongs to reads as a different company's page. */
-.le-crumb { text-decoration: none; border-bottom: 1px solid currentColor; }
+.le-crumb { color: var(--le-ink); text-decoration: none; border-bottom: 1px solid currentColor; }
 .le-svc-shot { min-height: clamp(200px, 30vw, 380px); position: relative; overflow: hidden; }
 .le-svc-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .le-signs { margin: 0; padding: 0; display: grid; row-gap: 14px; }
@@ -159,7 +166,7 @@ const SITE_CSS = `
 }
 .le-other { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 32px; }
 .le-other-item {
-  display: block; text-decoration: none; padding: 20px 22px;
+  display: block; text-decoration: none; color: var(--le-ink); padding: 20px 22px;
   border: 1px solid var(--le-edge); border-radius: var(--le-radius-card);
   font-family: var(--le-font-display), var(--le-font-display-fallback);
   font-weight: 600; font-size: var(--le-display-s);
@@ -662,6 +669,7 @@ textarea.le-field { min-height: 96px; resize: vertical; }
   border-bottom-color: color-mix(in oklab, var(--le-paper) 14%, transparent);
 }
 .le-site[data-theme="forge"] .le-header-name,
+.le-site[data-theme="forge"] .le-nav a,
 .le-site[data-theme="forge"] .le-header .le-tel { color: var(--le-paper); }
 
 /* The split-anchor hero becomes a full-bleed one. The DOM is unchanged: .le-hero-media is lifted
