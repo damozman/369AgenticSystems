@@ -77,11 +77,14 @@ export default async function LeadEngineServicePage(
   // Was `photos.find(p => p.slot === 'service' && ...)` — a pin, and only a pin. Every site is on
   // Automatic by default, so in practice that rendered a service page with no photograph at all.
   // See servicePagePhotos for what it will and will not take.
-  const { lead: photo, more: morePhotos } = servicePagePhotos(photos, service.name)
   const faqs = (content.faqs ?? []).filter((f: { service?: string }) => sameName(f.service, service.name))
   const testimonials = (content.testimonials ?? []).filter((t: { jobType?: string }) => sameName(t.jobType, service.name))
   const allPages = servicePages(content, context)
   const otherServices = allPages.filter(n => n !== service.name)
+  // The index within the pages that exist, so two services never open with the same photograph.
+  const { lead: photo, more: morePhotos } = servicePagePhotos(photos, service.name, {
+    serviceIndex: Math.max(0, allPages.indexOf(service.name)),
+  })
   const navFor = allPages.length >= 2
     ? [
         { label: 'Home', href: `/sites/${slug}` },

@@ -320,6 +320,8 @@ if (!LIVE) {
   console.log('\nService pages and sitemaps')
 
   let anyServicePage = false
+  // Kept so the contrast pass below can visit these too rather than only the home pages.
+  const servicePathsBySlug = new Map()
   for (const site of live ?? []) {
     let locs = []
     try {
@@ -365,6 +367,7 @@ if (!LIVE) {
     const invented = await fetch(`${base}/sites/${site.slug}/a-service-nobody-offers`)
     if (invented.status !== 404) fail(`/sites/${site.slug}/a-service-nobody-offers returned ${invented.status}, expected 404`)
 
+    servicePathsBySlug.set(site.slug, locs.slice(1).map(loc => new URL(loc).pathname))
     if (!broken) pass(`/sites/${site.slug} — ${locs.length - 1} service page(s), all reachable and linked`)
   }
 
@@ -424,10 +427,23 @@ if (!LIVE) {
   // the correction — none of which a pure test can see.
   if (browser) {
     console.log('\nButton and link contrast, as painted')
+    // ── Service pages too, and that omission is why a defect shipped ──
+    // This only ever visited home pages. The "Other services" links on a service page sit on a
+    // dark band and were given the ink colour by the same commit that fixed the nav — they
+    // rendered as empty outlines, and a green run said nothing, because no service page was ever
+    // opened. A check that visits some of the pages answers a question nobody asked.
+    const targets = []
     for (const site of fixtures ?? []) {
+      targets.push({ slug: site.slug, url: `${base}/sites/${site.slug}`, label: site.slug })
+      for (const path of servicePathsBySlug.get(site.slug) ?? []) {
+        targets.push({ slug: site.slug, url: `${base}${path}`, label: path })
+      }
+    }
+
+    for (const site of targets) {
       const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
       try {
-        await page.goto(`${base}/sites/${site.slug}`, { waitUntil: 'networkidle', timeout: 30000 })
+        await page.goto(site.url, { waitUntil: 'networkidle', timeout: 30000 })
         const buttons = await page.evaluate(() => {
           const lum = (c) => {
             const [r, g, b] = c.map(v => {
@@ -476,25 +492,25 @@ if (!LIVE) {
 
         const mode = await page.$eval('.le-site', el => el.dataset.accentMode ?? null).catch(() => null)
         if (!mode) {
-          fail(`${site.slug}: .le-site carries no data-accent-mode — the button-contrast rules cannot match`)
+          fail(`${site.label}: .le-site carries no data-accent-mode — the button-contrast rules cannot match`)
         }
 
         // Two thresholds, because they are two different things. 3:1 is WCAG's LARGE-text bar and
         // a button label is large or bold. A nav link is ordinary body text and needs 4.5:1.
         const unreadable = buttons.filter(b => b.ratio < (b.kind === 'button' ? 3.0 : 4.5))
         if (!buttons.length) {
-          fail(`${site.slug}: no buttons or links found — this check silently proved nothing`)
+          fail(`${site.label}: no buttons or links found — this check silently proved nothing`)
         } else if (unreadable.length) {
           for (const b of unreadable) {
-            fail(`${site.slug} [${mode}] ${b.kind} "${b.text}" is ${b.ratio.toFixed(2)}:1 — ${b.fg} on ${b.bg}`)
+            fail(`${site.label} [${mode}] ${b.kind} "${b.text}" is ${b.ratio.toFixed(2)}:1 — ${b.fg} on ${b.bg}`)
           }
         } else {
           const worst = Math.min(...buttons.map(b => b.ratio))
           const nButtons = buttons.filter(b => b.kind === 'button').length
-          pass(`${site.slug} [${mode}] — ${nButtons} buttons, ${buttons.length - nButtons} links, worst ${worst.toFixed(2)}:1`)
+          pass(`${site.label} [${mode}] — ${nButtons} buttons, ${buttons.length - nButtons} links, worst ${worst.toFixed(2)}:1`)
         }
       } catch (e) {
-        fail(`${site.slug} button contrast — ${e.message}`)
+        fail(`${site.label} contrast — ${e.message}`)
       } finally {
         await page.close()
       }

@@ -12,9 +12,22 @@
  */
 
 import type { SitePhoto } from '@/lib/lead-engine/types'
-import { WARN_PHOTO_LONG_EDGE } from '@/lib/lead-engine/limits'
+import { MAX_PHOTOS_PER_SITE, WARN_PHOTO_LONG_EDGE } from '@/lib/lead-engine/limits'
 
-export const MAX_GALLERY_PHOTOS = 6
+/**
+ * The gallery takes everything left over.
+ *
+ * It was 6, and that is where the customer's photos were actually being lost — `galleryLayout` was
+ * fixed first and changed nothing, because this slice had already thrown them away. Testing the
+ * layout function in isolation with eleven photos proved the layout and not the pipeline.
+ *
+ * A page spends 1 on the hero, 1 on the band and up to 6 on service tiles, so at the 18 the upload
+ * tool invites and calls the limit the gallery receives ten or so. Showing six of them meant a
+ * customer's own work appeared nowhere with nothing saying so, and "up to 18 per site" was not
+ * true. Templates that want fewer say so themselves — Showcase Grid slices to
+ * SHOWCASE_GALLERY_PHOTOS, which is a design decision about that page rather than a global cap.
+ */
+export const MAX_GALLERY_PHOTOS = MAX_PHOTOS_PER_SITE
 
 export interface PhotoAllocation {
   hero?: SitePhoto
@@ -330,7 +343,7 @@ export function mosaicPlan(
 export function servicePagePhotos(
   photos: SitePhoto[],
   serviceName: string,
-  opts: { more?: number } = {},
+  opts: { more?: number; serviceIndex?: number } = {},
 ): { lead?: SitePhoto; more: SitePhoto[] } {
   const more = opts.more ?? 3
   const same = (a?: string, b?: string) =>
@@ -340,7 +353,17 @@ export function servicePagePhotos(
   // Unspoken-for: no slot at all, and not the marked hero.
   const free = photos.filter(p => !p.slot && !p.isPrimary)
 
-  const ordered = [...pinnedHere, ...free]
+  // ── Each service page starts at a different point in the pool ──
+  // Without this every service page drew the same photographs from the top, so two pages on the
+  // same site showed an identical lead image and an identical strip — visible immediately on
+  // reading Roof replacement and Storm damage repair side by side. Rotation rather than a plain
+  // offset, so a site with few photos still fills its pages instead of running out; deterministic,
+  // so the same service always shows the same photographs.
+  const rotated = free.length
+    ? free.map((_, i) => free[(i + ((opts.serviceIndex ?? 0) * (1 + more))) % free.length])
+    : free
+
+  const ordered = [...pinnedHere, ...rotated]
   return {
     ...(ordered[0] ? { lead: ordered[0] } : {}),
     more: ordered.slice(1, 1 + more),

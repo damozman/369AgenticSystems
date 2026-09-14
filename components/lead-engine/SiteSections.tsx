@@ -190,6 +190,12 @@ const SITE_CSS = `
   font-weight: 600; font-size: var(--le-display-s);
 }
 .le-other-item:hover { border-color: var(--le-accent); }
+/* ⚠ These sit inside a BAND — a dark --le-structure ground. The ink colour was added to
+   .le-other-item in the same pass that gave every link an explicit colour, and on this section it
+   made the labels invisible: the "Other services" boxes rendered as empty outlines. Giving a link
+   a colour is only half the job; the other half is asking what it is sitting on. */
+.le-band .le-other-item, .le-band .le-crumb { color: var(--le-paper); }
+.le-band .le-other-item:hover { border-color: var(--le-paper); }
 @media (max-width: 640px) { .le-other { grid-template-columns: 1fr; } }
 
 /* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */

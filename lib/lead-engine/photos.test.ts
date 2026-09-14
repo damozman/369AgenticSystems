@@ -39,12 +39,19 @@ test('allocates in priority order by sort_order', () => {
   assert.equal(a.hero?.id, 'p1')
   assert.equal(a.band?.id, 'p2')
   assert.deepEqual(a.services.map(p => p.id), ['p3', 'p4', 'p5'])
-  assert.deepEqual(a.gallery.map(p => p.id), ['p6', 'p7', 'p8', 'p9', 'p10', 'p11'])
+  assert.deepEqual(a.gallery.map(p => p.id), ['p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12'])
 })
 
-test('the gallery is capped at six however many are stored', () => {
-  assert.equal(allocatePhotos(photos(12), {}).gallery.length, MAX_GALLERY_PHOTOS)
-  assert.equal(allocatePhotos(photos(40), {}).gallery.length, MAX_GALLERY_PHOTOS)
+test('the gallery keeps every leftover — nothing a customer uploaded is discarded', () => {
+  // This used to assert a cap of six, and the cap was where the photos were actually being lost:
+  // a site at the 18 the tool invites showed 13 and silently dropped 5. The layout function was
+  // fixed first and changed nothing, because this slice had already thrown them away.
+  const twelve = allocatePhotos(photos(12), { hero: true, band: true, serviceSlots: 3 })
+  const placed = [twelve.hero, twelve.band, ...twelve.services, ...twelve.gallery].filter(Boolean)
+  assert.equal(placed.length, 12, 'every photo must land somewhere on the page')
+
+  assert.equal(allocatePhotos(photos(MAX_GALLERY_PHOTOS + 4), {}).gallery.length, MAX_GALLERY_PHOTOS,
+    'the cap is the site limit, so it can only ever bind above what can be stored')
 })
 
 test('THE LADDER WINS when there are not enough for both', () => {
