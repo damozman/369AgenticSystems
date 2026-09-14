@@ -6,6 +6,7 @@ import { siteOrigin } from '@/lib/lead-engine/origin'
 import { accentModeFor } from '@/lib/lead-engine/theme'
 import { fontClassFor } from '@/components/lead-engine/fonts'
 import { findServiceBySlug, serviceSlug, servicePages } from '@/lib/lead-engine/sections'
+import { servicePagePhotos } from '@/lib/lead-engine/photos'
 import { pageTitle, serviceSchema, faqSchema } from '@/lib/lead-engine/structured-data'
 import { ThemeShell } from '@/components/lead-engine/SiteSections'
 import ServicePage from '@/components/lead-engine/templates/ServicePage'
@@ -73,9 +74,10 @@ export default async function LeadEngineServicePage(
 
   const { site, content, photos, service, context } = found
 
-  const photo: SitePhoto | undefined = photos.find(
-    p => p.slot === 'service' && sameName(p.slotKey, service.name),
-  )
+  // Was `photos.find(p => p.slot === 'service' && ...)` — a pin, and only a pin. Every site is on
+  // Automatic by default, so in practice that rendered a service page with no photograph at all.
+  // See servicePagePhotos for what it will and will not take.
+  const { lead: photo, more: morePhotos } = servicePagePhotos(photos, service.name)
   const faqs = (content.faqs ?? []).filter((f: { service?: string }) => sameName(f.service, service.name))
   const testimonials = (content.testimonials ?? []).filter((t: { jobType?: string }) => sameName(t.jobType, service.name))
   const allPages = servicePages(content, context)
@@ -127,6 +129,7 @@ export default async function LeadEngineServicePage(
         content={content}
         service={service}
         photo={photo}
+        morePhotos={morePhotos}
         faqs={faqs}
         testimonials={testimonials}
         otherServices={otherServices}

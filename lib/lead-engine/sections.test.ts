@@ -552,3 +552,26 @@ test('heroHeadline drops the place rather than inventing one', () => {
   assert.equal(heroHeadline({ ...base, headlineNoun: 'Legal counsel', serviceAreas: [] }), 'Legal counsel')
   assert.equal(heroHeadline({ ...base, headlineNoun: 'Legal counsel', serviceAreas: ['  '] }), 'Legal counsel')
 })
+
+test('the gallery keeps every photo past the sixth instead of discarding it', () => {
+  // 18 is what the upload tool invites and calls the limit. The page spends one on the hero, one
+  // on the band and five on service tiles, so the gallery routinely receives eleven — and used to
+  // show six of them. A customer's own photographs appeared nowhere, with nothing saying so.
+  const eleven = photos(11)
+  const layout = galleryLayout(eleven)
+  const shown = [
+    layout?.feature,
+    ...(layout?.stack ?? []),
+    ...(layout?.rest ?? []),
+    ...(layout?.extra ?? []),
+  ].filter(Boolean)
+
+  assert.equal(shown.length, 11, 'every photo handed to the gallery must render somewhere')
+  assert.equal(layout?.extra?.length, 5)
+})
+
+test('six or fewer needs no extra row', () => {
+  assert.deepEqual(galleryLayout(photos(6))?.extra, [])
+  assert.deepEqual(galleryLayout(photos(4))?.extra, [])
+  assert.equal(galleryLayout(photos(3))?.extra, undefined, 'the short branch has no feature block to overflow')
+})

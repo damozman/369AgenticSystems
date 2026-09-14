@@ -20,12 +20,14 @@ import LeadForm from '@/components/lead-engine/LeadForm'
  * mean "all three", and a heading over nothing is worse than one fewer section.
  */
 export default function ServicePage({
-  content, service, photo, faqs, testimonials, otherServices, logoUrl, siteId, slug, nav,
+  content, service, photo, morePhotos = [], faqs, testimonials, otherServices, logoUrl, siteId, slug, nav,
 }: {
   content: SiteContent
   service: ServiceItem
-  /** The photo pinned to this service, if one is. */
+  /** The lead photograph — pinned to this service, or the first one nobody has spoken for. */
   photo?: SitePhoto
+  /** A short strip further down. Empty on a site with few photos, which is the normal case. */
+  morePhotos?: SitePhoto[]
   /** Only the FAQs tagged to this service. */
   faqs: SiteContent['faqs']
   /** Only the testimonials whose jobType names this service. */
@@ -82,6 +84,26 @@ export default function ServicePage({
           <div className="le-grid">
             <div className="le-c1-6"><SectionHead eyebrow="What's involved" heading={`How we handle ${service.name.toLowerCase()}`} /></div>
             <div className="le-c7-12"><p className="le-p">{service.involves}</p></div>
+          </div>
+        </Section>
+      ) : null}
+
+      {/* The strip. Placed AFTER "what's involved" rather than beside the lead photo: the words
+          are what someone came for, and a second row of pictures above them pushes the answer off
+          the screen. Renders nothing at all when there are no spare photos, which is the common
+          case on a real site and must not leave a gap. */}
+      {morePhotos.length ? (
+        <Section density="connector">
+          <div className="le-svc-strip">
+            {morePhotos.map(p => (
+              <figure key={p.id} style={{ margin: 0 }}>
+                <SitePhotoImg
+                  photo={p}
+                  alt={p.caption ?? `${content.businessName} — ${service.name}`}
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                />
+              </figure>
+            ))}
           </div>
         </Section>
       ) : null}

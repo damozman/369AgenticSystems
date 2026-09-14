@@ -329,6 +329,8 @@ export interface GalleryLayout {
   /** The bottom row, with the column span each item takes in a 12-column grid. */
   rest: SitePhoto[]
   restSpan: number
+  /** Everything beyond the feature block, in upload order. Rendered as further rows of three. */
+  extra?: SitePhoto[]
 }
 
 /**
@@ -353,6 +355,13 @@ export function galleryLayout(photos: SitePhoto[]): GalleryLayout | null {
     stack: photos.slice(1, 3),
     rest,
     restSpan: 12 / Math.max(1, rest.length),
+    // ⚠ Everything past the sixth used to be DROPPED here, silently.
+    // The tool accepts 18 and calls that the limit; the page spent 1 on the hero, 1 on the band
+    // and 5 on service tiles, and the gallery took 6 — so a customer who uploaded the 18 they were
+    // invited to upload had 5 photographs of their own work appear nowhere, with nothing saying so.
+    // Handed back as rows of three rather than folded into `rest`, which is the bottom row of the
+    // feature block and whose span is computed from its own length.
+    extra: photos.slice(6),
   }
 }
 

@@ -307,3 +307,42 @@ export function mosaicPlan(
     return { span, photoIndex: null, fill: colourTurn++ % 2 === 0 ? 'accent' as const : 'structure' as const }
   })
 }
+
+/**
+ * The photos a SERVICE PAGE may use.
+ *
+ * ── Why this is not just "the pinned one" ──
+ * The service page shipped rendering a single photo, and only one pinned to that service by name.
+ * Pinning is a deliberate act an operator has to know about, so on a site where every photo is on
+ * Automatic — which is every site by default — a service page had no photograph at all. Chris put
+ * it plainly on reading one: *"are there going to be images included there as well, I think there
+ * should be for sure."* A page about roof replacement with no roof on it is the thin page the
+ * whole word-count threshold exists to prevent, arriving by a different door.
+ *
+ * ── What it will not do ──
+ * It never takes a photo an operator pointed somewhere else. A photo pinned to the hero, the band,
+ * the gallery or ANOTHER service is a stated intent, and borrowing it for this page would be the
+ * system second-guessing a person — the same rule `allocatePhotos` follows. `isPrimary` is excluded
+ * for the same reason: that is the hero the operator marked.
+ *
+ * Pins for THIS service always win and always come first, in their own order.
+ */
+export function servicePagePhotos(
+  photos: SitePhoto[],
+  serviceName: string,
+  opts: { more?: number } = {},
+): { lead?: SitePhoto; more: SitePhoto[] } {
+  const more = opts.more ?? 3
+  const same = (a?: string, b?: string) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+
+  const pinnedHere = photos.filter(p => p.slot === 'service' && same(p.slotKey, serviceName))
+  // Unspoken-for: no slot at all, and not the marked hero.
+  const free = photos.filter(p => !p.slot && !p.isPrimary)
+
+  const ordered = [...pinnedHere, ...free]
+  return {
+    ...(ordered[0] ? { lead: ordered[0] } : {}),
+    more: ordered.slice(1, 1 + more),
+  }
+}

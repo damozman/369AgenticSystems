@@ -169,6 +169,13 @@ const SITE_CSS = `
 .le-crumb { color: var(--le-ink); text-decoration: none; border-bottom: 1px solid currentColor; }
 .le-svc-shot { min-height: clamp(200px, 30vw, 380px); position: relative; overflow: hidden; }
 .le-svc-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* The strip below the copy. Collapses to one column on a phone rather than three postage stamps. */
+.le-svc-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.le-svc-strip img {
+  width: 100%; height: clamp(160px, 22vw, 260px); object-fit: cover; display: block;
+  border-radius: var(--le-radius-card);
+}
+@media (max-width: 640px) { .le-svc-strip { grid-template-columns: 1fr; } }
 .le-signs { margin: 0; padding: 0; display: grid; row-gap: 14px; }
 .le-signs li { list-style: none; padding-left: 28px; position: relative; }
 .le-signs li::before {
@@ -1308,6 +1315,15 @@ export function Gallery({
             fixed three-up rendering two left the right third of the grid empty. */}
         {layout.rest.map(p => (
           <figure className="le-gal-rest" key={p.id} style={{ margin: 0, gridColumn: `span ${layout.restSpan}` }}>
+            <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
+          </figure>
+        ))}
+        {/* Everything past the feature block, in even rows of three. These used to be discarded:
+            the tool invites 18 photos and the page showed 13, so a customer's own work went
+            nowhere with nothing saying so. A four-column span is 12/3 — the same grid, no new
+            layout. */}
+        {(layout.extra ?? []).map(p => (
+          <figure className="le-gal-rest" key={p.id} style={{ margin: 0, gridColumn: 'span 4' }}>
             <SitePhotoImg photo={p} alt={p.caption ?? altFallback} sizes="(max-width: 900px) 100vw, 33vw" />
           </figure>
         ))}
