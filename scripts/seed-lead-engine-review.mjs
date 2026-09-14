@@ -453,19 +453,59 @@ const SITES = [
  * needed to be — a grid of different colours reads as broken rather than as pending, and it was
  * impossible to judge composition through it.
  */
+/**
+ * Placeholder sizes. 2000px on the long edge clears WARN_PHOTO_LONG_EDGE, the bar for winning the
+ * hero or the band — below it every review exercised the SOFTENED path rather than the normal one.
+ */
 const PLACEHOLDER_W = 2000
 const PLACEHOLDER_H = 1500
 
+/**
+ * Six tones and three shapes, cycled.
+ *
+ * ── Why this is not one flat colour ──
+ * It was `#DEDEDA` on every slot, chosen so a grid of random pastels would not read as broken. It
+ * overcorrected: at thumbnail size a near-white rectangle with a 48px label is indistinguishable
+ * from an empty box, and Chris reported "18 of 18 but there are no images in any of the blocks"
+ * on a set that was present, fetchable and rendering correctly. The same flat pale tone is what
+ * made the full-bleed hero read as washed out — the scrim fades to clear over the photo, which is
+ * right over a photograph and looks broken over a blank.
+ *
+ * So: mid-dark, muted, varied enough to tell two tiles apart, and never a colour a real photo
+ * could not be. The label is sized as a FRACTION of the image so it survives the tool's 128px-tall
+ * `object-cover` thumbnail — a fixed 48px does not, which is the whole reason they looked empty.
+ *
+ * Three aspect ratios rather than one, because `allocatePhotos` PREFERS the narrowest photo for the
+ * hero and the widest for the band. With every fixture at 4:3 that preference had nothing to choose
+ * between and has never been exercised by a review.
+ */
+const PLACEHOLDER_TONES = [
+  { bg: '#4A5259', fg: '#D7DBDE' },
+  { bg: '#5A5048', fg: '#E0D8CF' },
+  { bg: '#414E52', fg: '#CFD9DC' },
+  { bg: '#554B52', fg: '#DED3D9' },
+  { bg: '#4C5348', fg: '#D6DBD0' },
+  { bg: '#48505C', fg: '#D2D7E0' },
+]
+const PLACEHOLDER_SHAPES = [
+  { w: PLACEHOLDER_W, h: PLACEHOLDER_H },              // 4:3, the common case
+  { w: PLACEHOLDER_W, h: Math.round(PLACEHOLDER_W * 9 / 16) },  // wide — what the band should win
+  { w: Math.round(PLACEHOLDER_H * 3 / 4), h: PLACEHOLDER_H },   // tall — narrowest, hero preference
+]
+
 async function placeholder(label, index) {
-  // 2000px on the long edge: WARN_PHOTO_LONG_EDGE is the bar for winning the hero or the band, and
-  // a fixture set that sits below it exercises the SOFTENED path on every review rather than the
-  // normal one.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PLACEHOLDER_W}" height="${PLACEHOLDER_H}">
-      <rect width="${PLACEHOLDER_W}" height="${PLACEHOLDER_H}" fill="#DEDEDA"/>
-      <text x="${PLACEHOLDER_W / 2}" y="${PLACEHOLDER_H / 2}" font-family="Inter, sans-serif" font-size="48" fill="#9A9A94"
+  const { bg, fg } = PLACEHOLDER_TONES[index % PLACEHOLDER_TONES.length]
+  const { w, h } = PLACEHOLDER_SHAPES[index % PLACEHOLDER_SHAPES.length]
+  // ~12% of the long edge. In the photo tool's 128px-tall thumbnail that lands around 15px, which
+  // is readable; the old 48px landed at about 4px, which is not.
+  const size = Math.round(Math.max(w, h) * 0.12)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+      <rect width="${w}" height="${h}" fill="${bg}"/>
+      <text x="${w / 2}" y="${h / 2}" font-family="Inter, sans-serif" font-size="${size}"
+            font-weight="700" fill="${fg}"
             text-anchor="middle" dominant-baseline="middle">${label} ${index + 1}</text>
     </svg>`
-  return sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer()
+  return { body: await sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer(), w, h }
 }
 
 async function ensureBucket() {
@@ -583,7 +623,7 @@ async function seed() {
     let created = 0
     const photoErrors = []
     for (let i = 0; i < spec.photos; i++) {
-      const body = await placeholder('Photo', i)
+      const { body, w, h } = await placeholder('Photo', i)
       const path = `${site.id}/photo-${i + 1}.jpg`
       const { error: upErr } = await supabase.storage
         .from(PHOTO_BUCKET)
@@ -596,9 +636,9 @@ async function seed() {
         sort_order: i,
         bytes: body.length,
         content_type: 'image/jpeg',
-        width: PLACEHOLDER_W,
-        height: PLACEHOLDER_H,
-        aspect_ratio: PLACEHOLDER_W / PLACEHOLDER_H,
+        width: w,
+        height: h,
+        aspect_ratio: w / h,
       })
       if (rowErr) photoErrors.push(`photo-${i + 1}: ${rowErr.message}`)
       else created++
