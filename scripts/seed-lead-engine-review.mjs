@@ -453,10 +453,16 @@ const SITES = [
  * needed to be — a grid of different colours reads as broken rather than as pending, and it was
  * impossible to judge composition through it.
  */
+const PLACEHOLDER_W = 2000
+const PLACEHOLDER_H = 1500
+
 async function placeholder(label, index) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200">
-      <rect width="1600" height="1200" fill="#DEDEDA"/>
-      <text x="800" y="600" font-family="Inter, sans-serif" font-size="40" fill="#9A9A94"
+  // 2000px on the long edge: WARN_PHOTO_LONG_EDGE is the bar for winning the hero or the band, and
+  // a fixture set that sits below it exercises the SOFTENED path on every review rather than the
+  // normal one.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PLACEHOLDER_W}" height="${PLACEHOLDER_H}">
+      <rect width="${PLACEHOLDER_W}" height="${PLACEHOLDER_H}" fill="#DEDEDA"/>
+      <text x="${PLACEHOLDER_W / 2}" y="${PLACEHOLDER_H / 2}" font-family="Inter, sans-serif" font-size="48" fill="#9A9A94"
             text-anchor="middle" dominant-baseline="middle">${label} ${index + 1}</text>
     </svg>`
   return sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer()
@@ -564,6 +570,18 @@ async function seed() {
       .single()
     if (error) throw new Error(`insert failed for ${spec.slug}: ${error.message}`)
 
+    // ⚠ Both halves of this loop were unchecked and the line below reported the number it MEANT
+    // to create. Chris found it from the other end: the photo tool said "14 of 18" on a site this
+    // script had just announced as 18. The row insert's error was discarded entirely, so any
+    // failure was invisible and the script still printed a tick. Same shape as this project's
+    // "a webhook that returns 200 is not a webhook that did anything".
+    //
+    // The dimensions matter too: these rows are inserted DIRECTLY, bypassing the upload route that
+    // normally measures a photo, which is why every seeded photo reads "size unknown" in the tool
+    // while a real upload shows 2000 × 1335. The placeholder is generated at a known size here, so
+    // there is no reason to leave that blank.
+    let created = 0
+    const photoErrors = []
     for (let i = 0; i < spec.photos; i++) {
       const body = await placeholder('Photo', i)
       const path = `${site.id}/photo-${i + 1}.jpg`
@@ -572,15 +590,34 @@ async function seed() {
         .upload(path, body, { contentType: 'image/jpeg', upsert: true })
       if (upErr) throw new Error(`upload failed for ${path}: ${upErr.message}`)
 
-      await supabase.from('lead_engine_photos').insert({
+      const { error: rowErr } = await supabase.from('lead_engine_photos').insert({
         site_id: site.id,
         storage_path: path,
         sort_order: i,
         bytes: body.length,
         content_type: 'image/jpeg',
+        width: PLACEHOLDER_W,
+        height: PLACEHOLDER_H,
+        aspect_ratio: PLACEHOLDER_W / PLACEHOLDER_H,
       })
+      if (rowErr) photoErrors.push(`photo-${i + 1}: ${rowErr.message}`)
+      else created++
     }
-    console.log(`  ✓ ${spec.photos} photos uploaded`)
+
+    // Counted back from the table rather than from this loop's own bookkeeping — the number the
+    // photo tool will show is the number of ROWS, and that is the only one worth reporting.
+    const { count: actual } = await supabase
+      .from('lead_engine_photos')
+      .select('id', { count: 'exact', head: true })
+      .eq('site_id', site.id)
+
+    if (photoErrors.length) for (const e of photoErrors) console.error(`  ✗ ${e}`)
+    if (actual === spec.photos) {
+      console.log(`  ✓ ${actual} photos uploaded`)
+    } else {
+      console.error(`  ✗ asked for ${spec.photos} photos, the table holds ${actual} — ${created} inserted this run`)
+      process.exitCode = 1
+    }
   }
 
   const base = process.env.REVIEW_BASE_URL ?? 'http://localhost:3001'
