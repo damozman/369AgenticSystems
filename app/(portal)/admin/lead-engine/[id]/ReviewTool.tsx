@@ -13,7 +13,20 @@ interface Props {
   answers: QuestionnaireAnswers | null
   photoCount: number
   allocation: { hero: string | null; band: string | null; services: number; gallery: number }
+  services: ServiceReadiness[]
   submissionCount: number
+}
+
+interface ServiceReadiness {
+  name: string
+  slug: string
+  earns: boolean
+  wordCount: number
+  wordsNeeded: number
+  hasPhoto: boolean
+  faqCount: number
+  testimonialCount: number
+  missing: string[]
 }
 
 /** Services arrive as `string[]` OR `ServiceItem[]` — the questionnaire accepts both shapes. */
@@ -195,6 +208,81 @@ export default function ReviewTool(props: Props) {
             Add or change photos →
           </a>
         </p>
+      </section>
+
+      {/* ── Which services got their own page, and what the rest are short of ──
+          The gaps are the point. A service that stays a home-page section costs the customer
+          nothing they have today, but it is also the call worth making before publishing — and
+          without this it is invisible until someone counts words by hand. */}
+      <section className="rounded border border-slate-300 dark:border-slate-700 p-4">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Service pages</h2>
+        {props.services.length === 0 ? (
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            No services answered yet, so the site is one page.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              {props.services.filter(s => s.earns).length} of {props.services.length} services have
+              enough of their own content for a page of their own. The rest stay as sections on the
+              home page — nothing is hidden, and nothing thin gets published.
+            </p>
+            <ul className="space-y-2">
+              {props.services.map(service => (
+                <li
+                  key={service.slug}
+                  className="rounded border border-slate-200 dark:border-slate-800 p-3"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {service.name}
+                    </span>
+                    {service.earns ? (
+                      <a
+                        href={`/sites/${props.slug}/${service.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm underline text-green-700 dark:text-green-400"
+                      >
+                        has its own page →
+                      </a>
+                    ) : (
+                      <span className="text-sm text-amber-700 dark:text-amber-400">
+                        on the home page only
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    {service.wordCount} words
+                    {service.wordsNeeded > 0 && ` (about ${service.wordsNeeded} more needed)`}
+                    {' · '}
+                    {service.hasPhoto ? 'photo pinned' : 'no photo pinned'}
+                    {' · '}
+                    {service.faqCount} question{service.faqCount === 1 ? '' : 's'}
+                    {' · '}
+                    {service.testimonialCount} review{service.testimonialCount === 1 ? '' : 's'}
+                  </p>
+                  {/* Phrased as what to go and ask for, because that is the next action. */}
+                  {!service.earns && (
+                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      <strong>Ask the customer for:</strong>{' '}
+                      {[
+                        service.wordsNeeded > 0
+                          ? 'more detail on what the job involves, and how someone knows they need it'
+                          : null,
+                        !service.hasPhoto && service.faqCount === 0 && service.testimonialCount === 0
+                          ? 'a photo of this work, a question people ask about it, or a review that mentions it'
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join('; ')}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <section className="space-y-4">

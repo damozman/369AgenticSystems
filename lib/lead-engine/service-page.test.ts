@@ -12,7 +12,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  findServiceBySlug, serviceEarnsPage, servicePages, serviceSlug, SERVICE_PAGE_MIN_WORDS,
+  findServiceBySlug, serviceEarnsPage, servicePages, serviceReadiness, serviceSlug,
+  SERVICE_PAGE_MIN_WORDS,
 } from '@/lib/lead-engine/sections'
 import type { SiteContent } from '@/lib/lead-engine/types'
 
@@ -181,4 +182,68 @@ test('the nav and the routes agree — every listed page resolves', () => {
       `the nav lists "${name}" but its URL does not resolve`,
     )
   }
+})
+
+// ── serviceReadiness — the operator's view, where the FAILURES are the point ──
+
+test('readiness reports every service, including the ones with no page', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [
+      { name: 'Drain cleaning', involves: copy(130) },
+      { name: 'Water heaters', description: 'Repair or replacement.' },
+    ],
+  } as SiteContent
+
+  const report = serviceReadiness(content, withPhoto)
+
+  assert.equal(report.length, 2, 'a service without a page must still be listed, or the gap is invisible')
+  assert.deepEqual(report.map(r => r.name), ['Drain cleaning', 'Water heaters'])
+  assert.equal(report[0].earns, true)
+  assert.equal(report[1].earns, false)
+})
+
+test('readiness names what is missing, in words an operator can act on', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [{ name: 'Water heaters', description: copy(60) }],
+  } as SiteContent
+
+  const [water] = serviceReadiness(content)
+
+  assert.equal(water.wordCount, 60)
+  assert.equal(water.wordsNeeded, SERVICE_PAGE_MIN_WORDS - 60)
+  assert.equal(water.hasPhoto, false)
+  assert.equal(water.missing.length, 2, 'short copy AND no supporting element are two separate asks')
+})
+
+test('readiness agrees with servicePages — one rule, two readers', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [
+      { name: 'Drain cleaning', involves: copy(130) },
+      { name: 'Water heaters', involves: copy(130) },
+      { name: 'Leak repair', description: 'Fast.' },
+    ],
+  } as SiteContent
+
+  assert.deepEqual(
+    serviceReadiness(content, withPhoto).filter(r => r.earns).map(r => r.name),
+    servicePages(content, withPhoto),
+  )
+})
+
+test('readiness slugs match the URLs the nav links to', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [{ name: 'Drain Cleaning', involves: copy(130) }],
+  } as SiteContent
+
+  const [drain] = serviceReadiness(content, withPhoto)
+  assert.equal(drain.slug, serviceSlug('Drain Cleaning'))
+})
+
+test('a site with no services reports nothing rather than throwing', () => {
+  const content = { businessName: 'X', cta: { label: 'Call', kind: 'call' } } as SiteContent
+  assert.deepEqual(serviceReadiness(content), [])
 })

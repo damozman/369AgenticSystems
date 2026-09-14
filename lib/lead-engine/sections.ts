@@ -628,6 +628,30 @@ export function servicePages(
 }
 
 /**
+ * Every service with its readiness, in content order — including the ones that do not earn a page.
+ *
+ * ── Why the failures are the point ──
+ * `servicePages()` answers "what exists" and drops everything else silently. An operator reviewing
+ * a site needs the opposite: the service that is 62 words short is the one worth ringing the
+ * customer about, and a silent quality difference between clients is exactly what a measured
+ * threshold was supposed to prevent. Chris's words: *"I would probably want to push on that harder
+ * if it was missing with the customer."*
+ *
+ * Same `serviceEarnsPage` both sides, so the review screen cannot claim a page exists that the
+ * renderer refuses to build.
+ */
+export function serviceReadiness(
+  content: SiteContent,
+  context: Parameters<typeof serviceEarnsPage>[1] = {},
+): (ServicePageReadiness & { name: string; slug: string })[] {
+  return (content.services ?? []).map(service => ({
+    name: service.name,
+    slug: serviceSlug(service.name),
+    ...serviceEarnsPage(service, context),
+  }))
+}
+
+/**
  * A service's URL segment. Reuses `slugify` so a service page's address is built the same way a
  * site's is — one slug implementation, so "Water Heaters" and "water heaters" cannot produce two
  * different URLs for the same thing.

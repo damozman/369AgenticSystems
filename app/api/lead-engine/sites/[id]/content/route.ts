@@ -27,7 +27,8 @@ import type { QuestionnaireAnswers } from '@/lib/lead-engine/types'
  */
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: 'answers is required' }, { status: 400 })
   }
 
-  const site = await loadSiteById(params.id)
+  const site = await loadSiteById(id)
   if (!site) return NextResponse.json({ error: 'No such site.' }, { status: 404 })
 
   // The business name falls back to the SITE's, not to whatever the form posted: `contentFrom`
@@ -50,13 +51,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // field. Same argument the questionnaire route makes when it passes its own fallback.
   const content = contentFrom(body.answers, site.business_name)
 
-  const saved = await saveContent(params.id, content)
+  const saved = await saveContent(id, content)
   if (!saved.ok) return NextResponse.json({ error: saved.error ?? 'Could not save content.' }, { status: 500 })
 
   // Separate write, because these two are columns rather than content — see updateSiteFields.
   // Ordered after saveContent so a failure here leaves the content saved rather than the reverse:
   // content is the bulk of the work and the harder thing to retype.
-  const fields = await updateSiteFields(params.id, {
+  const fields = await updateSiteFields(id, {
     headlineNoun: body.headlineNoun,
     footerNote: body.footerNote,
   })
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     )
   }
 
-  console.log(`[LEAD-ENGINE] ${admin} saved content for ${params.id} (/sites/${site.slug})`)
+  console.log(`[LEAD-ENGINE] ${admin} saved content for ${id} (/sites/${site.slug})`)
   return NextResponse.json({ ok: true, slug: site.slug, content })
 }
 
@@ -79,11 +80,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
  * when the page loaded — the customer may have resubmitted in the meantime, which is exactly the
  * case `needs_review` flags.
  */
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const site = await loadSiteForQuestionnaire(params.id)
+  const site = await loadSiteForQuestionnaire(id)
   if (!site) return NextResponse.json({ error: 'No such site.' }, { status: 404 })
 
   return NextResponse.json({ answers: site.answers, businessName: site.businessName })

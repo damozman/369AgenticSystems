@@ -24,7 +24,8 @@ function isSiteStatus(value: unknown): value is SiteStatus {
   return typeof value === 'string' && (SITE_STATUSES as readonly string[]).includes(value)
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     )
   }
 
-  const result = await setSiteStatus(params.id, payload.status)
+  const result = await setSiteStatus(id, payload.status)
   if (!result.ok) {
     // 409, not 400: the request is well-formed and the caller is allowed -- the SITE is not in a
     // state where this makes sense. A publish refused for missing content should read differently
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: result.error }, { status: 409 })
   }
 
-  console.log(`[LEAD-ENGINE] ${admin} set ${params.id} to ${result.status}`)
+  console.log(`[LEAD-ENGINE] ${admin} set ${id} to ${result.status}`)
   return NextResponse.json({
     ok: true,
     slug: result.slug,
