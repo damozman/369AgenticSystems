@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { loadPhotos, loadSiteBySlug } from '@/lib/lead-engine/site'
 import { contentOf } from '@/lib/lead-engine/site-content'
+import { siteOrigin } from '@/lib/lead-engine/origin'
 import { accentModeFor } from '@/lib/lead-engine/theme'
 import { fontClassFor } from '@/components/lead-engine/fonts'
 import { findServiceBySlug, serviceSlug, servicePages } from '@/lib/lead-engine/sections'
@@ -96,7 +97,10 @@ export default async function LeadEngineServicePage(
     ? (/^https?:\/\//i.test(brand.logo_url) ? brand.logo_url : `${base}/storage/v1/object/public/${brand.logo_url}`)
     : undefined
 
-  const origin = (process.env.NEXT_PUBLIC_SITE_ORIGIN ?? '').replace(/\/+$/, '')
+  // Absolute, always. A relative `url` in JSON-LD is dropped by Google's parser without a word
+  // — see lib/lead-engine/origin.ts, where this used to produce `"url": "/sites/..."` on every
+  // live site because NEXT_PUBLIC_SITE_ORIGIN is set nowhere.
+  const origin = siteOrigin()
   const pageUrl = `${origin}/sites/${slug}/${serviceSlug(service.name)}`
   const schemas = [
     serviceSchema({ service, content, url: pageUrl }),

@@ -28,6 +28,7 @@ import Supply from '@/components/lead-engine/templates/Supply'
 import type { LeadEngineSite, SiteContent } from '@/lib/lead-engine/types'
 import { businessSchema, faqSchema, pageTitle } from '@/lib/lead-engine/structured-data'
 import { contentOf } from '@/lib/lead-engine/site-content'
+import { siteOrigin } from '@/lib/lead-engine/origin'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,7 +115,10 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
   // Built from what the customer actually answered; every absent field is omitted rather than
   // defaulted. See lib/lead-engine/structured-data.ts for why `aggregateRating` is the one that
   // must never be inferred.
-  const origin = (process.env.NEXT_PUBLIC_SITE_ORIGIN ?? '').replace(/\/+$/, '')
+  // Absolute, always. A relative `url` in JSON-LD is dropped by Google's parser without a word
+  // — see lib/lead-engine/origin.ts, where this used to produce `"url": "/sites/..."` on every
+  // live site because NEXT_PUBLIC_SITE_ORIGIN is set nowhere.
+  const origin = siteOrigin()
   const pageUrl = `${origin}/sites/${site.slug}`
   // ── The nav ──
   // Computed from `servicePages`, which is the single source for which service pages exist, so the

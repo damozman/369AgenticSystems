@@ -18,6 +18,7 @@ import { MAX_PHOTOS_PER_SITE } from '@/lib/lead-engine/limits'
 import { resolveForVertical } from '@/lib/lead-engine/theme'
 import { footerNoteFor, headlineNounFor, normaliseVertical } from '@/lib/lead-engine/verticals'
 import { previewEnabled } from '@/lib/lead-engine/preview'
+import { contentOf } from '@/lib/lead-engine/site-content'
 
 export const PHOTO_BUCKET = 'lead-engine-photos'
 
@@ -80,6 +81,70 @@ export async function loadSiteBySlug(slug: string): Promise<LeadEngineSite | nul
   }
 
   return data as unknown as LeadEngineSite
+}
+
+/**
+ * Every live site, with just enough to decide which of its pages exist.
+ *
+ * Feeds the root `/sitemap.xml`, which is the file `robots.txt` actually points a crawler at. A
+ * per-site sitemap nobody links to is a file nobody fetches — this is the wiring that makes the
+ * mini-sites discoverable at all.
+ *
+ * Two queries, never N+1: one for the sites, one for the photo slots of all of them. The photo
+ * fields are only `slot`/`slot_key` because that is all `serviceEarnsPage` reads — no storage paths
+ * are resolved here, so listing a hundred sites costs one small query rather than a hundred.
+ *
+ * Preview mode is deliberately NOT honoured. A draft must never appear in a sitemap even on a
+ * machine where an operator can preview it.
+ */
+export async function loadLiveSitesForSitemap(): Promise<
+  { slug: string; content: SiteContent; photos: { slot?: string; slotKey?: string }[] }[]
+> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('lead_engine_sites')
+    .select('id, slug, business_name, content, headline_noun, footer_note')
+    .eq('status', 'live')
+
+  if (error) {
+    if (isMissingTable(error.code)) {
+      console.error('[LEAD-ENGINE] lead_engine_sites does not exist — apply supabase/migrations/2026-08-23-lead-engine.sql')
+    } else {
+      console.error(`[LEAD-ENGINE] Could not list live sites: ${error.message}`)
+    }
+    return []
+  }
+
+  const rows = (data ?? []) as unknown as (Pick<LeadEngineSite, 'id' | 'slug' | 'business_name' | 'content' | 'headline_noun' | 'footer_note'>)[]
+  if (rows.length === 0) return []
+
+  // Photo slots for every site at once. A failure here degrades to "no pinned photos", which can
+  // only ever SHRINK the sitemap — a service loses its supporting element and stays a home-page
+  // section. Never the other way round, so a transient error cannot publish a URL that 404s.
+  const slotsBySite = new Map<string, { slot?: string; slotKey?: string }[]>()
+  const { data: photoRows, error: photoError } = await supabase
+    .from('lead_engine_photos')
+    .select('site_id, slot, slot_key')
+    .in('site_id', rows.map(r => r.id))
+
+  if (photoError) {
+    console.error(`[LEAD-ENGINE] Could not list photo slots for the sitemap: ${photoError.message}`)
+  } else {
+    for (const row of (photoRows ?? []) as { site_id: string; slot?: string; slot_key?: string }[]) {
+      const list = slotsBySite.get(row.site_id) ?? []
+      list.push({
+        ...(row.slot ? { slot: row.slot } : {}),
+        ...(row.slot_key ? { slotKey: row.slot_key } : {}),
+      })
+      slotsBySite.set(row.site_id, list)
+    }
+  }
+
+  return rows.map(row => ({
+    slug: row.slug,
+    content: contentOf(row),
+    photos: slotsBySite.get(row.id) ?? [],
+  }))
 }
 
 /**
