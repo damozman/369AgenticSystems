@@ -346,7 +346,18 @@ if (!LIVE) {
       const path = new URL(loc).pathname
       const res = await fetch(`${base}${path}`)
       if (!res.ok) { fail(`sitemap lists ${path} but it returned ${res.status}`); broken++; continue }
-      if (!home.includes(`href="${path}"`)) fail(`${path} exists but the home page links nowhere to it`)
+      // TWO links, deliberately. The nav alone satisfied this check while the mosaic layout — the
+      // flagship template — rendered no link on the service's own tile at all, so a visitor reading
+      // the Services section had no way through. "Linked somewhere on the page" is not the same
+      // question as "linked from the thing it describes".
+      const inNav = /<nav[^>]*class="le-nav"[\s\S]*?<\/nav>/.exec(home)?.[0] ?? ''
+      if (!home.includes(`href="${path}"`)) {
+        fail(`${path} exists but the home page links nowhere to it`)
+      } else if (!inNav.includes(`href="${path}"`)) {
+        fail(`${path} is not in the nav`)
+      } else if (!home.replace(inNav, '').includes(`href="${path}"`)) {
+        fail(`${path} is only in the nav — its own entry in the Services section links nowhere`)
+      }
     }
 
     // The other half of the rule, and the one a renderer change breaks silently: a service that

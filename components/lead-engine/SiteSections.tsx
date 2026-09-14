@@ -135,6 +135,17 @@ const SITE_CSS = `
 }
 .le-svc-go::after { content: '\\2192'; opacity: 0.6; }
 .le-svc-go:hover { border-color: var(--le-accent); color: var(--le-accent-text); }
+/* Inside a mosaic tile the ground is a photograph under a scrim, or an accent/structure fill —
+   every one of which sets its label to paper. An ink-coloured ghost button on any of them is the
+   same class of defect as the nav links that shipped with no colour at all. */
+.le-tile .le-svc-go {
+  color: var(--le-paper);
+  border-color: color-mix(in oklab, var(--le-paper) 45%, transparent);
+}
+.le-tile .le-svc-go:hover {
+  color: var(--le-paper);
+  border-color: var(--le-paper);
+}
 
 .le-nav { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; }
 .le-nav a {
@@ -1159,6 +1170,16 @@ export function Services({
                 <div className="le-tile-txt">
                   <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
                   {s.description ? <p>{s.description}</p> : null}
+                  {/* The mosaic shipped WITHOUT this while the ladder and list layouts had it, so
+                      on the flagship template a service with its own page was linked from the nav
+                      and from nowhere else — a visitor reading the Services section had no way to
+                      reach it. The verifier missed it because it asked whether the page linked to
+                      the URL anywhere, and the nav satisfied that. */}
+                  {links?.[s.name] ? (
+                    <a className="le-svc-go" href={links[s.name]}>
+                      More about {serviceDisplayName(s.name).toLowerCase()}
+                    </a>
+                  ) : null}
                 </div>
               </div>
             )
