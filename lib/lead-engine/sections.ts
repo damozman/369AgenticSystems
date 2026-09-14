@@ -9,7 +9,8 @@
  * Pure. No React, no I/O.
  */
 
-import type { SiteContent, SitePhoto, Template } from '@/lib/lead-engine/types'
+import type { ServiceItem, SiteContent, SitePhoto, Template } from '@/lib/lead-engine/types'
+import { slugify } from '@/lib/lead-engine/slug'
 
 // ── Which templates render a photo gallery ───────────────────────────────────
 
@@ -624,4 +625,36 @@ export function servicePages(
   return (content.services ?? [])
     .filter(s => serviceEarnsPage(s, context).earns)
     .map(s => s.name)
+}
+
+/**
+ * A service's URL segment. Reuses `slugify` so a service page's address is built the same way a
+ * site's is — one slug implementation, so "Water Heaters" and "water heaters" cannot produce two
+ * different URLs for the same thing.
+ */
+export function serviceSlug(name: string): string {
+  return slugify(name)
+}
+
+/**
+ * The service behind a URL segment, or null.
+ *
+ * Null covers three genuinely different cases — no such service, a service that exists but has not
+ * earned a page, and a site with no services at all — and the route renders the same 404 for all
+ * three. That is deliberate: a visitor must not be able to tell "this business does not do that"
+ * from "this page is not written yet", and a thin page is worse than a 404 either way.
+ *
+ * First match wins on a slug collision. `servicesFrom` already dedupes names case-insensitively,
+ * so a collision means two genuinely different names that happen to slugify alike — rare, and a
+ * deterministic answer beats an arbitrary one.
+ */
+export function findServiceBySlug(
+  content: SiteContent,
+  slug: string,
+  context: Parameters<typeof serviceEarnsPage>[1] = {},
+): ServiceItem | null {
+  const wanted = slug.trim().toLowerCase()
+  const match = (content.services ?? []).find(s => serviceSlug(s.name) === wanted)
+  if (!match) return null
+  return serviceEarnsPage(match, context).earns ? match : null
 }

@@ -48,8 +48,19 @@ import {
 import { SHOWCASE_GALLERY_PHOTOS, bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function ShowcaseGrid({
-  content, photos, logoUrl, siteId,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
+  content, photos, logoUrl, siteId, nav,
+}: {
+  content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string
+  /** Service pages, threaded to SiteHeader. Computed once in the route so the nav, the sitemap
+   *  and the routes cannot disagree about which pages exist. */
+  nav?: { label: string; href: string; current?: boolean }[]
+}) {
+  // Service name -> page URL, derived from the nav the route already computed. One source, so a
+  // link in the services list cannot point somewhere the nav does not know about.
+  const serviceLinks = nav
+    ? Object.fromEntries(nav.filter(n => n.label !== 'Home').map(n => [n.label, n.href]))
+    : undefined
+
   const services = content.services ?? []
   const layout = servicesLayout(services.length, Math.max(0, photos.length - 1))
   const shot = allocatePhotos(photos, {
@@ -71,7 +82,7 @@ export default function ShowcaseGrid({
 
   return (
     <>
-      <SiteHeader content={content} logoUrl={logoUrl} />
+      <SiteHeader content={content} logoUrl={logoUrl} nav={nav} />
       <HeroSplit content={content} photo={shot.hero} />
 
       {/* The whole point of this template: show the kit before talking about the company. Three
@@ -84,6 +95,7 @@ export default function ShowcaseGrid({
       />
 
       <Services
+        links={serviceLinks}
         content={content}
         photos={shot.services}
         layout={layout}

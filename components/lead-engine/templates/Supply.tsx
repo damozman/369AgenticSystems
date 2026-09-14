@@ -56,8 +56,19 @@ import {
 import { bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function Supply({
-  content, photos, logoUrl, siteId,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
+  content, photos, logoUrl, siteId, nav,
+}: {
+  content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string
+  /** Service pages, threaded to SiteHeader. Computed once in the route so the nav, the sitemap
+   *  and the routes cannot disagree about which pages exist. */
+  nav?: { label: string; href: string; current?: boolean }[]
+}) {
+  // Service name -> page URL, derived from the nav the route already computed. One source, so a
+  // link in the services list cannot point somewhere the nav does not know about.
+  const serviceLinks = nav
+    ? Object.fromEntries(nav.filter(n => n.label !== 'Home').map(n => [n.label, n.href]))
+    : undefined
+
   const shot = allocatePhotos(photos, { band: true })
 
   const [servicesBand, whyBand, coverageBand, trustBand] = bandPlan(
@@ -72,7 +83,7 @@ export default function Supply({
 
   return (
     <>
-      <SiteHeader content={content} logoUrl={logoUrl} />
+      <SiteHeader content={content} logoUrl={logoUrl} nav={nav} />
       {/* Capability, carrying only answered facts. Never a minimum order quantity or a lead time. */}
       <HeroEditorial
         content={content}
@@ -80,7 +91,7 @@ export default function Supply({
         facts={editorialHeroFacts(content, { showAreas: !coverageRenders(content) })}
       />
 
-      <Services content={content} layout="list" eyebrow="What we supply" heading="Product categories" band={servicesBand} />
+      <Services content={content} layout="list" eyebrow="What we supply" heading="Product categories" band={servicesBand} links={serviceLinks} />
 
       <PhotoBand photo={shot.band} businessName={content.businessName} />
       <WhyUs content={content} band={whyBand} />

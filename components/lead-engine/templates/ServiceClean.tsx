@@ -75,8 +75,19 @@ import {
 import { bandPlan, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function ServiceClean({
-  content, photos, logoUrl, siteId,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
+  content, photos, logoUrl, siteId, nav,
+}: {
+  content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string
+  /** Service pages, threaded to SiteHeader. Computed once in the route so the nav, the sitemap
+   *  and the routes cannot disagree about which pages exist. */
+  nav?: { label: string; href: string; current?: boolean }[]
+}) {
+  // Service name -> page URL, derived from the nav the route already computed. One source, so a
+  // link in the services list cannot point somewhere the nav does not know about.
+  const serviceLinks = nav
+    ? Object.fromEntries(nav.filter(n => n.label !== 'Home').map(n => [n.label, n.href]))
+    : undefined
+
   const services = content.services ?? []
   // One fewer photo is available to the ladder than the customer uploaded, because the hero takes
   // the first pick. Counting the full array here is how a ladder gets chosen and then rendered with
@@ -106,7 +117,7 @@ export default function ServiceClean({
 
   return (
     <>
-      <SiteHeader content={content} logoUrl={logoUrl} />
+      <SiteHeader content={content} logoUrl={logoUrl} nav={nav} />
       {/* Areas get their own section further down, so the hero would only repeat them.
           The photograph, when there is one, takes columns 8-12 and the facts move to a hairline
           row beneath — inside the hero, so `heroCarriesProof` stays true and the section count
@@ -117,7 +128,7 @@ export default function ServiceClean({
         facts={editorialHeroFacts(content, { showAreas: !coverageRenders(content) })}
       />
 
-      <Services content={content} photos={shot.services} layout={layout} band={servicesBand} />
+      <Services content={content} photos={shot.services} layout={layout} band={servicesBand} links={serviceLinks} />
       <WhyUs content={content} band={whyBand} />
       <PhotoBand photo={shot.band} businessName={content.businessName} />
       <Coverage content={content} band={coverageBand} />

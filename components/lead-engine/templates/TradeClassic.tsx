@@ -32,8 +32,19 @@ import {
 import { bandPlan, galleryLayout, whyUsRenders } from '@/lib/lead-engine/sections'
 
 export default function TradeClassic({
-  content, photos, logoUrl, siteId,
-}: { content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string }) {
+  content, photos, logoUrl, siteId, nav,
+}: {
+  content: SiteContent; photos: SitePhoto[]; logoUrl?: string; siteId: string
+  /** Service pages, threaded to SiteHeader. Computed once in the route so the nav, the sitemap
+   *  and the routes cannot disagree about which pages exist. */
+  nav?: { label: string; href: string; current?: boolean }[]
+}) {
+  // Service name -> page URL, derived from the nav the route already computed. One source, so a
+  // link in the services list cannot point somewhere the nav does not know about.
+  const serviceLinks = nav
+    ? Object.fromEntries(nav.filter(n => n.label !== 'Home').map(n => [n.label, n.href]))
+    : undefined
+
   const services = content.services ?? []
   // The only template that asks for the mosaic. See `servicesLayout` for why it is opt-in here
   // rather than global or keyed off the kit.
@@ -58,14 +69,14 @@ export default function TradeClassic({
 
   return (
     <>
-      <SiteHeader content={content} logoUrl={logoUrl} />
+      <SiteHeader content={content} logoUrl={logoUrl} nav={nav} />
       <HeroSplit content={content} photo={shot.hero} />
 
       <Section density="connector" band className="le-proof-band">
         <ProofBar content={content} showAreas={!coverageRenders(content)} />
       </Section>
 
-      <Services content={content} photos={shot.services} layout={layout} />
+      <Services content={content} photos={shot.services} layout={layout} links={serviceLinks} />
 
       {/* The trades kit's signature, and the break in the run of paper sections before Why us. */}
       <PhotoBand photo={shot.band} businessName={content.businessName} />

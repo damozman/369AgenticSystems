@@ -18,7 +18,7 @@ import { loadPhotos, loadSiteBySlug } from '@/lib/lead-engine/site'
 import { accentModeFor, effectiveTemplate } from '@/lib/lead-engine/theme'
 import { ThemeShell } from '@/components/lead-engine/SiteSections'
 import { allocatePhotos } from '@/lib/lead-engine/photos'
-import { coverageRenders, pageDensity } from '@/lib/lead-engine/sections'
+import { coverageRenders, pageDensity, servicePages, serviceSlug } from '@/lib/lead-engine/sections'
 import { fontClassFor } from '@/components/lead-engine/fonts'
 import TradeClassic from '@/components/lead-engine/templates/TradeClassic'
 import ServiceClean from '@/components/lead-engine/templates/ServiceClean'
@@ -27,6 +27,7 @@ import Practice from '@/components/lead-engine/templates/Practice'
 import Supply from '@/components/lead-engine/templates/Supply'
 import type { LeadEngineSite, SiteContent } from '@/lib/lead-engine/types'
 import { businessSchema, faqSchema, pageTitle } from '@/lib/lead-engine/structured-data'
+import { contentOf } from '@/lib/lead-engine/site-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,23 +44,6 @@ const TEMPLATES = {
  * a 500. In practice an operator publishes with content; this guards the case where someone flips a
  * status by hand.
  */
-function contentOf(
-  site: Pick<LeadEngineSite, 'content' | 'business_name' | 'headline_noun' | 'footer_note'>,
-): SiteContent {
-  const base: SiteContent = site.content ?? {
-    businessName: site.business_name,
-    cta: { label: 'Get a Free Estimate', kind: 'form' },
-  }
-
-  // The noun is a COLUMN, not questionnaire content — merged in here so the sections can read one
-  // object. Keeping it off `content` is what stops a re-submitted questionnaire from silently
-  // clearing it: `contentFrom` rebuilds that jsonb wholesale and knows nothing about this field.
-  return {
-    ...base,
-    ...(site.headline_noun ? { headlineNoun: site.headline_noun } : {}),
-    ...(site.footer_note ? { footerNote: site.footer_note } : {}),
-  }
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -132,6 +116,22 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
   // must never be inferred.
   const origin = (process.env.NEXT_PUBLIC_SITE_ORIGIN ?? '').replace(/\/+$/, '')
   const pageUrl = `${origin}/sites/${site.slug}`
+  // ── The nav ──
+  // Computed from `servicePages`, which is the single source for which service pages exist, so the
+  // nav can never offer a link that 404s. Omitted entirely below two entries: a nav with one item
+  // is worse than no nav.
+  const navServices = servicePages(content, {
+    photos,
+    faqs: content.faqs ?? [],
+    testimonials: content.testimonials ?? [],
+  })
+  const nav = navServices.length >= 2
+    ? [
+        { label: 'Home', href: `/sites/${site.slug}`, current: true },
+        ...navServices.map(name => ({ label: name, href: `/sites/${site.slug}/${serviceSlug(name)}` })),
+      ]
+    : undefined
+
   const schemas = [
     businessSchema({ content, url: pageUrl, rating: content.rating ?? null }),
     faqSchema(content.faqs ?? []),
@@ -158,7 +158,7 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <Template content={content} photos={photos} logoUrl={logoUrl} siteId={site.id} />
+      <Template content={content} photos={photos} logoUrl={logoUrl} siteId={site.id} nav={nav} />
     </ThemeShell>
   )
 }

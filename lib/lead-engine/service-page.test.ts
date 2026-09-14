@@ -11,7 +11,9 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { serviceEarnsPage, servicePages, SERVICE_PAGE_MIN_WORDS } from '@/lib/lead-engine/sections'
+import {
+  findServiceBySlug, serviceEarnsPage, servicePages, serviceSlug, SERVICE_PAGE_MIN_WORDS,
+} from '@/lib/lead-engine/sections'
 import type { SiteContent } from '@/lib/lead-engine/types'
 
 /** Copy of a given word count, so the boundary tests say what they mean. */
@@ -120,4 +122,63 @@ test('servicePages lists only what earns a page, in content order', () => {
 test('a site with no services produces no pages rather than throwing', () => {
   const content = { businessName: 'X', cta: { label: 'Call', kind: 'call' } } as SiteContent
   assert.deepEqual(servicePages(content), [])
+})
+
+// ── URL resolution ───────────────────────────────────────────────────────────
+
+test('a service slug is built the same way a site slug is', () => {
+  assert.equal(serviceSlug('Drain cleaning'), 'drain-cleaning')
+  assert.equal(serviceSlug('Heating & Air'), 'heating-and-air')
+  assert.equal(serviceSlug("O'Brien inspections"), 'obrien-inspections')
+})
+
+test('a URL resolves to its service', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [{ name: 'Drain cleaning', involves: copy(130) }],
+  } as SiteContent
+  const found = findServiceBySlug(content, 'drain-cleaning', withPhoto)
+  assert.equal(found?.name, 'Drain cleaning')
+})
+
+test('⚠ a service that has NOT earned a page resolves to null, not to a thin page', () => {
+  // The whole guarantee. Someone typing the URL by hand, or an old link, must get a 404 rather
+  // than the forty-word page the threshold exists to prevent.
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [{ name: 'Leak repair', description: 'Detection and repair.' }],
+  } as SiteContent
+  assert.equal(findServiceBySlug(content, 'leak-repair', withPhoto), null)
+})
+
+test('an unknown slug resolves to null', () => {
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [{ name: 'Drain cleaning', involves: copy(130) }],
+  } as SiteContent
+  assert.equal(findServiceBySlug(content, 'roof-replacement', withPhoto), null)
+})
+
+test('the nav and the routes agree — every listed page resolves', () => {
+  // The failure this guards: a nav offering a link that 404s, which is worse than no nav. Both
+  // read servicePages, and this asserts they actually stay in step.
+  const content = {
+    businessName: 'X', cta: { label: 'Call', kind: 'call' },
+    services: [
+      { name: 'Drain cleaning', involves: copy(130) },
+      { name: 'Water heaters', description: 'Repair or replacement.' },
+      { name: 'Leak repair', involves: copy(130) },
+    ],
+  } as SiteContent
+  const ctx = { photos: [
+    { slot: 'service', slotKey: 'Drain cleaning' },
+    { slot: 'service', slotKey: 'Leak repair' },
+  ] }
+
+  for (const name of servicePages(content, ctx)) {
+    assert.ok(
+      findServiceBySlug(content, serviceSlug(name), ctx),
+      `the nav lists "${name}" but its URL does not resolve`,
+    )
+  }
 })

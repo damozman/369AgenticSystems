@@ -126,6 +126,47 @@ const SITE_CSS = `
 ) > * { min-width: 0; }
 .le-site :focus-visible { outline: 2px solid var(--le-accent-text); outline-offset: 2px; }
 
+.le-svc-go {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  font-family: var(--le-font-body), system-ui, sans-serif;
+  font-size: var(--le-body-s, 0.9rem); font-weight: 600; text-decoration: none;
+  border: 1px solid var(--le-edge); border-radius: var(--le-radius-button); padding: 9px 14px;
+}
+.le-svc-go::after { content: '\\2192'; opacity: 0.6; }
+.le-svc-go:hover { border-color: var(--le-accent); color: var(--le-accent-text); }
+
+.le-nav { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; }
+.le-nav a {
+  text-decoration: none; font-size: var(--le-body-s, 0.94rem); opacity: 0.78;
+  padding: 4px 0; border-bottom: 2px solid transparent;
+}
+.le-nav a:hover { opacity: 1; }
+.le-nav a[aria-current="page"] { opacity: 1; border-bottom-color: var(--le-accent); font-weight: 600; }
+@media (max-width: 900px) { .le-nav { display: none; } }
+
+/* ── Service page ──────────────────────────────────────────────────────────
+   Three blocks the home page has no equivalent of, plus the links out. Built
+   from the same tokens as everything else -- a service page that drifts from
+   the site it belongs to reads as a different company's page. */
+.le-crumb { text-decoration: none; border-bottom: 1px solid currentColor; }
+.le-svc-shot { min-height: clamp(200px, 30vw, 380px); position: relative; overflow: hidden; }
+.le-svc-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.le-signs { margin: 0; padding: 0; display: grid; row-gap: 14px; }
+.le-signs li { list-style: none; padding-left: 28px; position: relative; }
+.le-signs li::before {
+  content: ''; position: absolute; left: 0; top: 0.62em;
+  width: 14px; height: 2px; background: var(--le-accent);
+}
+.le-other { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 32px; }
+.le-other-item {
+  display: block; text-decoration: none; padding: 20px 22px;
+  border: 1px solid var(--le-edge); border-radius: var(--le-radius-card);
+  font-family: var(--le-font-display), var(--le-font-display-fallback);
+  font-weight: 600; font-size: var(--le-display-s);
+}
+.le-other-item:hover { border-color: var(--le-accent); }
+@media (max-width: 640px) { .le-other { grid-template-columns: 1fr; } }
+
 /* ── Grid: 12 columns, 1280 container, 32px gutter ─────────────────────────── */
 .le-wrap { max-width: 1280px; margin: 0 auto; padding: 0 48px; }
 .le-grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 32px; }
@@ -802,7 +843,7 @@ export function PhoneLink({ content }: { content: SiteContent }) {
  * measured them; every slot already fixes its own box with CSS (`object-fit: cover` on a set
  * aspect-ratio), so these are belt-and-suspenders CLS prevention, not what actually sizes anything.
  */
-function SitePhotoImg({
+export function SitePhotoImg({
   photo, alt, sizes, loading = 'lazy', fetchPriority, className, style,
 }: {
   photo: SitePhoto
@@ -841,13 +882,38 @@ function SitePhotoImg({
  * lead-generation site that is the conversion path; the CTA button drops on mobile so the number
  * never has to.
  */
-export function SiteHeader({ content, logoUrl }: { content: SiteContent; logoUrl?: string }) {
+export function SiteHeader({
+  content, logoUrl, nav,
+}: {
+  content: SiteContent
+  logoUrl?: string
+  /**
+   * Service pages, when there are any. Omitted entirely on a site with none rather than rendered
+   * empty — a nav with one item is worse than no nav, and `servicePages()` is the only thing that
+   * decides which pages exist, so this can never offer a link that 404s.
+   */
+  nav?: { label: string; href: string; current?: boolean }[]
+}) {
+  const home = nav?.length ? (nav.find(n => n.href.split('/').length <= 3)?.href ?? '#top') : '#top'
   return (
     <header className="le-header">
       <div className="le-wrap le-header-inner">
         {logoUrl
-          ? <img className="le-header-logo" src={logoUrl} alt={content.businessName} />
-          : <a className="le-header-name" href="#top">{content.businessName}</a>}
+          ? <a href={home}><img className="le-header-logo" src={logoUrl} alt={content.businessName} /></a>
+          : <a className="le-header-name" href={home}>{content.businessName}</a>}
+        {nav?.length ? (
+          <nav className="le-nav" aria-label="Services">
+            {nav.map(item => (
+              <a
+                key={item.href}
+                href={item.href}
+                {...(item.current ? { 'aria-current': 'page' as const } : {})}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        ) : null}
         <div className="le-header-actions">
           <PhoneLink content={content} />
           <CtaButton content={content} small />
@@ -1026,7 +1092,7 @@ export function ProofBar({ content, showAreas = true }: { content: SiteContent; 
  * letting content size them is what produced the uneven cells in Chunk A.
  */
 export function Services({
-  content, photos = [], layout, eyebrow = 'What we do', heading = 'Services', band,
+  content, photos = [], layout, eyebrow = 'What we do', heading = 'Services', band, links,
 }: {
   content: SiteContent
   /**
@@ -1039,6 +1105,12 @@ export function Services({
   eyebrow?: string
   heading?: string
   band?: boolean
+  /**
+   * Service name -> its page URL, for the services that have one. Absent names render exactly as
+   * they always have. Keyed by name rather than index so reordering the list cannot point a
+   * service at another one's page.
+   */
+  links?: Record<string, string>
 }) {
   const services = content.services
   if (!services?.length) return null
@@ -1102,6 +1174,9 @@ export function Services({
               <div className="le-ladder-txt">
                 <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
                 {s.description ? <p>{s.description}</p> : null}
+                {links?.[s.name] ? (
+                  <a className="le-svc-go" href={links[s.name]}>More about {serviceDisplayName(s.name).toLowerCase()}</a>
+                ) : null}
               </div>
             </div>
             )
@@ -1113,6 +1188,9 @@ export function Services({
             <div className="le-svc-item" key={s.name}>
               <h3 className="le-h3">{serviceDisplayName(s.name)}</h3>
               {s.description ? <p>{s.description}</p> : null}
+              {links?.[s.name] ? (
+                <a className="le-svc-go" href={links[s.name]}>More about {serviceDisplayName(s.name).toLowerCase()}</a>
+              ) : null}
             </div>
           ))}
         </div>
