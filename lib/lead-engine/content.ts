@@ -189,6 +189,22 @@ function testimonialsFrom(raw: unknown): Testimonial[] | undefined {
   return out.length > 0 ? out : undefined
 }
 
+/**
+ * The Google rating, as a pair or not at all.
+ *
+ * Refuses rather than salvages. A score out of range, a zero count, or only one of the two means
+ * we cannot state it truthfully, and a star rating a visitor cannot verify against the linked
+ * profile is both a Google penalty and a false claim made in the customer's name.
+ */
+function ratingFrom(value: unknown, count: unknown): { value: number; count: number } | undefined {
+  const v = typeof value === 'number' ? value : Number(String(value ?? '').trim())
+  const c = typeof count === 'number' ? count : Number(String(count ?? '').trim())
+  if (!Number.isFinite(v) || !Number.isFinite(c)) return undefined
+  if (v <= 0 || v > 5) return undefined
+  if (!Number.isInteger(c) || c <= 0) return undefined
+  return { value: Math.round(v * 10) / 10, count: c }
+}
+
 function faqsFrom(raw: unknown): FaqItem[] | undefined {
   if (!Array.isArray(raw)) return undefined
   const out: FaqItem[] = []
@@ -289,6 +305,7 @@ export function contentFrom(answers: QuestionnaireAnswers, fallbackBusinessName:
     customerImpression:  text(answers.customer_impression),
     credentials:         text(answers.credentials),
     licenceNumber:       text(answers.licence_number, 60),
+    rating:              ratingFrom(answers.google_rating, answers.google_review_count),
     yearsInBusiness:     text(answers.years_in_business, 40),
     googleProfileUrl:    profileUrlFrom(answers.google_profile_url),
     access:              accessFrom(answers),

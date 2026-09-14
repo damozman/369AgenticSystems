@@ -29,6 +29,8 @@ type FormAnswers = {
   /** Kept apart from `credentials`, which is free prose. A licence NUMBER is a specific,
    *  verifiable fact and it renders in the trust row on its own. */
   licence_number: string
+  google_rating: string
+  google_review_count: string
   years_in_business: string
   primary_cta: CtaKind | ''
   primary_cta_other: string
@@ -43,7 +45,7 @@ const EMPTY: FormAnswers = {
   business_name: '', phone: '', service_areas: '', differentiator: '', customer_impression: '',
   credentials: '', years_in_business: '', primary_cta: '', primary_cta_other: '',
   google_profile_url: '', has_photos: null, pain_points: '', notify_email: '', preferred_slug: '',
-  licence_number: '',
+  licence_number: '', google_rating: '', google_review_count: '',
 }
 
 export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ id: string }> }) {
@@ -380,6 +382,31 @@ export default function LeadEngineQuestionnaire({ params }: { params: Promise<{ 
         <label>Google Business Profile link</label>
         <p className="hint">Don&rsquo;t have it handy? Leave this blank — it&rsquo;s never required.</p>
         <input value={form.google_profile_url} onChange={e => set('google_profile_url', e.target.value)} placeholder="g.page/your-business" />
+
+        <label>Your Google rating and how many reviews</label>
+        <p className="hint">
+          Straight off your Google profile, so anyone can check it against the link above. We need
+          both numbers or we show neither &mdash; a star rating nobody can verify does more harm
+          than no rating at all.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            style={{ flex: 1 }}
+            inputMode="decimal"
+            value={form.google_rating}
+            onChange={e => set('google_rating', e.target.value)}
+            placeholder="4.9"
+            aria-label="Google rating out of 5"
+          />
+          <input
+            style={{ flex: 1 }}
+            inputMode="numeric"
+            value={form.google_review_count}
+            onChange={e => set('google_review_count', e.target.value)}
+            placeholder="47 reviews"
+            aria-label="Number of Google reviews"
+          />
+        </div>
 
         <label>Do you have photos we can use?</label>
         <select

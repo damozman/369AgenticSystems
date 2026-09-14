@@ -26,6 +26,7 @@ import ShowcaseGrid from '@/components/lead-engine/templates/ShowcaseGrid'
 import Practice from '@/components/lead-engine/templates/Practice'
 import Supply from '@/components/lead-engine/templates/Supply'
 import type { LeadEngineSite, SiteContent } from '@/lib/lead-engine/types'
+import { businessSchema, faqSchema, pageTitle } from '@/lib/lead-engine/structured-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,11 +74,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = content.differentiator
 
   return {
-    title: content.businessName,
+    // Trade plus town, not the business name alone. The name is what people search once they
+    // already know the business -- and someone who already knows it is not the visitor these
+    // pages exist to win. See `pageTitle` for how it degrades when either half is missing.
+    title: pageTitle(content),
     ...(description ? { description } : {}),
-    // A mini-site is not part of our marketing surface and must not compete with the customer's own
-    // domain in search. Revisit when a customer points a real domain at us.
-    robots: { index: false, follow: true },
+    alternates: { canonical: `/sites/${slug}` },
+    // ── Indexable since 2026-09-14 ──
+    // This used to be `index: false`, on the reasoning that a mini-site must not compete with the
+    // customer's own domain. That reasoning held while the mini-site was a supplement. Chris's
+    // decision this session is that it IS the customer's website, and for a client who has no
+    // other site the old setting meant we built them a page nobody could ever find.
+    robots: { index: true, follow: true },
   }
 }
 
@@ -118,6 +126,17 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
   // do not render is what gives a short page full rhythm — the void this whole pass removed.
   const density = pageDensity({ content, galleryPhotos, template, showAreasInProof: !coverageRenders(content) })
 
+  // ── What Google reads ──
+  // Built from what the customer actually answered; every absent field is omitted rather than
+  // defaulted. See lib/lead-engine/structured-data.ts for why `aggregateRating` is the one that
+  // must never be inferred.
+  const origin = (process.env.NEXT_PUBLIC_SITE_ORIGIN ?? '').replace(/\/+$/, '')
+  const pageUrl = `${origin}/sites/${site.slug}`
+  const schemas = [
+    businessSchema({ content, url: pageUrl, rating: content.rating ?? null }),
+    faqSchema(content.faqs ?? []),
+  ].filter(Boolean)
+
   return (
     // accentMode and density go ON .le-site, not on a wrapper around it — the CSS selectors are
     // `.le-site[data-accent-mode=...]`, and setting the attribute on a parent meant they never
@@ -129,6 +148,16 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
       accentMode={accentMode}
       density={density}
     >
+      {/* Invisible to a visitor, and the half that decides whether one ever arrives. Rendered
+          inside ThemeShell so it ships with the page rather than depending on a head-level
+          mechanism that server components handle differently. */}
+      {schemas.map((schema, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
       <Template content={content} photos={photos} logoUrl={logoUrl} siteId={site.id} />
     </ThemeShell>
   )

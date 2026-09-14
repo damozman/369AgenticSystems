@@ -166,6 +166,9 @@ export interface QuestionnaireAnswers {
    *  checkable fact and renders on its own in the trust row. */
   licence_number?: string
   years_in_business?: string
+  /** From their own Google profile. Both or neither — see `SiteContent.rating`. */
+  google_rating?: number | string
+  google_review_count?: number | string
   primary_cta?: CtaKind
   primary_cta_other?: string
   google_profile_url?: string
@@ -220,6 +223,15 @@ export interface SiteContent {
   licenceNumber?: string
   yearsInBusiness?: string
   googleProfileUrl?: string
+  /**
+   * The client's own Google rating, shown in the hero and in the page data Google reads.
+   *
+   * Carried as a PAIR and only ever as a pair: a score with no review count is unverifiable, and
+   * a count with no score says nothing. Both must be real figures from their own profile — this is
+   * never derived from the testimonials on the page, which are hand-picked and would overstate
+   * every time. See `lib/lead-engine/structured-data.ts`.
+   */
+  rating?: { value: number; count: number }
   testimonials?: Testimonial[]
   faqs?: FaqItem[]
   /** Practice only. Absent on every other template, and the sections omit when it is. */

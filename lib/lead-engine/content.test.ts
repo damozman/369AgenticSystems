@@ -307,3 +307,23 @@ test('the licence number comes through separately from credentials', () => {
   assert.equal(c.credentials, 'Licensed and insured in Texas')
   assert.equal(c.licenceNumber, 'Texas M-41234')
 })
+
+test('⚠ the Google rating is a PAIR or it is nothing', () => {
+  // A score with no review count is unverifiable; a count with no score says nothing. Either half
+  // alone would still render stars, which is the failure.
+  assert.equal(contentFrom({ google_rating: 4.9 }, 'X').rating, undefined)
+  assert.equal(contentFrom({ google_review_count: 47 }, 'X').rating, undefined)
+  assert.deepEqual(contentFrom({ google_rating: 4.9, google_review_count: 47 }, 'X').rating, { value: 4.9, count: 47 })
+})
+
+test('an impossible rating is refused, not clamped', () => {
+  // Clamping 7 to 5 would invent a figure. Refusing shows no rating, which is honest.
+  assert.equal(contentFrom({ google_rating: 7, google_review_count: 10 }, 'X').rating, undefined)
+  assert.equal(contentFrom({ google_rating: 0, google_review_count: 10 }, 'X').rating, undefined)
+  assert.equal(contentFrom({ google_rating: 4.5, google_review_count: 0 }, 'X').rating, undefined)
+  assert.equal(contentFrom({ google_rating: 'lots', google_review_count: 'many' }, 'X').rating, undefined)
+})
+
+test('a rating typed as text still works — it is a form field', () => {
+  assert.deepEqual(contentFrom({ google_rating: ' 4.8 ', google_review_count: ' 112 ' }, 'X').rating, { value: 4.8, count: 112 })
+})

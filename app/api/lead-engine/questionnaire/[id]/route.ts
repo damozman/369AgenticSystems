@@ -106,6 +106,14 @@ function parseAnswers(body: Record<string, unknown>): QuestionnaireAnswers {
     if (v.length > 0) out.insurance_accepted = v
   }
 
+  // Carried through as typed. `ratingFrom` in content.ts is the gate that decides whether it is
+  // truthful enough to render, and it refuses rather than salvages.
+  for (const k of ['google_rating', 'google_review_count'] as const) {
+    const raw = body[k]
+    if (typeof raw === 'number' && Number.isFinite(raw)) out[k] = raw
+    else { const v = str(raw, 12); if (v) out[k] = v }
+  }
+
   if (typeof body.accepting_new_patients === 'boolean') out.accepting_new_patients = body.accepting_new_patients
   if (typeof body.has_photos === 'boolean') out.has_photos = body.has_photos
   if (typeof body.primary_cta === 'string' && (CTA_KINDS as readonly string[]).includes(body.primary_cta)) {
