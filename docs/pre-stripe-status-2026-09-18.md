@@ -1,10 +1,12 @@
 # Pre-Stripe Tier Fixes — Status & Priorities (updated 2026-09-18, end of session)
 
 Companion to `docs/vs-claude-handoff-tier-fixes.md`. That brief is the spec; this is where things stand.
-Work is on branch **`fix/pre-stripe-tier-claims`** — **not merged, not deployed.** Nothing charges via Stripe until this is done.
+**MERGED (PR #51, master `3c3b715`) and LIVE as of 2026-09-18.** Nothing charges via Stripe until this is done.
 
-## 🔴 Production still has the invented number
-**`master` — and therefore production — still emails the "Estimated revenue protected" tile.** The fix is committed on the branch only (verified: `master:app/api/cron/weekly-digest/route.ts` still contains `revenueProtected`). Deploys are manual (`vercel --prod`), so it stays live until the branch is merged and deployed. The digest fires **Mondays 13:00 UTC — next: 2026-09-21.** Today only Northside (Chris's test account) receives it, so no real client has seen it, but merge + deploy before the first real client activates. Merging is Chris's call.
+## ✅ LIVE — 2026-09-18
+PR #51 merged to `master` (`3c3b715`) and is serving on 369agenticsystems.com. Verified against the live site, not the deploy log: the homepage carries "Weekly summary email and a live dashboard" (old monthly-ROI line absent); the pricing bundle carries "Natural-sounding voice" and COMING SOON, "featured upgrade" absent; `/api/auto-activation` returns 401 on GET and POST; zero 5xx/error log lines in the following hour. **The invented "Estimated revenue protected" tile is out of production**, ahead of the next digest send (Mondays 13:00 UTC, next 2026-09-21).
+- **Deploy path:** Vercel's Git integration deployed the merge automatically (`vercel[bot]`, ~2 min after the merge). CLAUDE.md's old "no Git integration" note was wrong and is corrected. A manual `vercel --prod` also ran and was redundant.
+- **`/api/auto-activation` fail-closed:** no caller in the repo, `vercel.json` or any migration; the signup path does not touch it; logs (about an hour retained) show only our own probes. A hand-configured external caller can't be ruled out from here — it would appear as 401s (`npx vercel logs --environment production -q auto-activation`).
 
 ## Decisions (Chris, 2026-09-18)
 1. Weekly digest: counts only, no revenue tile. **Done on branch.**
@@ -42,7 +44,6 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 
 ## Still to do
 - **Chris:** the Live Call Transfer test call — Northside +1 (817) 612-6757, ask for a person, confirm the owner's phone rings. Then decide the copy. Nothing changes until then.
-- **Chris:** merge `fix/pre-stripe-tier-claims` and deploy (see the red section above).
 - ROI report build — when Chris says go (Report 3). Nothing in the pricing copy may list it until it actually sends.
 
 ## Known, for later
@@ -155,3 +156,35 @@ Checked 2026-09-18 against each vendor's **own pages**. "Not stated" means the o
 5. **Copy:** "Full HIPAA compliance" is removed (this session). It should not return until every vendor above has a signed BAA and legal has reviewed.
 
 **Status:** the HIPAA Compliance Pack add-on definition has been deleted from the code; nothing HIPAA-related is sold or claimed.
+
+## Retell platform changes announced 2026-09 (from Retell's builder email)
+
+**1. Credit-based billing from October 1st.** All accounts migrate automatically; usage is
+deducted from a prepaid balance in real time. **Auto-recharge must be on before Oct 1.** A zero
+balance means agents stop taking calls — for a product whose promise is "your phone always gets
+answered", an empty balance is an outage at the client's front desk, not a billing inconvenience.
+Chris to set this in the Retell dashboard.
+
+**2. LLM prices dropped, effective immediately.** Voice, per minute:
+
+| model | was | now | change |
+|---|---|---|---|
+| **Gemini 3.5 Flash** (our fleet today) | $0.0810 | **$0.0480** | −41% |
+| **Gemini 3.6 Flash** (newer, not yet tested here) | $0.0690 | **$0.0240** | −65% |
+| Gemini 3.5 Flash Lite | $0.0230 | $0.0096 | −58% |
+| Claude 5 Sonnet | $0.0800 | $0.0640 | −20% |
+
+**Our all-in cost floor moves from ~$0.197/min to ~$0.164/min** on the same model, no work
+required. On Gemini 3.6 Flash it would be roughly **$0.140/min**, if it measures as well.
+
+**3. Gemini 3.6 Flash is now half the price of what we run and is a newer model.** Worth a
+benchmark, not a switch — this repo's rule is measure, don't assume, and the method already
+exists: `set-client-model.mjs --only <agentId>` on one agent, then `call-latency.mjs`, comparing
+llm p50, max, and turns over 3000ms against the recorded Gemini 3.5 Flash baseline
+(935ms p50, 1363ms max, 0 of 23 over 3000ms). Chris judges the voice by ear, as before.
+**Do not move the fleet on price alone** — GPT-5 was cheaper than Gemini and sounded wrong.
+
+**4. Feeds the pricing work.** `OVERAGE_RATE_CENTS` (35/30/25¢) was set against a 13.1¢ floor and
+the open item flagged Elite's overage margin falling to ~5¢/min at 19.7¢. At 16.4¢ — or 14¢ on
+3.6 Flash — that margin recovers. Re-derive the rates in the same move as flipping
+`USAGE_BILLING_ENABLED`, not before.

@@ -27,86 +27,73 @@ status in it came from the Retell API, production Supabase, the Stripe API, and 
 is the only reason it is trustworthy. The three other docs in `docs/architecture/` are bannered
 **STALE** on purpose and are historical records; do not update them and do not quote them.
 
-**Last updated:** 2026-08-25.
+**Last updated:** 2026-09-18.
 
-### Where this session ended — 2026-08-25
+### Where this session ended — 2026-09-18
 
-**🔴 Production was silently 3 days stale — found and fixed, but one decision is still open,
-deferred to "tomorrow" by Chris.** Discovered while deploying the (separate) Lead Engine merge, not
-while working dossier/audit-calls directly — but the cause and the fix are entirely on this side.
+**✅ The pre-Stripe tier-claims work is MERGED (PR #51 → `master` `3c3b715`) and LIVE on
+369agenticsystems.com.** Spec: `docs/vs-claude-handoff-tier-fixes.md`. State and the five written
+reports (voice/provider, daily summary, ROI report, Elite scoping, vendor BAAs):
+`docs/pre-stripe-status-2026-09-18.md`. Working split with the Cowork Claude:
+`docs/WORKING-AGREEMENT-COWORK-VS.md` — Code owns code/tests/git, Cowork owns decisions and docs.
 
-**Root cause: every deploy for 3 days had been failing outright**, not skipped, not queued —
-`vercel.json` had `audit-calls` on `*/15 * * * *` and `dossier-build` on `*/20 * * * *`, and the
-Vercel account is on the **Hobby plan**, which hard-refuses any cron more frequent than once a day
-at deploy time (`Hobby accounts are limited to daily cron jobs`). Every push since that cron was
-added had been silently failing to deploy — the live site was serving a build from before the
-failure started, and nobody had checked.
+**Verified live, not assumed:** the homepage serves "Weekly summary email and a live dashboard"
+(old "Monthly ROI report across…" absent); the pricing JS bundle carries "Natural-sounding voice"
+and the COMING SOON marker, and "featured upgrade" is gone; `/api/auto-activation` returns 401 on
+GET and POST; zero 5xx/error log lines in the hour after the deploy.
 
-**Fixed as a stopgap, PR #49 → `master` at `c95df3a`:** both crons dropped to once-daily
-(`audit-calls` → `0 17 * * *`, `dossier-build` → `0 10 * * *`). Production redeployed successfully
-immediately after (`vercel --prod`, aliased to `369agenticsystems.com`) — confirmed live by
-checking a route that could only 200 on the new build.
+**What shipped:** the weekly digest's invented "Estimated revenue protected" tile is gone (counts
+only — it was emailing a figure built from a hardcoded job-value table); one "Natural-sounding
+voice" line on every tier; monthly ROI report removed from every surface (it has never been sent);
+invented "2 spots remaining" and "$1,500 setup" claims removed from the ROI calculator; the welcome
+email's feature list now derives from `lib/tier-config.ts`; the "Elite: Reviews Agent" upsell is
+gone; Rex no longer retries phone-only leads forever when SMS cannot go out; `/api/auto-activation`
+requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMIUM_ADDONS` deleted;
+"within one business day" replaces "within 2 hours".
 
-**Checked live before treating this as urgent: nobody was actually blocked.** `system_audits` had
-one row in 7 days (a test submission), `dossiers` had zero rows ever, `audit_calls` hadn't fired
-since 2026-08-04. But the risk is real going forward, not hypothetical: `acknowledgeProspect()`
-promises a 24-hour reply, and at once-daily `dossier-build`, a real submission could now sit up to
-~24 hours before even entering the approval queue — enough to blow that promise on the very first
-real submission, since it used to build within ~20 minutes of becoming eligible.
+**Open, in this order — none has a date:**
+1. **Chris's Live Call Transfer test call** (Northside +1 (817) 612-6757: ask for a person, confirm
+   the owner's phone rings). Only then decide the copy — it reads **COMING SOON** until he does.
+   Evidence so far: 1 of 12 agents carries the tool (Northside), one real transfer ever
+   (2026-07-14), not re-proven since the move to Gemini. Read-only probes:
+   `scripts/retell/probe-transfer.mjs`, `probe-transfer-calls.mjs`.
+2. **ROI report build — waiting for Chris's go.** Counts by default; a dollar line only when the
+   client gave their own number, labelled as theirs. Needs a numeric, no-default questionnaire field
+   (today's is a pre-selected band dropdown) and a migration Chris applies. The monthly cron stays
+   unscheduled until last. Scope: Report 3 in the status doc.
+3. **A separate session with Chris: Elite design, and the Resend/HIPAA problem.** Resend states it
+   cannot sign a BAA, and every email flow goes through it, so dental cannot be served as built.
+   Spanish, custom voice and multi-location are decided OUT.
+4. **Stripe: untouched, off-limits** until the copy matches the product.
+5. **Retell moves to credit-based billing on October 1** — auto-recharge must be on or agents stop
+   taking calls. Chris to set it in the Retell dashboard (detail in the status doc).
+6. Known, not fixed: the weekly digest counts "after-hours" in server time (UTC), not the
+   business's; it has no per-week idempotency; "Dentrix integration" is still claimed on the dental
+   copy though its credentials are not configured.
 
-**✅ ADDRESSED 2026-09-01 — the frequent crons run from SUPABASE, and Pro is no longer needed
-for this.** Chris asked for an alternative to the subscription; there was a good one, in the stack
-already. `supabase/migrations/2026-09-01-pg-cron-scheduler.sql` schedules `dossier-build` (*/20)
-and `audit-calls` (*/15) with **pg_cron + pg_net**, calling the same authenticated routes Vercel
-was calling. The routes are ordinary `Bearer ${CRON_SECRET}` GETs — Vercel Cron was never
-privileged, only a caller.
+**Deploys — corrected 2026-09-18.** This file used to say the Vercel project had "no visible Git
+integration". **It does: `vercel[bot]` deployed merge commit `3c3b715` to Production by itself about
+two minutes after the merge**, and did the same for PR #50 on 2026-09-15 (GitHub's deployments API
+shows it; `vercel project inspect` simply does not print it). Push-to-deploy works. The manual
+`vercel --prod` run this session was redundant and harmless. If a manual deploy is ever needed the
+CLI is not installed — `npx vercel` works and is logged in as `3six9mm`. Vercel runtime logs on
+this plan reach back only about an hour.
 
-**✅ LIVE AND VERIFIED 2026-09-01.** Migration applied, both Vault secrets set, and the route
-answered `200 {"ok":true,"considered":0,"built":0}` through the full pg_cron → pg_net → Vercel
-path at 03:06:24 UTC. `considered: 0` is correct and healthy — `dossiers` is empty and the
-existing `system_audits` rows are outside the 7-day lookback.
+**`/api/auto-activation` fail-closed check:** nothing in the repo calls it (no `fetch`, not in
+`vercel.json`, not in any Supabase migration), the signup path (Stripe webhook → provisioning) does
+not reference it, and the hour of logs holds only our own probes. **An external caller configured by
+hand — a cron entered in the Supabase SQL editor, say — cannot be ruled out from here.** It would
+show up as 401s: `npx vercel logs --environment production -q auto-activation`.
 
-**Two gotchas that cost an hour, worth knowing before touching Vault again:**
-1. **The Supabase SQL editor runs a pasted batch as ONE transaction.** Two `vault.create_secret`
-   calls where the first hits a duplicate-key error roll back the second as well — so
-   `cron_secret` silently kept a stale value from an earlier attempt while `app_base_url` looked
-   fine. Run them one at a time, or use `vault.update_secret` for anything that may already exist.
-2. **Length is not equality.** `length(decrypted_secret)` was used to compare the vault against
-   Vercel and it agreed at 20 while the values still differed. The check that actually answers it
-   is `decrypted_secret = 'the-value'`. Same shape as this file's own "a copied value can only be
-   checked against its source".
-
-**Also: `net._http_response` is APPEND-ONLY and asynchronous.** `order by created desc limit 5`
-right after firing shows the PREVIOUS tick's rows, because the new reply has not landed yet — which
-reads exactly like "the fix did not work". `net.http_get` returns a request id; query
-`where id = <that id>` instead and the ambiguity disappears.
-
-**Vercel's own entries were KEPT, daily, as backstops** — offset to :07 so they can never coincide
-with a `*/15` or `*/20` tick, since `dossier-build` reads "already queued" and then writes.
-(`audit-calls` is safe regardless: it claims a row `scheduled → placed` before dialling, the same
-shape as `provisioning_claims`.) If Supabase pauses or a secret is missing, the pipeline degrades
-to today's once-daily behaviour rather than to nothing.
-
-**🔴 The finding that makes this a PREREQUISITE for step 5, not a tidy-up.** `decideReadiness`
-marks a submission ready either when a call SETTLES or when `BUILD_WITHOUT_CALLS_AFTER_MS` (2
-hours) passes with nothing settled — and in the second case the dossier is built with the call
-section OMITTED. With `audit-calls` at daily, a submission waits up to ~24h for its first call to
-even be placed, so the 2-hour fallback wins nearly every time. **Flipping `AUDIT_CALLS_ENABLED`
-while both crons are daily would produce call-less dossiers while the feature looked switched on.**
-Nothing would error. **That blocker is now CLEARED** — the schedule is verified live as of
-2026-09-01. The disclosure line is still required and is a separate, unchanged gate.
-
-**The Vercel Pro decision is therefore no longer about the dossier pipeline.** If it is revisited,
-it should be on its own merits — Hobby only guarantees cron timing "within the hour" even for daily
-jobs, and Pro buys per-minute precision. Confirmed 2026-09-01: both plans allow 100 cron jobs, so
-job COUNT was never the constraint; only frequency ever was.
-
-**Also newly discovered, unrelated to the cron fix:** this Vercel project has **no visible Git
-integration** in `vercel project inspect` — deploys are not confirmed to be auto-triggered by a
-push to `master`, despite this file's own "Project Overview" section still saying "auto-deploys
-from master." Not re-verified further this session; worth confirming properly before relying on
-push-to-deploy again. All production deploys this session were manual (`vercel --prod` via the
-Vercel CLI), which is what actually shipped both this fix and Lead Engine.
+**The frequent crons run from SUPABASE (pg_cron + pg_net), verified live 2026-09-01** —
+`supabase/migrations/2026-09-01-pg-cron-scheduler.sql` schedules `dossier-build` (*/20) and
+`audit-calls` (*/15) against the same `Bearer ${CRON_SECRET}` routes; Vercel's own daily entries
+(offset to :07) remain as backstops. That cleared the prerequisite for `AUDIT_CALLS_ENABLED`. Two
+Vault gotchas that cost an hour: the SQL editor runs a pasted batch as ONE transaction, so a
+duplicate-key error on the first `vault.create_secret` silently rolls back the second — run them one
+at a time or use `vault.update_secret`; and `length(decrypted_secret)` is not equality — compare
+`decrypted_secret = 'the-value'`. `net._http_response` is append-only and asynchronous: right
+after firing it shows the previous tick's rows, so query `where id = <id net.http_get returned>`.
 
 **Dossier steps 2, 3 and 5 are done or built** (2026-08-22, unchanged this session). tsc clean,
 **338 tests**, production build clean as of that session.
