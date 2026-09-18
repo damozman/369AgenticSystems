@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { RECOVERY_RATE } from '@/lib/roi'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,25 +29,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ sent: 0 })
   }
 
-  // Job value estimates by vertical (conservative) for revenue protected calc
-  const JOB_VALUE: Record<string, number> = {
-    roofing:       2500,
-    hvac:          350,
-    plumbing:      400,
-    legal:         5000,
-    'real-estate': 9000,
-    insurance:     1200,
-    saas:          2400,
-    wholesale:     2500,
-    dental:        200,
-  }
-
   let sent = 0
 
   for (const sub of subscriptions) {
     const domain   = sub.client_domain
-    const vertical = sub.vertical ?? 'roofing'
-    const jobValue = JOB_VALUE[vertical] ?? 1000
 
     // Calls this week
     const { data: calls } = await supabase
@@ -64,9 +48,6 @@ export async function GET(request: NextRequest) {
       const h = new Date(c.created_at).getHours()
       return h < 8 || h >= 18
     }).length ?? 0
-
-    // Estimated revenue protected: leads captured × job value × recovery rate
-    const revenueProtected = Math.round((bookedCalls + capturedLeads) * jobValue * RECOVERY_RATE)
 
     // Build status message
     let statusLine = ''
@@ -121,11 +102,6 @@ export async function GET(request: NextRequest) {
       <span style="font-size:13px;color:#94A3B8;">🌙 After-hours calls handled</span>
       <span style="font-size:20px;font-weight:700;color:#A78BFA;font-family:monospace;">${afterHours}</span>
     </div>` : ''}
-    ${revenueProtected > 0 ? `
-    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:16px 18px;">
-      <span style="font-size:13px;color:#94A3B8;">💰 Estimated revenue protected</span>
-      <span style="font-size:20px;font-weight:700;color:#D4AF37;font-family:monospace;">$${revenueProtected.toLocaleString()}</span>
-    </div>` : ''}
   </div>
 
   <a href="https://369agenticsystems.com/client-dashboard"
@@ -135,7 +111,7 @@ export async function GET(request: NextRequest) {
 
   <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;">
     <p style="margin:0;font-size:11px;color:#334155;font-family:monospace;">
-      Questions or changes? Reply to this email — Chris responds within 2 hours.<br>
+      Questions or changes? Reply to this email — Chris responds within one business day.<br>
       369 Agentic Systems · ${sub.tier} Plan · $${sub.monthly_cost}/mo
     </p>
   </div>
