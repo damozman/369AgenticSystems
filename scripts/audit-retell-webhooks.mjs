@@ -18,6 +18,7 @@
  */
 
 import nextEnv from '@next/env'
+import { collectPages } from '../lib/retell-pagination.ts'
 
 nextEnv.loadEnvConfig(process.cwd())
 
@@ -37,7 +38,12 @@ const probe = await fetch('https://369agenticsystems.com/api/call-received', {
 const gateArmed = probe.status === 401
 console.log(`\nProduction webhook gate: ${gateArmed ? 'ARMED (secret required)' : `open (HTTP ${probe.status})`}\n`)
 
-const numbers = await api('/list-phone-numbers')
+// /v2 (the legacy /list-phone-numbers lost support 2026-06-15), paginated, and strict: an error
+// body or a bare array throws rather than being iterated as if it were the list.
+const numbers = await collectPages(
+  (k) => api(`/v2/list-phone-numbers${k ? `?pagination_key=${encodeURIComponent(k)}` : ''}`),
+  { label: 'phone numbers' },
+)
 let problems = 0
 
 for (const n of numbers) {
