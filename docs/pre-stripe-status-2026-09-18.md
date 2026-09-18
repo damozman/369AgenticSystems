@@ -34,12 +34,8 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 - **"Dentrix integration"** is still claimed on `AgentTeamGrid.tsx` and `public/dental-leads`. `lib/integrations/dentrix.ts` exists but needs `DENTRIX_API_URL`/`DENTRIX_API_KEY`, which are not configured, and it is only read by `email-ingest`. Not touched — Chris's call whether the claim stays while dental is FUTURE.
 - Twilio A2P 10DLC registration takes days to weeks; start early if SMS is wanted.
 
-## Still owed as written reports (not code)
-- ~~Which voice and provider each agent actually uses~~ — done, see Reports
-- ~~Daily summary email — effort estimate~~ — done, see Reports
-- ~~ROI report scoping~~ — done, see Reports
-- ~~Elite scoping — section 4 of the brief~~ — done, see Reports
-- Vendor BAA findings — section 5
+## Written reports
+All five are done and are under **Reports** below (voice/provider, daily summary, ROI report, Elite scoping, vendor BAAs).
 
 ## Off-limits until then
 Stripe. Nothing charges until the copy matches the product.
@@ -117,3 +113,22 @@ Legend: **Code** = new application code; **Config** = Retell/agent settings via 
 **Open questions from the brief, still open:** Pro's price/features (`tier-config`: Pro is $600, email follow-up sequence + priority email support — the only Pro-only items are the follow-up sequence and email support, which is a thin gap to Elite until #1 is real); how many Elite clients to accept.
 
 **Suggested order if Elite is rebuilt around the brief's three pillars:** (1) transfer re-verification + upgrade path → (2) monthly summary export → (3) ops-brief as a manual service, explicitly labelled a service. Everything else waits for a real Elite client asking.
+
+### 5. Vendor BAAs (brief section 5 — research only, nothing built)
+Checked 2026-09-18 against each vendor's **own pages**. "Not stated" means the official page was fetched and does not say; I have not filled gaps from third-party blogs. **This is not legal advice; Chris is taking it to a lawyer.**
+
+| Vendor | Signs a BAA? | Plan / cost per the vendor's own page | Conditions stated |
+|---|---|---|---|
+| **Retell** (voice, transcripts) | **Yes** — self-signed at click-agreements.retellai.com. [docs.retellai.com/general/compliance](https://docs.retellai.com/general/compliance) | "No additional fee." **Plan not stated on this page** (Retell's own blog says pay-as-you-go works without an enterprise contract — [source](https://www.retellai.com/blog/hipaa-compliant-voice-ai-without-enterprise-contract); confirm in the dashboard). | "A signed BAA is required before transmitting PHI." Per-agent data retention (1 day–2 years) and per-agent choice of what is stored (everything / exclude PII / basic attributes). |
+| **Supabase** (database) | **Yes** — request via forms.supabase.com/hipaa2. [docs](https://supabase.com/docs/guides/platform/hipaa-projects) | **Not stated on the official page.** Third-party writeups say Team plan + a paid HIPAA add-on; **unverified — get a quote from Supabase.** We are on a plan below that today (unconfirmed). | Signed BAA **and** the HIPAA add-on; projects set to High Compliance: Point-in-Time Recovery (with a compute add-on), SSL enforcement, network restrictions, Postgres connection logging on. |
+| **Vercel** (hosting) | **Yes** — self-serve paid add-on for Pro; Enterprise via account rep. [changelog](https://vercel.com/changelog/hipaa-baas-are-now-available-to-pro-teams) | Price **not stated** on that page. **We are on Hobby** (CLAUDE.md, 2026-08-25) — a Pro plan is required first. | Redlines to the standard agreement need Enterprise. Vercel: using it "doesn't automatically ensure compliance." |
+| **Resend** (email) | **No.** [resend.com/security](https://resend.com/security): *"Resend is not HIPAA compliant and cannot sign a Business Associate Agreement."* | n/a — all plans. | — |
+
+**What this means for our system (my reading — for Cowork/Chris/lawyer):**
+1. **Resend is a hard blocker for dental as built.** Nova's booking confirmations, owner lead/booking alerts and Rex's emails all go through Resend and carry caller names, appointment details and (for dental) health-adjacent context. Serving a covered entity means moving those flows to an email provider that will sign a BAA, or stripping PHI from every email. That is a build, not a setting.
+2. **Where PHI would live today:** Retell (calls, recordings, transcripts) → our webhook → Supabase (`calls`, `leads`, `bookings`, transcripts) → email (Resend) → the client's Google Calendar event. Three of those need a BAA and one cannot have one.
+3. **Not researched, and also in the path:** Anthropic's API (Nova, Felix, email-ingest read caller data), Twilio (SMS, unconfigured), Google (Calendar events with patient names), and whichever model provider Retell routes to. Each needs its own answer before "HIPAA-ready" is a truthful sentence.
+4. **Cost/plan escalation is real:** Supabase and Vercel both need paid tiers above what we run, per-client or not. Model it against the dental price before quoting.
+5. **Copy:** "Full HIPAA compliance" is removed (this session). It should not return until every vendor above has a signed BAA and legal has reviewed.
+
+**Status:** the HIPAA Compliance Pack add-on definition has been deleted from the code; nothing HIPAA-related is sold or claimed.
