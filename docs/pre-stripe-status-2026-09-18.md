@@ -38,7 +38,7 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 - ~~Which voice and provider each agent actually uses~~ — done, see Reports
 - ~~Daily summary email — effort estimate~~ — done, see Reports
 - ~~ROI report scoping~~ — done, see Reports
-- Elite scoping — section 4 of the brief, all items, with code vs. config vs. service-only
+- ~~Elite scoping — section 4 of the brief~~ — done, see Reports
 - Vendor BAA findings — section 5
 
 ## Off-limits until then
@@ -94,3 +94,26 @@ There are **three** different "ROI" surfaces and only the first is sound:
 **Effort:** questionnaire + parsing + tests ~0.5–1 day; report rewrite + tests ~1 day; cron + verification ~0.25 day. **Only one activated client exists (Northside, a rental test agent),** so the first real verification would be against a demo, not a customer.
 
 **Decisions for Cowork/Chris:** does a client-facing report show a dollar figure at all, or counts only? My recommendation: counts by default, plus one clearly-labelled line "at your stated average job of $X" only when they gave one.
+
+### 4. Elite scoping (brief section 4)
+Legend: **Code** = new application code; **Config** = Retell/agent settings via a script; **Service** = Chris's time, no build. "Today" is what verifiably exists, derived 2026-09-18.
+
+| # | Item | Type | Today | What it takes |
+|---|---|---|---|---|
+| 1 | **Live transfer + routing rules** | Code + Config | Transfer works per client at Elite provisioning (warm, private briefing, ring 30s) — one client, one call ever (2026-07-14), not re-proven on the current model. **No routing rules.** | *Emergencies → owner's cell:* mostly a prompt/tool-description change plus a test call. *VIP/known callers straight through:* needs a VIP list (new table + dashboard editor, migration), a lookup at call start (an inbound-call webhook returning dynamic variables — `call-received` is a post-call route, not this), and a prompt branch. *Everyone else books:* already true. **Also missing: an upgrade path** — templates carry no transfer tool; only a fresh Elite checkout adds one, so an existing Starter/Pro client who upgrades gets nothing. Needs a script like `set-rental-tools.mjs`. `ownerPhone` comes from the checkout phone field — confirm it is the owner's cell, not the purchaser's desk line. **~1 day for emergencies + upgrade path; +2–3 days for VIP.** |
+| 2 | **Monthly strategy call** | Service | Nothing. Data exists in the portal (`/api/export-calls` CSV, `/api/search-transcripts`, dashboard analytics). | A one-page monthly summary for Chris to use on the call — either an export or a dashboard view (~1 day). **The constraint is Chris's calendar, not code:** every Elite client is one recurring hour a month. Capacity decision for Cowork/Chris. |
+| 3 | **Ops-brief bundled in** | Service + Code | An **admin-only** tool: upload a spreadsheet → parse → metrics (`lib/ops-brief-*`, `/admin/ops-brief`). Chris runs it; **no client-facing view, no scheduling, no per-client delivery.** Backed by *test* tables (`2026-07-30-ops-brief-test-tables.sql`). | Deliverable today only as a manual service: Chris uploads the client's file and sends the result. Bundling it as a product means a client-facing view, production tables and repeatable delivery — a build, size not scoped here. Needs a definition of what "tells the owner what to do" means before sizing. |
+| 4 | **Spanish included** | Config + QA | **Not working.** Every agent is `language: en-US` on `retell-Marissa`; prompts, greeting and TRAIGA disclosure are English. Retell's SDK supports `es-419`/`es-ES`/`multi` and arrays like `["en-US","es-ES"]`. | Set language, translate prompt/greeting/disclosure/SMS-consent sentence, pick a voice that speaks Spanish, and **test with a native speaker on real calls** (I cannot judge quality). ~1–2 days + QA. Do not advertise before a real Spanish call is heard. |
+| 5 | **Custom voice included** | Config + Service | **Not working.** All 12 agents share one platform voice. `client.voice.clone()` exists in the SDK (from audio files). | Per client: collect audio, **written consent from the voice's owner**, clone, set `voice_id` on that client's agent. Provider cost/plan limits **not verified** — check Retell pricing before promising "included". ~0.5 day script + a consent process. |
+| 6 | **Multiple locations / numbers** | Code (real) | **One of everything per client.** `client_domain` is UNIQUE on `agent_subscriptions`, `client_questionnaires`, `calendar_connections` and `client_schedules`; provisioning buys one number per checkout. | *Extra numbers, same business:* small — Retell `inbound_agents` can bind several numbers to one agent (~0.5 day + billing decision, numbers cost money). *True multi-location* (own hours, calendar, greeting, inventory per site): **a new subsystem** — a location dimension across schedules, bookings, calendars and prompts. Escalate to Opus; days to weeks. Do not promise "multiple locations" for the simple version. |
+| 7 | **Priority changes ≤24h** | Service | Prompt sync exists (`sync-questionnaire-kb` cron, `mergePromptWithContext`, per-client scripts). | A commitment about Chris's response time; no code needed. Useful: a "request a change" form that emails Chris and stamps a received-at time (~0.5 day). |
+| 8 | **Transcript search** | — | Exists (`/api/search-transcripts`); confirmed on real data per the changelog — **not re-verified this session**. | Nothing. |
+| 9 | **ROI report** | Code | See report 3. | Blocked on job-value capture; do not list on Elite until it sends. |
+| 10 | *Later:* **Review requests** | Code | **No code exists** in any vertical. | Needs a per-client review link (new field), a trigger on completed jobs, and consent. Email-only is possible without Twilio. |
+| 11 | *Later:* **Performance guarantee** | Decision + tracking | `leads` and `bookings` are measurable per client. | Needs a signed definition of a qualifying lead, a baseline before go-live, and a legal review. Chris/Cowork/lawyer, not a build. |
+
+**Cost check Cowork should have in front of them:** the model floor is roughly **$0.197/min** on Gemini (CLAUDE.md, measured 2026-08-21). Elite adds a monthly call (Chris's time) and transfer minutes, on $750/mo. Model that before adding Spanish or multi-number to "included".
+
+**Open questions from the brief, still open:** Pro's price/features (`tier-config`: Pro is $600, email follow-up sequence + priority email support — the only Pro-only items are the follow-up sequence and email support, which is a thin gap to Elite until #1 is real); how many Elite clients to accept.
+
+**Suggested order if Elite is rebuilt around the brief's three pillars:** (1) transfer re-verification + upgrade path → (2) monthly summary export → (3) ops-brief as a manual service, explicitly labelled a service. Everything else waits for a real Elite client asking.
