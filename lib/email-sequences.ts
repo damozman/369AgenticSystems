@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { escapeHtml } from '@/lib/security/sanitize'
 import { questionnaireUrl } from '@/lib/security/onboarding-token'
+import { TIERS } from '@/lib/tier-config'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -10,31 +11,19 @@ const OWNER_EMAIL = 'chris@369agenticsystems.com'
 // is the actual verified sending domain.
 const FROM        = '369 Agentic Systems <chris@alerts.369agenticsystems.com>'
 
-// ── Tier feature lists for emails (rebranded Retell feature names) ────────────
+// ── Tier feature lists for emails ────────────────────────────────────────────
+// Derived from lib/tier-config.ts, never typed here. This list used to be a second, hand-written
+// copy and had drifted into promising things nobody built ("Review Request Agent", "Daily
+// performance summaries", "$25/mo value, included free"). A welcome email goes to someone who has
+// just paid; it may claim no more than the pricing page does.
 
-const TIER_EMAIL_FEATURES: Record<string, string[]> = {
-  Starter: [
-    '24/7 AI Receptionist',
-    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
-    'Real-time lead capture dashboard',
-    'Email booking confirmations',
-    'Daily performance summaries',
-  ],
-  Pro: [
-    '24/7 AI Receptionist',
-    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
-    'Lead Follow-up Agent — automated nurture until they convert',
-    'Real-time lead capture dashboard',
-    'Conversion tracking & advanced reporting',
-  ],
-  Elite: [
-    '24/7 AI Receptionist',
-    'Crystal Clear Call Quality (HD voice via Retell AI — $25/mo value, included free)',
-    'Lead Follow-up Agent',
-    'Review Request Agent — turns completed jobs into 5-star reviews',
-    'Custom Business Intelligence (Retell caller analytics — $49/mo value, included free)',
-    'Real-time dashboard + priority support',
-  ],
+function tierEmailFeatures(tier: string): string[] {
+  const idx = TIERS.findIndex(t => t.name === tier)
+  const upTo = TIERS.slice(0, (idx === -1 ? 0 : idx) + 1)
+  return upTo
+    .flatMap(t => t.features)
+    .filter(f => !f.isSection)
+    .map(f => (f.comingSoon ? `${f.label} (coming soon)` : f.label))
 }
 
 // ── Vertical copy ─────────────────────────────────────────────────────────────
@@ -63,7 +52,7 @@ export async function sendWelcomeEmail({
   clientDomain:      string
   retellPhoneNumber?: string
 }) {
-  const features = TIER_EMAIL_FEATURES[tier] ?? TIER_EMAIL_FEATURES.Starter
+  const features = tierEmailFeatures(tier)
   const vc       = VERTICAL_COPY[vertical] ?? VERTICAL_COPY.roofing
   const agentList = features
     .map(f => `<li style="margin-bottom:6px;">✓ ${f}</li>`)

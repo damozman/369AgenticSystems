@@ -76,7 +76,7 @@ const FAQ = [
   },
   {
     q: 'Do I get follow-up automation?',
-    a: 'Only in Pro and Elite. Pro includes automated 3-step email follow-up sequences (vertical-specific). Legal gets deadline urgency, Real Estate gets market timing angles, Insurance gets coverage gap messaging. Follow-up now works for ALL 9 verticals, not just the first 3.',
+    a: 'Only in Pro and Elite. Pro includes automated 3-step email follow-up sequences (vertical-specific). Legal gets deadline urgency, Real Estate gets market timing angles, Insurance gets coverage gap messaging. Follow-up runs by email only for now; text-message follow-up is not available yet.',
   },
   {
     q: 'Can I upgrade my tier later?',
