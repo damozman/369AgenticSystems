@@ -9,7 +9,6 @@ const supabase = createClient(
 
 const THRESHOLDS = {
   followupUpgrade: { leads: 30,    message: 'You\'ve captured 30+ leads — the Follow-up Agent pays for itself by converting them automatically.' },
-  reviewsUpgrade:  { bookings: 10, message: 'You\'ve completed 10+ jobs — the Reviews Agent turns those into 5-star reviews automatically.' },
   outreachSuggest: { answerRate: 0.95, weeks: 2, message: 'Your answer rate is above 95% — you\'re ready to add an outbound Outreach Agent to proactively fill your pipeline.' },
 }
 
@@ -51,23 +50,9 @@ export async function checkClientThresholds(clientDomain: string): Promise<{
     }
   }
 
-  // Trigger 2: 10+ completed bookings → suggest Reviews upgrade (if not already on Elite)
-  if (!currentAgents.includes('reviews')) {
-    const { count: bookingCount } = await supabase
-      .from('bookings')
-      .select('*', { count: 'exact', head: true })
-      .eq('client_domain', clientDomain)
-      .eq('status', 'completed')
-
-    if ((bookingCount ?? 0) >= THRESHOLDS.reviewsUpgrade.bookings) {
-      triggered.push({
-        type:    'upgrade_suggestion',
-        title:   'Upgrade to Elite: Reviews Agent',
-        message: THRESHOLDS.reviewsUpgrade.message,
-        action:  'upgrade_to_elite',
-      })
-    }
-  }
+  // There used to be a second trigger here suggesting an "Elite: Reviews Agent" upgrade after 10
+  // completed jobs. No review-request agent exists in any vertical, so it was selling an upgrade
+  // to something unbuilt. Removed; re-add it only when review requests actually ship.
 
   return triggered
 }

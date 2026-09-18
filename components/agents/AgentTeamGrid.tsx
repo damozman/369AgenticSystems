@@ -33,7 +33,7 @@ const VERTICAL_TAGLINES: Record<Vertical, string> = {
   'real-estate': 'Your Pipeline Velocity AOS crew. From first call to showing scheduled, automatically.',
   insurance:     'Your Agency Revenue AOS crew. Quote, nurture, renew, and triage — all automated.',
   saas:          'Your Growth Engine AOS crew. Four specialists — demos, trials, content, and intelligence.',
-  dental:        'Your Patient Revenue AOS crew. Launching Year 2 with full HIPAA compliance.',
+  dental:        'Your Patient Revenue AOS crew. Launching Year 2.',
   wholesale:     'Your Distribution Velocity AOS crew. Orders captured, confirmed, and routed automatically.',
   'event-rentals':    'Your Booking Velocity AOS crew. Availability answered, dates held, confirmations sent.',
   'dumpster-rental':  'Your Hire Desk AOS crew. Drop-off calls answered, dates booked, follow-up handled.',
@@ -82,7 +82,7 @@ function DentalWaitlist() {
           Join the Waitlist
         </h2>
         <p style={{ margin: 0, fontSize: 14, color: '#475569', lineHeight: 1.6, maxWidth: 480, marginInline: 'auto' }}>
-          Full HIPAA compliance + Dentrix integration. Built for dental practices that lose patients to after-hours voicemail.
+          Built for dental practices that lose patients to after-hours voicemail.
         </p>
       </div>
 

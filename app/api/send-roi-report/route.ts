@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       Get Started — ${body.recommendedTier} Plan
     </a>
     <p style="margin:12px 0 0;font-size:11px;color:#334155;font-family:monospace;">
-      Or reply to this email — we'll get back to you within 2 hours.
+      Or reply to this email — we'll get back to you within one business day.
     </p>
   </div>
 
