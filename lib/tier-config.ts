@@ -25,7 +25,7 @@ export const TIERS: Tier[] = [
     agents:      ['receptionist', 'dashboard'],
     features: [
       { label: '24/7 AI Receptionist (unique phone number)' },
-      { label: 'Premium natural voice (featured upgrade)' },
+      { label: 'Natural-sounding voice' },
       { label: 'Lead capture + real-time dashboard' },
       { label: 'Analytics dashboard: caller sentiment, call volume, peak hours, performance benchmarks' },
       { label: 'Business context from onboarding questionnaire' },
