@@ -13,6 +13,7 @@ Work is on branch **`fix/pre-stripe-tier-claims`** (not merged, not deployed). N
 - Welcome email feature list now derived from `tier-config` (it promised a Review Request Agent, daily summaries, "$25/$49 value, included free")
 - Removed the `auto-activation` "Upgrade to Elite: Reviews Agent" upsell — no such agent exists
 - FAQ: follow-up is email only for now
+- `/api/auto-activation` now requires `Authorization: Bearer $CRON_SECRET` on GET and POST and **fails closed** when the secret is unset (verified locally: no header, wrong secret and `Bearer undefined` all 401; the authorised path was not run because it writes notification rows to production)
 - `PREMIUM_ADDONS` confirmed dead: **zero importers**, no Stripe price, no UI path. Not sellable today.
 
 ## Priority 0 — Live Call Transfer (findings, decision is Chris's)
@@ -29,7 +30,6 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 
 ## Known, for later
 - **`send-monthly-roi-reports` is deliberately unscheduled, not forgotten.** Its banner explains: it uses invented per-vertical `JOB_VALUE` numbers and would email clients a dollar figure nobody measured. Adding it to `vercel.json` is the *last* step, after (1) the client's own average job value is read from their record, (2) every figure states its assumption, (3) the rental verticals exist in it.
-- `/api/auto-activation` is unscheduled and has **no auth** — anyone can trigger it and cause notification rows to be written.
 - HIPAA: `components/agents/AgentTeamGrid.tsx:36,85` and `public/dental-leads` say "Full HIPAA compliance". No BAA exists. Not touched (HIPAA stays off, legal review first).
 - Twilio A2P 10DLC registration takes days to weeks; start early if SMS is wanted.
 
