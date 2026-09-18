@@ -35,7 +35,7 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 - Twilio A2P 10DLC registration takes days to weeks; start early if SMS is wanted.
 
 ## Still owed as written reports (not code)
-- Which voice and provider each agent actually uses
+- ~~Which voice and provider each agent actually uses~~ — done, see Reports
 - Daily summary email — effort estimate (reuse the Monday digest)
 - ROI report scoping, including the cron and the onboarding "average job value" question
 - Elite scoping — section 4 of the brief, all items, with code vs. config vs. service-only
@@ -43,3 +43,16 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 
 ## Off-limits until then
 Stripe. Nothing charges until the copy matches the product.
+
+## Reports
+
+*Written by Claude Code (Sonnet 5). Facts below were re-derived from live systems on 2026-09-18, not from earlier docs; each names the probe that produced it.*
+
+### 1. Voice and provider — what a caller actually hears
+Probe: `scripts/retell/probe-voices.mjs` (read-only; `agent.retrieve` per agent plus `voice.retrieve`).
+
+- **All 12 agents use the same voice: `retell-Marissa`.** Provider `platform` (Retell's own voice, not ElevenLabs/Cartesia/OpenAI), `voice_type: standard`, `voice_model` left at Retell's default, `language: en-US`, temperature 1. Speed is 1.0 everywhere except the audit caller (1.1, chosen by ear).
+- It is identical on every tier, every vertical, the demo line and Northside. **Nothing distinguishes a Starter caller's voice from an Elite caller's.**
+- **What this does to the pricing line "Premium natural voice (featured upgrade)":** the voice is real and Chris judged it natural by ear, but Retell itself labels it `standard`, and there is no lower voice for it to be an "upgrade" over. "Premium" and "featured upgrade" are not backed by anything in the system.
+- **Recommendation (Cowork/Chris to decide):** say "Natural-sounding voice" and drop "premium" and "featured upgrade". The claim then matches what every caller hears on every tier. It also stops the line implying tiers differ when they don't.
+- Consequences for Elite scoping (report 4): Spanish and Custom Voice are both unbuilt — every agent is en-US on one shared platform voice.
