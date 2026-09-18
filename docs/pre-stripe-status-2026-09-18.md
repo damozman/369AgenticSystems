@@ -1,13 +1,26 @@
-# Pre-Stripe Tier Fixes — Status & Priorities (updated 2026-09-18)
+# Pre-Stripe Tier Fixes — Status & Priorities (updated 2026-09-18, end of session)
 
 Companion to `docs/vs-claude-handoff-tier-fixes.md`. That brief is the spec; this is where things stand.
-Work is on branch **`fix/pre-stripe-tier-claims`** (not merged, not deployed). Nothing charges via Stripe until this is done.
+Work is on branch **`fix/pre-stripe-tier-claims`** — **not merged, not deployed.** Nothing charges via Stripe until this is done.
+
+## 🔴 Production still has the invented number
+**`master` — and therefore production — still emails the "Estimated revenue protected" tile.** The fix is committed on the branch only (verified: `master:app/api/cron/weekly-digest/route.ts` still contains `revenueProtected`). Deploys are manual (`vercel --prod`), so it stays live until the branch is merged and deployed. The digest fires **Mondays 13:00 UTC — next: 2026-09-21.** Today only Northside (Chris's test account) receives it, so no real client has seen it, but merge + deploy before the first real client activates. Merging is Chris's call.
+
+## Decisions (Chris, 2026-09-18)
+1. Weekly digest: counts only, no revenue tile. **Done on branch.**
+2. Voice copy: "Natural-sounding voice" on all tiers, no "premium" / "featured upgrade". **Done in code.** (Docs `vs-claude-handoff-tier-fixes.md` and the report below still quote the old line as history.)
+3. Daily summary email: **not building.** Starter stays "Weekly summary."
+4. ROI report: counts by default; a dollar line **only** when the client gave their own number, labelled as theirs. **Not started — waiting for the go-ahead.** Scope is in Report 3.
+5. Elite: **Spanish, custom voice and multi-location are OUT.** No further scoping. Elite design goes to a separate session with Chris.
+6. "Within one business day" replaces "within 2 hours". **Done in code.**
+7. `/api/auto-activation` authentication and the HIPAA copy removal stand as committed.
+- **The Resend/HIPAA problem also goes to that separate session** (Report 5). Nothing is being built for it here.
 
 ## Done and committed on the branch
-- Voice quality: one line on all tiers; unused `retellConfig` removed; retail-value fields/helpers removed from `tier-config.ts`
+- Voice: every tier says **"Natural-sounding voice"** (no "premium", no "featured upgrade" — every agent uses one standard platform voice); unused `retellConfig` removed; retail-value fields/helpers removed from `tier-config.ts`
 - Custom BI bullet + $49 badge + the "bundled Retell features" callout removed; analytics line on all tiers
-- Starter: "Weekly summary email"; monthly ROI report removed from Starter, FAQ, agent pages, homepage, 12 landing pages
-- Live Call Transfer rendered **COMING SOON** — **copy not final, see Priority 0**
+- Starter: "Weekly summary email" (stays weekly — daily is not being built); monthly ROI report removed from Starter, FAQ, agent pages, homepage, 12 landing pages
+- Live Call Transfer rendered **COMING SOON** — **HELD: copy stays as is until Chris's own test call, see Priority 0**
 - Rex follow-up: phone-only leads no longer retry forever — check is now "no email AND SMS can't go out (unconfigured OR no consent)", pure + tested (`lib/rex-channel.ts`), and the step advances only once the owner alert is actually sent
 - `VerticalROICalculator.tsx`: dead retail-value total removed, **plus two false claims next to the Buy buttons**: "2 spots remaining this month" (invented scarcity, shown on all 12 verticals) and "One-time setup: $1,500" (`SETUP_FEE` is 0)
 - Welcome email feature list now derived from `tier-config` (it promised a Review Request Agent, daily summaries, "$25/$49 value, included free")
@@ -16,8 +29,10 @@ Work is on branch **`fix/pre-stripe-tier-claims`** (not merged, not deployed). N
 - `/api/auto-activation` now requires `Authorization: Bearer $CRON_SECRET` on GET and POST and **fails closed** when the secret is unset (verified locally: no header, wrong secret and `Bearer undefined` all 401; the authorised path was not run because it writes notification rows to production)
 - "Full HIPAA compliance" removed from `AgentTeamGrid.tsx` (2 places) and `public/dental-leads`; no HIPAA claim remains in the code. HIPAA stays off until legal review.
 - `PREMIUM_ADDONS` / `PremiumAddon` **deleted** from `lib/tier-config.ts` (zero importers, no Stripe price, no UI path). The old definitions — including the $49 Live Call Transfer, $79 Spanish and $99 Custom Voice/HIPAA prices — are recoverable from git at `0c358b7`. **For Cowork:** `docs/ROADMAP.md` (lines 15, 512) and `docs/PHASE-2-ROADMAP.md` (line 13) still describe it as the home for future add-ons; those references are now stale.
+- **Weekly digest: "Estimated revenue protected" tile removed** (it multiplied leads by an invented per-vertical `JOB_VALUE` table and a 30% rate). Counts only. `JOB_VALUE` and the `RECOVERY_RATE` import are gone from that route.
+- **"Chris responds within 2 hours" → "within one business day"** in the weekly digest and the `send-roi-report` prospect email (the only two places in code).
 
-## Priority 0 — Live Call Transfer (findings, decision is Chris's)
+## Priority 0 — Live Call Transfer (HELD — Chris is making the test call himself)
 Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's own `response_engine`):
 - **1 of 12 agents has a `transfer_call` tool: Northside (the only Elite subscription).** `transfer_to_owner`, warm transfer, 30s ring, private handoff prompt, destination = its `owner_phone`.
 - The 9 vertical templates, the demo agent and the audit caller have none — by design: provisioning adds it at clone time, only when the purchase is Elite and a phone was given.
@@ -26,16 +41,15 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 - So the changelog is right that it worked, and the first audit was wrong that it doesn't exist. The honest gap is: works per-client at provisioning, once verified, not re-verified, no routing rules (emergency / VIP / everyone-else), no path to add it to an existing client who upgrades.
 
 ## Still to do
-- Decide the Live Call Transfer copy. Options: keep COMING SOON; or "Live Call Transfer" after one re-verification call on Northside.
-- Re-verify: one real call to Northside +1 (817) 612-6757, ask for a person, confirm the owner's phone rings.
+- **Chris:** the Live Call Transfer test call — Northside +1 (817) 612-6757, ask for a person, confirm the owner's phone rings. Then decide the copy. Nothing changes until then.
+- **Chris:** merge `fix/pre-stripe-tier-claims` and deploy (see the red section above).
+- ROI report build — when Chris says go (Report 3). Nothing in the pricing copy may list it until it actually sends.
 
 ## Known, for later
-- **`send-monthly-roi-reports` is deliberately unscheduled, not forgotten.** Its banner explains: it uses invented per-vertical `JOB_VALUE` numbers and would email clients a dollar figure nobody measured. Adding it to `vercel.json` is the *last* step, after (1) the client's own average job value is read from their record, (2) every figure states its assumption, (3) the rental verticals exist in it.
-- **"Dentrix integration"** is still claimed on `AgentTeamGrid.tsx` and `public/dental-leads`. `lib/integrations/dentrix.ts` exists but needs `DENTRIX_API_URL`/`DENTRIX_API_KEY`, which are not configured, and it is only read by `email-ingest`. Not touched — Chris's call whether the claim stays while dental is FUTURE.
+- **`send-monthly-roi-reports` is deliberately unscheduled, not forgotten.** It uses invented per-vertical `JOB_VALUE` numbers and would email clients a dollar figure nobody measured. Adding it to `vercel.json` is the *last* step of the ROI build (Report 3), never before.
+- **The weekly digest still has known defects** that were not in scope: "after-hours" uses server time (UTC) against a hardcoded 8–18 rather than the business's timezone; no per-client-per-week idempotency (a double-fired cron double-sends); the "no calls last week" / "low volume" nag copy fires on quiet weeks.
+- **"Dentrix integration"** is still claimed on `AgentTeamGrid.tsx` and `public/dental-leads`. `lib/integrations/dentrix.ts` exists but needs `DENTRIX_API_URL`/`DENTRIX_API_KEY`, which are not configured. Chris's call whether the claim stays while dental is FUTURE.
 - Twilio A2P 10DLC registration takes days to weeks; start early if SMS is wanted.
-
-## Written reports
-All five are done and are under **Reports** below (voice/provider, daily summary, ROI report, Elite scoping, vendor BAAs).
 
 ## Off-limits until then
 Stripe. Nothing charges until the copy matches the product.
@@ -51,6 +65,7 @@ Probe: `scripts/retell/probe-voices.mjs` (read-only; `agent.retrieve` per agent 
 - It is identical on every tier, every vertical, the demo line and Northside. **Nothing distinguishes a Starter caller's voice from an Elite caller's.**
 - **What this does to the pricing line "Premium natural voice (featured upgrade)":** the voice is real and Chris judged it natural by ear, but Retell itself labels it `standard`, and there is no lower voice for it to be an "upgrade" over. "Premium" and "featured upgrade" are not backed by anything in the system.
 - **Recommendation (Cowork/Chris to decide):** say "Natural-sounding voice" and drop "premium" and "featured upgrade". The claim then matches what every caller hears on every tier. It also stops the line implying tiers differ when they don't.
+- **Decision (Chris, 2026-09-18): adopted — "Natural-sounding voice" on all tiers.**
 - Consequences for Elite scoping (report 4): Spanish and Custom Voice are both unbuilt — every agent is en-US on one shared platform voice.
 
 ### 2. Daily summary email — effort, and what it must not inherit
@@ -66,7 +81,9 @@ Source read: `app/api/cron/weekly-digest/route.ts` (scheduled Mondays 13:00 UTC 
 6. **Footer promise:** "Chris responds within 2 hours." A service commitment nobody has agreed to; flag for Cowork.
 7. **Resend volume** at one email per client per day — plan limits not verified here.
 
-**Recommendation:** do not switch any copy back to "Daily" until 1–4 are done. Realistic total with tests and a migration: 1 day, gated on Cowork's calls on items 1, 2 and 5.
+**Decision (Chris, 2026-09-18): not building a daily email; Starter stays "Weekly summary." Items 1 and 6 (revenue tile, footer promise) were fixed on the branch; items 2–5 apply only if a daily send is ever revisited.**
+
+**Original recommendation:** do not switch any copy back to "Daily" until 1–4 are done. Realistic total with tests and a migration: 1 day, gated on Cowork's calls on items 1, 2 and 5.
 
 ### 3. ROI report — scoping (including the cron and the job-value question)
 There are **three** different "ROI" surfaces and only the first is sound:
@@ -89,9 +106,13 @@ There are **three** different "ROI" surfaces and only the first is sound:
 
 **Effort:** questionnaire + parsing + tests ~0.5–1 day; report rewrite + tests ~1 day; cron + verification ~0.25 day. **Only one activated client exists (Northside, a rental test agent),** so the first real verification would be against a demo, not a customer.
 
-**Decisions for Cowork/Chris:** does a client-facing report show a dollar figure at all, or counts only? My recommendation: counts by default, plus one clearly-labelled line "at your stated average job of $X" only when they gave one.
+**Decision (Chris, 2026-09-18): counts by default; a dollar line only when the client gave their own number, labelled as theirs. Build not started.**
+
+**Original question (now answered):** does a client-facing report show a dollar figure at all, or counts only? My recommendation: counts by default, plus one clearly-labelled line "at your stated average job of $X" only when they gave one.
 
 ### 4. Elite scoping (brief section 4)
+**Decision (Chris, 2026-09-18): rows 4 (Spanish), 5 (custom voice) and 6 (multi-location) are OUT — no further scoping. The rest of Elite's design goes to a separate session with Chris; this table is input to it, not a plan.**
+
 Legend: **Code** = new application code; **Config** = Retell/agent settings via a script; **Service** = Chris's time, no build. "Today" is what verifiably exists, derived 2026-09-18.
 
 | # | Item | Type | Today | What it takes |
@@ -115,6 +136,8 @@ Legend: **Code** = new application code; **Config** = Retell/agent settings via 
 **Suggested order if Elite is rebuilt around the brief's three pillars:** (1) transfer re-verification + upgrade path → (2) monthly summary export → (3) ops-brief as a manual service, explicitly labelled a service. Everything else waits for a real Elite client asking.
 
 ### 5. Vendor BAAs (brief section 5 — research only, nothing built)
+**Decision (Chris, 2026-09-18): the Resend/HIPAA problem goes to a separate session with Chris. Nothing is being built here.**
+
 Checked 2026-09-18 against each vendor's **own pages**. "Not stated" means the official page was fetched and does not say; I have not filled gaps from third-party blogs. **This is not legal advice; Chris is taking it to a lawyer.**
 
 | Vendor | Signs a BAA? | Plan / cost per the vendor's own page | Conditions stated |
