@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { sendSms } from '@/lib/twilio-sms'
 import type { SmsConsent } from '@/lib/sms-consent'
+import { NO_CHANNEL_EXPLANATION, type NoChannelReason } from '@/lib/rex-channel'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -148,6 +149,35 @@ async function sendStepEmail(step: 0 | 1 | 2, input: RexSequenceEmailInput) {
 export const sendRexStep0Email = (input: RexSequenceEmailInput) => sendStepEmail(0, input)
 export const sendRexStep1Email = (input: RexSequenceEmailInput) => sendStepEmail(1, input)
 export const sendRexStep2Email = (input: RexSequenceEmailInput) => sendStepEmail(2, input)
+
+/**
+ * A phone-only lead (no email address) whose follow-up step falls due while SMS cannot go out —
+ * unconfigured, or no recorded opt-in — has no channel this sequence can use. Left alone, the
+ * send is refused every single day, forever, with nothing to show Chris but a server log he isn't
+ * reading. This fires at the moment the sequence advances past that step, so it cannot turn into
+ * daily spam, and the caller only advances once it has actually been sent.
+ */
+export async function alertOwnerNoFollowUpChannel(input: {
+  leadId: string
+  clientDomain: string
+  callerPhone: string
+  step: 1 | 2
+  reason: NoChannelReason
+}) {
+  return resend.emails.send({
+    from:    FROM,
+    to:      OWNER_EMAIL,
+    subject: `⚠️ Follow-up skipped — no channel to reach a lead (${input.clientDomain})`,
+    html: `
+      <p>Rex's step ${input.step} follow-up came due for a lead who only left a phone number —
+      no email on file, and ${NO_CHANNEL_EXPLANATION[input.reason]}, so nothing was sent.</p>
+      <p><strong>Lead:</strong> ${input.callerPhone}<br>
+      <strong>Client:</strong> ${input.clientDomain}<br>
+      <strong>Lead ID:</strong> ${input.leadId}</p>
+      <p>This lead needs a manual follow-up call — the sequence has moved on and will not retry.</p>
+    `,
+  })
+}
 
 // ── SMS ───────────────────────────────────────────────────────────────────────
 /**

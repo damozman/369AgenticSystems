@@ -14,6 +14,12 @@ if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
   console.warn('[TWILIO] SMS not configured (missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_FROM_NUMBER)')
 }
 
+// Lets a caller check BEFORE attempting a send, so a phone-only lead with no other channel
+// can be handled deliberately (skip + alert) instead of failing the same way every single day.
+export function isSmsConfigured(): boolean {
+  return !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER)
+}
+
 export interface SendSmsInput {
   toPhone:   string
   message:   string

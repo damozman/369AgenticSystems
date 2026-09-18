@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendRexStep1Email, sendRexStep2Email, sendSMS, renderRexSms, type RexVertical } from '@/lib/rex-sequences'
+import { sendRexStep1Email, sendRexStep2Email, sendSMS, renderRexSms, alertOwnerNoFollowUpChannel, type RexVertical } from '@/lib/rex-sequences'
 import { consentForLead } from '@/lib/sms-consent'
 import { businessNameFor } from '@/lib/client-identity'
+import { isSmsConfigured } from '@/lib/twilio-sms'
+import { noFollowUpChannelReason } from '@/lib/rex-channel'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,11 +58,31 @@ export async function GET(request: NextRequest) {
         emailSent = true
       } catch (e) { console.error('[REX] Step 1 email failed:', e) }
     }
-    const smsSent = lead.caller_phone
+
+    // A phone-only lead whose SMS cannot go out (unconfigured OR no recorded opt-in) has no
+    // channel: sendSMS would be refused the same way every day, forever, unseen. Alert instead,
+    // and advance only once the alert is actually out — a failed alert retries tomorrow.
+    const consent = lead.caller_phone ? await consentForLead(supabase, seq.lead_id) : null
+    const noChannelReason = noFollowUpChannelReason({
+      hasEmail: !!lead.caller_email, hasPhone: !!lead.caller_phone,
+      smsConfigured: isSmsConfigured(), smsConsented: consent?.granted === true,
+    })
+    let noChannelHandled = false
+    if (noChannelReason) {
+      try {
+        await alertOwnerNoFollowUpChannel({
+          leadId: seq.lead_id, clientDomain: seq.client_domain,
+          callerPhone: lead.caller_phone!, step: 1, reason: noChannelReason,
+        })
+        noChannelHandled = true
+      } catch (e) { console.error('[REX] Step 1 no-channel alert failed to send:', e) }
+    }
+
+    const smsSent = lead.caller_phone && !noChannelReason
       ? await sendSMS(
           lead.caller_phone,
           renderRexSms(vertical, 'step1', await businessNameFor(supabase, seq.client_domain)),
-          await consentForLead(supabase, seq.lead_id),
+          consent!,
           seq.lead_id,
         )
       : false
@@ -71,7 +93,7 @@ export async function GET(request: NextRequest) {
     // real delivery failure silently skipped the customer straight to step 2's
     // 7-day clock instead of retrying step 1 the next day.
     const hadContactInfo = !!lead.caller_email || !!lead.caller_phone
-    if (!hadContactInfo || emailSent || smsSent) {
+    if (!hadContactInfo || emailSent || smsSent || noChannelHandled) {
       await supabase
         .from('follow_up_sequences')
         .update({ sequence_step: 1, step_1_sent_at: new Date().toISOString() })
@@ -111,17 +133,37 @@ export async function GET(request: NextRequest) {
         emailSent = true
       } catch (e) { console.error('[REX] Step 2 email failed:', e) }
     }
-    const smsSent = lead.caller_phone
+
+    // A phone-only lead whose SMS cannot go out (unconfigured OR no recorded opt-in) has no
+    // channel: sendSMS would be refused the same way every day, forever, unseen. Alert instead,
+    // and advance only once the alert is actually out — a failed alert retries tomorrow.
+    const consent = lead.caller_phone ? await consentForLead(supabase, seq.lead_id) : null
+    const noChannelReason = noFollowUpChannelReason({
+      hasEmail: !!lead.caller_email, hasPhone: !!lead.caller_phone,
+      smsConfigured: isSmsConfigured(), smsConsented: consent?.granted === true,
+    })
+    let noChannelHandled = false
+    if (noChannelReason) {
+      try {
+        await alertOwnerNoFollowUpChannel({
+          leadId: seq.lead_id, clientDomain: seq.client_domain,
+          callerPhone: lead.caller_phone!, step: 2, reason: noChannelReason,
+        })
+        noChannelHandled = true
+      } catch (e) { console.error('[REX] Step 2 no-channel alert failed to send:', e) }
+    }
+
+    const smsSent = lead.caller_phone && !noChannelReason
       ? await sendSMS(
           lead.caller_phone,
           renderRexSms(vertical, 'step2', await businessNameFor(supabase, seq.client_domain)),
-          await consentForLead(supabase, seq.lead_id),
+          consent!,
           seq.lead_id,
         )
       : false
 
     const hadContactInfo = !!lead.caller_email || !!lead.caller_phone
-    if (!hadContactInfo || emailSent || smsSent) {
+    if (!hadContactInfo || emailSent || smsSent || noChannelHandled) {
       await supabase
         .from('follow_up_sequences')
         .update({ sequence_step: 2, completed: true, step_2_sent_at: new Date().toISOString() })
