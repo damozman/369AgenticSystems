@@ -20,6 +20,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { summarise, callMinutes } from '../lib/usage.ts'
 import { billablePeriodFor, displayPeriodFor } from '../lib/billing-period.ts'
+import { collectPages } from '../lib/retell-pagination.ts'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -113,18 +114,31 @@ const retellKey = process.env.RETELL_API_KEY
 if (!retellKey) {
   note('RETELL_API_KEY not set — skipping. This is the section that actually matters; re-run with it.')
 } else {
-  const res = await fetch('https://api.retellai.com/v2/list-calls', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${retellKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ limit: 200 }),
-  })
+  // /v3/list-calls (the /v2 path is the legacy one). The whole list, every page: the previous
+  // version read one page, so a truncated fetch and a genuinely missing call looked identical.
+  // It also fed `Array.isArray(...) ? ... : []`, which would have turned the v3 object shape into an
+  // empty list and reconciled against nothing while still printing a clean result.
+  let retellCalls = null
+  let listError = null
+  try {
+    retellCalls = await collectPages(async (key) => {
+      const res = await fetch('https://api.retellai.com/v3/list-calls', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${retellKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ limit: 200, sort_order: 'descending', ...(key ? { pagination_key: key } : {}) }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    }, { label: 'Retell calls' })
+  } catch (e) {
+    listError = e instanceof Error ? e.message : String(e)
+  }
 
-  if (!res.ok) {
-    bad('could not list calls from Retell', `HTTP ${res.status}`)
+  if (listError) {
+    bad('could not list calls from Retell', listError)
   } else {
-    const retellCalls = await res.json()
     const byId = new Map()
-    for (const c of Array.isArray(retellCalls) ? retellCalls : []) {
+    for (const c of retellCalls) {
       // Retell reports milliseconds; our column is seconds. A unit mix-up here is exactly the
       // class of error this section exists to catch, so the conversion is explicit.
       const ms = c.duration_ms ?? ((c.end_timestamp ?? 0) - (c.start_timestamp ?? 0))
@@ -168,7 +182,7 @@ if (!retellKey) {
     }
 
     if (missing > 0) {
-      note(`${missing} of our calls are not in Retell's most recent 200 — expected if older than that window`)
+      note(`${missing} of our recent calls have no matching call anywhere in Retell's full list — test rows, or a call_id that never existed there`)
     }
 
     /**

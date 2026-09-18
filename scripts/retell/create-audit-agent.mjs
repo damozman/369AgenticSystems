@@ -25,6 +25,7 @@
  * node --env-file=.env.local scripts/retell/create-audit-agent.mjs --apply
  */
 import Retell from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 
 const APPLY = process.argv.includes('--apply')
 const KEY = process.env.RETELL_API_KEY
@@ -111,10 +112,9 @@ Keep every sentence short. End the call as soon as the exchange is complete.`
 async function main() {
   console.log(`\n369 · audit agent — ${APPLY ? 'APPLY' : 'DRY RUN'}\n`)
 
-  // agent.list has been observed returning { items: [...] }; recon.mjs already handles all three
-  // shapes and this must not disagree with it.
-  const listRes = await client.agent.list()
-  const agents = Array.isArray(listRes) ? listRes : (listRes?.items ?? listRes?.data ?? [])
+  // Every page: the "refuse to create a second one" check below is only as good as this list, and a
+  // truncated page would let a duplicate agent through.
+  const agents = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
   if (!agents.length) {
     console.error('No agents returned from Retell (unexpected).')
     process.exit(1)

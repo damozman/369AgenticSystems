@@ -9,13 +9,13 @@
  * Run:  node --env-file=.env.local scripts/retell/probe-transfer.mjs
  */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 import { createClient } from '@supabase/supabase-js'
 
 const client = new Retell({ apiKey: process.env.RETELL_API_KEY })
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-const res = await client.agent.list()
-const list = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+const list = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 
 const { data: subs } = await db
   .from('agent_subscriptions')

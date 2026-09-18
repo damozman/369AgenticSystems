@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 /** READ-ONLY. Real calls on which a transfer was invoked or completed, per Retell's own records. */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 const client = new Retell({ apiKey: process.env.RETELL_API_KEY })
 const AGENT = process.argv[2] ?? 'agent_d39a1b13cfd8fb2e3c9c12f06e'
-const calls = []
-let paginationKey
-for (let i = 0; i < 10; i++) {
-  const page = await client.call.list({ filter_criteria: { agent_id: [AGENT] }, limit: 1000, sort_order: 'descending', ...(paginationKey ? { pagination_key: paginationKey } : {}) })
-  const items = Array.isArray(page) ? page : (page?.items ?? page?.data ?? [])
-  calls.push(...items)
-  if (items.length < 1000) break
-  paginationKey = items[items.length - 1].call_id
-}
+// Uses the server's own cursor (pagination_key / has_more). An earlier draft used the last call_id as
+// the cursor, which only worked because this account had fewer calls than one page.
+const calls = await collectPages(
+  k => client.call.list({ filter_criteria: { agent_id: [AGENT] }, limit: 1000, sort_order: 'descending', pagination_key: k }),
+  { label: 'calls' },
+)
 console.log(`${calls.length} calls on ${AGENT}`)
 const hits = calls.filter(c =>
   c.disconnection_reason === 'call_transfer' ||

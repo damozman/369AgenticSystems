@@ -14,6 +14,7 @@
  * Requires BOTH env vars in .env.local: RETELL_API_KEY, RETELL_WEBHOOK_SECRET.
  */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 
 const APPLY = process.argv.includes('--apply')
 const apiKey = process.env.RETELL_API_KEY
@@ -36,9 +37,7 @@ function withSecret(url) {
 console.log(`\n${APPLY ? '🔴 APPLY MODE — writing changes' : '🟡 DRY RUN — no changes will be written (add --apply to write)'}\n`)
 
 // ── Gather agents (list returns summaries under .items; retrieve for detail) ──
-let summaries = []
-const res = await client.agent.list()
-summaries = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+const summaries = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 
 let planned = 0, applied = 0, failed = 0
 

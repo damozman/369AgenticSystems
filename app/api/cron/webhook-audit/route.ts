@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { collectPages } from '@/lib/retell-pagination'
 
 /**
  * Daily check that every inbound phone route can actually deliver its webhook.
@@ -53,7 +54,13 @@ export async function GET(request: NextRequest) {
   let routesChecked = 0
 
   try {
-    const numbers = await retell('/list-phone-numbers', key) as unknown as Array<Record<string, unknown>>
+    // /v2, not the legacy /list-phone-numbers (support ended 2026-06-15). Paginated, and strict: a
+    // response that is not { items } throws, which lands in the catch below and emails Chris —
+    // an unreadable phone-number list must never look like "no phone numbers, all clear".
+    const numbers = await collectPages<Record<string, unknown>>(
+      key2 => retell(`/v2/list-phone-numbers${key2 ? `?pagination_key=${encodeURIComponent(key2)}` : ''}`, key),
+      { label: 'Retell phone numbers' },
+    )
 
     for (const n of numbers) {
       const phone  = String(n.phone_number ?? 'unknown')

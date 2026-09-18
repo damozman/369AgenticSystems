@@ -16,6 +16,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../lib/retell-pagination.ts'
 
 const REAL_RETELL_KEY = process.env.RETELL_API_KEY
 // Set before importing anything that constructs a Retell client — lib/retell-provisioning.ts
@@ -36,7 +37,7 @@ const heading = (t) => console.log(`\n${t}\n${'-'.repeat(t.length)}`)
 
 async function retellNumberCount() {
   const r = new Retell({ apiKey: REAL_RETELL_KEY })
-  return ((await r.phoneNumber.list()).items ?? []).length
+  return (await collectPages(k => r.phoneNumber.list({ pagination_key: k }), { label: 'phone numbers' })).length
 }
 
 async function cleanup() {

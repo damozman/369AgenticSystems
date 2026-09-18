@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /** READ-ONLY. The voice, provider and language every live agent actually resolves to. */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 const client = new Retell({ apiKey: process.env.RETELL_API_KEY })
-const res = await client.agent.list()
-const list = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+const list = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 const seen = new Set()
 const voiceCache = new Map()
 async function voiceInfo(id) {
