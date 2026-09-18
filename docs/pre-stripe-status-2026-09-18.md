@@ -14,6 +14,7 @@ Work is on branch **`fix/pre-stripe-tier-claims`** (not merged, not deployed). N
 - Removed the `auto-activation` "Upgrade to Elite: Reviews Agent" upsell — no such agent exists
 - FAQ: follow-up is email only for now
 - `/api/auto-activation` now requires `Authorization: Bearer $CRON_SECRET` on GET and POST and **fails closed** when the secret is unset (verified locally: no header, wrong secret and `Bearer undefined` all 401; the authorised path was not run because it writes notification rows to production)
+- "Full HIPAA compliance" removed from `AgentTeamGrid.tsx` (2 places) and `public/dental-leads`; no HIPAA claim remains outside the dead `PREMIUM_ADDONS` entry. HIPAA stays off until legal review.
 - `PREMIUM_ADDONS` confirmed dead: **zero importers**, no Stripe price, no UI path. Not sellable today.
 
 ## Priority 0 — Live Call Transfer (findings, decision is Chris's)
@@ -30,7 +31,7 @@ Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's
 
 ## Known, for later
 - **`send-monthly-roi-reports` is deliberately unscheduled, not forgotten.** Its banner explains: it uses invented per-vertical `JOB_VALUE` numbers and would email clients a dollar figure nobody measured. Adding it to `vercel.json` is the *last* step, after (1) the client's own average job value is read from their record, (2) every figure states its assumption, (3) the rental verticals exist in it.
-- HIPAA: `components/agents/AgentTeamGrid.tsx:36,85` and `public/dental-leads` say "Full HIPAA compliance". No BAA exists. Not touched (HIPAA stays off, legal review first).
+- **"Dentrix integration"** is still claimed on `AgentTeamGrid.tsx` and `public/dental-leads`. `lib/integrations/dentrix.ts` exists but needs `DENTRIX_API_URL`/`DENTRIX_API_KEY`, which are not configured, and it is only read by `email-ingest`. Not touched — Chris's call whether the claim stays while dental is FUTURE.
 - Twilio A2P 10DLC registration takes days to weeks; start early if SMS is wanted.
 
 ## Still owed as written reports (not code)
