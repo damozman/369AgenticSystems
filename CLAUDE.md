@@ -70,6 +70,17 @@ requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMI
 6. Known, not fixed: the weekly digest counts "after-hours" in server time (UTC), not the
    business's; it has no per-week idempotency; "Dentrix integration" is still claimed on the dental
    copy though its credentials are not configured.
+7. **Confirm the `webhook-audit` cron ran on Retell's `/v2` path.** Retell ended support for the
+   legacy `GET /list-*` endpoints on 2026-06-15; PR #53 (`d2580dc`, live) moved that cron and every
+   script that lists Retell things onto `/v2` / `/v3` through `lib/retell-pagination.ts`, which throws
+   on a bare array, an error body or a runaway cursor rather than returning a quietly wrong list.
+   `retell-sdk` 5.45.0 already targeted `/v2`/`/v3`, so no bump. **The authenticated production run
+   could not be exercised on deploy day** (the `CRON_SECRET` in the local env is not production's), so
+   the first real proof is the scheduled 12:00 UTC run — check within the hour, logs are short-lived:
+   `npx vercel logs --environment production -q webhook-audit`. A failure also emails Chris
+   ("Webhook audit could not run"). Legacy endpoints still answered on 2026-09-18, so nothing was
+   broken; this was ahead of removal. Any new Retell list call must go through `collectPages` —
+   calls default to a **50-item page**, so reading `.items` once truncates silently.
 
 **Deploys — corrected 2026-09-18.** This file used to say the Vercel project had "no visible Git
 integration". **It does: `vercel[bot]` deployed merge commit `3c3b715` to Production by itself about
