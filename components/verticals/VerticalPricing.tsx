@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Clock } from 'lucide-react'
 import { TIERS, SETUP_FEE, type TierFeature, type TierName } from '@/lib/tier-config'
 import { STRIPE_PAYMENT_LINKS } from '@/lib/stripe-config'
 
@@ -68,15 +68,11 @@ const FAQ = [
   },
   {
     q: 'I\'ve seen AI receptionists for $25-100/mo, or phone systems with AI features for even less per seat. Why is this more?',
-    a: 'Those are two different things, and neither replaces what this does. Cheap AI receptionist tools are self-serve — you configure the bot yourself, and most cap your minutes. Business phone systems with "AI" features are infrastructure, not a replacement for staff — a human still answers, and the AI is usually a metered add-on (extra monthly credits, plus a per-call fee once you\'re over) that summarizes or tags calls someone already took, not something that answers on its own. This is fully managed and fully autonomous instead: we personalize your agent to your specific business through a real onboarding questionnaire, and it answers every call itself — no seat cost, no per-call metering, no human required. Flat monthly pricing means no per-call or per-minute surprise bills. Elite includes live warm call transfer to a real person when a call needs one, with a private heads-up briefing before they pick up — not just a phone number recited back to the caller. And Pro/Elite include an automated follow-up sequence that keeps working a lead after the call ends, not just call answering.',
+    a: 'Those are two different things, and neither replaces what this does. Cheap AI receptionist tools are self-serve — you configure the bot yourself, and most cap your minutes. Business phone systems with "AI" features are infrastructure, not a replacement for staff — a human still answers, and the AI is usually a metered add-on (extra monthly credits, plus a per-call fee once you\'re over) that summarizes or tags calls someone already took, not something that answers on its own. This is fully managed and fully autonomous instead: we personalize your agent to your specific business through a real onboarding questionnaire, and it answers every call itself — no seat cost, no per-call metering, no human required. Flat monthly pricing means no per-call or per-minute surprise bills. And Pro/Elite include an automated email follow-up sequence that keeps working a lead after the call ends, not just call answering.',
   },
   {
     q: 'Will the AI know about my business?',
     a: 'Yes. Right after setup, you complete a 5-minute questionnaire about your services, pain points, common objections, and how you like to handle calls. We upload this to your agent\'s Knowledge Base so it references your business context on every call.',
-  },
-  {
-    q: 'What\'s this monthly ROI report?',
-    a: 'On the 1st of each month, you get an email showing real numbers: calls answered, leads captured, estimated revenue protected (using your vertical\'s average job value), and ROI multiplier. Example: "You protected $12,600 in revenue this month. Your fee was $400. ROI: 31x." It\'s proof that the service works.',
   },
   {
     q: 'Do I get follow-up automation?',
@@ -89,10 +85,6 @@ const FAQ = [
   {
     q: 'What if it doesn\'t work for me?',
     a: 'If you don\'t see measurable results in the first 30 days, we\'ll refund your first month. No questions asked.',
-  },
-  {
-    q: 'What are Crystal Clear and Custom Business Intelligence?',
-    a: 'Crystal Clear is Retell AI\'s HD call processing technology — normally $25/mo, included free in all plans. Custom Business Intelligence is Retell\'s advanced caller analytics platform — normally $49/mo, included free in Elite.',
   },
 ]
 
@@ -115,30 +107,32 @@ function FeatureRow({ feature }: { feature: TierFeature }) {
     )
   }
 
+  // comingSoon renders with an outlined, muted marker instead of a filled gold checkmark —
+  // a checkmark on this page means "you get this today," and this feature does not exist yet.
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-      <CheckCircle
-        size={13}
-        style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }}
-      />
+      {feature.comingSoon ? (
+        <Clock size={13} style={{ color: '#64748B', flexShrink: 0, marginTop: 2 }} />
+      ) : (
+        <CheckCircle size={13} style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }} />
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.5 }}>
+        <span style={{ fontSize: 13, color: feature.comingSoon ? '#64748B' : '#94A3B8', lineHeight: 1.5 }}>
           {feature.label}
         </span>
-        {feature.retellFeature && feature.retailValue && (
+        {feature.comingSoon && (
           <span style={{
             marginLeft: 6,
             fontSize: 10,
             fontFamily: 'monospace',
-            color: '#D4AF37',
-            background: 'rgba(212,175,55,0.08)',
-            border: '1px solid rgba(212,175,55,0.2)',
+            color: '#94A3B8',
+            background: 'rgba(148,163,184,0.08)',
+            border: '1px solid rgba(148,163,184,0.2)',
             borderRadius: 3,
             padding: '1px 5px',
             whiteSpace: 'nowrap',
           }}>
-            <span style={{ textDecoration: 'line-through', color: '#475569' }}>${feature.retailValue}/mo</span>
-            {' '}FREE
+            COMING SOON
           </span>
         )}
       </div>
@@ -306,43 +300,6 @@ export function VerticalPricing({ vertical }: Props) {
                 </div>
               )
             })}
-          </div>
-
-          {/* Value callout section */}
-          <div style={{ maxWidth: 760, margin: '0 auto 72px', padding: '32px 28px', background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 16 }}>
-            <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-              // BUNDLED RETELL AI FEATURES — INCLUDED FREE
-            </p>
-            <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748B', lineHeight: 1.7 }}>
-              We partner with Retell AI to deliver enterprise-grade voice technology.
-              Two premium Retell features ship bundled into your plan at no extra charge.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ flexShrink: 0, padding: '3px 8px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 4, fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap', marginTop: 1 }}>
-                  Crystal Clear
-                </div>
-                <div>
-                  <span style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600 }}>HD Call Quality</span>
-                  <span style={{ margin: '0 6px', color: '#334155' }}>·</span>
-                  <span style={{ fontSize: 12, color: '#475569' }}>Normally </span>
-                  <span style={{ fontSize: 12, color: '#475569', textDecoration: 'line-through' }}>$25/mo</span>
-                  <span style={{ fontSize: 12, color: '#D4AF37', fontWeight: 600 }}> · Included in every plan</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ flexShrink: 0, padding: '3px 8px', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', borderRadius: 4, fontFamily: 'monospace', fontSize: 9, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap', marginTop: 1 }}>
-                  Custom BI
-                </div>
-                <div>
-                  <span style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600 }}>Caller Analytics & Intelligence</span>
-                  <span style={{ margin: '0 6px', color: '#334155' }}>·</span>
-                  <span style={{ fontSize: 12, color: '#475569' }}>Normally </span>
-                  <span style={{ fontSize: 12, color: '#475569', textDecoration: 'line-through' }}>$49/mo</span>
-                  <span style={{ fontSize: 12, color: '#D4AF37', fontWeight: 600 }}> · Included in Elite</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Guarantee callout */}

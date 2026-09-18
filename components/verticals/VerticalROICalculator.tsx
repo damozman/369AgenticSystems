@@ -8,23 +8,12 @@ import { RECOVERY_RATE } from '@/lib/roi'
 
 // ── Derive display-ready tiers from the single source of truth ────────────────
 
-function getIncludedFree(tierIndex: number) {
-  if (tierIndex === 0) return null
-  const cumulative = TIER_CONFIGS.slice(0, tierIndex + 1)
-    .flatMap(t => t.features.filter(f => f.retellFeature))
-  if (cumulative.length === 0) return null
-  const labels = cumulative.map(f => f.badge ?? f.label).join(' + ')
-  const total  = cumulative.reduce((s, f) => s + (f.retailValue ?? 0), 0)
-  return { label: `${labels} — included free`, value: `$${total}/mo value` }
-}
-
-const TIERS = TIER_CONFIGS.map((tier, i) => ({
+const TIERS = TIER_CONFIGS.map(tier => ({
   name:         tier.name,
   price:        tier.price,
   badge:        tier.featured ? 'Most Popular' : undefined,
   description:  tier.description,
   services:     tier.features.filter(f => !f.isSection).map(f => f.label),
-  includedFree: getIncludedFree(i),
 }))
 
 const ROI_COPY: Record<string, string> = {
@@ -248,15 +237,8 @@ export function VerticalROICalculator({ vertical }: Props) {
 
           </div>
 
-          {/* Scarcity + guarantee strip */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 48 }}>
-            <div style={{ padding: '14px 18px', background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }}>⚡</span>
-              <div>
-                <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 600, color: '#D4AF37' }}>Limited DFW Availability</p>
-                <p style={{ margin: 0, fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>We onboard 3 new roofing clients per month per market. 2 spots remaining this month.</p>
-              </div>
-            </div>
+          {/* Guarantee strip. A scarcity card ("2 spots remaining") used to sit beside it — invented, removed. */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 48 }}>
             <div style={{ padding: '14px 18px', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>
               <div>
@@ -302,7 +284,7 @@ export function VerticalROICalculator({ vertical }: Props) {
           {/* Tier selection */}
           <div style={{ marginBottom: 16 }}>
             <p style={{ margin: '0 0 24px', fontFamily: 'monospace', fontSize: 10, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-              // CHOOSE YOUR TIER — One-time setup: $1,500
+              // CHOOSE YOUR TIER
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               {TIERS.map(tier => {
@@ -355,17 +337,6 @@ export function VerticalROICalculator({ vertical }: Props) {
                         </span>
                       </div>
                     </div>
-
-                    {/* Included-free Retell callout */}
-                    {tier.includedFree && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 7, marginBottom: 14 }}>
-                        <span style={{ fontSize: 9, color: '#D4AF37', flexShrink: 0 }}>★</span>
-                        <div>
-                          <span style={{ fontSize: 11, color: '#D4AF37', fontWeight: 600 }}>{tier.includedFree.label}</span>
-                          <span style={{ marginLeft: 6, fontSize: 10, fontFamily: 'monospace', color: '#475569' }}>{tier.includedFree.value}</span>
-                        </div>
-                      </div>
-                    )}
 
                     <div style={{ marginBottom: 20 }}>
                       {tier.services.map((s, i) => (

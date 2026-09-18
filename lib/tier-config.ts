@@ -5,9 +5,7 @@ export type TierName = 'Starter' | 'Pro' | 'Elite'
 export interface TierFeature {
   label:         string
   isSection?:    boolean  // true for "Everything in [prev tier], plus:" separators
-  retellFeature?: boolean // Retell AI platform feature — has a retail price if purchased separately
-  retailValue?:  number  // monthly retail price on Retell if purchased à la carte
-  badge?:        string  // short brand name, e.g. 'Crystal Clear'
+  comingSoon?:   boolean // built into the tier's pitch, not into the product yet — render distinctly, never with a checkmark
 }
 
 export interface Tier {
@@ -17,33 +15,24 @@ export interface Tier {
   description: string
   agents:      string[]
   features:    TierFeature[]
-  retellConfig: {
-    voiceQuality:  'standard' | 'enhanced' | 'premium'
-    biEnabled:     boolean
-    callRecording: boolean
-  }
 }
 
 export const TIERS: Tier[] = [
   {
     name:        'Starter',
     price:       400,
-    description: 'Your AI receptionist is live in minutes. Answer every call, capture every lead, track ROI monthly.',
+    description: 'Your AI receptionist is live in minutes. Answer every call, capture every lead.',
     agents:      ['receptionist', 'dashboard'],
     features: [
       { label: '24/7 AI Receptionist (unique phone number)' },
-      { label: 'Crystal Clear Call Quality', retellFeature: true, retailValue: 25, badge: 'Crystal Clear' },
+      { label: 'Premium natural voice (featured upgrade)' },
       { label: 'Lead capture + real-time dashboard' },
+      { label: 'Analytics dashboard: caller sentiment, call volume, peak hours, performance benchmarks' },
       { label: 'Business context from onboarding questionnaire' },
       { label: 'Email booking confirmations' },
-      { label: 'Daily email summaries + monthly ROI report' },
+      { label: 'Weekly summary email' },
       { label: '24/7 chat support' },
     ],
-    retellConfig: {
-      voiceQuality:  'standard',
-      biEnabled:     false,
-      callRecording: true,
-    },
   },
   {
     name:        'Pro',
@@ -53,35 +42,22 @@ export const TIERS: Tier[] = [
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Starter, plus:', isSection: true },
-      { label: 'Automated 3-step follow-up sequence (all 9 verticals)' },
+      { label: 'Automated 3-step email follow-up sequence (all 9 verticals)' },
       { label: 'Vertical-specific messaging (legal deadlines, real estate timing, etc.)' },
-      { label: 'Enhanced Voice Quality', retellFeature: true, badge: 'Enhanced' },
       { label: 'Priority email support' },
     ],
-    retellConfig: {
-      voiceQuality:  'enhanced',
-      biEnabled:     false,
-      callRecording: true,
-    },
   },
   {
     name:        'Elite',
     price:       750,
-    description: 'Full AI team: receptionist + follow-up + live transfers. Seamless handoff to your team when needed.',
+    description: 'Full AI team: receptionist + follow-up + priority support. Elite becomes seamless live handoff once Live Call Transfer ships.',
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Pro, plus:', isSection: true },
-      { label: 'Live Call Transfer (routes urgent calls to your phone in real time)' },
-      { label: 'Premium Voice Quality — our most natural-sounding voice tier', retellFeature: true, badge: 'Premium' },
-      { label: 'Custom Business Intelligence', retellFeature: true, retailValue: 49, badge: 'Custom BI' },
+      { label: 'Live Call Transfer — routes urgent calls to your phone in real time', comingSoon: true },
       { label: 'Call recording + searchable transcript archive' },
       { label: 'Priority onboarding & dedicated support' },
     ],
-    retellConfig: {
-      voiceQuality:  'premium',
-      biEnabled:     true,
-      callRecording: true,
-    },
   },
 ]
 
@@ -138,17 +114,8 @@ export function getTierFeatures(name: TierName): TierFeature[] {
   return tier.features.filter(f => !f.isSection)
 }
 
-// Returns only the Retell-platform features bundled into a tier
-export function getTierRetellFeatures(name: TierName): TierFeature[] {
-  return getTierFeatures(name).filter(f => f.retellFeature)
-}
-
 export function getTier(name: TierName): Tier | undefined {
   return TIERS.find(t => t.name === name)
-}
-
-export function tierHasFeature(tierName: TierName, badge: string): boolean {
-  return getTierFeatures(tierName).some(f => f.badge === badge)
 }
 
 // Removed from checkout 2026-07-17 (Chris's call — the fee was priced against manual
