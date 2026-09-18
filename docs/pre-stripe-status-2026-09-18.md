@@ -14,8 +14,8 @@ Work is on branch **`fix/pre-stripe-tier-claims`** (not merged, not deployed). N
 - Removed the `auto-activation` "Upgrade to Elite: Reviews Agent" upsell — no such agent exists
 - FAQ: follow-up is email only for now
 - `/api/auto-activation` now requires `Authorization: Bearer $CRON_SECRET` on GET and POST and **fails closed** when the secret is unset (verified locally: no header, wrong secret and `Bearer undefined` all 401; the authorised path was not run because it writes notification rows to production)
-- "Full HIPAA compliance" removed from `AgentTeamGrid.tsx` (2 places) and `public/dental-leads`; no HIPAA claim remains outside the dead `PREMIUM_ADDONS` entry. HIPAA stays off until legal review.
-- `PREMIUM_ADDONS` confirmed dead: **zero importers**, no Stripe price, no UI path. Not sellable today.
+- "Full HIPAA compliance" removed from `AgentTeamGrid.tsx` (2 places) and `public/dental-leads`; no HIPAA claim remains in the code. HIPAA stays off until legal review.
+- `PREMIUM_ADDONS` / `PremiumAddon` **deleted** from `lib/tier-config.ts` (zero importers, no Stripe price, no UI path). The old definitions — including the $49 Live Call Transfer, $79 Spanish and $99 Custom Voice/HIPAA prices — are recoverable from git at `0c358b7`. **For Cowork:** `docs/ROADMAP.md` (lines 15, 512) and `docs/PHASE-2-ROADMAP.md` (line 13) still describe it as the home for future add-ons; those references are now stale.
 
 ## Priority 0 — Live Call Transfer (findings, decision is Chris's)
 Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's own `response_engine`):

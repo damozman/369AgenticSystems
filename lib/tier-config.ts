@@ -1,4 +1,4 @@
-// Single source of truth for tier structure, pricing, and premium add-ons.
+// Single source of truth for tier structure and pricing.
 
 export type TierName = 'Starter' | 'Pro' | 'Elite'
 
@@ -58,52 +58,6 @@ export const TIERS: Tier[] = [
       { label: 'Call recording + searchable transcript archive' },
       { label: 'Priority onboarding & dedicated support' },
     ],
-  },
-]
-
-export interface PremiumAddon {
-  id:           string
-  label:        string
-  price:        number
-  description:  string
-  availableFor: TierName[]
-}
-
-export const PREMIUM_ADDONS: PremiumAddon[] = [
-  {
-    id:          'hot_transfer',
-    label:       'Live Call Transfer',
-    price:       49,
-    description: 'Instantly routes urgent callers to your team in real time — zero hold time.',
-    availableFor: ['Starter', 'Pro', 'Elite'],
-  },
-  {
-    id:          'branded_caller',
-    label:       'Branded Caller ID',
-    price:       29,
-    description: 'Your business name appears on every outbound call and callback.',
-    availableFor: ['Starter', 'Pro', 'Elite'],
-  },
-  {
-    id:          'spanish_support',
-    label:       'Spanish Language Support',
-    price:       79,
-    description: 'Full bilingual receptionist — seamlessly handles English and Spanish callers.',
-    availableFor: ['Starter', 'Pro', 'Elite'],
-  },
-  {
-    id:          'custom_voice',
-    label:       'Custom Voice & Persona',
-    price:       99,
-    description: 'Clone your voice or design a custom AI persona that matches your brand.',
-    availableFor: ['Pro', 'Elite'],
-  },
-  {
-    id:          'hipaa_pack',
-    label:       'HIPAA Compliance Pack',
-    price:       99,
-    description: 'BAA, encrypted transcripts, and audit trail — required for healthcare and dental.',
-    availableFor: ['Pro', 'Elite'],
   },
 ]
 
