@@ -25,6 +25,7 @@
  * node --env-file=.env.local scripts/retell/fix-brand-pronunciation.mjs --apply
  */
 import Retell from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 
 const APPLY = process.argv.includes('--apply')
 const KEY = process.env.RETELL_API_KEY
@@ -52,8 +53,7 @@ function fixText(text) {
 async function main() {
   console.log(`\n369 · brand pronunciation — ${APPLY ? 'APPLY' : 'DRY RUN'}\n`)
 
-  const res = await client.agent.list()
-  const list = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+  const list = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 
   let changed = 0
 

@@ -14,6 +14,7 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../lib/retell-pagination.ts'
 
 const APPLY = process.argv.includes('--apply')
 const TEST_DOMAIN = 'zero-dollar-test.369agenticsystems.com'
@@ -120,15 +121,16 @@ for (const row of rows) {
 // writer — so a cleanup driven by the row alone leaves purchased numbers billing forever.
 // Matched on the agent NAME, which provisioning derives from the business name.
 const AGENT_NAME_PREFIX = 'ZERO DOLLAR TEST'
-const allAgents = (await retell.agent.list()).items ?? (await retell.agent.list()) ?? []
-const orphans = (Array.isArray(allAgents) ? allAgents : [])
+// Every page: this sweep DELETES what it matches, so a truncated list means orphans left billing.
+const allAgents = await collectPages(k => retell.agent.list({ pagination_key: k }), { label: 'agents' })
+const orphans = allAgents
   .filter(a => String(a.agent_name || '').startsWith(AGENT_NAME_PREFIX))
   .filter(a => !PROTECTED_AGENTS.includes(a.agent_id))
 
 if (orphans.length) {
   console.log(`
 Orphan sweep — ${orphans.length} agent(s) named "${AGENT_NAME_PREFIX}..."`)
-  const allNumbers = (await retell.phoneNumber.list()).items ?? []
+  const allNumbers = await collectPages(k => retell.phoneNumber.list({ pagination_key: k }), { label: 'phone numbers' })
   for (const a of orphans) {
     const bound = allNumbers.filter(n => (n.inbound_agents || []).some(x => x.agent_id === a.agent_id))
     for (const n of bound) {
@@ -153,7 +155,7 @@ Orphan sweep — ${orphans.length} agent(s) named "${AGENT_NAME_PREFIX}..."`)
 // Prove the cleanup rather than assume it: re-read both sources afterwards.
 if (APPLY) {
   const { data: left } = await supabase.from('agent_subscriptions').select('client_domain')
-  const numbers = (await retell.phoneNumber.list()).items ?? []   // { items, has_more }, not an array
+  const numbers = await collectPages(k => retell.phoneNumber.list({ pagination_key: k }), { label: 'phone numbers' })
   console.log(`\nAfter cleanup: ${left?.length ?? '?'} agent_subscriptions row(s), ${numbers.length} Retell number(s)`)
   for (const r of left ?? []) console.log(`  ${r.client_domain}`)
   for (const n of numbers) console.log(`  ${n.phone_number}`)

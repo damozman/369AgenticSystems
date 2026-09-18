@@ -21,6 +21,7 @@
  * Requires RETELL_API_KEY in .env.local. RETELL_WEBHOOK_SECRET is optional — see below.
  */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 
 const APPLY  = process.argv.includes('--apply')
 const apiKey = process.env.RETELL_API_KEY
@@ -84,8 +85,8 @@ function migrate(tool, secret) {
 console.log(`\n${APPLY ? '🔴 APPLY MODE — writing changes' : '🟡 DRY RUN — no changes will be written (add --apply to write)'}\n`)
 
 // Collect LLM ids via agents, so an orphaned LLM no agent uses is not touched.
-const res = await client.agent.list()
-const summaries = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+// Every page — this mutates each agent's LLM, so a truncated list means agents silently skipped.
+const summaries = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 
 const llmIds = new Set()
 for (const s of summaries) {

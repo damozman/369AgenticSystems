@@ -8,6 +8,7 @@
  * (Reads RETELL_API_KEY from .env.local. Makes NO changes.)
  */
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../../lib/retell-pagination.ts'
 
 const apiKey = process.env.RETELL_API_KEY
 if (!apiKey) {
@@ -26,9 +27,7 @@ function flag(url) {
 
 let summaries = []
 try {
-  const res = await client.agent.list()
-  // Observed shape: { items: [...] }. Be defensive about array / {data} too.
-  summaries = Array.isArray(res) ? res : (res?.items ?? res?.data ?? [])
+  summaries = await collectPages(k => client.agent.list({ pagination_key: k }), { label: 'agents' })
 } catch (e) {
   console.error('✗ agent.list failed:', e.message)
   process.exit(1)

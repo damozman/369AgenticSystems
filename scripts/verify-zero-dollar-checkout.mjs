@@ -21,6 +21,7 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { Retell } from 'retell-sdk'
+import { collectPages } from '../lib/retell-pagination.ts'
 
 const APPLY = process.argv.includes('--apply')
 
@@ -119,8 +120,8 @@ if (!process.env.RETELL_API_KEY) {
   bad('RETELL_API_KEY is not set')
 } else {
   const retell = new Retell({ apiKey: process.env.RETELL_API_KEY })
-  // retell-sdk returns { items, has_more } here, not an array.
-  const numbers = (await retell.phoneNumber.list()).items ?? []
+  // { items, has_more } — paged, so the cleanup baseline is the whole account, not the first page.
+  const numbers = await collectPages(k => retell.phoneNumber.list({ pagination_key: k }), { label: 'phone numbers' })
   ok(`Retell reachable — ${numbers.length} phone number(s) on the account right now (cleanup baseline)`)
   for (const n of numbers) console.log(`         ${n.phone_number}`)
   warn('a completed checkout BUYS ONE MORE NUMBER on this account. cleanup-zero-dollar-test.mjs releases it.')
