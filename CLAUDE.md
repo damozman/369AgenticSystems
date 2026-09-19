@@ -68,8 +68,15 @@ requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMI
 5. **Retell moves to credit-based billing on October 1** — auto-recharge must be on or agents stop
    taking calls. Chris to set it in the Retell dashboard (detail in the status doc).
 6. Known, not fixed: the weekly digest counts "after-hours" in server time (UTC), not the
-   business's; it has no per-week idempotency; "Dentrix integration" is still claimed on the dental
-   copy though its credentials are not configured.
+   business's; and it has no per-week idempotency.
+   **The "Dentrix integration" claim is NOT one of these — it is already gone.** Re-derived
+   2026-09-18 (Cowork, Opus): the sentence "Full HIPAA compliance + Dentrix integration" was
+   removed from both `AgentTeamGrid.tsx` and `public/dental-leads/index.html` by the same commit
+   `0c358b7`, which is an ancestor of HEAD; `git grep -i dentrix` finds no customer-facing hit, and
+   the live `/dental-leads/` page carries neither claim. `lib/integrations/dentrix.ts` and its
+   caller `app/api/email-ingest/route.ts` still exist and still need `DENTRIX_API_URL`/
+   `DENTRIX_API_KEY`, but nothing sold points at them.
+   **What is still unfixed is `docs/sales-ops/msa-sow-template.md`** — see item 8.
 7. **Confirm the `webhook-audit` cron ran on Retell's `/v2` path.** Retell ended support for the
    legacy `GET /list-*` endpoints on 2026-06-15; PR #53 (`d2580dc`, live) moved that cron and every
    script that lists Retell things onto `/v2` / `/v3` through `lib/retell-pagination.ts`, which throws
@@ -81,6 +88,20 @@ requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMI
    ("Webhook audit could not run"). Legacy endpoints still answered on 2026-09-18, so nothing was
    broken; this was ahead of removal. Any new Retell list call must go through `collectPages` —
    calls default to a **50-item page**, so reading `.items` once truncates silently.
+
+8. **`docs/sales-ops/msa-sow-template.md` still contractually promises Dentrix — and PHI access.**
+   Added 2026-09-18 (Cowork, Opus). This is the last live "Dentrix integration" claim anywhere, and
+   it sits in the document a client would sign. The SOW commits to "Integrate with Client's Dentrix
+   system (patient record access)", "Real-time Dentrix patient record lookup on each incoming
+   email", and asks the client to "Provide Dentrix API credentials within 3 business days of
+   signing" — against an integration whose credentials have never been configured. Worse for the
+   HIPAA thread: §6 says "Provider will access Client's Dentrix system", §7 accepts Business
+   Associate status and offers "a formal Business Associate Agreement (BAA) ... upon request", and
+   the SOW routes "Response delivery via Resend" — the one vendor that will not sign a BAA on any
+   plan. **Do not reword this file yet.** How it is rewritten depends on the Resend/BAA decision
+   and on Chris's lawyer; a copy fix made ahead of that decision would have to be made twice. It is
+   blocked on the Elite/HIPAA session, not forgotten. Nothing is signed today — zero paying
+   clients — so nothing is presently exposed.
 
 **Deploys — corrected 2026-09-18.** This file used to say the Vercel project had "no visible Git
 integration". **It does: `vercel[bot]` deployed merge commit `3c3b715` to Production by itself about
