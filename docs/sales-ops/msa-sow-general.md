@@ -6,25 +6,26 @@
 > `lib/tier-config.ts` says the product does. Have an attorney review it before it matters —
 > but nothing in it commits you to anything the system cannot do today.
 >
+> **Contracting entity — resolved 2026-09-18.** This Agreement is made by **3SIX9 MEDIA MASTERS
+> LLC** (Fort Worth, TX) d/b/a 369 Agentic Systems. Verified against `CLAUDE.md`, which records it
+> as the legal entity behind the approved Twilio Primary Compliance Profile
+> `BU2afbc3170beb09be1b43a857121049d2`: *"not '369 Agentic Systems', which is a trading name."*
+> The dental template contracted in the trade name alone, which can undermine the liability
+> protection the LLC exists to provide.
+>
+> **Signatory — resolved 2026-09-18.** **Chris Mosley**, Owner, confirmed by Chris directly. The
+> dental template signed as "Chris Damon", which is not his name; that error existed in every
+> version of that document and appeared nowhere else in the repo.
+>
 > **Scope:** the non-PHI verticals only — roofing, HVAC, plumbing, legal, real estate, insurance,
 > SaaS, wholesale, event / dumpster / equipment rental. **Not dental, and not any healthcare
 > client.** See §11 and `docs/EMAIL-BAA-DECISION-2026-09-18.md`.
 
 ---
 
-## ⚠️ THREE THINGS TO FIX BEFORE THIS IS SENT TO ANYONE
+## ⚠️ ONE THING TO CONFIRM BEFORE THIS IS SENT TO ANYONE
 
-These carried over from the dental template and **only Chris can answer them.** They are marked
-inline below as well.
-
-1. **The contracting entity is wrong, or at least incomplete.** The old template contracts as
-   "369 Agentic Systems", a trade name. Memory and the roadmap say the parent entity is
-   **3six9 Media Masters LLC**. A contract signed in a trade name rather than the LLC can
-   undermine the liability protection the LLC exists to provide. Confirm the exact legal entity
-   and use it. Placeholder below: `[LEGAL ENTITY]`.
-2. **The signature name is "Chris Damon."** Confirm the correct legal name before this is signed.
-   Placeholder below: `[LEGAL NAME]`.
-3. **Call recording and AI disclosure.** The product records calls and keeps transcripts (Elite),
+1. **Call recording and AI disclosure.** The product records calls and keeps transcripts (Elite),
    and the agents disclose they are AI. Texas is a one-party-consent state, but the client's
    callers may not all be in Texas, and the client — not Provider — controls their own greeting
    obligations. §8 puts that responsibility on the Client. Worth an attorney's eye eventually.
@@ -37,8 +38,8 @@ inline below as well.
 between:
 
 **Service Provider:**
-[LEGAL ENTITY] d/b/a 369 Agentic Systems
-Owner: [LEGAL NAME]
+3SIX9 MEDIA MASTERS LLC d/b/a 369 Agentic Systems
+Owner: Chris Mosley
 Email: chris@369agenticsystems.com
 ("Provider")
 
@@ -214,10 +215,10 @@ supersedes all prior discussions. Amendments require written consent from both p
 
 **SIGNATURES**
 
-**[LEGAL ENTITY] d/b/a 369 Agentic Systems**
+**3SIX9 MEDIA MASTERS LLC d/b/a 369 Agentic Systems**
 
 Signature: _________________________ Date: _____________
-Name: [LEGAL NAME]
+Name: Chris Mosley
 Title: Owner
 
 **[CLIENT BUSINESS NAME]**
@@ -326,7 +327,7 @@ Provider and Client will review together at the 30-day mark:
 **ACKNOWLEDGED:**
 
 **Provider:** _________________________ Date: _____________
-[LEGAL NAME], [LEGAL ENTITY] d/b/a 369 Agentic Systems
+Chris Mosley, 3SIX9 MEDIA MASTERS LLC d/b/a 369 Agentic Systems
 
 **Client:** _________________________ Date: _____________
 [Name], [Business Name]

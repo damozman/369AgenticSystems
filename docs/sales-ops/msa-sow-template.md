@@ -6,7 +6,7 @@
 > Frozen 2026-09-18 (Cowork, Opus) at Chris's direction. Kept in the repo so the work is not
 > lost, not because it is usable. **For a live client, use `docs/sales-ops/msa-sow-general.md`.**
 >
-> **Why it is frozen — four independent reasons, any one of which is disqualifying:**
+> **Why it is frozen — five independent reasons, any one of which is disqualifying:**
 >
 > 1. **It promises an integration that has never existed in working form.** The SOW commits to
 >    "Integrate with Client's Dentrix system (patient record access)" and "Real-time Dentrix
@@ -24,7 +24,11 @@
 > 4. **Its prices do not exist.** $3,000 setup + $1,500/month. `lib/tier-config.ts` is the single
 >    source of truth: $400 / $600 / $750 per month and `SETUP_FEE = 0`.
 >
-> **Unfreezing requires all four fixed, plus an attorney's review of §6 and §7.** Removing a claim
+> 5. **The signatory name is wrong.** It signs as "Chris Damon". Confirmed 2026-09-18: the
+>    correct name is **Chris Mosley**, and the contracting entity is **3SIX9 MEDIA MASTERS LLC**
+>    d/b/a 369 Agentic Systems, not the trade name alone.
+>
+> **Unfreezing requires all five fixed, plus an attorney's review of §6 and §7.** Removing a claim
 > never needs a lawyer; making one does. Dental is waitlist-only across the entire site and
 > roadmap — this document is the only place in the business that sold it as available.
 
