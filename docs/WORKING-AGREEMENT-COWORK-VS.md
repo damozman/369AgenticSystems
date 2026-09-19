@@ -9,6 +9,8 @@ Two Claudes, one repo, no copy-paste relay through Chris. Written 2026-09-18 by 
 - Writes and maintains briefs and status docs under `docs/`
 - Read-only inspection of code to check whether a claim is true
 - **Does not edit code. Does not run git write commands. Does not commit.**
+- **Hands every repo or terminal action to VS as a paste-ready instruction** — never as commands
+  for Chris to run himself. See "Cowork does not hand Chris commands" below.
 
 **Claude Code / VS** (terminal, this machine)
 - All code changes, tests, `npx tsc --noEmit`, verification scripts, git, commits, branches
@@ -26,6 +28,25 @@ quiet the Cowork view** — it would rewrite line endings across the repo for no
 is the rule above: commits happen from Windows only.
 
 If Cowork ever does edit a file here, it preserves CRLF endings.
+
+## Cowork does not hand Chris commands
+
+Added 2026-09-18 at Chris's instruction. When Cowork's work produces something that has to happen
+in the repo or a terminal — a commit, a push, a script run, a verification command — Cowork does
+**not** write it up as PowerShell for Chris to execute. It writes a self-contained instruction
+addressed to VS, which Chris pastes across. The instruction states what to do, what **not** to
+touch, and enough of the reasoning that VS can tell a real change from the CRLF noise.
+
+This is for accuracy and efficiency, not ceremony: VS is already in the terminal with the repo
+state in front of it, and a hand-copied command is a place for a typo to enter.
+
+**What cannot be delegated to VS**, and stays with Chris:
+- Anything physical or on the phone (the Northside transfer test call)
+- Anything behind a vendor account or that spends money (the Retell auto-recharge setting, Stripe,
+  plan upgrades on Supabase or Vercel)
+- Anything requiring his authority or his lawyer (the Resend/BAA question, signing anything)
+
+Cowork names these as Chris's own actions and does not bury them inside a VS block.
 
 ## Handoff happens in files, not chat
 
