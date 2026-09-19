@@ -82,3 +82,45 @@ export function decideProvisioning(
           + 'provision, add it to PROVISIONING_PAYMENT_STATUSES in lib/stripe-config.ts.',
   }
 }
+
+// ---------------------------------------------------------------------------
+// Which tier a live subscription is currently on.
+//
+// Used by the `customer.subscription.updated` handler, which is how an upgrade or downgrade
+// reaches us: a plan change in Stripe's billing portal never creates a new checkout session, so
+// nothing about it looks like a signup.
+//
+// A subscription can carry several items. Only one of them is ever a tier price, so the first
+// recognised one wins and anything unrecognised (a future add-on, a metered usage item) is
+// ignored rather than mistaken for a tier.
+
+export type TierResolution =
+  | { tier: TierName }
+  | { tier: null; reason: string }
+
+export function tierFromSubscriptionItems(
+  items: ReadonlyArray<{ price?: { id?: string | null } | null }> | null | undefined,
+  // Injectable so the mapping is provable in a test. The default is the real map, built at module
+  // load from the environment, so every caller is unaffected.
+  priceMap: Readonly<Record<string, TierName>> = STRIPE_PRICE_ID_TO_TIER,
+): TierResolution {
+  const priceIds = (items ?? []).map(i => i.price?.id).filter((id): id is string => Boolean(id))
+
+  if (priceIds.length === 0) {
+    return { tier: null, reason: 'The subscription carries no price ids, so its tier cannot be resolved.' }
+  }
+
+  for (const id of priceIds) {
+    const tier = priceMap[id]
+    if (tier) return { tier }
+  }
+
+  // Unrecognised is NOT "Starter". Guessing a tier here would silently re-grade a paying client
+  // — including stripping Elite from someone who still pays for it — so the caller alerts instead.
+  return {
+    tier: null,
+    reason: `None of this subscription's price ids (${priceIds.join(', ')}) maps to a tier. `
+          + 'Either STRIPE_PRICE_ID_STARTER/PRO/ELITE are not set in this environment, or the '
+          + 'subscription is on a price that predates them.',
+  }
+}

@@ -177,8 +177,16 @@ export async function provisionClient(input: ProvisionClientInput) {
     subscriptionData.stripe_subscription_id = stripeSubscriptionId
   }
 
-  // Store owner phone for Elite tier (live call transfer)
-  if (tier === 'Elite' && phone) {
+  // Store the owner's phone for EVERY tier, not just Elite.
+  //
+  // This used to be `tier === 'Elite'`, which threw away a number Stripe had already collected
+  // from every signup — and the people it threw it away for are exactly the ones who later
+  // upgrade TO Elite. The result was that an upgrade had no forwarding number to point live call
+  // transfer at, so the tier's headline feature could not be turned on for them.
+  //
+  // The column's meaning is unchanged (it is the owner's phone); it is simply populated more
+  // often. Nothing reads it except the transfer tool, which only applies on Elite.
+  if (phone) {
     subscriptionData.owner_phone = phone
   }
 
