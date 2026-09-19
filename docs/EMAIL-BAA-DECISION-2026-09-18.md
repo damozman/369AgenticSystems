@@ -7,23 +7,24 @@ Supersedes the vendor table in Report 5 of `docs/pre-stripe-status-2026-09-18.md
 
 ---
 
-## 0. Read this first: Resend's own pages no longer say what Report 5 says they say
+## 0. Read this first: Resend says both things, and they are consistent
+
+**Corrected 2026-09-18 after Claude Code checked my work. My first version of this section was wrong; the error and the correction are both kept here on purpose.**
 
 Report 5 quotes `resend.com/security` as stating *"Resend is not HIPAA compliant and cannot sign a Business Associate Agreement."*
 
-**I could not reproduce that sentence from Resend's own pages today.** What those pages show now:
+I first reported that I could not find that sentence. **The sentence is there.** It sits in the page's FAQ, which is collapsed by default and rendered from the page's JSON-LD `FAQPage` data, so a fetch that reads only visible text returns the question without the answer. Claude Code checked the raw HTML and found it under "Is Resend HIPAA and ISO 27001 compliant?": *"Resend is not HIPAA compliant and cannot sign a Business Associate Agreement. Resend holds SOC 2 Type II, not an ISO 27001 certificate."*
 
-- `resend.com/security` — a compliance list with **SOC 2** and **GDPR** complete and **HIPAA marked "In progress."**
-- `resend.com/enterprise` — the same: SOC 2 and GDPR listed as certifications, **HIPAA "In progress."**
-- `resend.com/docs/knowledge-base` — no HIPAA or BAA article exists at all.
+What is also true, and is what I did see: the same page carries a compliance badge reading **"HIPAA — In progress,"** and `resend.com/enterprise` shows that badge and nothing more.
 
-**What is unchanged:** there is no BAA available from Resend today, and no published HIPAA offering. For today's decision, dental still cannot be served through Resend.
+**The two statements do not conflict.** Read together they say: no BAA today, HIPAA somewhere on the roadmap. Report 5's quote stands exactly as written.
 
-**What changes:** "never" and "in progress" are different strategic facts. If Resend ships HIPAA support, the cheapest path is to change nothing. That makes **"when?"** a question worth asking them directly.
+**What this means for the decision:** unchanged. Dental cannot be served through Resend today. The only thing the "In progress" badge adds is that **"when?" is a question worth asking**, rather than a closed door — and a badge is not a commitment, a date, or a plan tier. Recommend emailing Resend and getting three answers in writing: (1) is a BAA available today; (2) if not, is there a target date; (3) will it require Enterprise, at what cost.
 
-**This needs a human answer, not another page fetch.** Recommend emailing Resend support/sales and asking three things in writing: (1) is a BAA available today, yes or no; (2) if not, is there a target date; (3) will it require an Enterprise plan, and at what cost. Get it in writing either way — the answer is load-bearing for the dental vertical and the MSA/SOW rewrite both.
+**Two process lessons, both worth more than the finding:**
 
-**Process note worth keeping:** two Claude sessions read the same vendor page on the same day and recorded materially different things. That is exactly what the "re-derive, never inherit" rule in the working agreement exists to catch, and it caught it. Nothing in Report 5 should be treated as settled without a re-fetch.
+1. **A rendered-text fetch is not a read of the page.** Collapsed FAQs, accordions and JSON-LD structured data are invisible to it. For a claim this load-bearing, check the raw HTML. I did not, and I stated a negative — "the sentence is absent" — on the strength of a tool that cannot establish absence.
+2. **The cross-check worked.** Two sessions read the same page the same day, disagreed, and the disagreement surfaced because the second one went to source. That is the "re-derive, never inherit" rule doing its job — on Cowork's output, not just on old docs. Nothing in Report 5 or in this doc should be treated as settled without a re-fetch.
 
 ---
 
