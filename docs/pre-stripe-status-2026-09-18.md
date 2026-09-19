@@ -138,6 +138,8 @@ Legend: **Code** = new application code; **Config** = Retell/agent settings via 
 **Suggested order if Elite is rebuilt around the brief's three pillars:** (1) transfer re-verification + upgrade path → (2) monthly summary export → (3) ops-brief as a manual service, explicitly labelled a service. Everything else waits for a real Elite client asking.
 
 ### 5. Vendor BAAs (brief section 5 — research only, nothing built)
+**SUPERSEDED IN PART, 2026-09-18 (Cowork, Opus) — see `docs/EMAIL-BAA-DECISION-2026-09-18.md`.** Re-fetching Resend's own pages did **not** reproduce the sentence quoted below: `resend.com/security` and `resend.com/enterprise` both now list HIPAA as **"In progress"** alongside completed SOC 2 and GDPR, and no HIPAA/BAA article exists in their knowledge base. No BAA is available from Resend today, so the practical blocker stands — but "never" and "in progress" are different facts, and Resend must be asked directly for a date. The four unresearched vendors (Anthropic, Google Calendar, Twilio, Retell's model provider) are now resolved in that doc, along with four email providers that will sign, two that will not, and the repo's real migration surface (19 client constructions, 27 send sites, no wrapper).
+
 **Decision (Chris, 2026-09-18): the Resend/HIPAA problem goes to a separate session with Chris. Nothing is being built here.**
 
 Checked 2026-09-18 against each vendor's **own pages**. "Not stated" means the official page was fetched and does not say; I have not filled gaps from third-party blogs. **This is not legal advice; Chris is taking it to a lawyer.**
