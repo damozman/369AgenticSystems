@@ -1,5 +1,34 @@
-# Master Services Agreement & Statement of Work
+# Master Services Agreement & Statement of Work — DENTAL (FROZEN, DO NOT SEND)
 **369 Agentic Systems**
+
+> # ⛔ DO NOT SEND THIS DOCUMENT TO ANYONE.
+>
+> Frozen 2026-09-18 (Cowork, Opus) at Chris's direction. Kept in the repo so the work is not
+> lost, not because it is usable. **For a live client, use `docs/sales-ops/msa-sow-general.md`.**
+>
+> **Why it is frozen — four independent reasons, any one of which is disqualifying:**
+>
+> 1. **It promises an integration that has never existed in working form.** The SOW commits to
+>    "Integrate with Client's Dentrix system (patient record access)" and "Real-time Dentrix
+>    patient record lookup on each incoming email", and asks the client to "Provide Dentrix API
+>    credentials within 3 business days of signing". `lib/integrations/dentrix.ts` exists but
+>    `DENTRIX_API_URL` / `DENTRIX_API_KEY` have never been configured.
+> 2. **It accepts HIPAA obligations the stack cannot meet.** §6 commits to accessing the client's
+>    Dentrix system; §7 accepts Business Associate status and offers "a formal Business Associate
+>    Agreement (BAA) ... upon request". Meanwhile the SOW routes "Response delivery via Resend" —
+>    and Resend states it "is not HIPAA compliant and cannot sign a Business Associate Agreement".
+>    See `docs/EMAIL-BAA-DECISION-2026-09-18.md`.
+> 3. **It describes a different product from the one that is built.** This template sells an email
+>    drafting service with a human approval dashboard. The live product is a voice AI receptionist
+>    that answers calls, books appointments and captures leads. The two are not the same offering.
+> 4. **Its prices do not exist.** $3,000 setup + $1,500/month. `lib/tier-config.ts` is the single
+>    source of truth: $400 / $600 / $750 per month and `SETUP_FEE = 0`.
+>
+> **Unfreezing requires all four fixed, plus an attorney's review of §6 and §7.** Removing a claim
+> never needs a lawyer; making one does. Dental is waitlist-only across the entire site and
+> roadmap — this document is the only place in the business that sold it as available.
+
+---
 
 ---
 
