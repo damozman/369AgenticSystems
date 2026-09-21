@@ -272,12 +272,16 @@ ever disagree, the code is right and this document is stale.*
 - Priority onboarding & dedicated support
 - Live Call Transfer — routes urgent calls to your phone in real time
 
-> **⚠️ LIVE CALL TRANSFER — DO NOT LIST UNTIL PROVISIONING IS FIXED.**
-> Verified working on a live test call 2026-09-18: warm handoff connected, and an unanswered
-> transfer fell back to the receptionist to take details after 30 seconds. **However, a client who
-> upgrades to Elite after signup does not receive the tool** — provisioning only attaches it at
-> purchase. Until that is fixed, this line is true for new Elite signups and false for upgrades.
-> Delete this bullet, or fix provisioning first. Copy and capability ship together.
+> **Live Call Transfer — cleared for sale 2026-09-20.** Proven three ways: Chris's live test call
+> on 2026-09-18 (warm handoff connected; an unanswered transfer fell back to the receptionist
+> after 30 seconds), unit tests over the attach/remove/block decision, and
+> `scripts/verify-transfer-tool-sync.mjs`, which exercises the write path against real Retell.
+> The upgrade gap is closed (PR #55): a tier change now attaches the tool to an existing client,
+> a downgrade removes it, and an Elite client with no forwarding number on file is **blocked and
+> flagged**, never pointed at a guessed number.
+>
+> **The one condition to state on a sales call:** live transfer needs the Client's forwarding
+> number. Until it is on file the feature is inactive — see "Client Responsibilities" below.
 
 **5. Not Included**
 - Outbound sales calling or cold calling

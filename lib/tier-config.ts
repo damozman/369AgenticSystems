@@ -50,11 +50,11 @@ export const TIERS: Tier[] = [
   {
     name:        'Elite',
     price:       750,
-    description: 'Full AI team: receptionist + follow-up + priority support. Elite becomes seamless live handoff once Live Call Transfer ships.',
+    description: 'Full AI team: receptionist + follow-up + priority support. Urgent calls transfer live to your phone, with a private briefing before you pick up.',
     agents:      ['receptionist', 'followup', 'dashboard'],
     features: [
       { label: 'Everything in Pro, plus:', isSection: true },
-      { label: 'Live Call Transfer — routes urgent calls to your phone in real time', comingSoon: true },
+      { label: 'Live Call Transfer — routes urgent calls to your phone in real time' },
       { label: 'Call recording + searchable transcript archive' },
       { label: 'Priority onboarding & dedicated support' },
     ],
