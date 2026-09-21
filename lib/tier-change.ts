@@ -26,12 +26,6 @@ export interface TierChangeInput {
   stripeSubscriptionId: string
   stripeCustomerId?: string | null
   tier: TierName
-  /**
-   * The phone on Stripe's customer record. Used ONLY to backfill a client who has no
-   * `owner_phone` — every signup before 2026-09-18 discarded the number for non-Elite tiers,
-   * and those are precisely the clients who later upgrade.
-   */
-  fallbackPhone?: string | null
 }
 
 export interface TierChangeResult {
@@ -40,7 +34,6 @@ export interface TierChangeResult {
   newTier: string
   /** True when the stored tier actually moved. False on a redelivery or an unrelated update. */
   tierChanged: boolean
-  phoneBackfilled: boolean
   transfer: TransferSyncResult | null
   /** Something a person has to look at: no client matched, a failed write, or a blocked transfer. */
   needsAttention: boolean
@@ -50,16 +43,16 @@ export interface TierChangeResult {
 export async function applyTierChange(input: TierChangeInput): Promise<TierChangeResult> {
   const base = {
     clientDomain: null, previousTier: null, newTier: input.tier,
-    tierChanged: false, phoneBackfilled: false, transfer: null,
+    tierChanged: false, transfer: null,
   }
 
   // Match on the subscription id first. Fall back to the customer id, because a client onboarded
   // before stripe_subscription_id was stored has only the customer — Northside is exactly this.
-  let row: { client_domain: string; tier: string | null; owner_phone: string | null } | null = null
+  let row: { client_domain: string; tier: string | null } | null = null
 
   const bySubscription = await supabase
     .from('agent_subscriptions')
-    .select('client_domain, tier, owner_phone')
+    .select('client_domain, tier')
     .eq('stripe_subscription_id', input.stripeSubscriptionId)
     .maybeSingle()
 
@@ -71,7 +64,7 @@ export async function applyTierChange(input: TierChangeInput): Promise<TierChang
   if (!row && input.stripeCustomerId) {
     const byCustomer = await supabase
       .from('agent_subscriptions')
-      .select('client_domain, tier, owner_phone')
+      .select('client_domain, tier')
       .eq('stripe_customer_id', input.stripeCustomerId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -98,22 +91,6 @@ export async function applyTierChange(input: TierChangeInput): Promise<TierChang
   const previousTier = row.tier
   const tierChanged = previousTier !== input.tier
 
-  // Backfill the forwarding number before the transfer sync runs, so an upgrade whose number we
-  // once discarded can still be completed in this same delivery.
-  let phoneBackfilled = false
-  if (!row.owner_phone && input.fallbackPhone) {
-    const { error } = await supabase
-      .from('agent_subscriptions')
-      .update({ owner_phone: input.fallbackPhone })
-      .eq('client_domain', clientDomain)
-
-    if (error) console.error(`[TIER-CHANGE] ${clientDomain}: could not backfill owner_phone:`, error.message)
-    else {
-      phoneBackfilled = true
-      console.log(`[TIER-CHANGE] ${clientDomain}: backfilled owner_phone from the Stripe customer record.`)
-    }
-  }
-
   if (tierChanged) {
     const { error } = await supabase
       .from('agent_subscriptions')
@@ -124,7 +101,7 @@ export async function applyTierChange(input: TierChangeInput): Promise<TierChang
       // The tier drives billing and feature gating, so a failed write is worth a retry from
       // Stripe. The caller turns this into a non-2xx.
       return {
-        ...base, clientDomain, previousTier, tierChanged: false, phoneBackfilled,
+        ...base, clientDomain, previousTier, tierChanged: false,
         needsAttention: true,
         reason: `Could not write tier ${input.tier} for ${clientDomain}: ${error.message}`,
       }
@@ -137,7 +114,7 @@ export async function applyTierChange(input: TierChangeInput): Promise<TierChang
   const transfer = await syncTransferToolForClient(clientDomain)
 
   return {
-    clientDomain, previousTier, newTier: input.tier, tierChanged, phoneBackfilled, transfer,
+    clientDomain, previousTier, newTier: input.tier, tierChanged, transfer,
     needsAttention: transfer.needsAttention,
     reason: tierChanged
       ? `Tier ${previousTier ?? 'unset'} → ${input.tier}. Transfer tool: ${transfer.action} — ${transfer.reason}`

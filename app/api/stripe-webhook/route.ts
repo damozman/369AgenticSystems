@@ -61,23 +61,18 @@ async function handleSubscriptionUpdated(event: Stripe.Event, stripe: Stripe): P
     return NextResponse.json({ received: true, applied: false })
   }
 
-  // Only read back the customer when we might need a number we never stored. Every signup before
-  // 2026-09-18 discarded the phone for non-Elite tiers, and those are exactly the upgraders.
-  let fallbackPhone: string | null = null
-  if (resolution.tier === 'Elite' && customerId) {
-    try {
-      const customer = await stripe.customers.retrieve(customerId)
-      if (!customer.deleted) fallbackPhone = customer.phone ?? null
-    } catch (e) {
-      console.warn('[STRIPE WEBHOOK] Could not read the Stripe customer for a phone fallback:', e)
-    }
-  }
-
+  // The Stripe customer's phone is deliberately NOT read here.
+  //
+  // It is a billing contact, captured in a purchase that did not include live call transfer, and
+  // editable by the client in the billing portal since. Making it the destination of a warm
+  // transfer would bridge a real customer to whoever answers it. Chris's call, 2026-09-20: the
+  // forwarding number is collected deliberately, never inferred — the MSA already says the client
+  // provides it. With no owner_phone on file the tier still applies, the tool is refused, and the
+  // needsAttention alert below names the repair command.
   const result = await applyTierChange({
     stripeSubscriptionId: subscription.id,
     stripeCustomerId: customerId,
     tier: resolution.tier,
-    fallbackPhone,
   })
 
   // A failed tier write is the one case worth a non-2xx: the tier drives billing and feature
