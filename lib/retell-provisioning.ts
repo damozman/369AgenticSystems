@@ -3,6 +3,7 @@
  */
 
 import { Retell } from 'retell-sdk'
+import { buildTransferTool, looksDialable } from '@/lib/retell-transfer-tool'
 
 const RETELL_API_KEY = process.env.RETELL_API_KEY || ''
 
@@ -58,33 +59,17 @@ async function cloneAgentLlm(templateLlmId: string, businessName: string, ownerP
 
   newLlmConfig.begin_message = `Thank you for calling ${businessName}, this is Ava. How can I help you today?`
 
-  // Elite: live call transfer. This is a tool on the LLM's general_tools, not
-  // an agent-level field — confirmed by reproducing a real call where the
-  // agent had no way to actually transfer and just recited the owner's phone
-  // number back as text instead. The `transfer_phone_number` field this used
-  // to set doesn't exist anywhere in the real retell-sdk Agent type.
-  if (ownerPhone) {
+  // Elite: live call transfer. The tool is defined once, in lib/retell-transfer-tool.ts, because
+  // a tier change has to attach exactly the same thing later — see syncTransferToolForClient. Two
+  // copies of this configuration would drift, and the difference would only ever show up on a
+  // real call to a real customer.
+  if (ownerPhone && looksDialable(ownerPhone)) {
     newLlmConfig.general_tools = [
       ...(newLlmConfig.general_tools || []),
-      {
-        type: 'transfer_call',
-        name: 'transfer_to_owner',
-        description: 'Transfer the caller to the business owner when they explicitly ask to speak with a real person, describe a genuine emergency, or have a situation too complex to handle over the phone. Let the caller know you\'re connecting them before transferring.',
-        transfer_destination: { type: 'predefined', number: ownerPhone },
-        // Warm transfer with a private handoff: the AI briefs the owner
-        // privately (e.g. "I have Chris on the line with an active leak")
-        // before connecting the caller — the owner hears context, the caller
-        // doesn't hear the AI talking about them.
-        transfer_option: {
-          type: 'warm_transfer',
-          transfer_ring_duration_ms: 30000,
-          private_handoff_option: {
-            type: 'prompt',
-            prompt: 'Give a brief, natural one-sentence heads-up to whoever answers, based on the conversation so far — caller\'s first name and the core issue. Example: "I have Chris on the line with an active roof leak." Keep it under 10 seconds, then hand off.',
-          },
-        },
-      },
+      buildTransferTool(ownerPhone),
     ]
+  } else if (ownerPhone) {
+    console.warn(`[RETELL] Owner phone "${ownerPhone}" is not dialable — provisioning WITHOUT live transfer rather than pointing it at an unusable number.`)
   }
 
   const newLlm = await client.llm.create(newLlmConfig)

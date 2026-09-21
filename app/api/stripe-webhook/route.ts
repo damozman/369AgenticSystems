@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
 import { provisionClient } from '@/lib/onboard-client'
-import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue, decideProvisioning } from '@/lib/stripe-config'
+import { STRIPE_PRICE_ID_TO_TIER, STRIPE_CUSTOM_FIELD_KEYS, customFieldValue, decideProvisioning, tierFromSubscriptionItems } from '@/lib/stripe-config'
+import { applyTierChange } from '@/lib/tier-change'
 import { escapeHtml } from '@/lib/security/sanitize'
 import { resendFrom } from '@/lib/email-from'
 
@@ -29,6 +30,89 @@ async function alertOwner(subject: string, html: string): Promise<void> {
   }
 }
 
+/**
+ * A plan change — the only way an existing client's tier ever moves.
+ *
+ * Stripe's billing portal changes a subscription in place; it never creates a checkout session, so
+ * before this existed an upgrade reached nothing. The client was billed the new price while our
+ * database kept the old tier, and Elite's Live Call Transfer — attached only at purchase time —
+ * was never attached at all.
+ *
+ * `customer.subscription.updated` also fires for renewals, payment-method changes and cancel-at-
+ * period-end toggles. Rather than guess from `previous_attributes`, this resolves the tier the
+ * subscription is on *now* and converges to it, which is idempotent under Stripe's retries.
+ */
+async function handleSubscriptionUpdated(event: Stripe.Event, stripe: Stripe): Promise<NextResponse> {
+  const subscription = event.data.object as Stripe.Subscription
+  const customerId = typeof subscription.customer === 'string' ? subscription.customer : undefined
+
+  const resolution = tierFromSubscriptionItems(subscription.items?.data)
+  if (!resolution.tier) {
+    // Never guess a tier. Defaulting here would silently re-grade a paying client — including
+    // stripping Elite from someone who still pays for it.
+    console.error('[STRIPE WEBHOOK] Could not resolve tier for subscription', subscription.id, '—', resolution.reason)
+    await alertOwner(
+      `⚠️ Subscription changed but the tier could not be resolved — ${subscription.id}`,
+      `<p>A Stripe subscription was updated and <strong>no tier change was applied</strong>. If this was an upgrade, the client is being billed for something they have not been given.</p>
+       <p><strong>Reason:</strong> ${escapeHtml(resolution.reason)}</p>
+       <p><strong>Subscription:</strong> ${escapeHtml(subscription.id)}<br>
+       <strong>Customer:</strong> ${escapeHtml(customerId ?? 'unknown')}</p>`
+    )
+    return NextResponse.json({ received: true, applied: false })
+  }
+
+  // The Stripe customer's phone is deliberately NOT read here.
+  //
+  // It is a billing contact, captured in a purchase that did not include live call transfer, and
+  // editable by the client in the billing portal since. Making it the destination of a warm
+  // transfer would bridge a real customer to whoever answers it. Chris's call, 2026-09-20: the
+  // forwarding number is collected deliberately, never inferred — the MSA already says the client
+  // provides it. With no owner_phone on file the tier still applies, the tool is refused, and the
+  // needsAttention alert below names the repair command.
+  const result = await applyTierChange({
+    stripeSubscriptionId: subscription.id,
+    stripeCustomerId: customerId,
+    tier: resolution.tier,
+  })
+
+  // A failed tier write is the one case worth a non-2xx: the tier drives billing and feature
+  // gating, and Stripe's retry is the cheapest way to converge. Everything else has already
+  // written the tier, so retrying would not improve it — those alert and return 200.
+  if (!result.clientDomain || (result.needsAttention && !result.transfer)) {
+    await alertOwner(
+      `🚨 Subscription changed but was NOT applied — ${subscription.id}`,
+      `<p>A Stripe subscription moved to <strong>${escapeHtml(resolution.tier)}</strong> and the change could not be applied.</p>
+       <p><strong>Reason:</strong> ${escapeHtml(result.reason)}</p>
+       <p><strong>Subscription:</strong> ${escapeHtml(subscription.id)}<br>
+       <strong>Customer:</strong> ${escapeHtml(customerId ?? 'unknown')}</p>`
+    )
+    return NextResponse.json({ error: 'Tier change not applied', reason: result.reason }, { status: 500 })
+  }
+
+  if (result.needsAttention) {
+    // The tier is correct; the agent is not. Most often: Elite with no forwarding number on file,
+    // so there is nothing to transfer to. Silence here would be a tier that promises live transfer
+    // and an agent that cannot do it.
+    await alertOwner(
+      `⚠️ ${result.clientDomain} is now ${resolution.tier}, but Live Call Transfer is not active`,
+      `<p>The tier change was applied. <strong>The transfer tool was not.</strong></p>
+       <p><strong>Reason:</strong> ${escapeHtml(result.transfer?.reason ?? result.reason)}</p>
+       <p><strong>Client:</strong> ${escapeHtml(result.clientDomain)}<br>
+       <strong>Tier:</strong> ${escapeHtml(result.previousTier ?? 'unset')} → ${escapeHtml(result.newTier)}</p>
+       <p>To fix: put the client's forwarding number in <code>agent_subscriptions.owner_phone</code>, then run
+       <code>node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/retell/sync-transfer-tool.mjs ${escapeHtml(result.clientDomain)} --apply</code>.</p>`
+    )
+  }
+
+  console.log(`[STRIPE WEBHOOK] Subscription ${subscription.id}: ${result.reason}`)
+  return NextResponse.json({
+    received: true,
+    applied: true,
+    tierChanged: result.tierChanged,
+    transfer: result.transfer?.action ?? null,
+  })
+}
+
 export async function POST(request: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
     console.error('[STRIPE WEBHOOK] STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET not configured')
@@ -45,6 +129,10 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error('[STRIPE WEBHOOK] Signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+  }
+
+  if (event.type === 'customer.subscription.updated') {
+    return handleSubscriptionUpdated(event, stripe)
   }
 
   if (event.type !== 'checkout.session.completed') {
