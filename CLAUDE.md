@@ -1193,6 +1193,14 @@ node --env-file=.env.local scripts/verify-zero-dollar-checkout.mjs
                                          number and writes to PRODUCTION Supabase.
 node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-provisioning-idempotency.mjs
                                          duplicate-delivery guard; BUYS NOTHING by design
+node --env-file=.env.local --import ./scripts/test-resolver.mjs scripts/verify-transfer-tool-sync.mjs
+                                         Elite live-call-transfer sync, end to end against REAL
+                                         Retell: attach on upgrade, no duplicate on redelivery,
+                                         re-point on a changed number, remove on downgrade, and
+                                         BLOCKED (never attached) with no number on file. Creates
+                                         a throwaway agent + LLM and deletes them; never calls
+                                         phoneNumber.create, so it BUYS NOTHING. Restores the
+                                         review-sandbox row in a finally block.
 node --env-file=.env.local scripts/cleanup-zero-dollar-test.mjs
                                          releases that number + agent + LLM and deletes the rows;
                                          dry run, --apply to delete. Refuses to touch Northside.
