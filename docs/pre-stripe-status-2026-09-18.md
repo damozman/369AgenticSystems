@@ -22,7 +22,7 @@ PR #51 merged to `master` (`3c3b715`) and is serving on 369agenticsystems.com. V
 - Voice: every tier says **"Natural-sounding voice"** (no "premium", no "featured upgrade" — every agent uses one standard platform voice); unused `retellConfig` removed; retail-value fields/helpers removed from `tier-config.ts`
 - Custom BI bullet + $49 badge + the "bundled Retell features" callout removed; analytics line on all tiers
 - Starter: "Weekly summary email" (stays weekly — daily is not being built); monthly ROI report removed from Starter, FAQ, agent pages, homepage, 12 landing pages
-- Live Call Transfer rendered **COMING SOON** — **HELD: copy stays as is until Chris's own test call, see Priority 0**
+- Live Call Transfer — **cleared and live on Elite 2026-09-20**; the COMING SOON marker is gone
 - Rex follow-up: phone-only leads no longer retry forever — check is now "no email AND SMS can't go out (unconfigured OR no consent)", pure + tested (`lib/rex-channel.ts`), and the step advances only once the owner alert is actually sent
 - `VerticalROICalculator.tsx`: dead retail-value total removed, **plus two false claims next to the Buy buttons**: "2 spots remaining this month" (invented scarcity, shown on all 12 verticals) and "One-time setup: $1,500" (`SETUP_FEE` is 0)
 - Welcome email feature list now derived from `tier-config` (it promised a Review Request Agent, daily summaries, "$25/$49 value, included free")
@@ -34,19 +34,11 @@ PR #51 merged to `master` (`3c3b715`) and is serving on 369agenticsystems.com. V
 - **Weekly digest: "Estimated revenue protected" tile removed** (it multiplied leads by an invented per-vertical `JOB_VALUE` table and a 30% rate). Counts only. `JOB_VALUE` and the `RECOVERY_RATE` import are gone from that route.
 - **"Chris responds within 2 hours" → "within one business day"** in the weekly digest and the `send-roi-report` prospect email (the only two places in code).
 
-## Priority 0 — Live Call Transfer (HELD — Chris is making the test call himself)
-Live probe (`scripts/retell/probe-transfer.mjs`, read-only, through each agent's own `response_engine`):
-- **1 of 12 agents has a `transfer_call` tool: Northside (the only Elite subscription).** `transfer_to_owner`, warm transfer, 30s ring, private handoff prompt, destination = its `owner_phone`.
-- The 9 vertical templates, the demo agent and the audit caller have none — by design: provisioning adds it at clone time, only when the purchase is Elite and a phone was given.
-- Real evidence: exactly **one** of Northside's 26 calls ended `call_transfer` (2026-07-14). Nothing since.
-- **Unproven since:** the fleet moved to `gemini-3.5-flash` (2026-08-21) and Northside became a rental agent. The tool is still present, but no call has exercised it on the current model/prompt.
-- So the changelog is right that it worked, and the first audit was wrong that it doesn't exist. The honest gap is: works per-client at provisioning, once verified, not re-verified, no routing rules (emergency / VIP / everyone-else), no path to add it to an existing client who upgrades.
-
 ## Still to do
-- **Chris:** the Live Call Transfer test call — Northside +1 (817) 612-6757, ask for a person, confirm the owner's phone rings. Then decide the copy. Nothing changes until then.
 - ROI report build — when Chris says go (Report 3). Nothing in the pricing copy may list it until it actually sends.
 
 ## Known, for later
+- **✅ Live Call Transfer is CLEARED AND LIVE ON ELITE (2026-09-20).** The pricing copy left COMING SOON: `tier-config.ts` states the capability in the present tense and `msa-sow-general.md` carries it with one condition — the client supplies a forwarding number or the feature stays inactive. The COMING SOON mechanism is kept but unused; every remaining "coming soon" in the codebase is Twilio/SMS, which genuinely is not configured.
 - **✅ The Elite upgrade path is MERGED (PR #55, `f0f0a1c`) and live, and its write path is now PROVEN.** `scripts/verify-transfer-tool-sync.mjs` ran 21 checks against real Retell on 2026-09-20: attach on upgrade, no duplicate tool on a redelivered event, re-point when the number changes, remove on downgrade, and **blocked — never attached — when no forwarding number is on file**. It created a throwaway agent + LLM and deleted them; Retell is back to 12 agents and 2 numbers, nothing was bought, and Northside's live transfer was never touched. Chris's rule holds in code: the forwarding number is collected deliberately, never inferred from the Stripe billing phone (guarded by `lib/tier-change.test.ts`).
 - **🔴 STRIPE GO-LIVE PREREQUISITE — `customer.subscription.updated` must be enabled on the webhook endpoint.** Without it this entire path never fires. Endpoint `we_1Trrqk3nqoZlRtPEan18MmjD` is subscribed to `checkout.session.completed` **only**, and is currently **disabled** (CLAUDE.md open item 8). A plan change made in Stripe's billing portal never creates a checkout session, so until that event is added and the endpoint is enabled, an upgrade to Elite reaches nothing: the tier stays stale, Elite transcript search keeps refusing the client, overage bills at their old rate, and Live Call Transfer is never attached. Enabling the event is a Stripe-dashboard action (Chris's — it is a vendor account). The handler that consumes it is on branch `fix/elite-upgrade-transfer-tool`, unmerged.
 - **`send-monthly-roi-reports` is deliberately unscheduled, not forgotten.** It uses invented per-vertical `JOB_VALUE` numbers and would email clients a dollar figure nobody measured. Adding it to `vercel.json` is the *last* step of the ROI build (Report 3), never before.

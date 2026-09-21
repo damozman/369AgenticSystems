@@ -51,23 +51,30 @@ gone; Rex no longer retries phone-only leads forever when SMS cannot go out; `/a
 requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMIUM_ADDONS` deleted;
 "within one business day" replaces "within 2 hours".
 
+**Live Call Transfer is LIVE on Elite as of 2026-09-20** — the copy left COMING SOON because the
+capability is real, proven three ways: Chris's test call 2026-09-18 (warm handoff connected; an
+unanswered transfer fell back to the receptionist after 30s), unit tests, and
+`scripts/verify-transfer-tool-sync.mjs` against real Retell (21 checks). PR #55 closed the upgrade
+gap: the tool was only ever attached at purchase, so a client who moved up to Elite never got the
+tier's headline feature. A tier change now attaches it, a downgrade removes it, and **an Elite
+client with no forwarding number on file is blocked and flagged — never pointed at a guessed
+number.** Chris's rule, 2026-09-20: the forwarding number is collected deliberately, never inferred
+from the Stripe billing phone, guarded by source assertions in `lib/tier-change.test.ts`.
+**It does not fire until `customer.subscription.updated` is enabled on the Stripe endpoint** —
+`we_1Trrqk3nqoZlRtPEan18MmjD` carries `checkout.session.completed` only and is disabled.
+
 **Open, in this order — none has a date:**
-1. **Chris's Live Call Transfer test call** (Northside +1 (817) 612-6757: ask for a person, confirm
-   the owner's phone rings). Only then decide the copy — it reads **COMING SOON** until he does.
-   Evidence so far: 1 of 12 agents carries the tool (Northside), one real transfer ever
-   (2026-07-14), not re-proven since the move to Gemini. Read-only probes:
-   `scripts/retell/probe-transfer.mjs`, `probe-transfer-calls.mjs`.
-2. **ROI report build — waiting for Chris's go.** Counts by default; a dollar line only when the
+1. **ROI report build — waiting for Chris's go.** Counts by default; a dollar line only when the
    client gave their own number, labelled as theirs. Needs a numeric, no-default questionnaire field
    (today's is a pre-selected band dropdown) and a migration Chris applies. The monthly cron stays
    unscheduled until last. Scope: Report 3 in the status doc.
-3. **A separate session with Chris: Elite design, and the Resend/HIPAA problem.** Resend states it
+2. **A separate session with Chris: Elite design, and the Resend/HIPAA problem.** Resend states it
    cannot sign a BAA, and every email flow goes through it, so dental cannot be served as built.
    Spanish, custom voice and multi-location are decided OUT.
-4. **Stripe: untouched, off-limits** until the copy matches the product.
-5. **Retell moves to credit-based billing on October 1** — auto-recharge must be on or agents stop
+3. **Stripe: untouched, off-limits** until the copy matches the product.
+4. **Retell moves to credit-based billing on October 1** — auto-recharge must be on or agents stop
    taking calls. Chris to set it in the Retell dashboard (detail in the status doc).
-6. Known, not fixed: the weekly digest counts "after-hours" in server time (UTC), not the
+5. Known, not fixed: the weekly digest counts "after-hours" in server time (UTC), not the
    business's; and it has no per-week idempotency.
    **The "Dentrix integration" claim is NOT one of these — it is already gone.** Re-derived
    2026-09-18 (Cowork, Opus): the sentence "Full HIPAA compliance + Dentrix integration" was
@@ -76,8 +83,8 @@ requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMI
    the live `/dental-leads/` page carries neither claim. `lib/integrations/dentrix.ts` and its
    caller `app/api/email-ingest/route.ts` still exist and still need `DENTRIX_API_URL`/
    `DENTRIX_API_KEY`, but nothing sold points at them.
-   **What is still unfixed is `docs/sales-ops/msa-sow-template.md`** — see item 8.
-7. **Confirm the `webhook-audit` cron ran on Retell's `/v2` path.** Retell ended support for the
+   **What is still unfixed is `docs/sales-ops/msa-sow-template.md`** — see item 7.
+6. **Confirm the `webhook-audit` cron ran on Retell's `/v2` path.** Retell ended support for the
    legacy `GET /list-*` endpoints on 2026-06-15; PR #53 (`d2580dc`, live) moved that cron and every
    script that lists Retell things onto `/v2` / `/v3` through `lib/retell-pagination.ts`, which throws
    on a bare array, an error body or a runaway cursor rather than returning a quietly wrong list.
@@ -89,7 +96,7 @@ requires `CRON_SECRET` and fails closed; "Full HIPAA compliance" copy and `PREMI
    broken; this was ahead of removal. Any new Retell list call must go through `collectPages` —
    calls default to a **50-item page**, so reading `.items` once truncates silently.
 
-8. **`docs/sales-ops/msa-sow-template.md` still contractually promises Dentrix — and PHI access.**
+7. **`docs/sales-ops/msa-sow-template.md` still contractually promises Dentrix — and PHI access.**
    Added 2026-09-18 (Cowork, Opus). This is the last live "Dentrix integration" claim anywhere, and
    it sits in the document a client would sign. The SOW commits to "Integrate with Client's Dentrix
    system (patient record access)", "Real-time Dentrix patient record lookup on each incoming
